@@ -1,0 +1,425 @@
+---
+title: "PEP Access"
+author: "Malavika Rajeev"
+date: "6/25/2018"
+output: html_document
+---
+```{r directory, include=FALSE}
+rm(list = ls())
+require("knitr")
+opts_knit$set(root.dir = "/Users/mrajeev/Dropbox/MadaPEP")
+```
+## Data
+
+```{r setup, include=FALSE}
+## libraries
+# for gis 
+library(knitr)
+library(raster)
+library(maptools)
+library(maps)
+library(GISTools)
+library(rgdal)
+library(sp)
+library(rgdal)
+library(gdistance)
+# everything else
+library(lubridate)
+library(reshape2)
+library(tidyverse)
+library(rjags)
+library(coda)
+library(lattice)
+# pkgs <- c("lattice", "coda")
+# require(pkgs, character.only = TRUE)
+
+## gis data {NEED TO FIGURE OUT PROJECTIONS!}
+p4s <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+mada.district <- readOGR("data/MadaGIS/MadaPops.shp", p4s = p4s)
+ctar.gps <- read.csv("data/ctar_gps.csv")
+ctar.gps <- SpatialPoints(cbind(ctar.gps$LONGITUDE, ctar.gps$LATITUDE),
+                          proj4string = crs(mada.district))
+# ## getting travel time layer
+mada.access <- raster("output/study.area.accessibility.tif")
+mada.access <- crop(mada.access, mada.district)
+plot(mada.access/60, breaks = c(0, 1, 2, 3, 4, 5, 6, 8, 16, max(values(mada.access)/60, na.rm = TRUE)),
+     col = c("#fff7f3", "#fde0dd", "#fcc5c0", "#fa9fb5", "#f768a1", "#dd3497", "#ae017e", "#7a0177", "#49006a"))
+     #col = colorRampPalette(c("navyblue", "mediumturquoise", "orange", "red"))(11), axes = FALSE, box = FALSE)
+points(ctar.gps, pch = 18, col = "grey", cex = 1)
+
+## getting which districts have a ctar
+mada.district$ctar.in <- ifelse(is.na(match(mada.district$district, ctar.gps$District)), 0, 1)
+mada.district$ctar.in[mada.district$district %in% c('Manakara Atsimo', 'Toliary-I', 'Taolagnaro',
+                                                    'Nosy-Be', "Ambovombe-Androy", "Arivonimamo")] <- 1
+mada.district$ctar.in[mada.district$district %in% c('Miarinarivo')] <- 0
+## should equal 31
+sum(mada.district$ctar.in)
+## check to see if it worked
+plot(mada.district, col = ifelse(mada.district$ctar.in == 1, "grey", "white"))
+points(ctar.gps, col = "blue")
+
+## getting districts which are "covered" by a ctar
+mada.district$ctar.close <- poly.counts(ctar.gps, mada.district)
+mada.district$ctar.close[mada.district$district %in% c("Antsiranana II", "Antsiranana I", "Mahajanga II", 
+                                                    "Mahajanga I", "Maintirano", "Toliary-II", "Toliary-I",
+                                                    "Taolagnaro", "Isandra", "Ambohimahasoa", 
+                                                    "Lalangina", "Vohibato", "Mankara", "Antsirabe II",
+                                                    "Antsirabe I", "Fianarantsoa I", "Fianarantsoa II",
+                                                    "Toamasina I", "Toamasina II", "Manakara Atsimo")] <- 1
+mada.district$ctar.close[mada.district$reg_code == 11] <- 1
+# ## check to see if it worked
+# plot(mada.district, col = ifelse(mada.district$ctar.close == 1, "grey", "white"))
+# points(ctar.gps, col = "blue")
+
+## mid.pops
+mada.district$midpops <- (mada.district$pop2015adj + mada.district$pop2020adj)/2
+
+## ctar data: getting exposure matrix (district by year)
+ctar.data <- read.csv("data/SaisieRage_DATA_2018-06-28_0956.csv")
+ctar.data %>% 
+  filter(type != "contact") %>% # exclude contacts
+  mutate_at(vars(starts_with("date")), funs(mdy(.))) %>% # format dates
+  group_by(year = year(date_de_consultation), district) %>% # group by year and district
+  summarize(n = n()) -> exposures # get count of exposures
+## heatmap by year
+ggplot(exposures, aes(x = year, y = district, fill = n)) +
+  geom_tile()
+
+## merge district shapefile with the summarized matrix!
+exposure.mat <- dcast(exposures, district ~ year)
+colnames(exposure.mat) <- c("district", "year2013", "year2014", "year2015", "year2016", "year2017", "year2018")
+mada.district@data <- merge(mada.district@data, exposure.mat, by.x = "mdg_dis_co", by.y = "district", all.x = TRUE)
+vars <- c("mdg_dis_co", "district", "midpops", "study_area", "ctar.in",
+         "ctar.close", "year2014", "year2015", "year2016", "year2017")
+
+mada.district@data %>%
+  select(!!vars) %>%
+  mutate_at(vars(starts_with("year")), funs(replace(., is.na(.), 0))) %>%
+  mutate(avg.bites100k = (select(., starts_with("year")) %>% rowSums())/4/(midpops/1e5)) -> dist.data
+dist.data %>% 
+  filter(district)
+## subset out Analamanga (IPM) + Haute Matsiatra (Fianarantsoa)
+
+ctar.data %>%
+  group_by(id_ctar) %>%
+  summarize(n = n()) -> ctar.counts
+
+## plotting average bite incidence
+pal <- colorRampPalette(c('white','blue'))
+mada.district$col <- pal(10)[as.numeric(cut(mada.district$avg.bites100k, 
+                                            c(0, 1, 10, 50, 100, 150, 200, 250, 300, 350)))]
+
+plot(mada.district, col = mada.district$col)
+points(ctar.gps, col = "grey 50", pch = 20)
+
+## ggplot
+gg.mada <- fortify(mada.district, region = "mdg_dis_co")
+madamerge <- merge (gg.mada, mada.district@data, by.x = "id", by.y = "mdg_dis_co")
+madamerge <- madamerge[order(madamerge$order),]
+theme_map <- function(...) {
+  theme_minimal() +
+  theme(
+    axis.line = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    # panel.grid.minor = element_line(color = "#ebebe5", size = 0.2),
+    panel.grid.major = element_line(color = "#ebebe5", size = 0.2),
+    panel.grid.minor = element_blank(),
+    plot.background = element_rect(fill = "#f5f5f2", color = NA), 
+    panel.background = element_rect(fill = "#f5f5f2", color = NA), 
+    legend.background = element_rect(fill = "#f5f5f2", color = NA),
+    panel.border = element_blank(),
+    ...
+  )
+}
+ctar.coords <- as.data.frame(coordinates(ctar.gps))
+madamerge$avg.bites100k[madamerge$avg.bites100k == 0] <- NA
+ggplot () + geom_polygon (data = madamerge, aes(x=long, y=lat, group=group, fill = avg.bites100k), color="grey50", size=0.25) + 
+  coord_equal() +
+  geom_point(data = ctar.coords, aes(x = coords.x1, y = coords.x2), col = "darkred") +
+  scale_fill_gradient(low ="white", high="red", space = "Lab", na.value = "grey") + 
+  ggtitle ("Map of total visits by district") +
+  theme_map()
+```
+
+## Rationale
+Access to PEP is geographically limited in Madagascar, with PEP available in only 31 clinics across the country. Therefore the burden of human rabies deaths is likely heterogeneous spatially. We are  limited by the fact that the only available data is on reported animal bites (i.e. there are no data available on confirmed/probable rabies exposures or on unreported bites of any kind other than from one district over a period of 16 months, Rajeev et al. 2018). 
+
+Standard decision tree models would estimate rabies exposure incidence (*R*) as:
+*R = (B x p_rabid)/p_report*
+and the burden of human rabies deaths *(D)* as:
+*D = R x (1 - p_report) x p_death*
+where *B* is the total reported bites, *p_rabid* is the probability that a reported animal bite is a genuine rabies exposure, *p_report* is the probability that a rabies exposure is reported, and *p_death* is the probability of death given a rabies exposure. 
+
+Applying this framework to our data on reported bites at the district level, we see that estimated rabies incidence far exceeds expected incidence in areas with high incidence of reported bites and is lower than expected for areas with little data/low incidence of reported bites (Figure 1). 
+
+Aside for Jess: this is the same issue if we fit bites as a function of travel times + pop (lower reported bites in )
+```{r standard decision tree }
+## adding in expected exposures annually
+# rabies incidence per 100kdogs/# of human exps per rabid dog/human:dog ratio = inc per 100k persons
+exps.per100k.high <- 1000*0.39/5 
+exps.per100k.low <- 600*0.39/25
+
+p_rabid <- c(0.05, 0.1, 0.2, 0.4, 0.8)
+p_report<- c(0.95, 0.8, 0.4, 0.2, 0.1)
+cols <- colorRampPalette(c("pink", "darkred"))(5)
+
+ordered.bites <- dist.data$avg.bites100k[order(dist.data$study_area, decreasing = TRUE)]
+
+plot(ordered.bites*0.6/0.85, 1:nrow(dist.data), bty = "l", pch = 20, col = "darkred")
+points(ordered.bites*0.2/0.85, 1:nrow(dist.data),
+       pch = 20, col = "darkred")
+segments(y0 = 1:nrow(dist.data), x0 = ordered.bites*0.2/0.85,
+         y1 = 1:nrow(dist.data),
+         x1 = ordered.bites*0.6/0.85, col = "darkred")
+abline(v = c(exps.per100k.high, exps.per100k.low), col = c("red", "red"), lty = 2)
+```
+
+
+## Empirical estimates of p_report for each location across a range of scenarios
+We can calculate p_report empirically assuming incidence and p_rabid is uniform:
+*p_report = (B x p_rabid)/R*
+
+We constrain p_rabid so that it p_report cannot exceed 1 (i.e. *p_rabid_max = R/B* which would mean that all rabies exposures are reported). In general, as p_rabid gets higher within it's constrained range, we get higher estimates of reporting (Figure 2). 
+
+```{r empirical p_reports}
+p_rabid_high <- exps.per100k.high/dist.data$avg.bites100k
+p_rabid_high[p_rabid_high >= 1] <- 1
+p_rabid_low <- exps.per100k.low/dist.data$avg.bites100k
+p_rabid_low[p_rabid_low >= 1] <- 1
+
+empirical.reporting.fixed <- function (bites, p_rabid = 0.2, expected) {
+    p_rabid_max = expected/bites
+    p_rabid_max[p_rabid_max >= p_rabid] <- p_rabid
+    p_report <- bites*p_rabid_max/expected
+    return(p_report)
+}
+
+plot( 1:length(p_rabid_high), empirical.reporting.fixed(bites =ordered.bites, p_rabid = 0.05, 
+                          expected = exps.per100k.low), bty = "l", col = "red", pch = 20, ylim = c(0, 1))
+points(1:length(p_rabid_high), empirical.reporting.fixed(bites =ordered.bites, p_rabid = 0.95, 
+                          expected = exps.per100k.low), col = "red", pch = 20)
+segments(x0 = 1:length(p_rabid_high), y0 = empirical.reporting.fixed(bites =ordered.bites, 
+               p_rabid = 0.05, expected = exps.per100k.low), x1 = 1:length(p_rabid_high),
+         y1 = empirical.reporting.fixed(bites =ordered.bites, p_rabid = 0.95, 
+                          expected = exps.per100k.low), col = "darkred")
+
+plot( 1:length(p_rabid_high), empirical.reporting.fixed(bites =ordered.bites, p_rabid = 0.05, 
+                          expected = exps.per100k.high), bty = "l", col = "red", pch = 20, ylim = c(0, 1))
+points(1:length(p_rabid_high), empirical.reporting.fixed(bites =ordered.bites, p_rabid = 0.95, 
+                          expected = exps.per100k.high), col = "red", pch = 20)
+segments(x0 = 1:length(p_rabid_high), y0 = empirical.reporting.fixed(bites =ordered.bites, 
+               p_rabid = 0.05, expected = exps.per100k.high), x1 = 1:length(p_rabid_high),
+         y1 = empirical.reporting.fixed(bites =ordered.bites, p_rabid = 0.95, 
+                          expected = exps.per100k.high), col = "darkred")
+
+plot(dist.data$study_area, empirical.reporting.fixed(bites =ordered.bites, p_rabid = 0.05, 
+                          expected = exps.per100k.low), bty = "l", col = "red", pch = 20, ylim = c(0, 1))
+```
+
+We generate high and low estimates of expected rabies incidence (*R*) using estimates from a recent study that estimated incidence of human exposures per 100,000 dogs in a no-vaccination scenario and given high and low estimates of human:dog ratios.
+
+## Models of reporting by travel time to clinic
+To generate more probable estimates of rabies burden given what we know about access to PEP in Maadagascar, we use assumptions of rabies exposure incidence and our data on reported bites to estimate *p_report*:
+*B = (R x p_report) + A*
+
+We then estimate a district/commune specific reporting rate (*p_report*) as a function of travel times to the nearest ARMC and the background incidence of non-rabid reported bites (*A*) as a function of population size.
+ 
+```{r Annual jags model with p_rabid + p_report estimated}
+## model
+tt.model <- "model {
+  # reported bites
+    for (j in 1:nlocs){
+        # Number of bites
+        rabid[j] ~ dpois(expected.mean[j])
+        reported[j] ~ dbinom(rho[j], rabid[j])
+        bites[j] ~ dpois(reported[j] + A[j])
+    }
+  
+  # spatial effects
+  for (g in 1:nlocs){
+    # Spatial random effect
+    loc_eff[g] ~ dnorm(0, tau_loc)
+    pop_eff[g] ~ dnorm(0, tau_pop)
+
+    # Reporting in place g
+    logit(rho[g]) <- B_tt*(1/ttimes[g]) + loc_eff[g]
+    
+    # Background avg in place g
+    log(A[g]) <- B_pop*pop[g] + pop_eff[g]
+  }
+
+  tau_loc <- 1/sd
+  tau_pop <- 1/sd.pop
+
+  # priors
+  B_tt ~ dnorm(0, 0.1)
+  sd ~ dunif(0, 100)
+  sd.pop ~ dunif(0, 100)
+  B_pop ~ dnorm(0, 0.1)
+  B_0 ~ dnorm(0, 0.1)
+}"
+```
+
+```{r Data and estimation}
+pop <- dist.data$midpops
+bites <- round(dist.data$avg.bites100k*dist.data$midpops/1e5)
+ttimes <- dist.data$study_area
+nlocs = length(bites)
+
+data <- list (bites = bites, pop = pop, 
+              expected.mean = exps.per100k.high*dist.data$midpops/1e5,
+              ttimes = ttimes, nlocs = nlocs)
+
+inits <- list(B_tt = rnorm(1, 0, 1e-6), sd = 0.1, sd.pop = 0.1,
+              B_pop = rnorm(1, 0, 1e-6))
+
+jags_mod <- jags.model(textConnection(tt.model), data = data, inits = inits, n.chains = 5, 
+                       n.adapt = 1000)
+
+params <- c("B_tt", "sd", "B_pop", "sd.pop")
+
+samps <- coda.samples(jags_mod, params, n.iter = 10000)
+burn.in <- 5000
+check <- summary(window(samps, start = burn.in))
+check
+par(mar = c(2, 2, 2, 2))
+plot(samps)
+# gelman.plot(samps)
+gelman.diag(samps)
+
+## parameter estimates
+par(mfrow = c(2, 2), mar = c(5, 5, 2,  2))
+plot(pop, rpois(length(bites), exp(check$statistics[,"Mean"]["B_pop"]*pop))
+      + rnorm(length(ttimes), mean = 0, sd = check$statistics[,"Mean"]["sd.pop"]), bty = "l")
+plot(ttimes, plogis(check$statistics[,"Mean"]["B_tt"]*(1/ttimes)), bty = "l")
+plot(ttimes, plogis(check$statistics[,"Mean"]["B_tt"]*(1/ttimes) 
+                    + rnorm(length(ttimes), mean = 0, sd = check$statistics[,"Mean"]["sd"])),
+     bty = "l")
+```
+
+```{r Moramanga commune data}
+exposure.mat <- read.csv("data/exposures_by_commune_Moramanga.csv", header = TRUE, row.names = 1)
+moramanga <- readOGR("data/MoramangaGIS/MoramangaPops.shp")
+ctar.gps <- read.csv("data/ctar_gps.csv")
+monthly.bites <-rowSums(exposure.mat)/ncol(exposure.mat)
+moramanga$commune.midpops <- (moramanga$pop2015adj + moramanga$pop2020adj)/2
+moramanga$monthly.bites <- monthly.bites[match(moramanga$commune, names(monthly.bites))]
+moramanga$monthly.incidence <- moramanga$monthly.bites/moramanga$commune.midpops*1e5
+# distance!
+
+## travel time layer
+travel.times <- raster("output/study.area.accessibility.tif")
+mora.access <- mask(travel.times, moramanga)
+mora.access <- crop(mora.access, moramanga)
+moramanga <- raster::extract(mora.access, moramanga, fun = mean, na.rm=TRUE, df = TRUE, sp = TRUE)
+moramanga$comm.long <- coordinates(moramanga)[,1]
+moramanga$comm.lat <- coordinates(moramanga)[,2]
+
+# plot it
+plot(mora.access/60,
+     breaks = c(0, 1, 2, 3, 4, 5, 6, 7,8, 16, max(values(mora.access)/60, na.rm = TRUE)),
+     col = c("#fff7f3", "#fde0dd", "#fcc5c0", "#fa9fb5", "#f768a1", "#dd3497", 
+             "#ae017e", "#7a0177", "#49006a"), axes = FALSE, box = FALSE)
+points(moramanga$comm.long[moramanga$commune == "Moramanga"], moramanga$comm.lat[moramanga$commune == "Moramanga"], pch = 18, col = "grey", cex = 2)
+
+## correlation checks (need to add in distance and proportion of pop within x km/hrs)
+cor(moramanga@data[,colnames(moramanga@data) %in% c("commune.midpops", "study.area.accessibility", "monthly.incidence")])
+splom(log(moramanga@data[,colnames(moramanga@data) %in% c("commune.midpops", "study.area.accessibility", "monthly.incidence")]), type=c('p','r'))
+
+## data
+mora.bites <- merge(moramanga@data, exposure.mat, by.x = "commune", by.y = "row.names")
+bites <- round(mora.bites$monthly.bites*12)
+ttimes <- mora.bites$study.area.accessibility/60
+pop <- mora.bites$commune.midpops
+nlocs <- length(bites)
+
+## empirical @ commune level
+ordered.bites <- bites[order(ttimes)]
+plot(1:length(ordered.bites), empirical.reporting.fixed(bites =ordered.bites, p_rabid = 0.05, 
+                          expected = exps.per100k.low), bty = "l", col = "red", pch = 20, ylim = c(0, 1))
+points(1:length(ordered.bites), empirical.reporting.fixed(bites =ordered.bites, p_rabid = 0.95, 
+                          expected = exps.per100k.low), col = "red", pch = 20)
+segments(x0 = 1:length(ordered.bites), y0 = empirical.reporting.fixed(bites =ordered.bites, 
+               p_rabid = 0.05, expected = exps.per100k.low), x1 = 1:length(ordered.bites),
+         y1 = empirical.reporting.fixed(bites =ordered.bites, p_rabid = 0.95, 
+                          expected = exps.per100k.low), col = "darkred")
+
+plot( 1:length(ordered.bites), empirical.reporting.fixed(bites =ordered.bites, p_rabid = 0.05, 
+                          expected = exps.per100k.high), bty = "l", col = "red", pch = 20, ylim = c(0, 1))
+points(1:length(ordered.bites), empirical.reporting.fixed(bites =ordered.bites, p_rabid = 0.95, 
+                          expected = exps.per100k.high), col = "red", pch = 20)
+segments(x0 = 1:length(ordered.bites), y0 = empirical.reporting.fixed(bites =ordered.bites, 
+               p_rabid = 0.05, expected = exps.per100k.high), x1 = 1:length(ordered.bites),
+         y1 = empirical.reporting.fixed(bites =ordered.bites, p_rabid = 0.95, 
+                          expected = exps.per100k.high), col = "darkred")
+
+data <- list (bites = bites, pop = pop, 
+              expected.mean = exps.per100k.low*pop/1e5,
+              ttimes = ttimes, nlocs = nlocs)
+
+inits <- list(B_tt = rnorm(1, 0, 1e-6), sd = 1, sd.pop = 1,
+              B_pop = rnorm(1, 0, 1e-6))
+
+jags_mod <- jags.model(textConnection(tt.model), data = data, inits = inits, n.chains = 5, 
+                       n.adapt = 1000)
+
+params <- c("B_tt", "sd", "B_pop", "sd.pop")
+
+samps <- coda.samples(jags_mod, params, n.iter = 10000)
+burn.in <- 5000
+check <- summary(window(samps, start = burn.in))
+check
+par(mar = c(2, 2, 2, 2))
+plot(samps)
+# gelman.plot(samps)
+gelman.diag(samps)
+
+## parameter estimates
+par(mfrow = c(2, 2), mar = c(5, 5, 2,  2))
+plot(pop, rpois(length(bites), exp(check$statistics[,"Mean"]["B_pop"]*pop))
+      + rnorm(length(ttimes), mean = 0, sd = check$statistics[,"Mean"]["sd.pop"]), bty = "l")
+plot(ttimes, plogis(check$statistics[,"Mean"]["B_tt"]*(1/ttimes)), bty = "l")
+plot(ttimes, plogis(check$statistics[,"Mean"]["B_tt"]*(1/ttimes) 
+                    + rnorm(length(ttimes), mean = 0, sd = check$statistics[,"Mean"]["sd"])),
+     bty = "l")
+```
+
+
+More  remote areas are also the areas with the lowest population size, which makes it difficult to distinguish decreases in the incidence of reported bites due to population size (i.e. if incidence increases with population size or alternatively if the dog population increases with population size) vs. access--**need some figure to show this!**. To generate the most conservative estimates of reporting and burden (i.e. highest reporting overall), we estimate a scaling factor for incidence with population size so that incidence in any given place cannot exceed or be less than our maximum and minimum estimates of rabies exposure incidence. 
+
+If this doesn't work then: max and min estimates of A for each R (low, high, low scaling, high scaling) and estimate p_report as function of travel time...& estimate p_report empirically for each place this way!
+
+### 1. p_report only
+#### Convergence and model diagnostics
+#### Estimates
+#### Predictive power
+
+### 2. p_report + A
+#### Convergence and model diagnostics
+#### Estimates
+#### Predictive power
+
+### 3. p_report + A + scaling of R
+#### Convergence and model diagnostics
+#### Estimates
+#### Predictive power
+
+### Other factors + next steps
+#### Setting stronger priors (scaling factors for reporting and background bites)
+#### Clinic effect
+#### Accounting for underreporters @ clinic level
+#### To commune level
+#### A better metric of travel time (i.e. proportion of population living w/in x hours)
+
+## Estimates of burden from model outputs
+### 1. Status quo
+**Need to account for missing data and best case scenario of dose usage**
+### 2. Access expanded to all districts
+### 3. Access expanded to all CSB IIs
+
+
+
