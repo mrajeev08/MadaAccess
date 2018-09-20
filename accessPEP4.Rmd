@@ -1,0 +1,508 @@
+---
+title: "Estimating Access to Rabies Post-Exposure Prophylaxis in Madagascar"
+author: "Malavika Rajeev"
+date: "July 18th, 2018"
+output:
+  word_document: default
+  pdf_document:
+    includes:
+      in_header: mystyle.sty
+  html_document: default
+css: style.css
+---
+
+```{r directory, echo=FALSE, message = FALSE, results = 'hide'}
+rm(list = ls())
+require("knitr")
+opts_knit$set(root.dir = "/Users/mrajeev/Dropbox/MadaPEP")
+knitr::opts_chunk$set(fig.pos = 'h')
+```
+#### Canine rabies
+* Annually, an estimated 60,000 people die from canine rabies.
+* These deaths are preventable if people receive prompt post-exposure prophylaxis
+* In places where rabies is endemic, there are significant barriers to accessing PEP (i.e. socioeconomics, availability)
+* In Madagascar, rabies is endemic, however surveillance is poor and little data is available. There are 31 clinics, or CTAR (centre de traitment antirabique), that provide post-exposure prophylaxis in the country (Figure 1).  
+
+### Preliminary data from Madagascar Clinics
+* Commune level average travel time to the closest CTAR (generated from global travel time layer from Malaria Atlas Project).
+* Human population per commune extracted from World Pop
+* 16 months of data on reported animal bites from the Moramanga District in Madagascar 
+* In the next month, we will have 4 years of data on reported animal bites from 20 of the 31 CTAR.
+
+
+```{r setup, echo = FALSE, message = FALSE, results = 'hide'}
+## Clean-up
+## Packages
+# for gis 
+library(knitr)
+library(raster)
+library(maptools)
+library(maps)
+library(GISTools)
+library(rgdal)
+library(sp)
+library(rgdal)
+library(gdistance)
+# everything else
+library(lubridate)
+library(reshape2)
+library(tidyverse)
+library(rjags)
+library(coda)
+library(lattice)
+# pkgs <- c("lattice", "coda")
+# require(pkgs, character.only = TRUE)
+
+## gis data {NEED TO FIGURE OUT PROJECTIONS!}
+p4s <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+mada.district <- readOGR("data/MadaGIS/MadaPops.shp", p4s = p4s)
+ctar.gps <- read.csv("data/ctar_gps.csv")
+ctar.gps <- SpatialPoints(cbind(ctar.gps$LONGITUDE, ctar.gps$LATITUDE),
+                          proj4string = crs(mada.district))
+ctar.atts <- readOGR("data/MadaGIS/31CTAR.shp")
+# ## getting travel time layer
+mada.access <- raster("output/study.area.accessibility.tif")
+mada.access <- mask(mada.access, mada.district)
+plot(mada.access/60, breaks = c(0, 1, 2, 3, 4, 5, 6, 8, 16, max(values(mada.access)/60, na.rm = TRUE)),
+     col = c("#fff7f3", "#fde0dd", "#fcc5c0", "#fa9fb5", "#f768a1", "#dd3497", "#ae017e", "#7a0177", "#49006a"))
+#col = colorRampPalette(c("navyblue", "mediumturquoise", "orange", "red"))(11), axes = FALSE, box = FALSE)
+points(ctar.gps, pch = 18, col = "grey", cex = 1)
+
+## getting which districts have a ctar
+mada.district$ctar.in <- ifelse(is.na(match(mada.district$district, ctar.atts$District)), 0, 1)
+mada.district$ctar.in[mada.district$district %in% c('Manakara Atsimo', 'Toliary-I', 'Taolagnaro',
+                                                    'Nosy-Be', "Ambovombe-Androy")] <- 1
+
+## should equal 31
+sum(mada.district$ctar.in)
+
+## mid.pops
+mada.district$midpops <- (mada.district$pop2015adj + mada.district$pop2020adj)/2
+
+## ctar data: getting exposure matrix (district by year)
+ctar.data <- read.csv("data/SaisieRage_DATA_2018-06-28_0956.csv")
+ctar.data %>% 
+  filter(type != "contact") %>% # exclude contacts
+  mutate_at(vars(starts_with("date")), funs(mdy(.))) %>% # format dates
+  group_by(year = year(date_de_consultation), district) %>% # group by year and district
+  summarize(n = n()) -> exposures # get count of exposures
+
+## merge district shapefile with the summarized matrix!
+exposure.mat <- dcast(exposures, district ~ year)
+colnames(exposure.mat) <- c("district", "year2013", "year2014", "year2015", "year2016", "year2017", "year2018")
+mada.district@data <- merge(mada.district@data, exposure.mat, by.x = "mdg_dis_co", by.y = "district", all.x = TRUE)
+vars <- c("mdg_dis_co", "district", "midpops", "study_area", "ctar.in",
+          "year2014", "year2015", "year2016", "year2017")
+
+## Getting all dist data
+mada.district@data %>%
+  select(!!vars) %>%
+  mutate_at(vars(starts_with("year")), funs(replace(., is.na(.), 0))) %>%
+  mutate(avg.bites100k = (select(., starts_with("year")) %>% rowSums())/4/(midpops/1e5),
+         dogs_min = round(midpops/25), dogs_max = round(midpops/5)) -> dist.data
+
+## districts that are non-reporter and data not available yet CTAR
+no_data <- c("Manja", 'Ambatondrazaka', "Vangaindrano", "Tsiroanomandidy",
+             "Antsiranana I", "Taolagnaro", "Ambovombe-Androy", "Nosy-Be", "Ambatomainty",
+             "Marolambo", "Sainte-Marie", "Antananarivo Renivohitra", "Antananarivo Avaradrano", 
+             "Ambohidratrimo", "Ankazobe", "Manjakandriana", "Anjozorobe", "Andramasina", 
+             "Antananarivo Atsimondrano", "Fianarantsoa I", "Ambalavao", "Ambohimahasoa", 
+             "Ikalamavony", "Lalangina", "Vohibato", "Isandra")
+dist.data %>%
+  filter(!(district %in% no_data)) -> dist.data
+nrow(dist.data)
+
+```
+
+#### Rationale
+Standard decision tree models using overall reported bites would estimate rabies exposures ($R$) as:
+$$ R = \frac{B\times p_{rabid}}{\rho } $$
+
+where $B$ is the total reported bites, $p_{rabid}$ is the probability that a reported animal bite is a genuine rabies exposure, $\rho$ is the probability that a rabies exposure is reported. 
+
+We generate high and low estimates of expected rabies incidence ($R$) using outputs from a recent modeling study that estimated incidence of human exposures per 100,000 dogs in a no-vaccination scenario and given high and low estimates of human:dog ratios. We can do this in Madagascar because there's no vacc going on!
+
+Applying this framework to our data on reported bites in the Madagascar, we see that estimated rabies incidence exceeds expected incidence in areas with high incidence of reported bites and is lower than expected for areas with little data/low incidence of reported bites (Figure 1). 
+
+```{r standard decision tree, echo=FALSE, message = FALSE, results = 'hide'}
+## adding in expected exposures annually
+# rabies incidence per 100kdogs/# of human exps per rabid dog/human:dog ratio = inc per 100k persons
+exps.per100k.high <- 1000*0.39/5 
+exps.per100k.low <- 600*0.39/25
+
+ordered.bites <- dist.data$avg.bites100k[order(dist.data$study_area)]
+par(mar = c(4, 10, 4, 4))
+plot(ordered.bites*0.6/0.85, 1:length(ordered.bites), bty = "l", pch = 20, col = "darkred", 
+     xlab = "Rabies exposures per 100k persons", ylab = "", axes = FALSE, 
+     xlim = c(0, max(ordered.bites*0.6/0.85)+100))
+axis(1)
+text(dist.data$district[order(dist.data$study_area)], y = 1:length(ordered.bites), x = -10, adj = 1, xpd = TRUE)
+points(ordered.bites*0.2/0.85, 1:length(ordered.bites),
+       pch = 20, col = "darkred")
+segments(y0 = 1:length(ordered.bites), x0 = ordered.bites*0.2/0.85,
+         y1 = 1:length(ordered.bites),
+         x1 = ordered.bites*0.6/0.85, col = "darkred")
+abline(v = c(exps.per100k.high, exps.per100k.low), col = c("red", "red"), lty = 2)
+legend("topleft", "Range of expected \n rabies incidence", col = "red", lty = 2, bty = "n",
+       inset = c(0.4, 0), xpd = TRUE, x.intersp = 0.2, seg.len = 2)
+
+## Empirical p_report
+p_rabid_high <- exps.per100k.high/(dist.data$avg.bites100k)
+p_rabid_high[p_rabid_high >= 0.95] <- 0.95
+p_rabid_low <- exps.per100k.low/(dist.data$avg.bites100k)
+p_rabid_low[p_rabid_low >= 0.95] <- 0.95
+
+plot(dist.data$study_area/60, 
+     dist.data$avg.bites100k*p_rabid_high/exps.per100k.high, ylim = c(0, 1), 
+     col = "red", pch = 20, bty = "l", xlab = "Travel times (hrs)", ylab = "Reporting")
+points(dist.data$study_area/60, 
+     dist.data$avg.bites100k*p_rabid_low/exps.per100k.low,  
+     col = "darkred")
+segments(x0 = dist.data$study_area/60, y0 = dist.data$avg.bites100k*p_rabid_low/exps.per100k.low,
+         x1 = dist.data$study_area/60,
+         y1 = dist.data$avg.bites100k*p_rabid_high/exps.per100k.high, col = "darkred")
+legend("topright", c("High incidence", "Low incidence"), col = c("Red", "darkred"), pch = c(20, 1), 
+       bty = "n", inset = c(-0.2, 0), xpd = TRUE)
+```
+
+```{r district data}
+bites <- dist.data[,6:9]
+ttimes <- dist.data$study_area
+pop <- dist.data$midpops
+times <- 1:4
+nlocs <- nrow(dist.data)
+exps.high <- exps.per100k.high*dist.data$midpops/1e5
+exps.low <- exps.per100k.low*dist.data$midpops/1e5
+burn.in = 5000
+```
+
+#### Empirical estimates of p_report for each location across a range of scenarios
+We can calculate p_report empirically assuming incidence and p_rabid is uniform:
+$$ \rho  = \frac{B\times p_{rabid}}{R}$$
+
+We constrain $p_{rabid}$ so that $\rho$ cannot exceed 1:
+    $$
+           p_{rabid}=
+            \begin{cases}
+            1, & \text{if}\ \frac{R}{B} > 1 \\
+            \frac{R}{B}, & \text{otherwise}
+            \end{cases}
+    $$
+which would give us the highest estimates of reporting for a given incidence level (assumes that the maximum # of bites are reported the $\frac{R}{B} > 1$ and that reporting = 1 when $\frac{R}{B} < 1$). We see that generally reporting decreases with travel time, although this relationship will depend on our assumptions of incidence and $p_{rabid}$ (Figure 2).
+
+  
+#### Models of reporting by travel time to clinic
+To generate more probable estimates of rabies burden given what we know about access to PEP in Maadagascar, we estimate a district specific reporting rate as a function of travel time ($T$) to the nearest ARMC:
+
+$$ \rho_j = logistic(B_{tt}T_j+ B_{0})$$
+We can specify our expected bites in a few ways:
+
+##### Given an expected rabies exposures incidence and corresponding $p_{rabid}$:
+
+$$ B_j \sim Poisson(\frac{\rho_j R}{p_{rabid_j}})$$
+$$
+           p_{rabid_j}=
+            \begin{cases}
+            x, & \text{if}\ \frac{R_j}{B_j} > x \\
+            \frac{R_j}{B_j}, & \text{otherwise}
+            \end{cases}
+$$
+    
+We estimate the potential relationship between travel time and reporting ($B_{tt}$ and $B_{0}$) given high and low estimates of incidence and high, mid, and low proportion rabid ($x$ = 0.25, 0.5, or 0.75).
+
+```{r Annual jags model with p_report estimated, echo = FALSE, message = FALSE, results = 'hide'}
+## model
+tt.model.1 <- "model {
+for (j in 1:nlocs){
+  for (t in 1:times){
+    # Number of bites
+    bites[j, t] ~ dpois(rho[j]*expected.mean[j]/p_rabid[j, t])
+  }
+}
+
+# spatial effects
+  for (g in 1:nlocs){
+  # Reporting in place g
+  logit(rho[g]) <- B_tt*(1/ttimes[g]) + B_0
+}
+
+# priors
+  B_tt ~ dnorm(0, 0.1)
+  B_0 ~ dnorm(0, 0.1)
+}"
+
+est.p.1 <- function (bites, ttimes, times, nlocs, expected.mean, p_rabid.est){
+  p_rabid <- expected.mean/bites
+  p_rabid[p_rabid >= p_rabid.est] <- p_rabid.est
+  
+  data <- list (bites = bites, times = times,
+              expected.mean = expected.mean, p_rabid = p_rabid,
+              ttimes = ttimes, nlocs = nlocs)
+
+  inits <- list(B_tt = rnorm(1, 0, 1e-6), 
+              B_0 = rnorm(1, 0, 1e-6))
+
+  jags_mod <- jags.model(textConnection(tt.model.1), data = data, inits = inits, n.chains = 5, 
+                       n.adapt = 1000)
+
+  params <- c("B_tt", "B_0")
+  samps <- coda.samples(jags_mod, params, n.iter = 10000)
+  return(samps)
+}
+check <- est.p.1(bites = bites, times = times, ttimes = ttimes, nlocs = nlocs,
+                        expected.mean = exps.low, p_rabid.est = 0.5)
+```
+
+##### Given an expected rabies exposures incidence and non-rabid bites:
+
+$$ B_j \sim Poisson(\rho_j (R_j + N_j))$$
+where $N$ is a function of human population size (more people = more people getting bitten by dogs?):
+$$ N_j \sim f(pop_j)$$
+This assumes that reporting is the same for non-rabid and rabid bites, but that the incidence of non-rabid bites is not uniform across space (as with rabies incidence) and increases with increasing population size.
+
+
+```{r Annual jags model with p_report estimated, echo = FALSE, message = FALSE, results = 'hide'}
+## model
+tt.model.2 <- "model {
+# reported bites
+for (j in 1:nlocs){
+  for (t in 1:times){
+    # Number of bites
+    bites[j, t] ~ dpois(rho[j]*(expected.mean[j] + N[j]))
+  }
+}
+
+# spatial effects
+  for (g in 1:nlocs){
+    # Reporting in place g
+    logit(rho[g]) <- B_tt*(1/ttimes[g]) + B_0
+    # Non-rabid incidence in place g
+    log(N[g]) <- B_pop*pop[g] + B_1
+  }
+
+# priors
+  B_tt ~ dnorm(0, 0.1)
+  B_pop ~ dnorm(0, 0.1)
+  B_0 ~ dnorm(0, 0.1)
+  B_1 ~ dnorm(0, 0.1)
+}"
+
+est.p.2 <- function (bites, ttimes, times, pop, nlocs, expected.mean){
+  data <- list (bites = bites, times = times, pop = pop,
+              expected.mean = expected.mean, p_rabid = p_rabid,
+              ttimes = ttimes, nlocs = nlocs)
+
+  inits <- list(B_tt = rnorm(1, 0, 1e-6), 
+              B_0 = rnorm(1, 0, 1e-6), B_pop = rnorm(1, 0, 1e-6), 
+              B_1 = rnorm(1, 0, 1e-6))
+
+  jags_mod <- jags.model(textConnection(tt.model.2), data = data, inits = inits, n.chains = 5, 
+                       n.adapt = 1000)
+
+  params <- c("B_tt", "B_0", "B_1", "B_pop")
+  samps <- coda.samples(jags_mod, params, n.iter = 10000)
+  return(samps)
+}
+```
+
+
+##### Given an expected rabies exposures incidence and reported non-rabid bites:
+
+$$ B_j \sim Poisson(\rho_jR_j + N_j)$$
+where $N_j$ is a function of travel time (closer you are to a clinic, higher incidence of reported non-rabid bites):
+$$ N_j \sim f(T_j)$$
+This assumes that reporting may not be the same for non-rabid and rabid bites, but that the incidence of non-rabid bites increases with travel time, just as reporting increases with travel time. This may be true, but we will likely run into identifiability issues (i.e. estimating two params which increase with travel time, reporting and reported non-rabid incidence).
+
+```{r Annual jags model with p_report estimated, echo = FALSE, message = FALSE, results = 'hide'}
+## model
+tt.model.3 <- "model {
+# reported bites
+for (j in 1:nlocs){
+  for (t in 1:times){
+    # Number of bites
+    bites[j, t] ~ dpois(rho[j]*expected.mean[j] + N[j])
+  }
+}
+
+# spatial effects
+  for (g in 1:nlocs){
+    # Reporting in place g
+    logit(rho[g]) <- B_tt*(1/ttimes[g]) + B_0
+    # Non-rabid incidence in place g
+    log(N[g]) <- B_nr*(1/ttimes[g]) + B_1
+  }
+
+# priors
+  B_tt ~ dnorm(0, 0.1)
+  B_nr ~ dnorm(0, 0.1)
+  B_0 ~ dnorm(0, 0.1)
+  B_1 ~ dnorm(0, 0.1)
+}"
+
+est.p.3 <- function (bites, ttimes, times, nlocs, expected.mean){
+  data <- list (bites = bites, times = times,
+              expected.mean = expected.mean,
+              ttimes = ttimes, nlocs = nlocs)
+
+  inits <- list(B_tt = rnorm(1, 0, 1e-6), 
+              B_0 = rnorm(1, 0, 1e-6), B_nr = rnorm(1, 0, 1e-6), 
+              B_1 = rnorm(1, 0, 1e-6))
+
+  jags_mod <- jags.model(textConnection(tt.model.3), data = data, inits = inits, n.chains = 5, 
+                       n.adapt = 1000)
+
+  params <- c("B_tt", "B_0", "B_1", "B_nr")
+  samps <- coda.samples(jags_mod, params, n.iter = 10000)
+  return(samps)
+}
+```
+
+
+```{r Annual jags model with p_rabid + p_report estimated, high incidence, echo = FALSE, message = FALSE, results = 'hide'}
+## models assuming high incidence
+
+
+plot(0, 0, xlim = c(1, 10), ylim = c(0, 1), bty = "l", xlab = "Travel times (hrs)", ylab = "Reporting")
+ttimes.plot <- seq(0.01, 12, by = 0.2)
+lowinc.prab25 <- est.p(bites = bites, ttimes = ttimes, nlocs = nlocs,
+                        expected.mean = exp.low, p_rabid.est = 0.25)
+check <- summary(window(lowinc.prab25, start = burn.in))
+points(ttimes.plot, plogis(check$statistics[,"Mean"]["B_tt"]*(1/(ttimes.plot))
+                  + check$statistics[,"Mean"]["B_0"]), type = "l", col = "slateblue1")
+lowinc.prab5 <- est.p(bites = bites, ttimes = ttimes, nlocs = nlocs, 
+                       expected.mean = exp.low, p_rabid.est = 0.5)
+check <- summary(window(lowinc.prab5, start = burn.in))
+points(ttimes.plot, plogis(check$statistics[,"Mean"]["B_tt"]*(1/(ttimes.plot))
+                  + check$statistics[,"Mean"]["B_0"]), type = "l", col = "slateblue2")
+lowinc.prab75 <- est.p(bites = bites, ttimes = ttimes, nlocs = nlocs, 
+                        expected.mean = exp.low, p_rabid.est = 0.75)
+check <- summary(window(lowinc.prab75, start = burn.in))
+points(ttimes.plot, plogis(check$statistics[,"Mean"]["B_tt"]*(1/(ttimes.plot))
+                  + check$statistics[,"Mean"]["B_0"]), type = "l", col = "slateblue3")
+highinc.prab25 <- est.p(bites = bites, ttimes = ttimes, nlocs = nlocs, 
+                         expected.mean = exp.high, p_rabid.est = 0.25)
+check <- summary(window(highinc.prab25, start = burn.in))
+points(ttimes.plot, plogis(check$statistics[,"Mean"]["B_tt"]*(1/(ttimes.plot))
+                  + check$statistics[,"Mean"]["B_0"]), type = "l", col = "firebrick1")
+highinc.prab5 <- est.p(bites = bites, ttimes = ttimes, nlocs = nlocs, 
+                        expected.mean = exp.high, p_rabid.est = 0.5)
+check <- summary(window(highinc.prab5, start = burn.in))
+points(ttimes.plot, plogis(check$statistics[,"Mean"]["B_tt"]*(1/(ttimes.plot))
+                  + check$statistics[,"Mean"]["B_0"]), type = "l", col = "firebrick2")
+highinc.prab75 <- est.p(bites = bites, ttimes = ttimes, nlocs = nlocs, 
+                         expected.mean = exp.high, p_rabid.est = 0.75)
+check <- summary(window(highinc.prab75, start = burn.in))
+points(ttimes.plot, plogis(check$statistics[,"Mean"]["B_tt"]*(1/(ttimes.plot))
+                  + check$statistics[,"Mean"]["B_0"]), type = "l", col = "firebrick2")
+legend("topright", c("Low incidence", "High incidence"), col = c("Blue", "Red"), lty = 1, 
+       bty = "n", inset = c(0.25, 0.2), xpd = TRUE)
+
+## parameter estimates
+p_rabid <- exp.low/bites
+p_rabid[p_rabid >= 0.25] <- 0.25
+par(mfrow = c(1, 1), mar = c(5, 5, 2,  2))
+## mean and confidence interval
+sims = 1000
+rho <- plogis(check$statistics[,"Mean"]["B_tt"]*(1/ttimes)
+                    + check$statistics[,"Mean"]["B_0"])
+bites.sim.high <- matrix(0, nrow = sims, ncol = length(bites))
+for (i in 1:sims){
+  bites.sim.high[i, ] <- rpois(length(p_rabid), exp.low*rho/p_rabid)
+}
+rankCI <- function(x){
+  upper <- x[order(x)][0.95*length(x)]
+  lower <- x[order(x)][0.05*length(x)]
+  return(c(lower, upper))
+}
+
+upper.CI.high <- apply(bites.sim.high, 2, rankCI)[2,]
+lower.CI.high <- apply(bites.sim.high, 2, rankCI)[1,]
+
+plot(bites, pch = 1, col = "red", bty = "l", xlab = "w/ Low estimated incidence",
+     ylab = "Total bites", axes = FALSE)
+axis(2)
+points(colMeans(bites.sim.high), col = "darkred", pch = 20)
+segments(x0 = 1:length(bites), y0 = lower.CI.high, x1 = 1:length(bites), 
+         y1 = upper.CI.high, col = "darkred")
+
+```
+
+
+#### Estimating 
+```{r Annual jags model, echo = FALSE, message = FALSE, results = 'hide'}
+bites = round(moramanga$monthly.bites*12)
+ttimes = moramanga$study.area.accessibility/60
+pop = moramanga$commune.midpops
+nlocs = length(moramanga$commune)
+exp.low = exps.per100k.low*moramanga$commune.midpops/1e5
+exp.high = exps.per100k.high*moramanga$commune.midpops/1e5
+burn.in = 5000
+
+## model
+tt.model <- "model {
+# reported bites
+for (j in 1:nlocs){
+# Number of bites
+  all[j] ~ dpois(expected.mean[j] + A[j])
+  bites[j] ~ dbinom(rho[j], all[j])
+}
+
+# spatial effects
+  for (g in 1:nlocs){
+  # Reporting in place g
+  logit(rho[g]) <- B_tt*(1/ttimes[g]) + B_0
+  A[g] <- non_rabid*pop[g]/1e5
+}
+
+# priors
+  B_tt ~ dnorm(0, 0.1)
+  B_0 ~ dnorm(0, 0.1)
+  non_rabid ~ dunif(10, 1000)
+}"
+
+data <- list (bites = bites, 
+              expected.mean = exp.high, pop = pop,
+              ttimes = ttimes, nlocs = nlocs)
+
+inits <- list(B_tt = rnorm(1, 1, 1), B_0 = rnorm(1, 1, 1), 
+              non_rabid = rnorm(1, 700, 1))
+
+jags_mod <- jags.model(textConnection(tt.model), data = data, inits = inits, n.chains = 5, 
+                       n.adapt = 1000)
+
+params <- c("B_tt", "B_0", "non_rabid")
+samps <- coda.samples(jags_mod, params, n.iter = 10000)
+plot(samps)
+check <- summary(window(samps, start = burn.in))
+check
+plot(ttimes.plot, plogis(check$statistics[,"Mean"]["B_tt"]*(1/(ttimes.plot))
+                  + check$statistics[,"Mean"]["B_0"]), type = "l", col = "slateblue1")
+
+## mean and confidence interval
+sims = 1000
+rho <- plogis(check$statistics[,"Mean"]["B_tt"]*(1/ttimes)
+                    + check$statistics[,"Mean"]["B_0"])
+bites.sim.high <- matrix(0, nrow = sims, ncol = length(bites))
+for (i in 1:sims){
+  all <- rpois(length(bites), check$statistics[,"Mean"]["non_rabid"]*pop/1e5 + exp.low)
+  bites.sim.high[i, ] <- rbinom(length(bites), all, rho)
+}
+rankCI <- function(x){
+  upper <- x[order(x)][0.95*length(x)]
+  lower <- x[order(x)][0.05*length(x)]
+  return(c(lower, upper))
+}
+
+upper.CI.high <- apply(bites.sim.high, 2, rankCI)[2,]
+lower.CI.high <- apply(bites.sim.high, 2, rankCI)[1,]
+
+plot(bites, pch = 1, col = "red", bty = "l", xlab = "w/ Low estimated incidence",
+     ylab = "Total bites", axes = FALSE)
+axis(2)
+points(colMeans(bites.sim.high), col = "darkred", pch = 20)
+segments(x0 = 1:length(bites), y0 = lower.CI.high, x1 = 1:length(bites), 
+         y1 = upper.CI.high, col = "darkred")
+
+
+```
+
