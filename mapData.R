@@ -1,5 +1,5 @@
 ## Clean-up
-setwd("~/Dropbox/MadaRabies/MadaPEP")
+setwd("~/Documents/MadaAccess")
 rm(list = ls())
 
 ## Packages
@@ -99,6 +99,7 @@ mada.district$rho_low <- empirical.reporting(mada.district$avg.bites100k, p_rabi
 mada.district$rho_med <- (mada.district$rho_high + mada.district$rho_low)/2
 
 plot(mada.district, col = ifelse(mada.district$data_available == 1, "orange", "grey"))
+write.csv(mada.district, "map_data.csv")
 
 ## commune checking
 comm_names <- read.csv("commune_check_CH.csv")

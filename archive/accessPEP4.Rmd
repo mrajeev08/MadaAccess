@@ -14,7 +14,6 @@ css: style.css
 ```{r directory, echo=FALSE, message = FALSE, results = 'hide'}
 rm(list = ls())
 require("knitr")
-opts_knit$set(root.dir = "/Users/mrajeev/Dropbox/MadaPEP")
 knitr::opts_chunk$set(fig.pos = 'h')
 ```
 #### Canine rabies
@@ -169,8 +168,8 @@ legend("topright", c("High incidence", "Low incidence"), col = c("Red", "darkred
 bites <- dist.data[,6:9]
 ttimes <- dist.data$study_area
 pop <- dist.data$midpops
-times <- 1:4
-nlocs <- nrow(dist.data)
+times <- ncol(bites)
+nlocs <- nrow(bites)
 exps.high <- exps.per100k.high*dist.data$midpops/1e5
 exps.low <- exps.per100k.low*dist.data$midpops/1e5
 burn.in = 5000
@@ -276,6 +275,7 @@ for (j in 1:nlocs){
   for (g in 1:nlocs){
     # Reporting in place g
     logit(rho[g]) <- B_tt*(1/ttimes[g]) + B_0
+
     # Non-rabid incidence in place g
     log(N[g]) <- B_pop*pop[g] + B_1
   }
@@ -289,7 +289,7 @@ for (j in 1:nlocs){
 
 est.p.2 <- function (bites, ttimes, times, pop, nlocs, expected.mean){
   data <- list (bites = bites, times = times, pop = pop,
-              expected.mean = expected.mean, p_rabid = p_rabid,
+              expected.mean = expected.mean,
               ttimes = ttimes, nlocs = nlocs)
 
   inits <- list(B_tt = rnorm(1, 0, 1e-6), 
@@ -303,6 +303,20 @@ est.p.2 <- function (bites, ttimes, times, pop, nlocs, expected.mean){
   samps <- coda.samples(jags_mod, params, n.iter = 10000)
   return(samps)
 }
+
+
+check <- est.p.2(bites = bites, times = times, ttimes = ttimes, pop = pop, nlocs = nlocs,
+                        expected.mean = exps.high)
+plot(check)
+gelman.diag(check)
+check <- summary(window(check, start = burn.in))
+ttimes.plot <- seq(0.01, 12, by = 0.2)*60
+par(mar = c(2,2,2,2))
+plot(ttimes.plot,
+     plogis(check$statistics[,"Mean"]["B_tt"]*(1/ttimes.plot)
+                  + check$statistics[,"Mean"]["B_0"]),
+     type = "l", col = "slateblue1")
+
 ```
 
 
