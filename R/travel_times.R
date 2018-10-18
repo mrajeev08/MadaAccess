@@ -1,12 +1,39 @@
-# libraries for gis
+## libraries for gis
+rm(list = ls())
 library(raster)
-library(maptools)
-library(maps)
-library(GISTools)
-library(rgdal)
-library(sp)
-library(rgdal)
-library(gdistance)
+library(malariaAtlas)
+
+## data from malaria atlas
+mada_communes <- getShp(country = "Madagascar", admin_level = "admin3") # get commune level shapefile
+friction <- malariaAtlas::getRaster(
+  surface = "A global friction surface enumerating land-based travel speed for a nominal year 2015",
+  shp = mada_communes)
+
+check <- raster('output/study.area.accessibility.tif')
+p <- autoplot_MAPraster(check, shp_df = mada_communes)
+p[[1]] + geom_point(data = point.locations, aes(LONGITUDE, LATITUDE))
+
+# ## reproject all
+# friction <- projectRaster(friction, crs = p4s)
+# mada_communes <- spTransform(mada_communes, crs(friction))
+
+## Point locations
+point.locations <- read.csv(file = "data/ctar_gps.csv")[ ,-1]
+names(point.locations) <- c("District", "X_COORD", "Y_COORD")
+
+# Keep only point coordinates within the shapefile bounds
+coordinates(point.locations) <- ~ Y_COORD + X_COORD
+proj4string(point.locations) <- proj4string(mada_communes)
+# overlap <- over(point.locations, mada_communes)
+# point.locations <- point.locations[!is.na(overlap$gid),]
+
+plot(mada_communes)
+plot(friction, add = TRUE)
+plot(mada_communes, add = TRUE)
+points(point.locations, col = "blue", pch = 20)
+
+
+
 
 get.travel.times <- function(friction, shapefile, coordinates, trans.matrix = 1, 
                              filename.raster, filename.trans){
