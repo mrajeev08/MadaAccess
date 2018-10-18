@@ -1,11 +1,9 @@
-<<<<<<< HEAD
 ## Function for getting travel times given points 
 ## Adapted from https://map.ox.ac.uk/research-project/accessibility_to_cities/
 ## Malavika Rajeev 2018
 
 get.travel.times <- function(friction, shapefile, coords, trans_matrix_exists = TRUE, 
                              filename_raster, filename_trans){
-=======
 # libraries for gis
 library(raster)
 library(maptools)
@@ -18,12 +16,10 @@ library(gdistance)
 
 get.travel.times <- function(friction, shapefile, coordinates, trans.matrix = 1, 
                              filename.raster, filename.trans){
->>>>>>> origin/master
-  
+
   ## crop friction surface to shapefile
   friction <- crop(friction, shapefile)
   plot(friction)
-<<<<<<< HEAD
   points(points.plot)
   
   ## calculating travel times
@@ -58,7 +54,6 @@ get.travel.times <- function(friction, shapefile, coordinates, trans.matrix = 1,
   ## Write the resulting raster
   return(travel_times)
 }
-=======
   points(coordinates)
   
   ## calculating travel times
@@ -116,6 +111,3 @@ moramanga <- extract(mada.pop, moramanga, fun = sum, na.rm=TRUE, df = TRUE, sp =
 ## get Moramanga CSBs
 
 ## travel time if PEP at all CSB II
-
-
->>>>>>> origin/master
