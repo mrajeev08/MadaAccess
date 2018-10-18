@@ -4,4 +4,7 @@
 .Ruserdata
 lit/
 .httr-oauth
+<<<<<<< HEAD
 data/
+=======
+>>>>>>> origin/master
