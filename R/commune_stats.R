@@ -1,11 +1,17 @@
 ## libraries for gis
 rm(list = ls())
+library(rgdal)
 library(raster)
 library(malariaAtlas)
+library(gdistance)
+library(foreach)
+library(doMPI)
+library(doRNG)
 source("R/travel_times.R")
 
-## data from malaria atlas
-mada_communes <- getShp(country = "Madagascar", admin_level = "admin3") # get commune level shapefile
+## data from malaria atlas (written out to run on cluster)
+# mada_communes <- getShp(country = "Madagascar", admin_level = "admin3") # get commune level shapefile
+mada_communes <- readOGR("data/MadaGIS/commune_mada.shp")
 
 if (file.exists("output/friction_mada.tif")) {
   friction <- raster("output/friction_mada.tif")
@@ -31,7 +37,7 @@ proj4string(gps_locs) <- proj4string(mada_communes)
 # p <- autoplot_MAPraster(friction, shp_df = mada_communes)
 # points.plot <- as.data.frame(coordinates(gps_locs))
 # p[[1]] + geom_point(data = points.plot, aes(Y_COORD, X_COORD))
-# point_mat <- as.matrix(gps_locs@coords)
+point_mat <- as.matrix(gps_locs@coords)
 
 ## get ttimes layer
 travel_times <- get.travel.times(friction = friction, shapefile = mada_communes, 
@@ -44,19 +50,25 @@ ttimes <- raster::extract(travel_times, mada_communes, fun = mean,
                           na.rm=TRUE, df = TRUE, sp = FALSE)
   
 ## getting catchments
-catch_mat <- matrix(NA, nrow = nrow(ttimes), ncol = nrow(point_mat))
-rownames(catch_mat) <- ttimes[, 1]
-colnames(catch_mat) <- gps_locs$idNo
+catch_mat <- matrix(NA, nrow = nrow(mada_communes), ncol = nrow(point_mat))
+rownames(catch_mat) <- mada_communes$name_3
+colnames(catch_mat) <- gps_locs$CTAR
 
-for (i in 1:nrow(point_mat)){
-  travel_times <- get.travel.times(friction = friction, shapefile = mada_communes, 
-                                   coords = point_mat[i, ], 
+## Init MPI Backend
+## ################
+cl <- startMPIcluster()
+clusterSize(cl) # this just tells you how many you've got
+registerDoMPI(cl)
+
+foreach (i = 1:nrow(point_mat)) %dopar% {
+  point_mat_sub <- t(as.matrix(point_mat[i, ]))
+  travel_time_pt <- get.travel.times(friction = friction, shapefile = mada_communes, 
+                                   coords = point_mat_sub, 
                                    trans_matrix_exists = TRUE, 
-                                   filename_trans = "trans_gc.rds")
-  mada.out <- raster::extract(travel_times, mada.district, fun = mean, 
+                                   filename_trans = "output/trans_gc.rds")
+  mada.out <- raster::extract(travel_times, mada_communes, fun = mean, 
                               weights = TRUE, normalizeWeights = TRUE,
                               na.rm=TRUE, df = TRUE, sp = FALSE)
-  
   catch_mat[, i] <- mada.out[, 2]
 }
 
@@ -81,6 +93,8 @@ names(master) <- c("communeID", "ttime", "catchment", "pop2015adj", "pop2020adj"
 
 write.csv(master, "output/commune_data.csv")
 
-  
+### Then just close it out at the end
+closeCluster(cl)
+mpi.quit()
   
   
