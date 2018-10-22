@@ -12,31 +12,37 @@ output:
 css: style.css
 ---
 
-```{r directory, echo=FALSE, message = FALSE, results = 'hide'}
+```{r directory, echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
 rm(list = ls())
 require("knitr")
 knitr::opts_chunk$set(fig.pos = 'h')
+rm(list = ls())
+library(RImagePalette)
+library(jpeg)
+library(tidyverse)
+library(lubridate)
+library(magrittr)
+library(rgdal)
 ```
 
 ## INTRODUCTION
 
 [Start broadly with inequity?]
-To cite = Jess’s, Alegana, Emily from JHU.
-Inequities in access to healthcare and interventions are a major driver of the burden of disease in human populations. These inequities can be driven by socioeconomics, lack of awareness and education, and by geographic accessibility. Despite the impact of access in shaping burden, incorporating these factors into estimations of burden is challenging due to limited data and lack of representation in data of the most marginalized groups (i.e. remote or low income populations). 
-
+Inequities in access to healthcare and interventions are a major driver of the burden of disease in human populations. Those most impacted by infectious disease are often those from lower socioeconomic strata and remote populations. Despite the impact of these inequities in shaping disease burden, incorporating these factors into estimations of burden is challenging due to the lack of data resolved to these levels...>
   
 <br>
 
-Human rabies post-exposure prophylaxis prevents fatalities if delivered in a timely manner, however, access to this intervention is highly limited in areas where the disease is endemic. Canine rabies causes an estimated 59,000 human deaths annually that could be prevented by PEP. 
+Canine rabies causes an estimated 59,000 human deaths annually. Post-exposure prophylaxis prevents fatalities if delivered in a timely manner, however, access to this intervention is highly limited in areas where the disease is endemic. Data on true rabies exposures in humans and incidence in animals is also lacking in most countries. Often, the only data available are numbers of bite victims reporting to health facilities. 
   
 <br>
 
-The majority of studies which estimate burden of rabies use probability decision tree frameworks, often with the key assumptions that overall reported bite incidence (i.e. both bites due to non-rabid and rabid animals) are proportional to rabies incidence and that reporting is uniform across space. However, these estimations… Given little data on true exposures of rabies how do we do this? Newly developed frameworks which rely on in-country data on key parameters likely better capture burden by disentangling rabid from non-rabid bites and generating incidence from estimates of the dog population and control in the dog population. 
+The majority of rabies burden studies use probability decision tree frameworks to estimate burden of rabies from these data, often with the key assumptions that overall reported bite incidence (i.e. both bites due to non-rabid and rabid animals) are proportional to rabies incidence and that reporting is uniform across space. 
+
+The most recent estimation of burden and the impact of PEP used another approach, using transmission dynamic models as the backbone to predict incidence based on level of vaccination coverage and size of the dog population at the national level. Using transmission dynamic models to estimate incidence improves upon previous studies which may over estimate rabies burden in areas of high reporting and underestimating in areas with low reporting due to the assumption that overall reported bite incidence is proportional to rabies incidence.
 
 <br>
 
-Here we extend this framework to include spatial access to PEP, using bite patient data from 27 clinics in Madagascar, a rabies endemic country with a largely absent control program in the canine population. Institut Pasteur de Madagascar (IPM) provides PEP at no-cost to the government or to the patients at 31 clinics across the country. PEP is not available at any other public clinics or through the private sector. Given that rabies is endemic in the country and there is effectively no vaccination of domestic dogs, we use predictions of incidence from dynamic models and 
-We flip the standard decision tree and make the assumption that reported bite incidence reflects access and reporting to PEP rather than differences in rabies incidence.
+Here, we extend this framework to include spatial access to PEP, using bite patient data from 27 clinics in Madagascar, a rabies endemic country with a largely absent control program in the canine population. Institut Pasteur de Madagascar (IPM) provides PEP at no-cost to the government or to the patients at 31 clinics across the country. PEP is not available at any other public clinics or through the private sector. Given that rabies is endemic in the country and there is effectively no vaccination of domestic dogs, we use predictions of incidence from the dynamic model developed by Hampson et al. 2018 in a no control scenario. We flip the standard decision tree and make the assumption that reported bite incidence reflects access and reporting to PEP rather than differences in rabies incidence, using travel times to clinics as a predictor of reporting in a bayesian state space framework...
 
 ## METHODS
 
@@ -63,7 +69,7 @@ $p_i$ is the reporting of all bites which follows the logistic function:
   
 $$ \rho_{i} = \frac{C}{1 + e^{\frac{A - x}{d}}}$$
   
-where $C$ is a limiting function on the y-axis that measures probability of attendance when distance is zero, $X$ is the log transformed travel times in minutes, $d$ is the distance decay parameter, and A is an asymptote factor at an inflection point of the model. We fix C to 0.90 (estimated from the Moramanga data), as even at minimal travel times, there are people that do not report bites for other reasons than accessibility. 
+where $C$ is a limiting function on the y-axis that measures probability of attendance when distance is zero, $X$ is the log transformed travel times in minutes, $d$ is the distance decay parameter, and A is an asymptote factor at an inflection point of the model. We fix C to 0.90 (estimated from the Moramanga data), as even at minimal travel times, there are people that do not report bites for other reasons than accessibility (Alegana et al. 2012). 
   
 <br>
 
@@ -87,7 +93,7 @@ where $r$ is rabies incidence in dogs in the absence of any vaccination multipli
   
 <br>
 
-We use RJAGS (...) to fit this model to our reported bites at the commune level over the 4-year period using non-informative priors for $A$ $d$ and $\beta_p$
+We use RJAGS (...) to fit this model to our reported bites at the commune level over the 4-year period using non-informative priors (...) for $A$ $d$ and $\beta_p$
 
 <br>
 
@@ -124,6 +130,103 @@ We use data on the location of **CSBs** provided by IPM to regenerate travel tim
 
 <br>
 
+## Preliminary data processing
 
+### Getting catchments
+- Assigning by minimum average commune travel time to clinic (color corresponds to catchment)
+```{r catchments, echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
+ctar_metadata <- read.csv("data/ctar_metadata.csv")
+img <- readJPEG("~/Downloads/Dp0j4GNUwAAPPJV.jpeg")
+pal <- image_palette(img, 31)
+ctar_metadata$color <- pal
 
+mada_communes <- readOGR("data/MadaGIS/commune_mada.shp")
+catchments <- read.csv("output/catchments2.csv")
 
+left_join(catchments, dplyr::select(ctar_metadata, CTAR, color, id_ctar),
+            by = c("ctar" = "CTAR")) -> catchments
+mada_communes@data <- merge(mada_communes@data, catchments, by.x = "mdg_com_co",
+                            by.y = "comm_code")
+plot(mada_communes, col = as.character(mada_communes$color), border = NA)
+```
+**There are some issues with this at the moment, maybe could fix by weighted average of raster value travel times by population. This is sort of expensive computationally, so running on cluster now!
+
+## Submission of forms
+- Lack of consistent submission of forms, but we think that this for the most part has to do with gaps in sending of forms to IPM
+
+```{r doses, echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
+ctar_data <- read.csv("data/SaisieRage_DATA_2018-09-21_1755.csv")
+
+ctar_metadata %>% 
+  dplyr::select(id_ctar, starts_with("doses")) %>%
+  gather(year, doses, -id_ctar) %>%
+  mutate(year = as.numeric(substr(as.character(year), 7, 10))) -> doses
+
+## getting dose time series by clinic
+ctar_data %>%
+  select(id_ctar, datej0, datej3, datej7, datej28) %>%
+  mutate_at(vars(starts_with("date")), funs(ymd(.))) %>%
+  gather(dose, date, -id_ctar) %>%
+  group_by(id_ctar, date) %>%
+  summarise(n = n()) -> dose_ts
+dose_ts <- dose_ts[!is.na(dose_ts$date), ]
+dose_ts$ctar <- ctar_metadata$CTAR[match(dose_ts$id_ctar, ctar_metadata$id_ctar)]
+dose_ts <- dose_ts[!is.na(dose_ts$ctar), ]
+                   
+## getting theoretical # vials by year
+dose_ts %>%
+  mutate(year = year(date), vials = ceiling(n/2)) %>%
+  group_by(id_ctar, year) %>%
+  summarize(vials = sum(vials)) %>%
+  left_join(doses) -> dose_comp
+
+ggplot(data = dose_ts, aes(date, ctar)) + 
+  geom_tile(aes(fill = n)) +
+  scale_fill_continuous(type = "viridis", name = "Patients") 
+  
+```
+
+Potential solution: 
+- if monthly: exclude any months with greater than 14 days consecutively with no reporting if 
+- if annually: # days included from above/365 = approximate reporting on an annual basis?
+
+### Commune matching
+- For each district, ranked commune name matches by fuzzy matching. For those with partial match distances > 1 and < 10, manually chose matching commune names where possible. All others were set as NA.
+- Put this into reporting @ the clinic level (either monthly or annual prop matched)
+
+```{r commune matching, echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
+commune_matching <- read.csv("data/commune_check_CH.csv")
+mada_communes$match <- tolower(str_replace_all(mada_communes$commune,"[^[:graph:]]", "/"))
+mada_communes$district <- substr(as.character(mada_communes$mdg_com_co), 1, 8)
+
+mada_communes@data %>%
+  select(match, district, mdg_com_co) %>%
+  left_join(commune_matching, .) %>%
+  select(name, match, district, mdg_com_co) -> comm_matches
+ 
+ctar_data$name <- tolower(str_replace_all(ctar_data$commune,"[^[:graph:]]", "/"))
+left_join(ctar_data, comm_matches) %>%
+  distinct(record_id, .keep_all = TRUE) -> ctar_data
+
+ctar_data %>%
+  group_by(id_ctar) %>%
+  summarise(n = n(), unmatched = sum(is.na(mdg_com_co)),
+            prop_matched = unmatched/n) -> ctar_data_matched
+
+ctar_metadata <- merge(ctar_metadata, ctar_data_matched)
+ctar_metadata <- ctar_metadata[!is.na(ctar_metadata$id_ctar), ]
+ggplot(ctar_metadata, aes(CTAR, prop_matched)) +
+  geom_point() +
+  coord_flip()  +
+  ylab(label = "Proportion of patients matched to commune")
+
+```
+
+- Not too great of a job for most of them! Ask Chantal to go back through and match more?
+
+## Overall plan
+- Pick best catchments (Toamasina, Ambatodrajaka, Toliara, Manakara, Sambava, Soanierana Ivongo, Moramanga, Anstirabe, Ambositra)
+- See if anything comes out even with limited success of commune matching
+
+- Alternatively = by district? Less likely to really capture spatial het in access
+- Alternatively = w/ Moramanga data from 2016-2018 only; only one catchment, and where we've been actively working/contact tracing
