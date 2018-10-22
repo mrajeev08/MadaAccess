@@ -27,10 +27,6 @@ if (file.exists("output/friction_mada.tif")) {
     shp = mada_communes)
 }
 
-## data from world pop
-mada_pop2015adj <- raster("data/WorldPop/MDG_ppp_2015_adj_v2/MDG_ppp_2015_adj_v2.tif")
-mada_pop2020adj <- raster("data/WorldPop/MDG_ppp_2020_adj_v2/MDG_ppp_2020_adj_v2.tif")
-
 ## Point locations
 gps_locs <- read.csv(file = "data/ctar_gps.csv")
 names(gps_locs) <- c("IdNo", "CTAR", "District", "X_COORD", "Y_COORD")
@@ -55,6 +51,15 @@ ttimes <- raster::extract(travel_times, mada_communes, fun = mean,
                           weights = TRUE, normalizeWeights = TRUE,
                           na.rm=TRUE, df = TRUE, sp = FALSE)
 
+## add pop + baseline travel time to each commune
+pop2015adj <- raster::extract(mada_pop2015adj, mada_communes, fun = mean, 
+                              weights = TRUE, normalizeWeights = TRUE,
+                              na.rm=TRUE, df = TRUE, sp = FALSE)
+
+pop2020adj <- raster::extract(mada_pop2020adj, mada_communes, fun = mean, 
+                              weights = TRUE, normalizeWeights = TRUE,
+                              na.rm=TRUE, df = TRUE, sp = FALSE)
+
 ## getting catchments
 catch_mat <- matrix(NA, nrow = nrow(mada_communes), ncol = nrow(point_mat))
 rownames(catch_mat) <- mada_communes$mdg_com_co
@@ -74,28 +79,7 @@ for(i in (1:nrow(point_mat))) {
   catch_mat[, i] <- mada.out[, 2]
 }
 
-# getting min ttimes
-inds = apply(catch_mat, 2, function (x) (which(x == min(x[is.finite(x)]), arr.ind=TRUE)))
-catchments <- as.data.frame(cbind(rownames(catch_mat), colnames(catch_mat[, inds])))
-
-## add pop + baseline travel time to each commune
-pop2015adj <- raster::extract(mada_pop2015adj, mada_communes, fun = mean, 
-                              weights = TRUE, normalizeWeights = TRUE,
-                              na.rm=TRUE, df = TRUE, sp = FALSE)
-
-pop2020adj <- raster::extract(mada_pop2020adj, mada_communes, fun = mean, 
-                              weights = TRUE, normalizeWeights = TRUE,
-                              na.rm=TRUE, df = TRUE, sp = FALSE)
-
-## output dataframe with catchments + ttimes + pop!
-master <- as.data.frame(cbind(ttimes, catchments[, 2], pop2015adj[, 2], 
-                              pop2020adj[, 2]))
-
-names(master) <- c("communeID", "ttime", "catchment", "pop2015adj", "pop2020adj")
-
-save(master, catch_mat, ttimes, file = "output/commune_data.rda")
-
-write.csv(master, "output/commune_data.csv")
+write.csv(catch_mat, "output/catch_mat.csv")
 
 ### Then just close it out at the end
 closeCluster(cl)
