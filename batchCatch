@@ -11,4 +11,4 @@
 
 export OMPI_MCA_btl="tcp,self,sm"
 module load openmpi/gcc/2.0.2
-srun Rscript ./R/commune_stats.R
+srun Rscript ./R/extract_to_commune.R
