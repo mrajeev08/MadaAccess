@@ -17,8 +17,6 @@ mada_communes <- readOGR("data/MadaGIS/commune_mada.shp")
 ttimes <- raster("output/ttimes_all.tif")
 mada_pop2015adj <- raster("data/WorldPop/MDG_ppp_2015_adj_v2/MDG_ppp_2015_adj_v2.tif")
 mada_pop2020adj <- raster("data/WorldPop/MDG_ppp_2020_adj_v2/MDG_ppp_2020_adj_v2.tif")
-mada_pop2015adj <- raster::aggregate(mada_pop2015adj, fact = 10)
-mada_pop2020adj <- raster::aggregate(mada_pop2020adj, fact = 10)
 
 mada_out <- raster::extract(ttimes, mada_communes, fun = mean, na.rm=TRUE, df = TRUE, sp = TRUE)
 
