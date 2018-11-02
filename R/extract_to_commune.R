@@ -12,6 +12,7 @@ registerDoMPI(cl)
 library(raster)
 library(rgdal)
 mada_communes <- readOGR("data/MadaGIS/commune_mada.shp")
+mada_district <- readOGR("data/MadaGIS/district_init.shp")
 
 ## data from world pop
 ttimes <- raster("output/ttimes_all.tif")
