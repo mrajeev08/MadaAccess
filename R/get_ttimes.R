@@ -33,6 +33,10 @@ get.travel.times <- function(friction, shapefile, coords, trans_matrix_exists = 
   ## Run the accumulated cost algorithm to make the final output map. This can be quite slow (potentially hours).
   travel_times <- accCost(trans_gc, xy_matrix)
   
+  # ## Clip to Mada
+  # travel_times <- crop(travel_times, shapefile)
+  # travel_times <- mask(travel_times, shapefile)
+
   ## Write the resulting raster
   return(travel_times)
 }
