@@ -27,16 +27,18 @@ names(gps_locs) <- c ("CTAR", "X_COORD", "Y_COORD")
 coordinates(gps_locs) <- ~ Y_COORD + X_COORD
 proj4string(gps_locs) <- proj4string(mada_communes)
 point_mat <- as.matrix(gps_locs@coords)
-point_mat <- point_mat[1:2, ]
+
 # ## get ttimes layer
 # ttimes <- get.travel.times(friction = friction_mada, shapefile = mada_communes,
 #                                  coords = point_mat,
 #                                  trans_matrix_exists = TRUE, filename_trans = "output/trans_gc.rds")
 # writeRaster(ttimes, "output/ttimes_all.tif", overwrite = TRUE)
 
-## testing parallelization locally
+# # testing parallelization locally
+# point_mat <- point_mat[1:2, ]
 # library(snow)
-# cl <- makeCluster(3)
+# cl <- makeCluster()
+# # remember to stopCluster(cl) at end
 
 ## getting pops
 print(paste(Sys.time(), ": started extracting pop10"))
