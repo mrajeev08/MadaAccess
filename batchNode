@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH -N 1 # node count
+#SBATCH --ntasks-per-node=12
+#SBATCH -J  catchments
+#SBATCH -t 24:00:00
+# sends mail when process begins, and
+# when it ends
+#SBATCH --mail-type=begin
+#SBATCH --mail-type=end
+#SBATCH --mail-user=mrajeev@princeton.edu
+
+export OMPI_MCA_btl="tcp,self,sm"
+module load openmpi/gcc/2.0.2
+srun Rscript ./R/extract_WP_to_ttimes.R

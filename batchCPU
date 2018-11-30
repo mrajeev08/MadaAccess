@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --ntasks=31
+#SBATCH --ntasks=32
 #SBATCH --cpus-per-task=1
 #SBATCH -J  catchments
 #SBATCH -t 24:00:00
@@ -11,4 +11,4 @@
 
 export OMPI_MCA_btl="tcp,self,sm"
 module load openmpi/gcc/2.0.2
-srun Rscript ./R/extract_to_commune.R
+srun Rscript ./R/catchments_cluster.R
