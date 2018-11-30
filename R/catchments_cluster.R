@@ -1,65 +1,98 @@
 ## Init MPI Backend
 ## ################
 rm(list = ls())
-# library(doMPI)
-# cl <- startMPIcluster()
-# clusterSize(cl) # this just tells you how many you've got
-# registerDoMPI(cl)
+library(doMPI)
+cl <- startMPIcluster()
+clusterSize(cl) # this just tells you how many you've got
+registerDoMPI(cl)
 
 ## libraries
 library(rgdal)
 library(raster)
 library(malariaAtlas)
 library(gdistance)
-library(snow)
-# library(doRNG)
-source("R/travel_times.R")
-source("R/get_catchmat.R")
+library(doRNG)
+library(foreach)
+source("R/get.ttimes.R")
+source("R/get.catchmat.R")
 
 ## data from malaria atlas (written out to run on cluster)
 mada_communes <- readOGR("data/MadaGIS/commune_mada.shp")
 mada_district <- readOGR("data/MadaGIS/district_init.shp")
-friction_mada <- raster("output/friction_mada.tif")
-pops_resampled <- raster("output/pop2015_resamp.tif")
+pop10 <- raster("output/pop10.tif")
 
 ## Point locations
 gps_locs <- read.csv(file = "data/ctar_metadata.csv")[,c(1, 3, 4)]
-
 names(gps_locs) <- c ("CTAR", "X_COORD", "Y_COORD")
-
-## Keep only point coordinates within the shapefile bounds
 coordinates(gps_locs) <- ~ Y_COORD + X_COORD
 proj4string(gps_locs) <- proj4string(mada_communes)
-
-# ## Plot to check all good
-# p <- autoplot_MAPraster(friction, shp_df = mada_communes)
-# points.plot <- as.data.frame(coordinates(gps_locs))
-# p[[1]] + geom_point(data = points.plot, aes(Y_COORD, X_COORD))
 point_mat <- as.matrix(gps_locs@coords)
+point_mat <- point_mat[1:2, ]
+# ## get ttimes layer
+# ttimes <- get.travel.times(friction = friction_mada, shapefile = mada_communes,
+#                                  coords = point_mat,
+#                                  trans_matrix_exists = TRUE, filename_trans = "output/trans_gc.rds")
+# writeRaster(ttimes, "output/ttimes_all.tif", overwrite = TRUE)
 
-beginCluster()
+## testing parallelization locally
+# library(snow)
+# cl <- makeCluster(3)
 
-mada_district <- raster::extract(pops_resampled, mada_district, fun = sum,
+## getting pops
+print(paste(Sys.time(), ": started extracting pop10"))
+mada_district <- raster::extract(pop10, mada_district, fun = sum,
                                  na.rm = TRUE, df = TRUE, sp = TRUE)
+# mada_communes <- raster::extract(pop10, mada_communes, fun = sum,
+#                                  na.rm = TRUE, df = TRUE, sp = TRUE)
+print(paste(Sys.time(), ": finished extracting pop10"))
 
-# get ttimes layer
-ttimes <- get.travel.times(friction = friction_mada, shapefile = mada_communes,
-                                 coords = point_mat,
-                                 trans_matrix_exists = TRUE,
-                                 filename_trans = "output/trans_gc.rds")
+### getting catchments unmasked
+## districts
+print(paste(Sys.time(), ": started generating district catchmat unmasked"))
 
+friction_mada <- raster("output/friction_mada_unmasked.tif")
 
-## getting catchments
 dist_mat <- get.catchmat(point_mat = point_mat, fric = friction_mada, shape = mada_district, 
-                         place_names = mada_district$mdg_dis_co, point_names = gps_locs$CTAR, 
-                         admin = "district", pop = pops_resampled, weighted = TRUE)
+                         place_names = mada_district$mdg_dis_co, point_names = gps_locs$CTAR[1:2], 
+                         admin = "district", pop_rast = pop10, pop_pol = mada_district$pop10,
+                         weighted = TRUE, type = "unmasked")
+
+print(paste(Sys.time(), ": finished generating district catchmat unmasked"))
+
+# ## communes
+# print(paste(Sys.time(), ": started generating commune catchmat unmasked"))
 # 
-# comm_mat <- get.catchmat(point_mat = point_mat, fric = friction_mada, shape = mada_communes, 
-#                          place_names = mada_communes$mdg_com_co, point_names = gps_locs$CTAR, 
-#                          admin = "commune", pop = pops_resampled, weighted = TRUE)
+# comm_mat <- get.catchmat(point_mat = point_mat, fric = friction_mada, shape = mada_communes,
+#                          place_names = mada_communes$mdg_com_co, point_names = gps_locs$CTAR,
+#                          admin = "commune", pop_rast = pop10, pop_pol = mada_communes$pop10,
+#                          weighted = TRUE, type = "unmasked")
+# 
+# print(paste(Sys.time(), ": finished generating commune catchmat unmasked"))
+# 
+# ## Masked catchmats
+# friction_mada <- raster("output/friction_mada_masked.tif")
+# ### getting catchments
+# ## districts
+# print(paste(Sys.time(), ": started generating district catchmat masked"))
+# 
+# dist_mat <- get.catchmat(point_mat = point_mat, fric = friction_mada, shape = mada_district, 
+#                          place_names = mada_district$mdg_dis_co, point_names = gps_locs$CTAR, 
+#                          admin = "district", pop_rast = pop10, pop_pol = mada_district$pop10,
+#                          weighted = TRUE, type = "masked")
+# 
+# print(paste(Sys.time(), ": finished generating district catchmat masked"))
+# 
+# ## communes
+# print(paste(Sys.time(), ": started generating commune catchmat masked"))
+# 
+# comm_mat <- get.catchmat(point_mat = point_mat, fric = friction_mada, shape = mada_communes,
+#                          place_names = mada_communes$mdg_com_co, point_names = gps_locs$CTAR,
+#                          admin = "commune", pop_rast = pop10, pop_pol = mada_communes$pop10,
+#                          weighted = TRUE, type = "masked")
+# 
+# print(paste(Sys.time(), ": finished generating commune catchmat masked"))
 
 ### Then just close it out at the end
-endCluster()
-# closeCluster(cl)
-# mpi.quit()
+closeCluster(cl)
+mpi.quit()
 Sys.time()
