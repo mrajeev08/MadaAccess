@@ -12,8 +12,8 @@ library(raster)
 library(malariaAtlas)
 library(gdistance)
 library(doRNG)
-source("R/get_ttimes.R")
-source("R/get_catchmat.R")
+source("R/get.ttimes.R")
+source("R/get.catchmat.R")
 
 ## data from malaria atlas (written out to run on cluster)
 mada_communes <- readOGR("data/MadaGIS/commune_mada.shp")
@@ -31,13 +31,15 @@ point_mat <- as.matrix(gps_locs@coords)
 ## get ttimes layer masked and unmasked
 ttimes_masked <- get.travel.times(friction = friction_masked, shapefile = mada_communes,
                            coords = point_mat,
-                           trans_matrix_exists = FALSE, filename_trans = "output/trans_gc.rds")
+                           trans_matrix_exists = FALSE, 
+                           filename_trans = "output/trans_gc_masked.rds")
 writeRaster(ttimes_masked, "output/ttimes_masked.tif", overwrite = TRUE)
 
 ## get ttimes layer masked and unmasked
 ttimes_unmasked <- get.travel.times(friction = friction_unmasked, shapefile = mada_communes,
                            coords = point_mat,
-                           trans_matrix_exists = FALSE, filename_trans = "output/trans_gc.rds")
+                           trans_matrix_exists = FALSE, 
+                           filename_trans = "output/trans_gc_unmasked.rds")
 writeRaster(ttimes_unmasked, "output/ttimes_unmasked.tif", overwrite = TRUE)
 
 ### Then just close it out at the end
