@@ -12,19 +12,6 @@ output:
 css: style.css
 ---
 
-```{r directory, echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
-rm(list = ls())
-library(knitr)
-library(RImagePalette)
-library(jpeg)
-library(tidyverse)
-library(lubridate)
-library(magrittr)
-library(rgdal)
-library(broom)
-knitr::opts_chunk$set(fig.pos = 'h', echo = FALSE, message = FALSE, warning = FALSE, results = 'hide')
-
-```
 
 ## INTRODUCTION
 
@@ -111,39 +98,124 @@ We use data on the location of **CSBs** provided by IPM to regenerate travel tim
 - Sensitivity to assumptions of p_rabid
 
 ## Preliminary data processing
-
-### Cleaning data
-```{r first cleaning}
-## read in data
-ctar_data <- read.csv("data/SaisieRage_DATA_2018-09-21_1755.csv")
-
-## percent with wrong dates by ctar
-
-## percent with missing district by ctar
-
-## exclude contacts
+```{r directory, echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
+rm(list = ls())
+library(knitr)
+library(RImagePalette)
+library(jpeg)
+library(tidyverse)
+library(lubridate)
+library(magrittr)
+library(rgdal)
+library(broom)
+knitr::opts_chunk$set(fig.pos = 'h', echo = FALSE, message = FALSE, warning = FALSE, results = 'hide')
 
 ```
 
-
-## Submission of forms
-- Missingness seems to have been due to periods of time without form submission
-- Calculating periods of time 
-
-```{r doses}
+### Data
+```{r get data}
+## read in data
+ctar_data <- read.csv("data/SaisieRage_DATA_2018-09-21_1755.csv")
 ctar_metadata <- read.csv("data/ctar_metadata.csv")
 mada_district <- readOGR("data/MadaGIS/MadaPops.shp")
+dist_catchments <- read.csv("output/catchments_district_unmasked.csv", row.names = 1)
+names(dist_catchments) <- c("mdg_dis_co", "CTAR", "ttimes_weighted")
 
+## Centers with no data
+no_data <- c("IPM", "Fianarantsoa", "Ambatomainty", "Ambovombe Androy",
+             "Antsiranana", "Mandritsara", "Marolambo", "Nosy be", "Sainte Marie",
+             "Taolagnaro", "Tsiroanomandidy", "Vangaindrano")
+ctar_metadata$exclude <- 0
+ctar_metadata$exclude[ctar_metadata$CTAR %in% no_data] <- 1
+
+## Get color palette from other network fig!
 img <- readJPEG("~/Downloads/Dp0j4GNUwAAPPJV.jpeg")
 pal <- image_palette(img, 31)
-ctar_metadata$color <- pal
+add.alpha <- function(col, alpha=1){
+  if(missing(col))
+    stop("Please provide a vector of colours.")
+  apply(sapply(col, col2rgb)/255, 2, 
+                     function(x) 
+                       rgb(x[1], x[2], x[3], alpha=alpha))  
+}
+ctar_metadata$color <- c("#FCC56F","#FFDBE5", "#7A4900", "#CBCDD2", "#0000A6", "#EFF2F1",
+                 "#63FFAC", "#B79762", "#004D43", "#8FB0FF", "#997D87", "#FD9C54", "#8362B5",
+                 "#578FB0","#5A0007", "#809693", "#D16100", "#1B4400", "#4FC601", "#3B5DFF", 
+                 "#4A3B53", "#FF2F80","#61615A", "#BA0900", "#6B7900", "#00C2A0", "#FFAA92",
+                 "#FF90C9", "#B903AA", "#FEFFE6", "#E9E9D2")
+ctar_metadata$fill <- ctar_metadata$color
+ctar_metadata$fill[ctar_metadata$CTAR %in% no_data] <- "#D3D3D3"
+ctar_metadata$fill <- add.alpha(ctar_metadata$fill, 0.25)
+ctar_metadata$ctar_dist <- mada_district$mdg_dis_co[match(ctar_metadata$District, 
+                                                           mada_district$district)]
+display_palette(ctar_metadata$color)
+dist_catchments %>% left_join(select(ctar_metadata, CTAR, exclude, 
+                                     color, fill, ctar_dist, LATITUDE, LONGITUDE)) -> dist_catchments
+mada_district@data <- left_join(mada_district@data, dist_catchments)
+```
 
+```{r catchment figure}
+## get exposure matrix
+ctar_data %>% 
+  group_by(district, id_ctar) %>% # group by district and ctar
+  summarize(n = n()) -> exp_mat # get count of exposures
+dist_points <- cbind(select(mada_district@data,
+                            mdg_dis_co), coordinates(mada_district))
+names(dist_points)[2:3] <- c("dist_long", "dist_lat")
+dist_points %>%
+ left_join(select(ctar_metadata, ctar_dist, LATITUDE, LONGITUDE), 
+           by = c("mdg_dis_co" = "ctar_dist")) %>%
+ mutate(dist_long = coalesce(dist_long, LONGITUDE), 
+        dist_lat = coalesce(dist_lat, LATITUDE)) -> dist_points
+
+exp_mat %>% 
+  left_join(select(dist_points, mdg_dis_co, dist_long, dist_lat), 
+            by = c("district" = "mdg_dis_co")) %>%
+  left_join(select(ctar_metadata, id_ctar, LATITUDE, LONGITUDE,
+                   color, fill, ctar_dist)) -> dist_lines
+dist_lines$size <- log(dist_lines$n + 0.1)*0.2
+
+ctar_data %>%
+  group_by(district) %>%
+  summarize(n = n()) %>%
+  right_join(select(dist_points, mdg_dis_co, dist_long, dist_lat),
+             by = c("district" = "mdg_dis_co")) %>%
+  left_join(dist_catchments, by = c("district" = "mdg_dis_co") ) -> dist_points
+dist_points$size <- log(dist_points$n + 0.1)*0.25
+
+
+pdf("figs/network.pdf")
+plot(mada_district, col = mada_district$fill, border = "grey") 
+points(dist_points$dist_long, dist_points$dist_lat, pch = 20, cex = dist_points$size, 
+       col = dist_points$color)
+segments(dist_lines$LONGITUDE, dist_lines$LATITUDE, x1 = dist_lines$dist_long, y1 = dist_lines$dist_lat, 
+         lwd = dist_lines$size*2, col = dist_lines$color)
+dev.off()
+
+legend("topleft", c(">100", ">200", ">400", ">800"), title = "Number of total reported bites", 
+       text.width = 3, pt.cex = circle_size, col = "grey",  pch = 16, inset = c(0.1, 0.1), lwd = 1.5, bty = "n", xpd = TRUE, y.intersp=2)
+
+exp_mat %>% 
+  left_join(select(ctar_metadata, CTAR, id_ctar)) %>%
+  left_join(select(dist_catchments, mdg_dis_co, CTAR, exclude), by = c("district" = "mdg_dis_co")) %>%
+  group_by(district) %>%
+  mutate(prop = n/sum(n),
+         catch_match = ifelse(CTAR.x == CTAR.y, 1, 0)) -> catch_check
+ggplot(data = catch_check, aes(CTAR.x, district)) + 
+  geom_tile(aes(fill = prop)) +
+  scale_fill_continuous(type = "viridis", name = "proportion") +
+  geom_text(label = catch_check$catch_match)
+```
+
+```{r}
+## get vials delivered
 ctar_metadata %>% 
   dplyr::select(id_ctar, starts_with("doses")) %>%
-  gather(year, doses, -id_ctar) %>%
-  mutate(year = as.numeric(substr(as.character(year), 7, 10))) -> doses
+  gather(year, vials_delivered, -id_ctar) %>%
+  mutate(year = as.numeric(substr(as.character(year), 7, 10))) -> vials_delivered
 
 ## getting dose time series by clinic
+########### Need to fix dates first! ###############
 ctar_data %>%
   select(id_ctar, datej0, datej3, datej7, datej28) %>%
   mutate_at(vars(starts_with("date")), funs(ymd(.))) %>%
@@ -153,26 +225,37 @@ ctar_data %>%
 dose_ts <- dose_ts[!is.na(dose_ts$date), ]
 dose_ts$ctar <- ctar_metadata$CTAR[match(dose_ts$id_ctar, ctar_metadata$id_ctar)]
 dose_ts <- dose_ts[!is.na(dose_ts$ctar), ]
-                   
+
 ## getting theoretical # vials by year
 dose_ts %>%
   mutate(year = year(date), vials = ceiling(n/2)) %>%
   group_by(id_ctar, year) %>%
-  summarize(vials = sum(vials)) %>%
-  left_join(doses) -> dose_comp
+  summarize(vials_estimated = sum(vials)) %>%
+  left_join(vials_delivered) -> dose_comp
 
-ggplot(data = dose_ts, aes(date, ctar)) + 
+######### Patient time series
+ctar_data %>%
+  select(id_ctar, date_de_consultation) %>%
+  mutate(date_de_consultation = ymd(date_de_consultation)) %>%
+  gather(dose, date_de_consultation, -id_ctar) %>%
+  group_by(id_ctar, date_de_consultation) %>%
+  summarise(n = n()) -> patient_ts
+patient_ts <- patient_ts[!is.na(patient_ts$date_de_consultation), ]
+patient_ts$ctar <- ctar_metadata$CTAR[match(patient_ts$id_ctar, ctar_metadata$id_ctar)]
+patient_ts <- patient_ts[!is.na(patient_ts$ctar), ]
+
+ggplot(data = patient_ts, aes(date_de_consultation, ctar)) + 
   geom_tile(aes(fill = n)) +
   scale_fill_continuous(type = "viridis", name = "Patients") 
-  
+
 ## getting reporting
 start_date <- ymd("2014-01-01")
 end_date <- ymd("2017-12-31")
 ts <- as_tibble(seq(start_date, end_date, by = "day"))
 
-dose_ts %>%
-  right_join(ts, by = c("date" = "value")) %>%
-  select(id_ctar, date, n) %>%
+patient_ts %>%
+  right_join(ts, by = c("date_de_consultation" = "value")) %>%
+  select(id_ctar, date_de_consultation, n) %>%
   spread(id_ctar, n) %>%
   replace(., is.na(.), 0) -> doses_wide
 dose_mat <- as.matrix(doses_wide[, 2:(ncol(doses_wide) - 1)])
@@ -193,16 +276,29 @@ for (j in 1:ncol(date_mat)){
 date_mat <- replace(date_mat, is.na(date_mat), 1)
 date_mat %>% 
   as_tibble() %>%
-  group_by(date = year(doses_wide$date)) %>%
-  summarise_all(funs(sum(.)/365)) -> clinic_reporting
+  group_by(date = year(doses_wide$date_de_consultation)) %>%
+  summarise_all(funs(sum(.)/n())) -> clinic_reporting
 colnames(clinic_reporting) <- colnames(doses_wide)[1:(ncol(doses_wide)-1)]
-clinic_reporting <- gather(clinic_reporting, id_ctar, prop, -date)
+clinic_reporting <- gather(clinic_reporting, id_ctar, prop, -date_de_consultation)
 clinic_reporting$ctar <- ctar_metadata$CTAR[match(clinic_reporting$id_ctar, 
                                                   ctar_metadata$id_ctar)]
+clinic_reporting$id_ctar <- as.numeric(clinic_reporting$id_ctar)
 
-ggplot(clinic_reporting, aes(x = date, y = ctar, fill = prop)) + 
+ggplot(clinic_reporting, aes(x = date_de_consultation, y = ctar, fill = prop)) + 
   geom_tile() +
   scale_fill_gradient(low = "white", high = "blue")
+```
+
+
+
+## Submission of forms
+- Missingness seems to have been due to periods of time without form submission
+- Calculating periods of time 
+
+```{r clean data}
+## districts that are non-reporter and data not available yet CTAR
+mada_district@data %>%
+select(district = mdg_dis_co, pop = pop2015adj, ttimes_weighted, CTAR, exclude) -> covars
 
 to_exclude <- c(grep("contact", unique(ctar_data$remarque), ignore.case = TRUE, value = TRUE),
                 grep("contam", unique(ctar_data$remarque), ignore.case = TRUE, value = TRUE),
@@ -218,43 +314,65 @@ ctar_data %>%
   group_by(year = year(date_de_consultation), district, id_ctar) %>% # group by year and district
   summarize(n = n()) -> exposures # get count of exposures
 
-## districts that are non-reporter and data not available yet CTAR
-no_data <- c("Manja", 'Ambatondrazaka', "Vangaindrano", "Tsiroanomandidy",
-             "Antsiranana I", "Taolagnaro", "Ambovombe-Androy", "Nosy-Be", "Ambatomainty",
-             "Marolambo", "Sainte Marie", "Antananarivo Renivohitra", "Antananarivo Avaradrano",
-             "Ambohidratrimo", "Ankazobe", "Manjakandriana", "Anjozorobe", "Andramasina", 
-             "Antananarivo Atsimondrano", "Fianarantsoa I", "Ambalavao", "Ambohimahasoa", 
-             "Ikalamavony", "Lalangina", "Vohibato", "Isandra")
-no_data <- mada_district$mdg_dis_co[match(no_data, mada_district$district)]
-mada_district@data %>%
-  select(district = mdg_dis_co, pop = pop2015adj, ttimes = study_area) -> covars
-
 exposures %>%
   rename(date = year) %>%
-  mutate(id_ctar = as.character(id_ctar)) %>%
-  left_join(clinic_reporting) %>%   # add reporting by clinic + year
-  filter(!(district %in% no_data), prop >= 0.25) %>% # exclude no data & < 25% annual reporting
-  group_by(district) %>%
-  mutate(bites = n/prop) %>%
-  summarise(bites = sum(bites)) %>% # average by ctar + district 
   left_join(covars) %>% # add pop + ttimes + reporting
-  mutate(incidence = bites/(pop/1e5)) -> exps_cleaned 
-exps_cleaned %$% plot(ttimes, bites)
-exps_cleaned %$% plot(ttimes, incidence, bty = 
+  left_join(clinic_reporting) %>%   # add reporting by clinic + year
+  filter(exclude == 0, prop > 0.25) %>%
+  group_by(district, date) %>%
+  mutate(bites = n/prop) %>%
+  summarise(bites = sum(bites, na.rm = TRUE)) -> exps_cleaned 
+exps_cleaned %>%
+  group_by(district) %>%
+  summarise(bites = mean(bites)) %>%
+  left_join(covars) -> exps_cleaned
+
+library(lme4)
+
+## poisson with total pop as offset
+mod <- glm(round(bites) ~ ttimes_weighted + pop + offset(log(round(pop))), 
+                 data = exps_cleaned, family = poisson)
+plot(exps_cleaned$bites, predict(mod, type = "response"))
+plot(exps_cleaned$ttimes_weighted, predict(mod, type = "response"))
+
+```
+
+
+```{r}
+p_rabid = 0.50
+mean_bites <- predict(mod, type = "response", newdata = covars)
+bites <- rpois(length(mean_bites), mean_bites)
+mean_exps <- runif(length(covars$pop), min = 0.39*0.01*exps_cleaned$pop/25, 
+                    max = 0.39*0.01*exps_cleaned$pop/5)
+rabid_exps <- rpois(length(mean_bites), mean_exps)
+p_rabid_t <- ifelse(bites*p_rabid/rabid_exps > 0.95, (0.95*rabid_exps)/bites, p_rabid)
+deaths <- rbinom(length(mean_bites), rabid_exps - round(bites*p_rabid_t), 0.16)
+rho <- bites*p_rabid_t/rabid_exps
+plot(covars$ttimes_weighted, rho)
+
+```
+
+
+```{r}
+exps_cleaned %$% plot(ttimes_weighted, bites)
+
+exps_cleaned %>%
+  filter(exclude == 0) %$% 
+  plot(ttimes_weighted, incidence, bty = 
                         "n", pch = 20)
 
 mada_dist_gg <- tidy(mada_district, region = "mdg_dis_co")
 mada_dist_gg <- left_join(mada_dist_gg, exps_cleaned, by = c("id" = "district"))
 
+quartz()
 ggplot() +
-  geom_polygon(data = mada_dist_gg, aes(x = long, y = lat, group = group, fill = incidence)) +
-  scale_fill_continuous(type = "viridis") +
-  geom_point(data = ctar_metadata, aes (x = LONGITUDE, y = LATITUDE))
+  geom_polygon(data = mada_dist_gg, aes(x = long, y = lat, group = group, fill = CTAR)) +
+  scale_colour_viridis_d()
+
+geom_point(data = ctar_metadata, aes (x = LONGITUDE, y = LATITUDE))
 ggplot() +
-  geom_polygon(data = mada_dist_gg, aes(x = long, y = lat, group = group, fill = ttimes)) +
+  geom_polygon(data = mada_dist_gg, aes(x = long, y = lat, group = group, fill = ttimes_weighted)) +
   scale_fill_continuous(type = "viridis") +
   geom_point(data = ctar_metadata, aes (x = LONGITUDE, y = LATITUDE))
 
-library(lme4)
-summary(lm(log(incidence) ~ ttimes, data = exps_cleaned))
 ```
