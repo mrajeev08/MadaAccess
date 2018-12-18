@@ -108,6 +108,7 @@ library(lubridate)
 library(magrittr)
 library(rgdal)
 library(broom)
+select <- dplyr::select
 knitr::opts_chunk$set(fig.pos = 'h', echo = FALSE, message = FALSE, warning = FALSE, results = 'hide')
 
 ```
@@ -146,12 +147,18 @@ ctar_metadata$color <- c("#FCC56F","#FFDBE5", "#7A4900", "#CBCDD2", "#0000A6", "
 ctar_metadata$fill <- ctar_metadata$color
 ctar_metadata$fill[ctar_metadata$CTAR %in% no_data] <- "#D3D3D3"
 ctar_metadata$fill <- add.alpha(ctar_metadata$fill, 0.25)
+## Getting ctar district and commune
 ctar_metadata$ctar_dist <- mada_district$mdg_dis_co[match(ctar_metadata$District, 
                                                            mada_district$district)]
+pts <- SpatialPoints(cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE), 
+                   proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+ctar_metadata$ctar_comm <- over(pts, mada_communes)$mdg_cm_
+
 display_palette(ctar_metadata$color)
 dist_catchments %>% left_join(select(ctar_metadata, CTAR, exclude, 
                                      color, fill, ctar_dist, LATITUDE, LONGITUDE)) -> dist_catchments
 mada_district@data <- left_join(mada_district@data, dist_catchments)
+dist_catchments$ctar_in <- ifelse(dist_catchments$mdg_dis_co %in% ctar_metadata$ctar_dist, 1, 0)
 ```
 
 ```{r catchment figure}
@@ -184,11 +191,12 @@ ctar_data %>%
 dist_points$size <- log(dist_points$n + 0.1)*0.25
 
 
-pdf("figs/network.pdf")
+pdf("figs/network_1.pdf")
 plot(mada_district, col = mada_district$fill, border = "grey") 
-points(dist_points$dist_long, dist_points$dist_lat, pch = 20, cex = dist_points$size, 
-       col = dist_points$color)
-segments(dist_lines$LONGITUDE, dist_lines$LATITUDE, x1 = dist_lines$dist_long, y1 = dist_lines$dist_lat, 
+points(jitter(dist_lines$dist_long, factor = 2), jitter(dist_lines$dist_lat, factor = 2)
+       , pch = 1, cex = dist_points$size, 
+       col = dist_lines$color)
+segments(dist_lines$LONGITUDE, dist_lines$LATITUDE, x1 = dist_lines$dist_long, y1 = dist_lines$dist_lat,
          lwd = dist_lines$size*2, col = dist_lines$color)
 dev.off()
 
@@ -201,10 +209,12 @@ exp_mat %>%
   group_by(district) %>%
   mutate(prop = n/sum(n),
          catch_match = ifelse(CTAR.x == CTAR.y, 1, 0)) -> catch_check
+hist(catch_check$prop)
 ggplot(data = catch_check, aes(CTAR.x, district)) + 
   geom_tile(aes(fill = prop)) +
   scale_fill_continuous(type = "viridis", name = "proportion") +
   geom_text(label = catch_check$catch_match)
+
 ```
 
 ```{r}
@@ -247,6 +257,15 @@ patient_ts <- patient_ts[!is.na(patient_ts$ctar), ]
 ggplot(data = patient_ts, aes(date_de_consultation, ctar)) + 
   geom_tile(aes(fill = n)) +
   scale_fill_continuous(type = "viridis", name = "Patients") 
+
+patient_ts %>%
+  filter(id_ctar == 1) %$%
+  hist(n, breaks = 100, col = "blue", 
+       xlab = "Patients reporting", main = "Soanierana Ivongo")
+patient_ts %>%
+  filter(ctar == "Toamasina") %$%
+  hist(n, breaks = 100, 
+       xlab = "Patients reporting", main = "Toamasina", col = "red")
 
 ## getting reporting
 start_date <- ymd("2014-01-01")
@@ -332,13 +351,23 @@ library(lme4)
 ## poisson with total pop as offset
 mod <- glm(round(bites) ~ ttimes_weighted + offset(log(round(pop))), 
                  data = exps_cleaned, family = poisson)
-plot(exps_cleaned$bites, predict(mod, type = "response"))
-plot(exps_cleaned$ttimes_weighted, predict(mod, type = "response"))
-
+par(mfrow = c(2, 1), mar = c(4, 4, 1, 1))
+plot(exps_cleaned$bites, predict(mod, type = "response"), bty = "l", pch = 20,
+     xlab = "Observed bites", ylab = "Predicted bites")
+abline(a = 0, b = 1, lty = 2, col = "blue")
+legend("topright", col = "blue", legend = "1:1 line", lty = 2, bty = "n", seg.len = 1, 
+       inset = c(0.0, -0.1))
+plot(exps_cleaned$ttimes_weighted/60, predict(mod, type = "response"), bty = "l", pch = 20,
+     xlab = "Travel times (hrs)", ylab = "Bites", col = alpha("blue", 0.7), 
+     ylim = c(0, max(exps_cleaned$bites)))
+points(exps_cleaned$ttimes_weighted/60, exps_cleaned$bites, bty = "l", pch = 20,
+     xlab = "Travel times (hrs)", col = alpha("darkred", 0.7))
+legend("topright", col = c(alpha("blue", 0.7), alpha("darkred", 0.7)), legend = c("Predicted", "Observed"), 
+       pch = 20, bty = "n")
 ```
 
 
-```{r}
+```{r functions for getting burden}
 get.burden <- function(covs = covars, pop = covars$pop, model = mod,
                        p_rabid = 0.5, rho_max = 0.9,
                        max_HDR = 25, min_HDR = 5, 
@@ -357,6 +386,7 @@ get.burden <- function(covs = covars, pop = covars$pop, model = mod,
     store_deaths[, i] <- deaths
     store_p_rabid[, i] <- p_rabid_t
   }
+  
   results <- cbind(get.meanCI(store_deaths), get.meanCI(store_p_rabid))
   colnames(results) <- c("deaths_mean", "deaths_lowerCI", "deaths_upperCI",
                          "p_rabid_mean", "p_rabid_lowerCI", "p_rabid_upperCI")
@@ -381,7 +411,6 @@ get.burden.flat <- function(covs = covars, pop = covars$pop, model = mod,
   results <- cbind(covars, results)
   return(results)
 }
-
 
 get.meanCI <- function(matrix_by_row, nboots = 1000) {
     mean_rows <- apply(matrix_by_row, 1, mean)
@@ -423,36 +452,53 @@ results_pr20 <- get.burden(p_rabid = 0.20, rho_max = 0.98)
 results_pr60 <- get.burden(p_rabid = 0.60,rho_max = 0.98)
 
 plot(results_pr20$ttimes_weighted/60, results_pr20$deaths_mean, col = "darkred", pch = 20)
-points(results_pr60$ttimes_weighted/60, results_pr60$deaths_mean, col = "red", pch = 1)
+points(results_pr60$ttimes_weighted/60, results_pr60$deaths_mean, col = "red", pch = 20)
 segments(x0 = results_pr60$ttimes_weighted/60, x1 = results_pr60$ttimes_weighted/60,
          y0 = results_pr60$deaths_mean, y1 = results_pr20$deaths_mean, col = "red")
 
+results_base <- get.burden(p_rabid = 0.40, rho_max = 0.98)
 
-results_pr20 <- get.burden(p_rabid = 0.20, rho_max = 0.90)
-results_pr60 <- get.burden(p_rabid = 0.20, rho_max = 0.99)
+p_rabid_check <- seq(0.10, 0.80, by = 0.1)
+check <- data.frame(p_rabid = 0, district = NA, ttimes = 0, deaths_mean = 0)
+for (i in 1:length(p_rabid_check)) {
+  print(paste(i, "/", length(p_rabid_check)))
+  results <- get.burden(p_rabid = p_rabid_check[i], rho_max = 0.98)
+  p_rabid <- rep(p_rabid_check[i], length(results$deaths_mean))
+  check_one <- cbind(p_rabid, results$district, results$ttimes, results$deaths_mean)
+  colnames(check_one) <- c("p_rabid", "district", "ttimes", "deaths_mean")
+  check <- rbind(check, check_one)
+}
 
-plot(results_pr20$ttimes_weighted/60, results_pr20$deaths_mean, col = "darkred", pch = 20)
-points(results_pr60$ttimes_weighted/60, results_pr60$deaths_mean, col = "red", pch = 1)
-segments(x0 = results_pr60$ttimes_weighted/60, x1 = results_pr60$ttimes_weighted/60,
-         y0 = results_pr60$deaths_mean, y1 = results_pr20$deaths_mean, col = "red")
+check <- check[-1, ]
+check$base <- rep(results_base$deaths_mean, length(p_rabid_check))
+ggplot(data = check, aes(x = as.factor(p_rabid), y = as.factor(reorder(district, ttimes)))) + 
+  geom_tile(aes(fill = deaths_mean/base)) +
+  scale_fill_gradient2(high = "red", mid = "white", low = "blue", midpoint = 1, name = "Mean deaths") 
 
+rho_max_check <- seq(0.90, 0.99, by = 0.01)
+check <- data.frame(rho_max = 0, district = NA, ttimes = 0, deaths_mean = 0)
+for (i in 1:length(rho_max_check)) {
+  print(paste(i, "/", length(rho_max_check)))
+  results <- get.burden(p_rabid = 0.4, rho_max = rho_max_check[i])
+  rho_max <- rep(rho_max_check[i], length(results$deaths_mean))
+  check_one <- cbind(rho_max, results$district, results$ttimes, results$deaths_mean)
+  colnames(check_one) <- c("rho_max", "district", "ttimes", "deaths_mean")
+  check <- rbind(check, check_one)
+}
 
-results_pr20 <- get.burden(p_rabid = 0.60, rho_max = 0.90)
-results_pr60 <- get.burden(p_rabid = 0.60, rho_max = 0.99)
+check <- check[-1, ]
+check$base <- rep(results_base$deaths_mean, length(rho_max_check))
+check %>%
+  group_by(district) %>%
+  mutate(min = min(deaths_mean), max = max(deaths_mean), 
+         standardized = (deaths_mean - base)/(max - base)) -> check
 
-plot(results_pr20$ttimes_weighted/60, results_pr20$deaths_mean, col = "darkred", pch = 20)
-points(results_pr60$ttimes_weighted/60, results_pr60$deaths_mean, col = "red", pch = 1)
-segments(x0 = results_pr60$ttimes_weighted/60, x1 = results_pr60$ttimes_weighted/60,
-         y0 = results_pr60$deaths_mean, y1 = results_pr20$deaths_mean, col = "red")
-```
-
-```{r}
-exps_cleaned %$% plot(ttimes_weighted, bites)
-
-exps_cleaned %>%
-  filter(exclude == 0) %$% 
-  plot(ttimes_weighted, incidence, bty = 
-                        "n", pch = 20)
+ggplot(data = check, aes(x = as.factor(p_rabid), y = as.factor(reorder(district, ttimes)))) + 
+  geom_tile(aes(fill = standardized)) +
+  scale_fill_gradient2(high = "red", mid = "white", low = "blue", midpoint = 0, name = "Mean deaths") 
+ggplot(data = check, aes(x = as.factor(p_rabid), y = as.factor(reorder(district, ttimes)))) + 
+  geom_tile(aes(fill = deaths_mean)) +
+  scale_fill_gradient2(high = "red", mid = "white", low = "blue", midpoint = 0, name = "Mean deaths") 
 
 mada_dist_gg <- tidy(mada_district, region = "mdg_dis_co")
 mada_dist_gg <- left_join(mada_dist_gg, exps_cleaned, by = c("id" = "district"))
@@ -461,10 +507,119 @@ ggplot() +
   geom_polygon(data = mada_dist_gg, aes(x = long, y = lat, group = group, fill = CTAR)) +
   scale_colour_viridis_d()
 
-geom_point(data = ctar_metadata, aes (x = LONGITUDE, y = LATITUDE))
-ggplot() +
-  geom_polygon(data = mada_dist_gg, aes(x = long, y = lat, group = group, fill = ttimes_weighted)) +
-  scale_fill_continuous(type = "viridis") +
-  geom_point(data = ctar_metadata, aes (x = LONGITUDE, y = LATITUDE))
-
 ```
+
+
+## Commune level mods
+```{r commune matching, echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
+commune_matching <- read.csv("data/commune_check_CH.csv")
+mada_communes <- readOGR("output/communes/communes_extracted.shp")
+mada_communes$match <- tolower(str_replace_all(mada_communes$commune,"[^[:graph:]]", "/"))
+
+mada_communes@data %>%
+  select(match, mtch_ds, mdg_cm_) %>%
+  left_join(commune_matching, .) %>%
+  select(name, match, district, mdg_cm_) -> comm_matches
+ 
+ctar_data$name <- tolower(str_replace_all(ctar_data$commune,"[^[:graph:]]", "/"))
+left_join(ctar_data, comm_matches) %>%
+  distinct(record_id, .keep_all = TRUE) -> ctar_data
+
+## Looking at proportion matched
+ctar_data %>%
+  group_by(id_ctar) %>%
+  summarise(n = n(), unmatched = sum(is.na(mdg_cm_)),
+            prop_matched = unmatched/n) -> ctar_data_matched
+
+ctar_metadata <- merge(ctar_metadata, ctar_data_matched)
+ctar_metadata <- ctar_metadata[!is.na(ctar_metadata$id_ctar), ]
+ggplot(ctar_metadata, aes(CTAR, prop_matched)) +
+  geom_point() +
+  coord_flip()  +
+  ylab(label = "Proportion of patients matched to commune")
+```
+
+```{r }
+## Ctar data at commune level
+ctar_data %>% 
+  filter(excl != 1) %>% # exclude contacts
+  mutate_at(vars(starts_with("date")), funs(ymd(.))) %>% # format dates
+  group_by(year = year(date_de_consultation), commune = mdg_cm_, id_ctar) %>% # group by year and district
+  summarize(n = n()) -> exposures # get count of exposures
+
+comm_catchments <- read.csv("output/catchments_commune_unmasked.csv", row.names = 1)
+names(comm_catchments) <- c("mdg_cm_", "CTAR", "ttimes_weighted")
+comm_catchments %>% left_join(select(ctar_metadata, CTAR, exclude, 
+                                     color, fill, ctar_dist, LATITUDE, LONGITUDE)) -> comm_catchments
+mada_communes@data <- left_join(mada_communes@data, comm_catchments)
+
+mada_communes@data %>%
+select(commune = mdg_cm_, pop = MDG__201, ttimes_weighted, CTAR, exclude) -> covars
+mada_communes$ctar_in <- ifelse(mada_communes$mdg_cm_ %in% ctar_metadata$ctar_comm, 1, 0)
+
+## Catchments with no data
+no_data <- c("IPM", "Fianarantsoa", "Ambatomainty", "Ambovombe Androy",
+             "Antsiranana", "Mandritsara", "Marolambo", "Nosy be", "Sainte Marie",
+             "Taolagnaro", "Tsiroanomandidy", "Vangaindrano")
+covars$exclude <- 0
+covars$exclude[covars$CTAR %in% no_data] <- 1
+
+exposures %>%
+  rename(date = year) %>%
+  left_join(covars) %>% # add pop + ttimes + reporting
+  left_join(clinic_reporting) %>%   # add reporting by clinic + year
+  filter(exclude == 0, prop > 0.25) %>%
+  group_by(commune, date) %>%
+  mutate(bites = n/prop) %>%
+  summarise(bites = sum(bites, na.rm = TRUE)) -> exps_cleaned 
+exps_cleaned %>%
+  group_by(commune) %>%
+  summarise(bites = mean(bites)) %>%
+  left_join(covars) -> exps_cleaned
+
+library(lme4)
+
+## poisson with total pop as offset
+exps_cleaned <- filter(exps_cleaned, ttimes_weighted != "Inf")
+mod <- glm(round(bites) ~ ttimes_weighted + offset(log(round(pop))), 
+                 data = exps_cleaned, family = poisson)
+
+par(mfrow = c(2, 1), mar = c(4, 4, 1, 1))
+plot(exps_cleaned$bites, predict(mod, type = "response"), bty = "l", pch = 20,
+     xlab = "Observed bites", ylab = "Predicted bites")
+abline(a = 0, b = 1, lty = 2, col = "blue")
+legend("topright", col = "blue", legend = "1:1 line", lty = 2, bty = "n", seg.len = 1, 
+       inset = c(0.0, -0.1))
+plot(exps_cleaned$ttimes_weighted/60, predict(mod, type = "response"), bty = "l", pch = 20,
+     xlab = "Travel times (hrs)", ylab = "Bites", col = alpha("blue", 0.7), 
+     ylim = c(0, max(exps_cleaned$bites)))
+points(exps_cleaned$ttimes_weighted/60, exps_cleaned$bites, bty = "l", pch = 20,
+     xlab = "Travel times (hrs)", col = alpha("darkred", 0.7))
+legend("topright", col = c(alpha("blue", 0.7), alpha("darkred", 0.7)), legend = c("Predicted", "Observed"), 
+       pch = 20, bty = "n")
+
+ctar_data %>% 
+  filter(excl != 1) %>% # exclude contacts
+  mutate_at(vars(starts_with("date")), funs(ymd(.))) %>% # format dates
+  group_by(commune = mdg_cm_, id_ctar) %>% # group by year and district
+  summarize(n = n()) ->  exp_mat # get count of exposures
+
+comm_catchments$exclude <- 0
+comm_catchments$exclude[comm_catchments$CTAR %in% no_data] <- 1
+
+exp_mat %>% 
+  left_join(select(ctar_metadata, CTAR, id_ctar)) %>%
+  left_join(select(comm_catchments, mdg_cm_, CTAR, exclude), by = c("commune" = "mdg_cm_")) %>%
+  group_by(commune) %>%
+  mutate(prop = n/sum(n),
+         catch_match = ifelse(CTAR.x == CTAR.y, 1, 0)) -> catch_check
+hist(catch_check$prop[catch_check$exclude == 0])
+hist(catch_check$prop[catch_check$exclude == 1])
+
+## getting var for ctar in
+pts <- SpatialPoints(cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE), 
+                   proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+over(pts, mada_communes)$mtch_ds
+```
+
+
