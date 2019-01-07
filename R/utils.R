@@ -175,3 +175,11 @@ bake.nosave <- function (file, expr, seed, kind = NULL, normal.kind = NULL) {
     saveRDS(val, file = file)
     val
 }
+
+## Match column names
+match.colnames <- function (dataframe, lookup){
+  colnames(dataframe) <- lookup$new.colnames[match(colnames(dataframe), 
+                                                   lookup$og.colnames)]
+  dataframe <- dataframe[ , !names(dataframe) %in% c("NULL")]
+  return(dataframe)
+}
