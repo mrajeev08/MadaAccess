@@ -372,7 +372,6 @@ ggplot(clinic_reporting, aes(x = date_de_consultation, y = ctar, fill = prop)) +
 ```
 
 
-
 ```{r getting Mora data}
 patient_ts %>%
   group_by(ctar) %>%
@@ -400,9 +399,10 @@ patient_ts %>%
 
 ctar_check %>%
   group_by(id_ctar) %>%
-  summarize(prop_excluded = length(exclude_bydate[exclude_bydate == 1])/n()) %>%
-  ggplot(data = ., aes(y = id_ctar, prop_excluded)) +
-  geom_point()
+  summarize(prop_excluded = length(exclude_bydate[exclude_bydate == 1])/n()) -> summ_check
+
+#   ggplot(data = ., aes(y = id_ctar, prop_excluded)) +
+#   geom_point()
 
 ```
 
