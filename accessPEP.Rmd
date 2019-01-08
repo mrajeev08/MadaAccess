@@ -14,52 +14,43 @@ css: style.css
 
 ## INTRODUCTION
 
-[Start broadly with inequity?]
+Access to healthcare is a significant driver of disease burden globally. Spatial access to care (cite Jess paper here). Rarely incorporated into national estimates of burden due to lack of data and tools for understanding...
 
 <br>
 
 Canine rabies causes an estimated 59,000 human deaths annually. Post-exposure prophylaxis (PEP) prevents fatalities if delivered in a timely manner, however, access to this intervention is highly limited in areas where the disease is endemic. Data on true rabies exposures in humans and incidence in animals is also lacking in most of these countries. Often, the only data available are numbers of bite victims reporting to health facilities. The majority of rabies burden studies use these data to estimate burden of rabies from probability decision tree frameworks, often with the key assumption that overall reported bite incidence (i.e. both bites due to non-rabid and rabid animals) are proportional to rabies incidence (i.e. the more overall bites reported in a location, the higher the incidence of *rabies* exposures there) and that reporting is uniform across space. 
 
-The most recent estimation of burden and the impact of PEP used another approach, using transmission dynamic models as the backbone to predict incidence based on level of vaccination coverage and size of the dog population at the national level. Using transmission dynamic models to estimate incidence could improve upon previous studies which may overestimate rabies burden in areas of high reporting and underestimate in areas with low reporting due to the assumption that overall reported bite incidence is proportional to rabies incidence.
+In Madagascar, Institut Pasteur de Madagascar (IPM) provides PEP at no-cost to the government or to patients that present to 31 clinics across the country. PEP is not available at any other public clinics or through the private sector. Given that rabies is endemic in the country and there is effectively no vaccination of domestic dogs, we use the baseline predictions of incidence from the dynamic model reported in Hampson et al. 2018. We flip the standard decision tree and make the assumption that reported bite incidence reflects access and reporting to PEP rather than differences in rabies incidence, using travel times to clinics as a predictor of bites reported to clinics. Assuming a range of exposure incidence given endemic rabies, we generate sub-national estimates of rabies burden and explore the impacts of expanding access to PEP in Madagascar. 
 
-<br>
+The most recent estimation of burden and the impact of PEP used another approach, using transmission dynamic models as the backbone to predict incidence based on level of vaccination coverage and size of the dog population at the national level. Using transmission dynamic models to estimate incidence could improve upon previous studies which may underestimate rabies burden in areas with low reporting. Here, we adapt this framework and use bite patient data from Madagascar to predict rabies burden.
 
-Here, we extend this framework to include spatial access to PEP, using bite patient data from 19 clinics in Madagascar, a rabies endemic country that lacks a national strategy for controlling rabies in domestic dogs. Institut Pasteur de Madagascar (IPM) provides PEP at no-cost to the government or to patients that present to 31 clinics across the country. PEP is not available at any other public clinics or through the private sector. Given that rabies is endemic in the country and there is effectively no vaccination of domestic dogs, we use the baseline predictions of incidence from the dynamic model reported in Hampson et al. 2018. We flip the standard decision tree and make the assumption that reported bite incidence reflects access and reporting to PEP rather than differences in rabies incidence, using travel times to clinics as a predictor of bites reported to clinics. Assuming a range of exposure incidence given endemic rabies, we generate sub-national estimates of rabies burden and explore the impacts of expanding access to PEP in Madagascar. 
-
-Other analyses = vials vs. additional deaths averted (given non-rabid exposures) (# vials of PEP per death averted for baseline + expanded1 + expanded2)
 
 ## METHODS
 
+### Bite patient data
+We used the database of bite patient forms submitted from 24 ARMC across ARMC between 2014 - 2017. These were individual patient data forms that were submitted to IPM as frequently as monthly to annually by clinics. Two clinics, the IPM ARMC and the Fianarantsoa ARMC used computer databases from which the data during this period were extracted and merged to the larger database. These data include the administrative district of the bite patient's address. As previous analyses showed likely substantial undersubmission of forms from clinics (*cite baseline data paper*), we calculated the proportion of days of the year for which forms were submitted. We excluded periods with 10 or more consecutive dates with no patient forms and calculated the proportion of days included per year. 
+
 - Patient data from 19 ARMC accross the country over four years (2013 - 2017)
+
   - includes dates and home locations (to the district level) of patient reporting for PEP
 - Patient data from Moramanga ARMC over 28 months (Sep 2016 - Dec 2018)
   - includes dates and home locations (to the commune level) of patients reporting for PEP
-  - also includes rabies exposure status based on a combination of clinic-based triage and contact
-  tracing (Rajeev et al. 2018)
-- Travel times estimated from the Malaria Atlas Project's global friction surface for 2015
-  - We use the global friction surface for 2015 generated by the Malaria Atlas Project ( https://map.ox.ac.uk/research-project/accessibility_to_cities/, Weiss et al. 2015,) and GPS points of clinics to get travel time to the nearest ARMC for the country of Madagascar at a 1 x 1 km scale. 
-  - We then calculated a weighted average by human population to the commune or district level, using administrative shapefiles available trhough the UN Office for the Coordination of Humanitarian Affairs.
-  - For each clinic, we defined the catchment area as all communes for which the clinic was the closest ARMC.
-- Human population estimates were taken from the 2015 UN adjusted population projections from World Pop (www.worldpop.org, Linaird et al. 2012) and also aggreagated to the designated admin level.
-
-### Bite patient data
-We used the database of bite patient forms submitted from 24 ARMC between 2014 - 2017. These were individual patient data forms that were submitted to IPM as frequently as monthly to annually by clinics. Two clinics, the IPM ARMC and the Fianarantsoa ARMC used computer databases from which the data during this period were extracted and merged to the larger database. These data include the administrative district of the bite patient's address. As previous analyses showed likely substantial undersubmission of forms from clinics (*cite baseline data paper*), we calculated the proportion of days of the year for which forms were submitted. We excluded periods with 10 or more consecutive dates with no patient forms and calculated the proportion of days included per year. 
+ 
 
 RIG data?
 
 <br>
 
 ### GIS Data
-We use the global friction surface for 2015 generated by the Malaria Atlas Project ( https://map.ox.ac.uk/research-project/accessibility_to_cities/, Weiss et al. 2015,) and GPS points of clinics to get travel time to the nearest ARMC for the country of Madagascar at a 1 x 1 km scale. We then averaged these to the commune level, using administrative shapefiles available trhough the UN Office for the Coordination of Humanitarian Affairs. For each clinic, we defined the catchment area as all communes for which the clinic was the closest ARMC. Population estimates were taken from the 2015 UN adjusted population projections from World Pop (www.worldpop.org, Linaird et al. 2012) and also aggreagated to the commune level. 
-
+We use the global friction surface for 2015 generated by the Malaria Atlas Project ( https://map.ox.ac.uk/research-project/accessibility_to_cities/, Weiss et al. 2015,) and GPS points of clinics to get travel time to the nearest ARMC for the country of Madagascar at a 1 x 1 km scale. We then calculated a weighted average of travel times by human population to the commune level, using administrative shapefiles available trhough the UN Office for the Coordination of Humanitarian Affairs. For each clinic, we defined the catchment area as all **districts?** for which the clinic was the closest ARMC. Human population estimates were taken from the 2015 UN adjusted population projections from World Pop (www.worldpop.org, Linaird et al. 2012) and also aggreagated to the commune level
 <br>
 
 ### Model of reported bites as a function of travel time
-While the national bite patient data is available at the district level, travel times vary significantly within a district (see Figure SX). In order to translate the impacts of differences in access at sub-district scales to the magnitude of reported bites at the district scale, we modeled bites at the district level as the sum of incidence as a function of travel time at the commune level (sub-district administrative level). Specifically, we modeled bites as follows:
+While the national bite patient data is available at the district level, travel times vary significantly within a district (see Figure SX). In order to translate the impacts of differences in access at sub-district scales to the magnitude of reported bites at the district scale, we modeled bites at the district level as the sum of incidence at the commune level. Incidence at the commune level is then a function of travel times to the closest ARMC. Specifically, we modeled bites as follows:
 $$ 
   \mu_{d} = \sum \limits_{j=1}^jexp(\beta_{t}T_j + \beta_0)\times pop_j 
 $$
-where $\mu_{d}$ is the mean number of bites in district which is the sum of bites at the commune level given **commune level travel times**, $T_j$. We then estimate the likelihood of observing the bites at the district level where bites are a poisson distribution around the mean $\mu_{d}$.
+where $\mu_{d}$ is the mean number of bites in district, which is the sum of bites at the commune level given **commune level travel times**, $T_j$. We then estimate the likelihood of observing the bites at the district level where bites are a poisson distribution around the mean $\mu_{d}$, given $\beta_t$, the effect of travel times of reported bites and $\beta_0$, the model intercept.
 
 As we had data available on reported bites at the commune level from the Moramanga ARMC, we modeled observed commune bites in the same framework, but un-aggregated where:
 $$ 
@@ -67,11 +58,7 @@ $$
 $$
 where $\mu_{j}$ = the mean number of bites in commune $j$ and the observed bites at the commune level follow a poisson distribution around the mean $\mu_d$. We only included communes which were designated to be within the catchment for the clinic (so primarily the Moramanga and Anosibe A'nala Districts)?? We compared our estimates of $\beta_t$ (i.e. the impact of travel time on incidence) and $\beta_0$ (the intercept) for our district data at the national level and the commune level data from the Moramanga ARMC.
 
-P_rabid model...how to explain this one...
-
 To better understand if ttimes might capture access, we also looked at whether pop alone can predict bites and distance could predict bites...
-
-Ability to predict average annual/monthly bite incidence by travel time
 Ability to predict out-of-fit to other catchments? Tana + Fianarantsoa?
 
 <br>
@@ -93,11 +80,8 @@ $$
             \end{cases}
 $$
 <br>
-such that rabid reported bites (i.e. $p_{rabid} \times B_i$) cannot exceed the expected number of human exposures given maximum reporting (i.e. $R_i \times \rho_{max}$). $\rho_{max}$ taken from the Moramanga ARMC data for Moramanga Ville, the commune with the ARMC (i.e. the area with the minimum travel time).
 
-We define $x$ in two different ways:
-1. At the min and max of the range reported in Rajeev et al. 2018 for data from the Moramanga District
-2. As predicted by the model of proportion rabid as a function of travel time estimated from the Moramanga ARMC data. 
+such that rabid reported bites (i.e. $p_{rabid} \times B_i$) cannot exceed the expected number of human exposures given maximum reporting (i.e. $R_i \times \rho_{max}$). $\rho_{max}$ taken from the Moramanga ARMC data for Moramanga Ville, the commune with the ARMC (i.e. the area with the minimum travel time). We look at the range of $x$ reported in Rajeev et al. 2018 for data from the Moramanga District (0.2 - 0.6). 
 
 $R_i$ is drawn from a uniform distribution between the minimum and maximum expected number of human exposures. We calculate this as:
     
@@ -112,24 +96,29 @@ where $r$ is rabies incidence in dogs in the absence of any vaccination multipli
 <br>
 
 ### Sensitivity Analyses
-- Sensitivity to assumptions of R
-- Sensitivity to assumptions of p_rabid
+- R (increasing or decreasing with pop) (min + max)
+- P-rabid min and max
+- Rho-max min and max
+- Probability of death min and max
 
 <br>
 
-## Estimating the impact of expanding PEP Access
+### Estimating the impact of expanding PEP Access
 We use this framework to compare three scenarios of PEP provisioning in Madagascar:
+
 1. The baseline with the current clinic locations (n = 31)
 2. Expansion of ARMC to one clinic per district (n = 114)
-3. Expansion of ARMC to all CSB IIs (n = ...?)
+3. Expansion of ARMC to all CSB IIs, something to describe CSB IIs here, that is primary hospitals (n = X)
 
 We use data on the location of **CSBs** provided by IPM to regenerate travel times to the nearest ARMC given expansion as per scenario 2 and 3. We then predict the expected bite incidence from the model given these new travel times and compare the relative decreases in burden for the three scenarios.
-
-
-## Results 
+  
+  
+## RESULTS 
 
 ```{r directory, echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
 rm(list = ls())
+
+## Libraries
 library(knitr)
 library(RImagePalette)
 library(jpeg)
@@ -138,13 +127,18 @@ library(lubridate)
 library(magrittr)
 library(rgdal)
 library(broom)
+library(stringr)
+library(ISOweek)
+library(raster)
+library(sp)
+
+source("R/utils.R")
+
 select <- dplyr::select
 knitr::opts_chunk$set(fig.pos = 'h', echo = FALSE, message = FALSE, warning = FALSE, results = 'hide')
 ```
 
 
-
-### Clinic catchments and reporting
 ```{r get data}
 ## read in data
 ctar_data <- read.csv("data/SaisieRage_DATA_2018-09-21_1755.csv")
@@ -175,105 +169,131 @@ dist_catchments$ctar_in_dist <- ifelse(dist_catchments$mdg_dis_co %in% ctar_meta
 comm_catchments$ctar_in_comm <- ifelse(comm_catchments$mdg_cm_ %in% ctar_metadata$ctar_comm, 1, 0)
 ```
 
+### Clinic catchments and reporting
+For most districts, the majority of bites were reported to the closest clinic as estimated by our travel time metric (Fig 1B), although some patients did report to the ARMC that were not closest to them in terms of travel times (Figure 1A). In addition, at the clinic level, the majority of bites reported to a given ARMC came from within the catchment (Figure 1C).
 
 ```{r network fig}
 ## Network fig
 ## Revise: points = CTAR points with size proportional to number of bites reported, lines to district proportional to the number of bites from that district, outline = by district, communes = polygons shaded by catchments?
 
 ## Get color palette from other network fig!
-img <- readJPEG("~/Downloads/Dp0j4GNUwAAPPJV.jpeg")
-pal <- image_palette(img, 31)
-add.alpha <- function(col, alpha=1){
-  if(missing(col))
-    stop("Please provide a vector of colours.")
-  apply(sapply(col, col2rgb)/255, 2, 
-                     function(x) 
-                       rgb(x[1], x[2], x[3], alpha=alpha))  
-}
 ctar_metadata$color <- c("#FCC56F","#FFDBE5", "#7A4900", "#CBCDD2", "#0000A6", "#EFF2F1",
-                 "#63FFAC", "#B79762", "#004D43", "#8FB0FF", "#997D87", "#FD9C54", "#8362B5",
+                 "#99d8c9", "#B79762", "#004D43", "#8FB0FF", "#997D87", "#FD9C54", "#8362B5",
                  "#578FB0","#5A0007", "#809693", "#D16100", "#1B4400", "#4FC601", "#3B5DFF", 
                  "#4A3B53", "#FF2F80","#61615A", "#BA0900", "#6B7900", "#00C2A0", "#FFAA92",
                  "#FF90C9", "#B903AA", "#FEFFE6", "#E9E9D2")
+ctar_metadata$color[ctar_metadata$CTAR %in% no_data] <- "#D3D3D3"
 ctar_metadata$fill <- ctar_metadata$color
-ctar_metadata$fill[ctar_metadata$CTAR %in% no_data] <- "#D3D3D3"
-ctar_metadata$fill <- add.alpha(ctar_metadata$fill, 0.25)
-
+ctar_metadata$fill <- add.alpha(ctar_metadata$fill, 0.4)
 display_palette(ctar_metadata$color)
+
 dist_catchments %>% left_join(select(ctar_metadata, CTAR, exclude, 
                                      color, fill, ctar_dist, LATITUDE, LONGITUDE)) -> dist_catchments
-mada_district@data <- left_join(mada_district@data, dist_catchments)
+mada_district@data <- left_join(mada_district@data, dist_catchments) ## need this?
 
-## get exposure matrix
+## get exposure matrix = first set of points
+## district exposures
 ctar_data %>% 
+  drop_na(id_ctar, district) %>%
+  group_by(district) %>% # group by district
+  summarize(n = n()) -> exps_dist # get count of exposures
+## ctar exposures
+ctar_data %>% 
+  drop_na(id_ctar) %>%
+  group_by(id_ctar) %>% # group by ctar
+  summarize(n = n()) -> exps_ctar
+## ctar by district exposure matrix
+ctar_data %>% 
+  drop_na(id_ctar, district) %>%
   group_by(district, id_ctar) %>% # group by district and ctar
-  summarize(n = n()) -> exp_mat # get count of exposures
+  summarize(n = n()) -> exp_mat# get count of exposures
+
+## To plot district bites
 dist_points <- cbind(select(mada_district@data,
                             mdg_dis_co), coordinates(mada_district))
 names(dist_points)[2:3] <- c("dist_long", "dist_lat")
 dist_points %>%
  left_join(select(ctar_metadata, ctar_dist, LATITUDE, LONGITUDE), 
            by = c("mdg_dis_co" = "ctar_dist")) %>%
- mutate(dist_long = coalesce(dist_long, LONGITUDE), 
-        dist_lat = coalesce(dist_lat, LATITUDE)) -> dist_points
+ mutate(dist_long = coalesce(LONGITUDE, dist_long), 
+        dist_lat = coalesce(LATITUDE, dist_lat)) -> dist_points
 
-exp_mat %>% 
-  left_join(select(dist_points, mdg_dis_co, dist_long, dist_lat), 
-            by = c("district" = "mdg_dis_co")) %>%
-  left_join(select(ctar_metadata, id_ctar, LATITUDE, LONGITUDE,
-                   color, fill, ctar_dist)) -> dist_lines
-dist_lines$size <- log(dist_lines$n + 0.1)*0.2
-
-ctar_data %>%
-  group_by(district) %>%
-  summarize(n = n()) %>%
+exps_dist %>%
   right_join(select(dist_points, mdg_dis_co, dist_long, dist_lat),
              by = c("district" = "mdg_dis_co")) %>%
   left_join(dist_catchments, by = c("district" = "mdg_dis_co") ) -> dist_points
 dist_points$size <- log(dist_points$n + 0.1)*0.25
 
-pdf("figs/network_1.pdf")
+## To plot ctar points (only those not excluded)
+exps_ctar %>%
+ left_join(select(ctar_metadata, id_ctar, LATITUDE, LONGITUDE, 
+                  exclude, color, fill)) %>%
+ filter(exclude == 0) -> ctar_points
+
+## To plot lines between ctar + districts
+exp_mat %>% 
+  left_join(select(dist_points, district, dist_long, dist_lat)) %>%
+  left_join(select(ctar_metadata, id_ctar, LATITUDE, LONGITUDE,
+                   color, fill, ctar_dist)) -> dist_lines
+dist_lines$size <- log(dist_lines$n + 0.1)*0.2
+
+pdf("figs/network.pdf")
 plot(mada_district, col = mada_district$fill, border = "grey") 
-points(jitter(dist_lines$dist_long, factor = 2), jitter(dist_lines$dist_lat, factor = 2)
-       , pch = 1, cex = dist_points$size, 
-       col = dist_lines$color)
-segments(dist_lines$LONGITUDE, dist_lines$LATITUDE, x1 = dist_lines$dist_long, y1 = dist_lines$dist_lat,
+segments(dist_lines$dist_long, dist_lines$dist_lat, x1 = dist_lines$LONGITUDE, 
+         y1 = dist_lines$LATITUDE,
          lwd = dist_lines$size*2, col = dist_lines$color)
+points(ctar_points$LONGITUDE, ctar_points$LATITUDE, col = ctar_points$color, pch = 1,
+       cex = log(ctar_points$n + 0.1)*0.25)
+points(dist_points$dist_long, dist_points$dist_lat, cex = dist_points$size, pch = 20,
+       col = dist_points$color)
 dev.off()
 
 exp_mat %>% 
-  left_join(select(ctar_metadata, CTAR, id_ctar)) %>%
-  left_join(select(dist_catchments, mdg_dis_co, CTAR, exclude), by = c("district" = "mdg_dis_co")) %>%
-  group_by(district) %>%
+  left_join(select(ctar_metadata, ctar_obs = CTAR, id_ctar)) %>%
+  left_join(select(dist_catchments, mdg_dis_co, ctar_catch = CTAR, exclude), 
+            by = c("district" = "mdg_dis_co")) %>%
+  group_by(district) %>% # group by ctar
   mutate(prop = n/sum(n),
-         catch_match = ifelse(CTAR.x == CTAR.y, 1, 0)) -> catch_check
-hist(catch_check$prop)
-ggplot(data = catch_check, aes(CTAR.x, district)) + 
-  geom_tile(aes(fill = prop)) +
-  scale_fill_continuous(type = "viridis", name = "proportion") +
-  geom_text(label = catch_check$catch_match)
+         catch_match = ifelse(ctar_obs == ctar_catch, 1, 0)) %>%
+  filter(catch_match == 1) -> catch_dist
+hist(catch_dist$prop, main = "", 
+     xlab = "Proportion of patients \n reporting to closest ARMC",
+     ylab = "Number of districts", col = "grey50", border = "white", xlim = c(0, 1))
+
+exp_mat %>% 
+  left_join(select(ctar_metadata, ctar_obs = CTAR, id_ctar)) %>%
+  left_join(select(dist_catchments, mdg_dis_co, ctar_catch = CTAR, exclude), 
+            by = c("district" = "mdg_dis_co")) %>%
+  group_by(ctar_obs) %>% # group by ctar
+  mutate(prop = n/sum(n),
+         catch_match = ifelse(ctar_obs == ctar_catch, 1, 0)) %>%
+  filter(catch_match == 1) %>%
+  summarize(prop = sum(prop)) -> catch_ctar
+hist(catch_ctar$prop, main = "", 
+     xlab = "Proportion of patients reporting from within catchment",
+     ylab = "Number of ARMC", col = "grey50", border = "white", xlim = c(0, 1))
 ```
 
+We estimated clinic level reporting as the proportion of days on which forms were submitted, excluding any periods for which there were no forms submitted for 10 consecutive days (Figure 2). We further excluded any years for which there was less than 25% reporting. 
 
 ```{r clinic level reporting}
 ######### Patient time series
 ctar_data %>%
   select(id_ctar, date_de_consultation) %>%
+  drop_na(id_ctar) %>%
   mutate(date_de_consultation = ymd(date_de_consultation)) %>%
   gather(dose, date_de_consultation, -id_ctar) %>%
   group_by(id_ctar, date_de_consultation) %>%
   summarise(n = n()) -> patient_ts
+
 patient_ts <- patient_ts[!is.na(patient_ts$date_de_consultation), ]
 patient_ts$ctar <- ctar_metadata$CTAR[match(patient_ts$id_ctar, ctar_metadata$id_ctar)]
 patient_ts <- patient_ts[!is.na(patient_ts$ctar), ]
 
-ggplot(data = patient_ts, aes(date_de_consultation, ctar)) + 
-  geom_tile(aes(fill = n)) +
-  scale_fill_continuous(type = "viridis", name = "Patients") 
-
-## getting reporting
 start_date <- ymd("2014-01-01")
 end_date <- ymd("2017-12-31")
+
+## getting reporting
 ts <- as_tibble(seq(start_date, end_date, by = "day"))
 
 patient_ts %>%
@@ -283,79 +303,109 @@ patient_ts %>%
   replace(., is.na(.), 0) -> doses_wide
 dose_mat <- as.matrix(doses_wide[, 2:(ncol(doses_wide) - 1)])
 
-date_mat <- matrix(NA, nrow(dose_mat), ncol(dose_mat))
-for (j in 1:ncol(date_mat)){
-  rle(dose_mat[ , j]) %>%
-    unclass() %>%
-    as.data.frame() %>%
-    mutate(end = cumsum(lengths),
-         start = c(1, lag(end)[-1] + 1)) %>%
-    filter(values == 0, lengths >= 10) -> rles
-  for (i in 1:nrow(rles)){
-    date_mat[rles$start[i]:rles$end[i], j] <- 0
+get.days <- function(dmat = dose_mat, threshold = 10) {
+  date_mat <- matrix(NA, nrow(dmat), ncol(dmat))
+  for (j in 1:ncol(date_mat)){
+    rle(dmat[ , j]) %>%
+      unclass() %>%
+      as.data.frame() %>%
+      mutate(end = cumsum(lengths),
+             start = c(1, lag(end)[-1] + 1)) %>%
+      filter(values == 0, lengths >= threshold) -> rles
+  if(nrow(rles) > 0){
+    for (i in 1:nrow(rles)){
+        date_mat[rles$start[i]:rles$end[i], j] <- 0
+      }
+    }
   }
+  
+  date_mat <- replace(date_mat, is.na(date_mat), 1)
+  date_mat %>% 
+    as_tibble() %>%
+    group_by(date = year(doses_wide$date_de_consultation)) %>%
+    summarise_all(funs(sum(.)/n())) -> clinic_reporting
+  colnames(clinic_reporting) <- colnames(doses_wide)[1:(ncol(doses_wide)-1)]
+
+  clinic_reporting <- gather(clinic_reporting, id_ctar, prop, -date_de_consultation)
+  clinic_reporting$ctar <- ctar_metadata$CTAR[match(clinic_reporting$id_ctar, 
+                                                  ctar_metadata$id_ctar)]
+  clinic_reporting$id_ctar <- as.numeric(clinic_reporting$id_ctar)
+  clinic_reporting$threshold <- threshold
+  return(list(clinic_reporting, date_mat))
 }
 
-date_mat <- replace(date_mat, is.na(date_mat), 1)
-date_mat %>% 
-  as_tibble() %>%
-  group_by(date = year(doses_wide$date_de_consultation)) %>%
-  summarise_all(funs(sum(.)/n())) -> clinic_reporting
-colnames(clinic_reporting) <- colnames(doses_wide)[1:(ncol(doses_wide)-1)]
-clinic_reporting <- gather(clinic_reporting, id_ctar, prop, -date_de_consultation)
-clinic_reporting$ctar <- ctar_metadata$CTAR[match(clinic_reporting$id_ctar, 
-                                                  ctar_metadata$id_ctar)]
-clinic_reporting$id_ctar <- as.numeric(clinic_reporting$id_ctar)
+## Color or size dots by their # from that year
+# ctar_data %>%
+#   group_by(date_de_consultation = year(date_de_consultation), id_ctar) %>%
+#   summarize(tot = n()) -> year_by_clinic
+
+clinic_reporting <- get.days(threshold = 10)[[1]]
+# clinic_reporting %>%
+#   mutate(prop10 = prop, prop5 = get.days(threshold = 5)[[1]]$prop, 
+#          prop30 = get.days(threshold = 30)[[1]]$prop) %>%
+#   left_join(year_by_clinic) %>%
+#   ggplot(., aes(x = reorder(ctar, prop10), y = prop10)) + 
+#   geom_point() +
+#   geom_linerange(aes(ymin = prop30, ymax = prop5)) +
+#   facet_wrap(~ date_de_consultation, nrow = 1) +
+#   coord_flip() +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+#   xlab("") + 
+#   ylab("Proportion of days included") +
+#   scale_color_gradient(low = "white", high = "blue")
+# 
+# date_mat <- as.data.frame(get.days(threshold = 10)[[2]])
+# date_mat$date_de_consultation <- doses_wide$date_de_consultation
+# names(date_mat[1:(ncol(date_mat)-1)]) <- names(doses_wide[2:(ncol(date_mat))])
+# library(reshape2)
+# head(melt(date_mat, id = "date_de_consultation"))
+
+ggplot(data = patient_ts, aes(date_de_consultation, ctar)) + 
+   geom_tile(aes(fill = n)) +
+   scale_fill_continuous(type = "viridis", name = "Patients") +
+   xlim(start_date, end_date)
 
 ggplot(clinic_reporting, aes(x = date_de_consultation, y = ctar, fill = prop)) + 
   geom_tile() +
   scale_fill_gradient(low = "white", high = "blue")
+
 ```
 
 
-### Models of bites as a function of travel times
 
-```{r district level exposures}
-## districts that are non-reporter and data not available yet CTAR
-mada_district@data %>%
-select(district = mdg_dis_co, pop = pop2015adj, ttimes_weighted, CTAR, exclude) -> covars
+```{r getting Mora data}
+patient_ts %>%
+  group_by(ctar) %>%
+  mutate(exclude = ifelse(n > mean(n) + 6*sd(n), 1, 0)) -> patient_ts
+
+ggplot(data = drop_na(patient_ts, exclude), aes(x = ctar, y = n, color = as.factor(exclude))) +
+  geom_jitter(alpha = 0.5, width = 0.25) +
+  coord_flip()
 
 to_exclude <- c(grep("contact", unique(ctar_data$remarque), ignore.case = TRUE, value = TRUE),
                 grep("contam", unique(ctar_data$remarque), ignore.case = TRUE, value = TRUE),
                 grep("consom", unique(ctar_data$remarque), ignore.case = TRUE, value = TRUE),
                 grep("passage", unique(ctar_data$remarque), ignore.case = TRUE, value = TRUE))
 to_exclude <- to_exclude[-grep("date", to_exclude, ignore.case = TRUE)]
-ctar_data$excl <- 0
-ctar_data$excl[ctar_data$remarque %in% to_exclude] <- 1
+ctar_data$exclude_bycomment <- 0
+ctar_data$exclude_bycomment[ctar_data$remarque %in% to_exclude] <- 1
+ctar_data <- mutate(ctar_data, date_de_consultation = ymd(date_de_consultation))
+patient_ts %>%
+  ungroup() %>%
+  select(id_ctar, date_de_consultation, exclude_bydate = exclude) %>%
+  right_join(ctar_data) -> ctar_check
 
-ctar_data %>% 
-  filter(excl != 1) %>% # exclude contacts
-  mutate_at(vars(starts_with("date")), funs(ymd(.))) %>% # format dates
-  group_by(year = year(date_de_consultation), district, id_ctar) %>% # group by year and district
-  summarize(n = n()) -> exposures # get count of exposures
+(ctar_check %$% length(exclude_bycomment[exclude_bycomment == 1 & exclude_bydate == 1]))/
+  length(ctar_check %$% exclude_bycomment[exclude_bycomment == 1])
 
-exposures %>%
-  rename(date = year) %>%
-  left_join(covars) %>% # add pop + ttimes + reporting
-  left_join(clinic_reporting) %>%   # add reporting by clinic + year
-  filter(exclude == 0, prop > 0.25) -> exps_cleaned 
-
-exps_cleaned %>%
-  group_by(district, date) %>%
-  mutate(bites = n/prop) %>%
-  summarise(bites = sum(bites, na.rm = TRUE)) %>%
-  group_by(district) %>%
-  summarise(bites = mean(bites)) %>%
-  left_join(covars) -> exps_dist
-
-exps_cleaned %>%
-  group_by(ctar, date) %>% ## Need to rename CTAR so clear if it's CTAR in catchment vs. ctar of bites...
-  mutate(bites = n/prop) %>%
-  summarise(bites = sum(bites, na.rm = TRUE)) %>%
-  group_by(ctar) %>%
-  summarise(bites = mean(bites)) -> exps_ctar
+ctar_check %>%
+  group_by(id_ctar) %>%
+  summarize(prop_excluded = length(exclude_bydate[exclude_bydate == 1])/n()) %>%
+  ggplot(data = ., aes(y = id_ctar, prop_excluded)) +
+  geom_point()
 
 ```
+
 
 ```{r ttimes + pop at commune level}
 ## Need: weighted ttimes, pop, ctar_in, exclude
@@ -371,10 +421,121 @@ nrow(comm_data) - sum(comm_data$exclude)
 ```
 
 
+``` {r check with moramanga}
+## ctar for # bites and also checking days to rule out contacts
+col_lookup <- read.csv("data/new_colnames.csv", header = TRUE)
+ctar <- read.csv("data/moramanga/ctar_up_todate.csv", header = TRUE)
+ctar <- match.colnames(ctar, subset(col_lookup, form == "ctar"))
 
-```{r likelihood of observing district data given sum of communes in district}
+## merge with newest data!
 
-get.likelihood <- function(commune,district, params) {
+## Set-up time series
+tfunc <- function (date, format_date = "%Y-%m-%d", start = "01-09-2016", format_start = "%d-%m-%Y",
+                   year1 = 2016, tstep = "month", period = FALSE) {
+  get.consec (date, format_date, start, format_start,
+              year1, tstep, period) - 8 ## starts in Sep
+}
+
+## all dates
+ctar %>%
+  mutate_at(vars(starts_with("date")), funs(dmy(.))) -> ctar
+ctar$month <- tfunc(ctar$date.reported)
+## subset to study period (Sep 2016 - to date)
+## checks for cases where month is NA!
+ctar <- subset(ctar, month > 0 & month < 28)
+
+# ctar district and commune
+ctar$commune <- sapply(strsplit(as.character(ctar$patient.location), "\\("), "[", 1)
+ctar$commune <- trimws(ctar$commune, which = "right")
+ctar$district <- sapply(strsplit(as.character(ctar$patient.location), "\\, "), "[", 2)
+ctar$district <- gsub(" \\(District\\)", "", ctar$district)
+
+## change all true/false to 0/1
+ctar[ctar == FALSE] <- 0
+
+## Bite data in Moramanga
+n_months <- max(ctar$month, na.rm = TRUE)
+
+ctar %>%
+  left_join(select(mada_communes@data, commune, mdg_cm_, mtch_ds), 
+            by = c("commune" = "commune", "district" = "mtch_ds")) %>%
+  filter(consult.type == "Animal bite/exposure") %>%
+  group_by(mdg_cm_) %>%
+  summarize(bites = round(n()/n_months*12)) %>%
+  left_join(comm_covars) %>%
+  filter(!is.na(ttimes_weighted), 
+         district %in% mada_district@data$district[mada_district@data$CTAR == "Moramanga"]) -> mora_bites
+
+ctar %>%
+  group_by(date.reported) %>%
+  summarize(n = n()) %>%
+  mutate(exclude = ifelse(n > mean(n) + 2*sd(n), 1, 0)) -> mora_ts
+
+ggplot(data = mora_ts, aes(x = "Moramanga", y = n, color = as.factor(exclude))) +
+  geom_jitter(alpha = 0.5, width = 0.1) +
+  coord_flip()
+
+ctar$exclude <-mora_ts$exclude[match(ctar$date.reported, mora_ts$date.reported)]
+table(ctar$consult.type, ctar$exclude)
+
+sdev <- seq(2, 10, by = 1)
+check <- data.frame(sd = NA, prop_bites = NA, prop_contacts = NA)
+for (i in 1:length(sdev)){
+  ctar %>%
+    group_by(date.reported) %>%
+    summarize(n = n()) %>%
+    mutate(exclude = ifelse(n > mean(n) + sdev[i]*sd(n), 1, 0)) -> mora_ts
+  ctar$exclude <-mora_ts$exclude[match(ctar$date.reported, mora_ts$date.reported)]
+  checksd <- table(ctar$consult.type, ctar$exclude)[, 2]/table(ctar$consult.type)
+  check <- rbind(check, c(sdev[i], checksd[1:2]))
+}
+
+plot(check$sd, check$prop_contacts, col = "blue", pch = 20, bty = "l", ylim = c(0,1))
+points(check$sd, check$prop_bites, col = "red", pch = 20)
+
+```
+
+### Models of bites as a function of travel times
+
+```{r district level exposures}
+## districts that are non-reporter and data not available yet CTAR
+mada_district@data %>%
+select(district = mdg_dis_co, pop = pop2015adj, ttimes_weighted, CTAR, exclude) -> covars
+
+ctar_check %>% 
+  filter(exclude_bydate == 0, exclud_bycomment == 0) %>% # exclude contacts
+  mutate_at(vars(starts_with("date")), funs(ymd(.))) %>% # format dates
+  group_by(year = year(date_de_consultation), district, id_ctar) %>% # group by year and district
+  summarize(n = n()) %>% # get count of exposures
+  left_join(covars) %>% # add pop + ttimes + reporting
+  left_join(clinic_reporting) %>%   # add reporting by clinic + year
+  filter(exclude == 0, prop > 0.25) %>%
+  group_by(district, year) %>%
+  mutate(bites = n/prop) %>%
+  summarise(bites = sum(bites, na.rm = TRUE)) %>%
+  group_by(district) %>%
+  summarise(bites = mean(bites)) %>%
+  left_join(covars) -> exps_check
+
+```
+
+
+### Model results Moramanga and District
+```{r likelihood of observing moramanga data @ commune level}
+
+get.likelihood.mora <- function(commune, params) {
+  # To test likelihood function
+  # commune = comm_data
+  # district = exps_dist
+  # params = c(1e-6, 0.1)
+  B_ttimes <- params[1]
+  B_0 <- params[2]
+  commune %>%
+      mutate(bites_mu = exp(B_ttimes*ttimes_weighted + B_0)*pop) -> sum_bites
+  return(-sum(dpois(round(sum_bites$bites), lambda = sum_bites$bites_mu, log = TRUE)))
+}
+
+get.likelihood <- function(commune, district, params) {
   # To test likelihood function
   # commune = comm_data
   # district = exps_dist
@@ -391,19 +552,93 @@ get.likelihood <- function(commune,district, params) {
       filter(!is.na(dist_bites)) -> sum_bites
   return(-sum(dpois(round(sum_bites$dist_bites), lambda = sum_bites$sum_bites, log = TRUE)))
 }
+```
 
-tmp <- optim(par = c(1e-6, 0.1), get.likelihood, district = exps_dist,
+
+
+```{r likelihood of observing district data given sum of communes in district}
+mora_pars <- optim(par = c(1e-6, 0.1), get.likelihood.mora, commune = mora_bites, hessian = TRUE)
+B_ttimes_mora <- mora_pars$par[1]
+B_0_mora <- mora_pars$par[2]
+
+## Getting standard errors
+# this is how you can get standard errors from optim, but inverting the hessian
+se <- sqrt(abs(diag(solve(mora_pars$hessian)))); se
+
+#simulate "standard errors"
+varcov <- solve(mora_pars$hessian)
+library(MASS)
+
+ntest = 1000; testpar = mora_pars$par; sim.par = matrix(NA, ntest, 2)
+for (k in 1:ntest) {
+  sim.par[k, ] = mvrnorm(1, mora_pars$par, varcov)
+}
+
+B_ttimes_mora_CI <- quantile(sim.par[,1],c(0.025,0.975))
+B_0_mora_CI <- quantile(sim.par[,2],c(0.025,0.975))
+
+mada_pars <- optim(par = c(1e-6, 0.1), get.likelihood, district = exps_check,
              commune = comm_data, hessian = TRUE)
-params <- tmp$par
-B_ttimes <- params[1]
-B_0 <- params[2]
+B_ttimes_mada <- mada_pars$par[1]
+B_0_mada <- mada_pars$par[2]
 
-comm_data %>%
-      filter(exclude == 0) %>%
-      group_by(mdg_dis_co) %>%
-      mutate(bites = exp(B_ttimes*ttimes_weighted + B_0)*pop) -> check
-plot(check$ttimes_weighted, check$bites)
+## Getting standard errors
+# this is how you can get standard errors from optim, but inverting the hessian
+se <- sqrt(abs(diag(solve(mada_pars$hessian)))); se
 
+#simulate "standard errors"
+varcov <- solve(mada_pars$hessian)
+library(MASS)
+
+ntest = 1000; testpar = mada_pars$par; sim.par = matrix(NA, ntest, 2)
+for (k in 1:ntest) {
+  sim.par[k, ] = mvrnorm(1, mada_pars$par, varcov)
+}
+
+B_ttimes_mada_CI <- quantile(sim.par[,1],c(0.025,0.975))
+B_0_mada_CI <- quantile(sim.par[,2],c(0.025,0.975))
+par_df <- data.frame(values = c(B_ttimes_mada, B_ttimes_mora, B_0_mada, B_0_mora),  
+                     par = c("B_ttimes", "B_ttimes", "intercept", "intercept"),
+                     upper_CI = c(CI = B_ttimes_mada_CI[2], B_ttimes_mora_CI[2],
+                                  B_0_mada_CI[2], B_0_mora_CI[2]),
+                     lower_CI = c(CI = B_ttimes_mada_CI[1], B_ttimes_mora_CI[1],
+                                  CI = B_0_mada_CI[1], B_0_mora_CI[1]),
+                     model = c("Mada", "Mora", "Mada", "Mora"))
+
+ggplot(data = filter(par_df, par == "B_ttimes"), aes(x = model, y = values)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = lower_CI, ymax = upper_CI))
+ggplot(data = filter(par_df, par == "intercept"), aes(x = model, y = values)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = lower_CI, ymax = upper_CI))
+
+ttimes_plot <- seq(0, 15*60, by = 30)
+pop_plot <- 1e5
+
+## Mada
+plot(ttimes_plot/60, exp(B_ttimes_mada*ttimes_plot + B_0_mada)*pop_plot, type = "l", bty = "n",
+     ylab = "Mean bites per 100k", xlab = "Travel times (hrs)", col = "darkblue")
+points(ttimes_plot/60, exp(B_ttimes_mada_CI[1]*ttimes_plot + B_0_mada_CI[1])*pop_plot, type = "l", 
+       lty = 2, col = "lightblue")
+points(ttimes_plot/60, exp(B_ttimes_mada_CI[2]*ttimes_plot + B_0_mada_CI[2])*pop_plot, type = "l", 
+       lty = 2, col = "lightblue")
+
+
+points(ttimes_plot/60, exp(B_ttimes_mada*ttimes_plot + B_0_mada)*pop_plot, pch = 20, col = "darkblue")
+points(ttimes_plot/60, exp(B_ttimes_mada_CI[1]*ttimes_plot + B_0_mada_CI[1])*pop_plot, type = "l", 
+       lty = 2, col = "lightblue")
+points(ttimes_plot/60, exp(B_ttimes_mada_CI[2]*ttimes_plot + B_0_mada_CI[2])*pop_plot, type = "l", 
+       lty = 2, col = "lightblue")
+
+points(ttimes_plot/60, exp(B_ttimes_mora*ttimes_plot + B_0_mora)*pop_plot, type = "l", col = "purple")
+points(ttimes_plot/60, exp(B_ttimes_mora_CI[1]*ttimes_plot + B_0_mora_CI[1])*pop_plot, type = "l", 
+       lty = 2, col = "magenta")
+points(ttimes_plot/60, exp(B_ttimes_mora_CI[2]*ttimes_plot + B_0_mora_CI[2])*pop_plot, type = "l",
+       lty = 2, col = "magenta")
+legend("topright", c("Mada", "Mora", "CIs"), col = c("darkblue", "purple", "grey"), lty = c(1, 1, 2), 
+       bty = "n")
+
+## Data vs. predicted
 comm_data %>%
       filter(exclude == 0) %>%
       group_by(mdg_dis_co) %>%
@@ -412,10 +647,20 @@ comm_data %>%
       left_join(select(exps_dist, district, dist_bites = bites), 
                 by = c("mdg_dis_co" = "district")) %>%
       filter(!is.na(dist_bites)) -> sum_bites
-sum_bites %$% plot(dist_bites, sum_bites)
+sum_bites %$% plot(dist_bites, sum_bites, bty = "n", pch = 20, 
+                   xlab = "Observed mean bites at district (Mada)", ylab = "Model predicted mean bites")
+abline(a = 0, b = 1, col = "blue", lty = 2)
+
+bites %>%
+      mutate(bites_mu = exp(B_ttimes*ttimes_weighted + B_0)*pop) -> check
+plot(check$bites, check$bites_mu, bty = "n", pch = 20, 
+      xlab = "Observed mean bites at commune (Moramanga)", ylab = "Model predicted mean bites")
 abline(a = 0, b = 1, col = "blue", lty = 2)
 
 ```
+
+
+### Adding dist with ctar vs. without
 
 ```{r checking impact of ctar in}
 exps_dist$ctar_in <- dist_catchments$ctar_in_dist[match(exps_dist$district,
@@ -475,288 +720,46 @@ abline(a = 0, b = 1, col = "blue", lty = 2)
 
 ```
 
-### Model of proportion rabid
 
-```{r Moramanga data}
-## Libraries
-library(ggThemeAssist)
-library(colourpicker)
-library(dplyr)
-library(stringr)
-library(lubridate)
-library(ISOweek)
-library(ggplot2)
-library(knitr)
-library(prettymapr)
-# libraries for gis
-library(raster)
-library(maptools)
-library(maps)
-library(GISTools)
-library(rgdal)
-library(sp)
-library(rgdal)
-library(gdistance)
+```{burden by incidence}
 
-source("R/utils.R")
+## Mada
+plot(ttimes_plot/60, exp(B_ttimes_mada*ttimes_plot + B_0_mada)*pop_plot, type = "l", bty = "n",
+     ylab = "Mean bites per 100k", xlab = "Travel times (hrs)", col = "darkblue")
+points(ttimes_plot/60, exp(B_ttimes_mada_CI[1]*ttimes_plot + B_0_mada_CI[1])*pop_plot, type = "l", 
+       lty = 2, col = "lightblue")
+points(ttimes_plot/60, exp(B_ttimes_mada_CI[2]*ttimes_plot + B_0_mada_CI[2])*pop_plot, type = "l", 
+       lty = 2, col = "lightblue")
+abline(h = pop_plot/25*0.01*0.39, col = "darkred") # low rabies incidence
+abline(h = pop_plot/5*0.01*0.39, col = "red") # high rabies incidence
 
-## data from WM
-triage <- read.csv("data/moramanga/triage_up_todate.csv", header = TRUE)
-ctar <- read.csv("data/moramanga/ctar_up_todate.csv", header = TRUE)
-pep <- read.csv (paste0("data/WM/", list.files("data/WM/", pattern = "PEP")), header = TRUE)
-hh <- read.csv (paste0("data/WM/", list.files("data/WM/", pattern = "Household")), header = TRUE)
-human <- read.csv (paste0("data/WM/", list.files("data/WM/", pattern = "Human")), header = TRUE)
-animal <- read.csv (paste0("data/WM/", list.files("data/WM/", pattern = "Animal")), header = TRUE)
+bites_100k <- exp(B_ttimes_mada*ttimes_plot + B_0_mada)*pop_plot
+R_100k_min <- pop_plot/25*0.01*0.39
+R_100k_max <- pop_plot/5*0.01*0.39
 
+plot(ttimes_plot/60, 
+     bites_100k*(ifelse(bites_100k*0.6 > R_100k_min, R_100k_min/bites_100k, 0.6))/R_100k_min, 
+     type = "l", bty = "n",
+     ylab = "Reporting", xlab = "Travel times (hrs)", col = "darkred")
+lines(ttimes_plot/60, 
+     bites_100k*(ifelse(bites_100k*0.2 > R_100k_max, R_100k_max/bites_100k, 0.2))/R_100k_max,
+     col = "red")
 
-## Read in new column names
-col_lookup <- read.csv("data/new_colnames.csv", header = TRUE)
-match.colnames <- function (dataframe, lookup){
-  colnames(dataframe) <- lookup$new.colnames[match(colnames(dataframe), 
-                                                   lookup$og.colnames)]
-  dataframe <- dataframe[ , !names(dataframe) %in% c("NULL")]
-  return(dataframe)
-}
+ests_lower <- predict(mod_lower, newdata = as.data.frame(ttimes_plot), 
+                                type = "response")
+ests_upper <- predict(mod_upper, newdata = as.data.frame(ttimes_plot), 
+                                type = "response")
 
-triage <- match.colnames(triage, subset(col_lookup, form == "triage"))
-ctar <- match.colnames(ctar, subset(col_lookup, form == "ctar"))
-pep <- match.colnames(pep, subset(col_lookup, form == "pep"))
-hh <- match.colnames(hh, subset(col_lookup, form == "hh"))
-animal <- match.colnames(animal, subset(col_lookup, form == "animal"))
-human <- match.colnames(human, subset(col_lookup, form == "human"))
+plot(ttimes_plot/60, 
+     bites_100k*(ifelse(bites_100k*ests_upper > R_100k_min, R_100k_min/bites_100k,
+                        ests_upper))/R_100k_min, 
+     type = "l", bty = "n",
+     ylab = "Reporting", xlab = "Travel times (hrs)", col = "darkred")
+lines(ttimes_plot/60, 
+     bites_100k*(ifelse(bites_100k*ests_lower > R_100k_max, R_100k_max/bites_100k,
+                        ests_lower))/R_100k_max,
+     col = "red")
 
-# fix factor names
-match.within <- function (vec_return, mismatch, match){
-  for (i in 1:length(match)){
-    if (is.na(mismatch[i])) next
-    mismatched <- paste0 ("\\<", mismatch[i], "\\>")
-    vec_return <- gsub(mismatched, match[i], vec_return, ignore.case = TRUE)
-  }
-  return (vec_return)
-}
-
-## Changing suspected to probable
-animal$suspect.animal <- match.within(animal$suspect.animal, "Suspected", "Probable")
-human$suspect.exposure <- match.within(human$suspect.exposure, "Suspected", "Probable")
-triage$suspect.animal <- match.within(triage$suspect.animal, "Suspected", "Probable")
-
-## get number of animals + humans bitten by biter.IDs here!
-animals.bitten.byID <- table(animal$biter.ID)
-humans.bitten.byID <- table(human$biter.ID)
-
-## Set-up time series plotting (axes)
-tfunc <- function (date, format_date="%Y-%m-%d", start="01-09-2016", format_start="%d-%m-%Y",
-                   year1=2016, tstep="month", period=FALSE) {
-  get.consec (date, format_date, start, format_start,
-              year1, tstep, period) - 8
-}
-
-## all dates
-triage %>% 
-  mutate_at(vars(starts_with("date")), funs(dmy(.))) -> triage
-pep$pep.date <- dmy(pep$pep.date)
-ctar %>%
-  mutate_at(vars(starts_with("date")), funs(dmy(.))) -> ctar
-animal %>%
-  mutate_at(vars(starts_with("date")), funs(dmy(.))) -> animal
-human %>%
-  mutate_at(vars(starts_with("date")), funs(dmy(.))) -> human
-
-# triage
-triage$commune <- sapply(strsplit(as.character(triage$exposure.location), "\\("), "[", 1)
-triage$commune <- trimws(triage$commune, which = "right")
-triage$district <- sapply(strsplit(as.character(triage$exposure.location), "\\, "), "[", 2)
-triage$district <- gsub(" \\(District\\)", "", triage$district)
-
-# ctar
-ctar$commune <- sapply(strsplit(as.character(ctar$patient.location), "\\("), "[", 1)
-ctar$commune <- trimws(ctar$commune, which = "right")
-ctar$district <- sapply(strsplit(as.character(ctar$patient.location), "\\, "), "[", 2)
-ctar$district <- gsub(" \\(District\\)", "", ctar$district)
-
-## animal and human locations
-animal <- merge(animal, hh, by = "reference.hh")
-human <- merge(human, hh, by = "reference.hh")
-
-## get apprx case dates
-ctar$ctar.ID <- paste0(ctar$ctar.ID, "_", year(ctar$date.reported))
-human$ctar.ID <- paste0(human$ctar.ID, "_", year(human$date.bitten))
-human$reference.ctar <- ctar$reference.ctar[match(human$ctar.ID, ctar$ctar.ID)]
-#human$date.bitten[!is.na(human$reference.ctar)] <- ctar$date.bitten[match(human$reference.ctar[!is.na(human$reference.ctar)], ctar$reference.ctar)]
-
-human %>%
-  group_by(biter.ID) %>% 
-  summarise(sort(date.bitten)[1]) -> date.first.bite
-animal$date.case <- date.first.bite$`sort(date.bitten)[1]`[match(animal$ID, date.first.bite$biter.ID)]
-animal$date.case[is.na(animal$date.case)] <- animal$date.first.bite[is.na(animal$date.case)]
-animal$date.case[is.na(animal$date.case)] <- animal$date.symptoms.started[is.na(animal$date.case)] # fixing animals which don't have a case date (i.e. non-biters, but ones that are still suspect!)
-## what about ones without a date?? recheck!
-
-ctar %>%
-  group_by(reference.triage) %>% 
-  summarise(sort(date.bitten)[1]) -> date.first.bite
-triage$date.case <- date.first.bite$`sort(date.bitten)[1]`[match(triage$reference.triage, date.first.bite$reference.triage)]
-triage$date.case[is.na(triage$date.case)] <-triage$date.reported[is.na(triage$date.case)]
-
-## get all months 
-triage$month <- tfunc(triage$date.reported)
-ctar$month <- tfunc(ctar$date.reported)
-human$month <- tfunc(human$date.bitten)
-animal$month <- tfunc(animal$date.case)
-pep$month <- tfunc(pep$pep.date)
-
-## change all true/false to 0/1
-triage[triage == FALSE] <- 0
-ctar[ctar == FALSE] <- 0
-animal[animal == FALSE] <- 0
-human[human == FALSE] <- 0
-pep[pep == FALSE] <- 0
-pep[pep == TRUE] <- 1
-
-## subset to study period (Sep 2016 - to date)
-## checks for cases where month is NA!
-triage <- subset(triage, month > 0 & month < 25)
-ctar <- subset(ctar, month > 0 & month < 25)
-human <- subset(human, month > 0 & month < 25)
-animal <- subset(animal, month > 0 & month < 25)
-pep <- subset(pep, month > 0 & month < 25)
-
-## linking up
-ctar$traced <- NA
-ctar$traced <- match(ctar$ctar.ID, human$ctar.ID)
-ctar$traced[ctar$traced > 0] <- 1
-ctar$traced[is.na(ctar$traced)] <- 0
-ctar$reference.human <- human$reference.human[match(ctar$ctar.ID, human$ctar.ID)]
-triage$reference.human <- ctar$reference.human[match(triage$reference.triage, ctar$reference.triage)] ## here!
-triage$suspect.animal[!is.na(triage$reference.human)] <- human$suspect.exposure[match(triage$reference.human[!is.na(triage$reference.human)], human$reference.human)]
-
-ctar$suspect.exposure <- triage$suspect.animal[match(ctar$reference.triage, triage$reference.triage)] ## matched to triage!
-
-nonbites <- c("CTAR_201708_000016", "CTAR_201708_000017", "CTAR_201708_000001", "CTAR_201708_000002",
-              "CTAR_201708_000003", "CTAR_201709_000037")
-ctar$traced[ctar$reference.ctar %in% nonbites] <- 1
-triage <- triage[which(triage$reference.triage %in% ctar$reference.triage), ] ## only triage with corresponding exposures
-ctar <- ctar[which(ctar$reference.triage %in% triage$reference.triage), ] ## only ctar with corresponding exposures
-
-## triage data
-triage$triaged <- NA
-triage$triaged[triage$triage.status == "Successful"] <- 1
-triage$triaged[is.na(triage$triaged)] <- 0
-triage$traced <- ctar$traced[match(triage$reference.triage, ctar$reference.triage)]
-triage$traced[which(triage$reference.triage %in% ctar$reference.triage[ctar$traced == 1])] <- 1
-triage$traced[is.na(triage$traced)] <- 0
-nonlinked <- c("TR_201709_000014", "TR_201802_001040", "TR_201802_001045", "TR_201802_001063",  "TR_201802_001107", "TR_201802_001219", "TR_201802_001253", "TR_201802_001332", "TR_201802_001361", "TR_201802_001372", "TR_201709_000031", "TR_201708_000042", "TR_201708_000010", "TR_201708_000001", "TR_201709_000020", "TR_201709_000019", "TR_201709_000035", "TR_201709_000023", "TR_201709_000027", "TR_201710_000025", "TR_201711_000008", "TR_201712_000020", "TR_201712_000027", "TR_201708_000002")
-triage$traced[triage$reference.triage %in% nonlinked] <- 1
-triage$followedup <- triage$traced + triage$triaged
-triage$followedup[triage$followedup > 1] <- 1
-
-## cleaning up statuses
-ctar$suspect.exposure <- as.factor(ctar$suspect.exposure)
-triage$suspect.animal <- as.factor(triage$suspect.animal)
-levels(ctar$suspect.exposure) <- c(levels(ctar$suspect.exposure), "Contact with suspect case")
-ctar$suspect.exposure[ctar$consult.type == "Contact with suspect case"] <- "Contact with suspect case"
-levels(ctar$suspect.exposure)[levels(ctar$suspect.exposure) == ""] <- "Unknown"
-levels(triage$suspect.animal)[levels(triage$suspect.animal) == ""] <- "Unknown"
-ctar$followedup <- triage$followedup[match(ctar$reference.triage, triage$reference.triage)]
-
-## folks that reported after tracing
-ctar$date.traced <- human$date.traced[match(ctar$ctar.ID, human$ctar.ID)]
-date.diff <- ctar$date.traced - ctar$date.reported
-date.diff[is.na(date.diff)] <-0
-after.tracing <- ctar[date.diff < 0,]
-ctar <- ctar[date.diff >= 0, ]
-nrow(after.tracing)
-
-ctar$triaged <- triage$triaged[match(ctar$reference.triage, triage$reference.triage)]
-ctar %>%
-  left_join(select(mada_communes@data, commune, mdg_cm_, mtch_ds), 
-                          by = c("commune" = "commune", "district" = "mtch_ds")) %>%
-  filter(triaged == 1, consult.type != "Contact with suspect case") %>%
-  dplyr::select(mdg_cm_, suspect.exposure) %>%
-  gather(suspect.exposure, value, -mdg_cm_) %>%
-  group_by(mdg_cm_, value) %>%
-  tally %>%
-  spread(value, n, fill = 0) %>%
-  mutate(total = Confirmed + No + Probable + Unknown, 
-         rabid_upper = Confirmed + Probable + Unknown,
-         rabid_lower = Confirmed + Probable) %>% 
-  left_join(comm_covars) %>%
-  filter(!is.na(ttimes_weighted), district != "Antananarivo Renivohitra") -> prop_rabid
-
-## Model of proportion rabid
-prop_rabid %$% plot(ttimes_weighted, rabid_lower/total)
-mod <- glm(cbind(rabid_lower, total - rabid_lower) ~ ttimes_weighted, data = prop_rabid, 
-           family = binomial)
-prop_rabid %$% plot(rabid_lower/total, predict(mod, type = "response"))
-prop_rabid %$% plot(ttimes_weighted, predict(mod, type = "response"), ylim = c(0, 1))
-prop_rabid %$% points(ttimes_weighted, rabid_lower/total, col = "blue")
-
-mod <- glm(cbind(rabid_upper, total - rabid_upper) ~ ttimes_weighted, data = prop_rabid, 
-           family = binomial)
-prop_rabid %$% plot(rabid_upper/total, predict(mod, type = "response"))
-prop_rabid %$% plot(ttimes_weighted, predict(mod, type = "response"), ylim = c(0, 1))
-prop_rabid %$% points(ttimes_weighted, rabid_upper/total, col = "blue")
-
-```
-
-
-```{r likelihood of observing moramanga data @ commune level}
-## Bite data in Moramanga
-ctar %>%
-  left_join(select(mada_communes@data, commune, mdg_cm_, mtch_ds), 
-                          by = c("commune" = "commune", "district" = "mtch_ds")) %>%
-  filter(consult.type == "Animal bite/exposure") %>%
-  group_by(mdg_cm_) %>%
-  summarize(bites = n()) %>%
-  left_join(comm_covars) %>%
-  filter(!is.na(ttimes_weighted), district %in% c("Moramanga", "Anosibe-An'ala")) -> bites
-
-get.likelihood <- function(commune, params) {
-  # To test likelihood function
-  # commune = comm_data
-  # district = exps_dist
-  # params = c(1e-6, 0.1)
-  B_ttimes <- params[1]
-  B_0 <- params[2]
-  commune %>%
-      mutate(bites_mu = exp(B_ttimes*ttimes_weighted + B_0)*pop) -> sum_bites
-  return(-sum(dpois(round(sum_bites$bites), lambda = sum_bites$bites_mu, log = TRUE)))
-}
-
-tmp <- optim(par = c(1e-6, 0.1), get.likelihood, commune = bites, hessian = TRUE)
-params <- tmp$par
-B_ttimes <- params[1]
-B_0 <- params[2]
-
-## Getting standard errors
-# this is how you can get standard errors from optim, but inverting the hessian
-se <- sqrt(abs(diag(solve(tmp$hessian)))); se
-
-ex#simulate "standard errors"
-varcov <- solve(tmp$hessian)
-library(MASS)
-
-ntest = 1000; testpar = tmp$par; sim.par = matrix(NA, ntest, 2)
-for (k in 1:ntest) {
-  sim.par[k, ] = mvrnorm(1, tmp$par, varcov)
-}
-
-mean(tmp$par[1])
-mean(tmp$par[2])
-#exp(mean(tmp$par[4]))
-
-quantile(sim.par[,1],c(0.025,0.975))
-quantile(sim.par[,2],c(0.025,0.975))
-
-bites %>%
-      mutate(bites_mu = exp(B_ttimes*ttimes_weighted + B_0)*pop) -> check
-plot(check$ttimes_weighted, check$bites)
-plot(check$bites, check$bites_mu)
-abline(a = 0, b = 1, col = "blue", lty = 2)
-ttimes_run <- seq(0, 12*60, by = 30)
-test_pop = 1e5
-plot(ttimes_run, exp(B_ttimes*ttimes_run + B_0)*test_pop, type = "l")
-     
 ```
 
 ### Estimation of burden and reporting 
@@ -903,9 +906,12 @@ ggplot() +
 
 ```
 
+
 ### Sensitivity Analyses
 
 ### Estimating the impact of expanding PEP Access
+
+<br>
 
 ## Discussion
 
@@ -915,6 +921,7 @@ ggplot() +
 - Not accounting for clinic functioning
 - Not explicit data on reporting or rabies incidence!
 - Other factors that drive reporting
+- While we use a signficiant amount of assumptions, these are the same set of assumptions that underlie current rabies estimates, we're just improving them a bit... and ours are a likely a little bit more in line with reality @ a sub-national level
 
 ### Broader context
 
