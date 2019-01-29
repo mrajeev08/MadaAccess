@@ -518,15 +518,14 @@ We use this framework to compare three scenarios of PEP provisioning in Madagasc
 
 1. The baseline with the current clinic locations (n = 31)
 2. Expansion of ARMC to one clinic per district (n = 114)
-3. Expansion of ARMC to two clinics per district.
+3. Expansion of ARMC to two clinics per district, choosing the clinic which minimizes the proportion of people living greater than 2 hours away from a clinic.
 
 We use data on the location of clinics provided by IPM to regenerate travel times to the nearest ARMC given expansion as per scenario 2 and 3. We then predict the expected bite incidence from the model given these new travel times and compare the relative decreases in burden for the three scenarios.
 
 ### Strategically expanding PEP access
-Given limited resources and functioning of clinics, we developed a framework to look at the incremental benefit of adding ARMC. Starting with the current locations, for each of the other N district hospitals, we ranked the clinics by what proportion of the population lived within X hours of a clinic. As there are interactions between adding clinics, we add the top ranked ARMC, and then re-run the analyses to look at the incremental benefit of adding the subsquent ARMC, we do this until we have added all 114 clinics. 
+Given limited resources and functioning of clinics, we developed a framework to look at the incremental benefit of adding ARMC. Starting with the current locations (scenario 1), we added one clinic and recalculated the proportion of people living < x ttime hours away from a clinic for the country. We added the clinic which minimized this metric, and then repeated the process iteratively, ranking clinics and adding them sequentially. We calculate burden at each step and look at the incremental reduction in burden as each clinic is added. 
 
-Similarly for the two clinics per district, within a district, we do the same for CSB IIs within the district, and add the clinic which reduces the proportion of the population living greater than N hours away for the catchment? 
-  
+ 
 ### Sensitivity analyses for burden estimates and scenario analyses
 - R
 - Rho_max
