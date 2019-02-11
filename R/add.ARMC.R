@@ -1,5 +1,8 @@
 ## Incremental analysis
-## parallelized function to add all 
+## parallelized function to add ARMC sequentially
+## updating base proportion at each step to eliminate ones that don't reduce that threshold further
+## (i.e. should remove clustered clinic locations)
+
 add.armc <- function(current_ARMC, candidate_ARMC, prop_pop, threshold, delta_tt_min = 1e-4,
                      steps = 1000, base_prop,
                      friction, shapefile, filename_trans, key_data) {
@@ -52,9 +55,9 @@ add.armc <- function(current_ARMC, candidate_ARMC, prop_pop, threshold, delta_tt
       ## remove all which don't reduce above a certain threshold
       candidate_ARMC <- candidate_ARMC[-which(base_prop - ranked_coords <= delta_tt_min), ] 
       
-      if (i == 1){
-        write.csv(candidate_ARMC, "output/temp_candidates.csv")
-      }
+      ## output to continue analysis in case of cluster timeout
+      write.csv(candidate_ARMC, "output/temp_candidates.csv")
+    
       
       ## save the data for the one that gets added
       if(min(ranked_coords, na.rm = TRUE)[1] != Inf){
