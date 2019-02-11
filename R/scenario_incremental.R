@@ -15,6 +15,7 @@ library(tidyverse)
 library(rgdal)
 library(gdistance)
 library(foreach)
+library(data.table)
 
 ## source travel times and add armc functions
 source("R/get.ttimes.R")
@@ -24,7 +25,7 @@ source("R/add.ARMC.R")
 mada_district <- readOGR("data/MadaGIS/district_init.shp")
 friction_masked <- raster("output/friction_mada_masked.tif")
 friction_unmasked <- raster("output/friction_mada_unmasked.tif")
-ttimes_base <- raster("output/ttimes_masked.tif")
+ttimes_base <- raster("output/ttimes_unmasked.tif")
 
 ## proportion of pop
 pop10 <- raster("output/pop10.tif")
@@ -45,20 +46,25 @@ csbs %>%
   filter(type == "CSB2", genre_fs != "Priv", type_fs != "Health Post") %>%
   dplyr::select(CTAR = nom_fs, X_COORD = ycoor, Y_COORD = xcoor) -> csbs
 
+## shapefile key
+shape_key <- as.data.table(read.csv("output/shapefiles_rasterized.csv", row.names = 1))
+
 ## filter so that if within 5 km radius, you pick one with highest pop density
 ## need to use package biosphere
 # dist_mat <- as.matrix(dist(cbind(csbs$xcoor, csbs$ycoor)))
 # plot(csbs$xcoor, csbs$ycoor)
 
-## check just with 10 
+## Run analysis
 system.time({
   scenario <- add.armc(current_ARMC = gps_locs, candidate_ARMC = csbs, prop_pop, 
-                  threshold = 3, delta_tt_min = 1e-20,
+                  threshold = 3, delta_tt_min = 1e-4,
                   steps = nrow(csbs), base_prop, 
                   friction = friction_unmasked, shapefile = mada_district, 
-                  filename_trans = "output/trans_gc_unmasked.rds")
+                  filename_trans = "output/trans_gc_unmasked.rds", key_data = shape_key)
 })
-write.csv(scenario, "output/scenario_incremental_prop3hrs_masked.csv")
+
+save(scenario, "output/scenario_incremental_prop3hrs.RData")
+
 
 ### Then just close it out at the end
 closeCluster(cl)
