@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --ntasks=100
+#SBATCH --ntasks=101
 #SBATCH --cpus-per-task=1
 #SBATCH -J  incremental
 #SBATCH -t 48:00:00
