@@ -8,3 +8,6 @@ lit/
 .httr-oauth
 data/
 sync/
+figs/
+accessPEP_cache
+accessPEP_files
