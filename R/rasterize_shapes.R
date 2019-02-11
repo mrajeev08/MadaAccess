@@ -35,13 +35,7 @@ mada_communes@data %>%
 write.csv(shapefile_key, "output/shapefile_key.csv")
 key <- read.csv("output/shapefile_key.csv", row.names = 1)
 
-
 check <- as.data.table(list(ttimes_base = values(ttimes_base), pop = values(pop10), 
                             commune = values(commune_check), 
                             district = values(district_check)))
-check_dist <- check[, .(ttimes_dist = sum(ttimes_base*pop, na.rm = TRUE)/sum(pop, na.rm = TRUE)), by = district]
-check_comm <- check[, .(ttimes_comm = sum(ttimes_base*pop, na.rm = TRUE)/sum(pop, na.rm = TRUE)), by = commune]
-
-check[, dist_pop := sum(pop, na.rm = TRUE), by = district]
-
 write.csv(check, "output/shapefiles_rasterized.csv")
