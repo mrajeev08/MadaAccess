@@ -1,5 +1,11 @@
 ## Script to generate rasterized shapefile codes (mada districts + communes)
 rm(list = ls())
+library(rgdal)
+library(raster)
+library(data.table)
+library(magrittr)
+library(tidyverse)
+
 mada_district <- readOGR("data/MadaGIS/district_init.shp")
 mada_communes <- readOGR("data/MadaGIS/commune_mada.shp")
 ttimes_base <- raster("output/ttimes_unmasked.tif")
@@ -30,24 +36,12 @@ write.csv(shapefile_key, "output/shapefile_key.csv")
 key <- read.csv("output/shapefile_key.csv", row.names = 1)
 
 
-check <- as.data.table(list(ttimes = values(ttimes_base), pop = values(pop10), 
+check <- as.data.table(list(ttimes_base = values(ttimes_base), pop = values(pop10), 
                             commune = values(commune_check), 
                             district = values(district_check)))
-check <- drop_na(check)
-check[, .(check = ttimes*pop/sum(pop)), by = commune]
+check_dist <- check[, .(ttimes_dist = sum(ttimes_base*pop, na.rm = TRUE)/sum(pop, na.rm = TRUE)), by = district]
+check_comm <- check[, .(ttimes_comm = sum(ttimes_base*pop, na.rm = TRUE)/sum(pop, na.rm = TRUE)), by = commune]
 
-check$df <- 1:nrow(check)
+check[, dist_pop := sum(pop, na.rm = TRUE), by = district]
 
-pop_df <- as.data.table(list(ttimes = rep(check$ttimes, check$pop), 
-                             commune = rep(check$commune, check$pop), 
-                             district = rep(check$district, check$pop)))
-
-pop_df$check_size <- 1:nrow(pop_df)
-pop_df$check_size2 <- 1:nrow(pop_df)
-
-head(pop_df)
-pop_df[, .(ttimes_weighted_dist = mean(ttimes)), by = district]
-pop_df[, .(ttimes_weighted_comm = mean(ttimes)), by = commune]
-
-
-length(ttimes_check) ## should equal the pop!
+write.csv(check, "output/shapefiles_rasterized.csv")
