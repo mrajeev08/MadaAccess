@@ -489,6 +489,7 @@ where $pop_d$, $T_d$, and $mu_d$ are respectively human population size, weighte
 ### Estimation of burden and reporting 
 We used our model to predict average annual bite incidence for all 114 districts in Madagascar, and estimated average reporting of rabid exposures and deaths due to rabies given this and assumptions about rabies exposures.
 
+TO DO: Instead of reporting calculate as incidence of deaths here!!
 We calculated the expected reporting of rabid exposures ($\overline\rho$) given bite incidence as predicted by our model($\mu$) as:
 $$
   \overline\rho = \frac{\mu \times p_{rabid}}{R}
@@ -509,26 +510,16 @@ such that rabid reported bites (i.e. $p_{rabid} \times B_i$) cannot exceed the e
 
 To generate $R$, the rabies incidence in dogs in the absence of any vaccination, $r$, is  multiplied by the estimated dog population in the commune ($D_i$) and the exposure rate per rabid dogs ($p_{exp}$ = 0.39 persons exposed per rabid dog)(Hampson et al. 2018). We use a human:dog ratio (HDR) of 5 to generate our maximum expected incidence and an HDR of 25 for our minimum expected incidence. As there is little data on dog populations in Madagascar, this range of HDRs encompasses a wide range observed across Africa (cite!).
 
-To estimate the average number of deaths for each commune, we extended the above framework into a stochastic framework as follows:
+To estimate the average number of deaths for each commune, we extended the above framework into a stochastic framework as follows (TO DO: take neg bin around min and max for RI instead):
 $$
 deaths_i = (R_i - p_{rabid}B_i) \times p_{death}
 $$
 where $R_i$ is drawn from a uniform distribution between the minimum and maximum expected number of human exposures for each location and $B_i$, the number of reported bites, is drawn from a poisson distribution with the mean predicted number of bites from the travel time model. We constrain $p_rabid$ as in Equation N, and we assume that all rabies exposures reported to an ARMC receive and complete PEP, and PEP is completely effective at preventing death due to rabies. The probability of death in the absence of PEP is taken from cite GAVI/Joel paper.  
 <br>
 
-### Estimating the impact of expanding PEP Access (TO DO)
-We use this framework to compare three scenarios of PEP provisioning in Madagascar:
-
-1. The baseline with the current clinic locations (n = 31)
-2. Expansion of ARMC to one clinic per district (n = 114)
-3. Expansion of ARMC to two clinics per district, choosing the clinic which minimizes the proportion of people living greater than 2 hours away from a clinic.
-
-We use data on the location of clinics provided by IPM to regenerate travel times to the nearest ARMC given expansion as per scenario 2 and 3. We then predict the expected bite incidence from the model given these new travel times and compare the relative decreases in burden for the three scenarios.
-
 ### Strategically expanding PEP access (TO DO)
-Given limited resources and capacity of clinics to provision PEP, we developed a framework to look at the incremental benefit of additional ARMC. Starting with the current locations (Scenario 1), we added one clinic and recalculated the proportion of people living < 3 hours away from a clinic for the country. We added the clinic which minimized this metric, and then repeated the process iteratively, ranking clinics and adding the top clinic in each interation sequentially. We calculate burden for the given clinic locations and look at the incremental reduction in burden as each clinic is added. 
+Given limited resources and capacity of clinics to provision PEP, we developed a framework to look at the incremental benefit of expanding PEP provisioning to additional ARMC. Starting with the current locations, we added one clinic and recalculated the proportion of people living < 3 hours away from a clinic for the country. We added the clinic which minimized this metric, and then repeated the process iteratively, ranking clinics and adding the top clinic in each iteration sequentially. We calculate burden for the given clinic locations and look at the incremental reduction in burden as each clinic is added (taking the min/max approach). 
 
- 
 ### Sensitivity analyses for burden estimates and scenario analyses (TO DO)
 
 <br>
