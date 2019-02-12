@@ -182,7 +182,6 @@ add.armc <- function(current_ARMC, candidate_ARMC, prop_pop, threshold, delta_tt
 
 # 4. Get travel times at admin level for scenario analysis ------------------------------------
 ## Calculating travel times at whatever admin level for the scenario analysis
-
 run.scenario <- function(current_ARMC, new_ARMC, friction, shape, pop_rast, pop_pol, 
                          admin = "district", weighted = TRUE, filename_trans) {
   ## to test
@@ -201,7 +200,7 @@ run.scenario <- function(current_ARMC, new_ARMC, friction, shape, pop_rast, pop_
                        .combine = "cbind"
   ) %dopar% {
     
-    point_mat <- rbind(current_ARMC, new_ARMC[j, ])
+    point_mat <- rbind(current_ARMC, new_ARMC[1:j, ])
     point_mat <- as.matrix(cbind(point_mat$Y_COORD, point_mat$X_COORD)) # matrix of long and lat
     ttimes <- get.travel.times(friction, shapefile, coords = point_mat, trans_matrix_exists = TRUE, 
                                filename_trans)
