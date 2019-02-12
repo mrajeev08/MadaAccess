@@ -51,11 +51,11 @@ names(gps_locs) <- c ("CTAR", "X_COORD", "Y_COORD")
 new_armc <- read.csv("output/incremental_ARMC_nofilter.csv", row.names = 1)[-c(1:31), ]
 
 ## Calc ttimes for each addtl ARMC
-dist_mat <- run.scenario(current_ARMC = gps_locs, new_ARMC = scenario[["new_armc"]], friction = friction_unmasked, 
+dist_mat <- run.scenario(current_ARMC = gps_locs, new_ARMC = new_armc, friction = friction_unmasked, 
                          shape = mada_district, pop_rast = pop10, pop_pol = mada_district$pop10,
                          admin = "district_temp", weighted = TRUE, filename_trans = "output/trans_gc_unmasked.rds")
 
-comm_mat <- run.scenario(current_ARMC = gps_locs, new_ARMC = scenario[["new_armc"]], friction = friction_unmasked, 
+comm_mat <- run.scenario(current_ARMC = gps_locs, new_ARMC = new_armc, friction = friction_unmasked, 
                          shape = mada_communes, pop_rast = pop10, pop_pol = mada_communes$pop10,
                          admin = "commune_temp", weighted = TRUE, filename_trans = "output/trans_gc_unmasked.rds")
 
