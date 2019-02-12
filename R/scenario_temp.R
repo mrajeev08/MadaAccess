@@ -33,9 +33,9 @@ prop_pop <- pop10/sum(values(pop10), na.rm = TRUE)
 ## getting pops
 print(paste(Sys.time(), ": started extracting pop10"))
 mada_district <- raster::extract(pop10, mada_district, fun = sum,
-                                 na.rm = TRUE, df = TRUE, sp = TRUE)
+                                 na.rm = TRUE, df = TRUE, sp = TRUE, small = TRUE)
 mada_communes <- raster::extract(pop10, mada_communes, fun = sum,
-                                 na.rm = TRUE, df = TRUE, sp = TRUE)
+                                 na.rm = TRUE, df = TRUE, sp = TRUE, small = TRUE)
 print(paste(Sys.time(), ": finished extracting pop10"))
 
 ## baseline proportion
