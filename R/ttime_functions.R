@@ -207,15 +207,15 @@ run.scenario <- function(current_ARMC, new_ARMC, friction, shape, pop_rast, pop_
     
     if (weighted == TRUE){
       ## add 1e-6 to 0 ttimes
-      travel_time_pt[travel_time_pt == 0] <- 1e-6
-      weighted_ttimes <- travel_time_pt*pop_rast
+      ttimes[ttimes == 0] <- 1e-6
+      weighted_ttimes <- ttimes*pop_rast
       names(weighted_ttimes) <- "w_ttimes"
       out <- raster::extract(weighted_ttimes, shape, fun = sum, 
                              na.rm = TRUE, df = TRUE, sp = TRUE, small = TRUE)
       out$ttimes <- out$w_ttimes/pop_pol
     } else {
-      names(travel_time_pt) <- "ttimes"
-      out <- raster::extract(travel_time_pt, shape, fun = mean, 
+      names(ttimes) <- "ttimes"
+      out <- raster::extract(ttimes, shape, fun = mean, 
                              na.rm = TRUE, df = TRUE, sp = TRUE, small = TRUE)
     }
     out$ttimes 
