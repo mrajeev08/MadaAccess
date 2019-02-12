@@ -202,7 +202,7 @@ run.scenario <- function(current_ARMC, new_ARMC, friction, shape, pop_rast, pop_
     
     point_mat <- rbind(current_ARMC, new_ARMC[1:j, ])
     point_mat <- as.matrix(cbind(point_mat$Y_COORD, point_mat$X_COORD)) # matrix of long and lat
-    ttimes <- get.travel.times(friction, shapefile, coords = point_mat, trans_matrix_exists = TRUE, 
+    ttimes <- get.travel.times(friction, shape, coords = point_mat, trans_matrix_exists = TRUE, 
                                filename_trans)
     
     if (weighted == TRUE){
