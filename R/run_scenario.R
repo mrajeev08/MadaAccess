@@ -1,17 +1,20 @@
-## Calculate incremental decrease
-## Run in parallel (should only take apprx 50 min or so)
+## Calculate incremental decrease in burden
 
-## 1. Read in ordered ctar
+## Read in district and commune ttimes
+## read in key
 
-## for i in 32:nrow(ctars)
-## calculate ttimes
-## summarize by commune + district using shapefile rasterized data 
+## For each column
 
-## append to dataframe and output
+## burden mat high = 
+predict # reported bites based on ttimes
 
-## estimate burden @ district and commune level
+low
+(R_min - bites*p_rabid_max)*p_death 
 
-## calculate max + min # of bites on avg + p_rabid + expected bite incidence by ttimes + get mean deaths
-## (also do it stochastically?)
+high 
+(R_max - bites*p_rabid_min)*p_death
 
-## test to see if this gets you about the right # as the stochastic sims?
+output 
+melt 
+ggplot 
+

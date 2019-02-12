@@ -27,9 +27,9 @@ commune_check <- raster("output/commune_raster.tif")
 plot(commune_check)
 
 mada_communes@data %>%
-  select(comm_code = mdg_com_co, comm_name = commune, row_id_comm = row_id) %>%
+  dplyr::select(comm_code = mdg_com_co, comm_name = commune, row_id_comm = row_id) %>%
   mutate(dist_code = substr(comm_code, 1, 8)) %>%
-  left_join(select(mada_district@data, 
+  left_join(dplyr::select(mada_district@data, 
                    dist_code = mdg_dis_co, dist_name = district, 
                    row_id_dist = row_id)) -> shapefile_key
 write.csv(shapefile_key, "output/shapefile_key.csv")

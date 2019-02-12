@@ -19,8 +19,8 @@ add.armc <- function(current_ARMC, candidate_ARMC, prop_pop, threshold, delta_tt
   
   ## empty data frame to bind to
   new_ARMC <- data.frame(CTAR = rep(NA, cands), X_COORD = rep(NA, cands), Y_COORD = rep(NA, cands))
-  dist_mat <- matrix(NA, nrow = length(unique(key_data$district)), ncol = steps + 1)
-  comm_mat <- matrix(NA, nrow = length(unique(key_data$commune)), ncol = steps + 1)
+  dist_mat <- matrix(NA, nrow = length(unique(key_data$district)), ncol = steps + 1) # for NAs and baseline
+  comm_mat <- matrix(NA, nrow = length(unique(key_data$commune)), ncol = steps + 1) # for NAs and baseline
   
   ## Baseline one (also just for matching up row ids)
   check_dist <- key_data[, .(ttimes_dist = sum(ttimes_base*pop, na.rm = TRUE)/sum(pop, na.rm = TRUE)), by = district]
@@ -30,6 +30,9 @@ add.armc <- function(current_ARMC, candidate_ARMC, prop_pop, threshold, delta_tt
   rownames(dist_mat) <- check_dist$district
   comm_mat[, 1] <- check_comm$ttimes_comm
   rownames(comm_mat) <- check_comm$commune
+  
+  print("starting iterative adding of ARMC")
+  print(Sys.time())
   
   for (i in 1:steps) {
     if (nrow(candidate_ARMC) > 0) {
@@ -48,29 +51,20 @@ add.armc <- function(current_ARMC, candidate_ARMC, prop_pop, threshold, delta_tt
         ## proportion of pop living greater than threshold hrs away from CTAR (defaults to 3 hrs)
         sum(prop_pop[ttimes >= 60*threshold], na.rm = TRUE) 
       }
-      
-      ## remove top ranked and also will result in no rows if ranked_coords is all NA
-      candidate_ARMC <- candidate_ARMC[-which(ranked_coords == min(ranked_coords, na.rm = TRUE)[1]), ]
-      
-      ## remove all which don't reduce above a certain threshold
-      candidate_ARMC <- candidate_ARMC[-which(base_prop - ranked_coords <= delta_tt_min), ] 
-      
-      ## output to continue analysis in case of cluster timeout
-      write.csv(candidate_ARMC, "output/temp_candidates.csv")
     
-      
       ## save the data for the one that gets added
       if(min(ranked_coords, na.rm = TRUE)[1] != Inf){
         ## rank the one that minimizes this and add to current armc
         current_ARMC <- rbind(current_ARMC, 
                               candidate_ARMC[which(ranked_coords == min(ranked_coords, na.rm = TRUE)[1]), ])
+        write.csv(current_ARMC, "output/temp_ARMC.csv")
         
         ## add prop_under to the top ranked at the row i + 1 (because of place holder NA row)
         prop_under[i] <- min(ranked_coords, na.rm = TRUE)[1]
+        write.csv(prop_under, "output/temp_prop_under.csv")
         
         ## add to new armc list
         new_ARMC[i, ] <- candidate_ARMC[which(ranked_coords == min(ranked_coords, na.rm = TRUE)[1]), ]
-        write.csv(new_ARMC, "output/temp_ARMC.csv")
         
         ## Getting layer and weighted means for the new set
         point_mat <- current_ARMC
@@ -86,16 +80,31 @@ add.armc <- function(current_ARMC, candidate_ARMC, prop_pop, threshold, delta_tt
         write.csv(dist_mat, "output/temp_disttimes.csv")
         comm_mat[, i + 1] <- check_comm$ttimes_comm
         write.csv(comm_mat, "output/temp_commttimes.csv")
-        
-        ## new baseline proportion to diff against 
-        base_prop <- sum(prop_pop[ttimes >= 60*threshold], na.rm = TRUE) 
       }
+      
+      ## remove top ranked and also will result in no rows if ranked_coords is all NA
+      candidate_ARMC <- candidate_ARMC[-which(ranked_coords == min(ranked_coords, na.rm = TRUE)[1]), ]
+      
+      ## remove all which don't reduce above a certain threshold
+      candidate_ARMC <- candidate_ARMC[-which(base_prop - ranked_coords <= delta_tt_min), ] 
+      
+      ## output to continue analysis in case of cluster timeout
+      write.csv(candidate_ARMC, "output/temp_candidates.csv")
+      
+      ## new baseline proportion to diff against 
+      base_prop <- sum(prop_pop[ttimes >= 60*threshold], na.rm = TRUE) 
+      write.csv(base_prop, "output/temp_baseprop.csv")
+      
+      ## check for each loop to keep track of time
+      print(paste(i, "ARMC added"))
+      print(Sys.time())
+      print(paste(nrow(candidate_ARMC), "remaining"))
     }
     else{
       next()
     }
   }
   # new_ARMC$prop_under <- prop_under ## This throws errors due to discrepancies so avoid this for now
-  return(list(new_ARMC = new_ARMC, prop_under = prop_under, dist_mat, comm_mat))
+  return(list(current_ARMC = current_ARMC, new_ARMC = new_ARMC, prop_under = prop_under, dist_mat, comm_mat))
 }
 

@@ -63,7 +63,7 @@ system.time({
                   filename_trans = "output/trans_gc_unmasked.rds", key_data = shape_key)
 })
 
-save(scenario, "output/scenario_incremental_prop3hrs.RData")
+save(scenario, paste0("output/scenario_incremental_prop3hrs_", as.numeric(Sys.time()), ".RData"))
 
 
 ### Then just close it out at the end
