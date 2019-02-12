@@ -46,8 +46,6 @@ csbs %>%
   filter(type == "CSB2", genre_fs != "Priv", type_fs != "Health Post") %>%
   dplyr::select(CTAR = nom_fs, X_COORD = ycoor, Y_COORD = xcoor) -> csbs
 
-## shapefile key
-shape_key <- as.data.table(read.csv("output/shapefiles_rasterized.csv", row.names = 1))
 
 ## filter so that if within 5 km radius, you pick one with highest pop density
 ## need to use package biosphere
@@ -60,7 +58,7 @@ system.time({
                   threshold = 3, delta_tt_min = 1e-4,
                   steps = nrow(csbs), base_prop, 
                   friction = friction_unmasked, shapefile = mada_district, 
-                  filename_trans = "output/trans_gc_unmasked.rds", key_data = shape_key)
+                  filename_trans = "output/trans_gc_unmasked.rds")
 })
 
 save(scenario, paste0("output/scenario_incremental_prop3hrs_", as.numeric(Sys.time()), ".RData"))

@@ -32,12 +32,12 @@ get.catchmat <- function(point_mat, fric, shape, admin = "district",
         weighted_ttimes <- travel_time_pt*pop_rast
         names(weighted_ttimes) <- "w_ttimes"
         out <- raster::extract(weighted_ttimes, shape, fun = sum, 
-                                 na.rm = TRUE, df = TRUE, sp = TRUE)
+                                 na.rm = TRUE, df = TRUE, sp = TRUE, small = TRUE)
         out$ttimes <- out$w_ttimes/pop_pol
       } else {
         names(travel_time_pt) <- "ttimes"
         out <- raster::extract(travel_time_pt, shape, fun = mean, 
-                               na.rm = TRUE, df = TRUE, sp = TRUE)
+                               na.rm = TRUE, df = TRUE, sp = TRUE, small = TRUE)
       }
       out$ttimes 
     }
