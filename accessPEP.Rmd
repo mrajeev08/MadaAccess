@@ -3,12 +3,12 @@ title: "Estimating Access to Rabies Post-Exposure Prophylaxis in Madagascar"
 author: ""
 date: 
 output:
-  word_document:
-    reference_docx: format_docs/word_styles_reference_01.docx
+  html_document: default
   pdf_document:
     includes:
       in_header: mystyle.sty
-  html_document: default
+  word_document:
+    reference_docx: format_docs/word_styles_reference_01.docx
 ---
 
 
@@ -158,11 +158,11 @@ ctar %>%
 
 
 ### Bite patient data
-We used a database of bite patient forms submitted to IPM from ARMC across the country between 2014 - 2017. These were individual patient data forms that were submitted as frequently as monthly to annually by clinics. Of the 31 existing ARMC, `r length(no_data) - 2` submitted fewer than 10 forms over the four years. Two clinics, the IPM ARMC and the Fianarantsoa ARMC had separate databases which were not available at the time of analysis. Overall, we had data from `r 31 - length(no_data)` clinics across the country (Fig 1A). These data include the administrative district of the bite patient's address and the date of reporting. We also had `r max(ctar$month, na.rm = TRUE)` months of data from the Moramanga District that were resolved to the commune level (the administrative level below district).
+We used a database of bite patient forms submitted to IPM from ARMC across the country between 2014 - 2017. These were individual patient data forms that were submitted as frequently as monthly to annually by clinics. Of the 31 existing ARMC, `r length(no_data) - 2` submitted fewer than 10 forms over the four years. Two clinics, the IPM ARMC and the Fianarantsoa ARMC had separate databases which were not available at the time of analysis. Overall, we had data from `r 31 - length(no_data)` clinics across the country (Fig 1A). These data include details of the administrative district of the bite patient's address and the date of reporting. We also had `r max(ctar$month, na.rm = TRUE)` months of data from the Moramanga District that were resolved to the commune level (the administrative level below the district).
 
 <br>
 
-For most districts, the majority of bites were reported to the closest clinic as estimated by our travel time metric (Fig 1A, Fig S1). Therefore, we defined the catchment area for each clinic as all districts for which the clinic was the closest ARMC. We excluded any districts from catchments for which the clinic did not submit any forms (n = `r length(no_data)`, districts in grey in Fig 1A).
+For most districts, the majority of bites were reported to the closest clinic as estimated by our travel time metric (Fig 1A, Fig S1). Therefore, we defined the catchment area for each clinic as all districts for which the clinic was the closest ARMC. We excluded any catchment areas for which the clinic did not submit any forms (n = `r length(no_data)`, districts in grey in Fig 1A).
 
 ```{r network fig}
 ## Network fig
@@ -269,7 +269,7 @@ hist(catch_ctar$prop, main = "",
      ylab = "Number of ARMC", col = "grey50", border = "white", xlim = c(0, 1))
 ```
 
-As even for clinics which submitted data, there was substantial undersubmission of forms, we estimated clinic level reporting as the proportion of days on which forms were submitted, excluding any periods for which there were no forms submitted for 15 consecutive days (Figure S2 shows the time series of form submission for each clinic and periods of time excluded by the 15 day threshold). Our estimate of reporting did vary based on our assumption of the threshold number of consecutive days (Figure S3), so we did look at the sensitivity of model parameter estimates to changing this threshold. To estimate the average annual bites reported for each district, we further excluded data from any years for which there was less than 25% reporting at the clinic level.
+As even for clinics which submitted data, there was substantial undersubmission of forms, we estimated clinic level reporting as the proportion of days on which forms were submitted, excluding any periods for which there were no forms submitted for 15 consecutive days (Figure S2). Our estimate of reporting did vary based on our assumption of the threshold number of consecutive days (Figure S3), so we did look at the sensitivity of model parameter estimates to changing this threshold. To estimate the average annual bites reported for each district, we further excluded data from any years for which there was less than 25% reporting at the clinic level.
 
 ```{r clinic level reporting, fig.cap = "Figure 2A"}
 ######### Patient time series
@@ -417,7 +417,7 @@ points(check$sd, check$prop_bites, col = "red", pch = 20)
 legend("topright", c("Contacts", "Bites"), col = c("Blue", "Red"), pch = 20, bty = "n")
 ```
 
-Previous work in the Moramanga District showed that low risk contacts with probable or confirmed rabies cases make up approximately 20% of patients reporting to ARMC (Rajeev et al. 2018). Generally, contacts present as clustered cases, so we excluded patients reporting on any dates that had greater than 3 standard deviations above the mean number of patients reporting per day (Figure 3A). We validated this method using the Moramanga ARMC data for which we had details on the type of exposure, and found that setting the threshold to 3 standard deviations (SDs) resulted in approximately 50% of known contacts excluded, with only 2% of non-contacts excluded (Figure 3B). For the national data for which a subset of patient forms were explicitly noted to be contacts, we found that our exclusion criteria of 3 SDs identified `r round((ctar_check %$% length(exclude_bycomment[exclude_bycomment == 1 & exclude_bydate == 1]))/length(ctar_check %$% exclude_bycomment[exclude_bycomment == 1])*100, 2)` of known contacts. We further excluded these known contacts which were not identified based on the daily distribution of patients, resulting in the exclusion of approximately `r round((ctar_check %$% length(exclude_bycomment[exclude_bycomment == 1 | exclude_bydate == 1]))/nrow(ctar_check)*100, 2)`% of patient records from the national data. We also compared this method to assuming that 20% of total bites at the district level were contacts.
+Previous work in the Moramanga District showed that low risk contacts with probable or confirmed rabies cases make up approximately 20% of patients reporting to ARMC (Rajeev et al. 2018). Generally, contacts present as clustered cases, so we excluded patients reporting on any dates that had greater than 3 standard deviations above the mean number of patients reporting per day (Figure 3A). We validated this method using the Moramanga ARMC data for which we had details on the type of exposure, and found that setting the threshold to 3 standard deviations (SDs) resulted in approximately 50% of known contacts excluded, with only 2% of non-contacts excluded (Figure S4). For the national data for which a subset of patient forms were explicitly noted to be contacts, we found that our exclusion criteria of 3 SDs identified `r round((ctar_check %$% length(exclude_bycomment[exclude_bycomment == 1 & exclude_bydate == 1]))/length(ctar_check %$% exclude_bycomment[exclude_bycomment == 1])*100, 2)` of known contacts. We further excluded these known contacts which were not identified based on the daily distribution of patients, resulting in the exclusion of approximately `r round((ctar_check %$% length(exclude_bycomment[exclude_bycomment == 1 | exclude_bydate == 1]))/nrow(ctar_check)*100, 2)`% of patient records from the national data. We also compared this method to assuming that 20% of total bites at the district level were contacts.
 
 <br>
 
@@ -464,26 +464,25 @@ After excluding contacts and correcting for undersubmission of forms, our final 
 
 
 ### Model of reported bites as a function of travel time
-While the national bite patient data is available at the district level, travel times and therefore reporting, likely vary significantly at the sub-district level. In order to translate the impacts of differences in access at sub-district scales to the magnitude of reported bites at the district scale, we modeled bites at the district level as the sum of incidence at the commune level. Incidence at the commune level is then a function of travel times to the closest ARMC. Specifically, we modeled bites as follows:
+We modeled bites as a function of travel times as follows:
+$$ 
+  \mu = exp(\beta_{t}T + \beta_0)P 
+$$
+where $mu$ is the expected number of bites given travel times and population for a given location. In this way, we can model the impact of travel time on incidence as 
+$exp(\beta_{t}T + \beta_0)$ gives an estimate of incidence and multiplying by the population size gives the expected number of bites, so that we can fit this model to the number of bites in each location.
+
+We then estimate the likelihood of observing the bites at the district level where bites are a poisson distribution around the mean $\mu_{d}$, given $\beta_t$, the effect of travel times of reported bites and $\beta_0$, the model intercept.
+
+We fit this to our available data in three ways:
+1) the commune data available at the moramanga district, where we fit to $mu_j$
+2) The district data available nationally
+3) To compare estimates from 1 directly to the national data, the district data but where $mu_d$ is the sum of the travel time effect at the commune level, i.e.:
 
 $$ 
-  \mu_{d} = \sum \limits_{j=1}^jexp(\beta_{t}T_j + \beta_0)\times pop_j 
-$$
-where $\mu_{d}$ is the mean number of bites in district, which is the sum of bites at the commune level given **commune level travel times**, $T_j$. We then estimate the likelihood of observing the bites at the district level where bites are a poisson distribution around the mean $\mu_{d}$, given $\beta_t$, the effect of travel times of reported bites and $\beta_0$, the model intercept.
-
-As we had data available on reported bites at the commune level from the Moramanga ARMC (from Rajeev et al. 2018), we modeled observed commune bites in the same framework, but un-aggregated, where:
-
-$$ 
-\mu_{j} = exp(\beta_tT_j + \beta_0)\times pop_j 
+  \mu_{d} = \sum \limits_{j=1}^jexp(\beta_{t}T_j + \beta_0)P_j 
 $$
 
-where $\mu_{j}$ = the mean number of bites in commune $j$ and the observed bites at the commune level follow a poisson distribution around the mean $\mu_d$. We only included communes which were designated to be within the catchment for the clinic. We compared our estimates of $\beta_t$ (i.e. the impact of travel time on incidence) and $\beta_0$ (the intercept) for our district data at the national level and the commune level data from the Moramanga ARMC.
-
-Finally, we compared these models to a model of bites at the district level as the function of travel times averaged to the district level:
-$$ 
-  \mu_{d} = exp(\beta_{t}T_d + \beta_0)\times pop_d 
-$$
-where $pop_d$, $T_d$, and $mu_d$ are respectively human population size, weighted travel times, and mean number of bites in district $d$. As travel times are correlated with human population size (Figure Z), we also compared how well bites were predicted by human population size alone for these different models, as a test of whether the observed patterns could be predicted by bite incidence scaling with population size. We also looked at how well distance from the closest ARMC (rather than travel times) predicted bites as an alternative proxy for access. 
+ As travel times are correlated with human population size (Figure Z), we also compared how well bites were predicted by human population size alone for these different models (replacing $Tj$ with log-transformed population in $j$ to avoid squared terms), as a test of whether the observed patterns could be predicted by bite incidence scaling with population size alone. We also looked at how well distance from the closest ARMC (rather than travel times) predicted bites as an alternative proxy for access. 
 
 <br>
 
@@ -518,84 +517,17 @@ $$
 where $R_i$ is drawn from a uniform distribution between the minimum and maximum expected number of human exposures for each location and $B_i$, the number of reported bites, is drawn from a poisson distribution with the mean predicted number of bites from the travel time model. We constrain $p_rabid$ as in Equation N, and we assume that all rabies exposures reported to an ARMC receive and complete PEP, and PEP is completely effective at preventing death due to rabies. The probability of death in the absence of PEP is taken from cite GAVI/Joel paper.  
 <br>
 
-### Strategically expanding PEP access (TO DO)
-Given limited resources and capacity of clinics to provision PEP, we developed a framework to look at the incremental benefit of expanding PEP provisioning to additional ARMC. Starting with the current locations, we added one clinic and recalculated the proportion of people living < 3 hours away from a clinic for the country. We added the clinic which minimized this metric, and then repeated the process iteratively, ranking clinics and adding the top clinic in each iteration sequentially. We calculate burden for the given clinic locations and look at the incremental reduction in burden as each clinic is added (taking the min/max approach). 
-
-### Sensitivity analyses for burden estimates and scenario analyses (TO DO)
-
-<br>
-  
-## RESULTS 
-
-
-<br>
-
-### Model of reported bites as a function of travel time
-While the national bite patient data is available at the district level, travel times vary significantly within a district (see Figure SX, *need to think about how to show this*). In order to translate the impacts of differences in access at sub-district scales to the magnitude of reported bites at the district scale, we modeled bites at the district level as the sum of incidence at the commune level. Incidence at the commune level is then a function of travel times to the closest ARMC. Specifically, we modeled bites as follows:
-$$ 
-  \mu_{d} = \sum \limits_{j=1}^jexp(\beta_{t}T_j + \beta_0)\times pop_j 
-$$
-where $\mu_{d}$ is the mean number of bites in district, which is the sum of bites at the commune level given **commune level travel times**, $T_j$. We then estimate the likelihood of observing the bites at the district level where bites are a poisson distribution around the mean $\mu_{d}$, given $\beta_t$, the effect of travel times of reported bites and $\beta_0$, the model intercept.
-
-As we had data available on reported bites at the commune level from the Moramanga ARMC (from Rajeev et al. 2018), we modeled observed commune bites in the same framework, but un-aggregated, where:
-$$ 
-\mu_{j} = exp(\beta_tT_j + \beta_0)\times pop_j 
-$$
-where $\mu_{j}$ = the mean number of bites in commune $j$ and the observed bites at the commune level follow a poisson distribution around the mean $\mu_d$. We only included communes which were designated to be within the catchment for the clinic. We compared our estimates of $\beta_t$ (i.e. the impact of travel time on incidence) and $\beta_0$ (the intercept) for our district data at the national level and the commune level data from the Moramanga ARMC.
-
-
-<br>
-
-### Estimation of burden and reporting 
-We used our model to predict average annual bite incidence for all 114 districts in Madagascar, and estimated average reporting of rabid exposures and deaths due to rabies given this and assumptions about rabies exposures.
-
-We calculated the expected reporting of rabid exposures ($\overline\rho$) given bite incidence as predicted by our model($\mu$) $:
-$$
-  \overline\rho = \frac{\mu \times p_{rabid}}{R}
-$$
-or the fraction of incidence due to rabid exposures ($\mu \times p_{rabid}$) divided by the total rabies exposure incidence ($r$) for a range of estimated rabies incidence and $p_{rabid}$. We look at the range of $p_{rabid}$ reported in Rajeev et al. 2018 for data from the Moramanga District (0.2 - 0.6). where the proportion of reported bites that are rabies exposures ($p_{rabid}$) are defined as:
-$$
-           p_{rabid}=
-            \begin{cases}
-            x, & \text{if}\ \frac{R \times \rho_{max}}{B} > x \\
-            \frac{R \times \rho_{max}}{B}, & \text{otherwise}
-            \end{cases}
-$$
-<br>
-
-such that rabid reported bites (i.e. $p_{rabid} \times B_i$) cannot exceed the expected number of human exposures given maximum reporting (i.e. $R_i \times \rho_{max}$). $\rho_{max}$ taken from the Moramanga ARMC data for Moramanga Ville, the commune with the ARMC (i.e. the area with the minimum travel time). . 
-
-<br>
-
-The rabies incidence in dogs in the absence of any vaccination, $r$, is  multiplied by the estimated dog population in the commune ($D_i$) and the exposure rate per rabid dogs ($p_{exp}$ = 0.39 persons exposed per rabid dog)(Hampson et al. 2018) to generate $R$. We estimate the dog population by using a human:dog ratio of 5 to generate our maximum expected incidence and an HDR of 25 for our minimum expected incidence. As there is little data on dog populations in Madagascar, this range of HDRs encompasses a wide range observed across Africa (cite!).
-
-To estimate the average number of deaths for each commune, we extended the above framework into a stochastic framework as follows:
-$$
-deaths_i = (R_i - p_{rabid}B_i) \times p_{death}
-$$
-where $R_i$ is drawn from a uniform distribution between the minimum and maximum expected number of human exposures for each location and $B_i$, the number of reported bites, is drawn from a poisson distribution with the mean predicted number of bites from the travel time model. We assume that all rabies exposures reported to an ARMC receive and complete PEP, and PEP is completely effective at preventing death due to rabies. 
-
-*Need to include bits about RIG in here somewhere*
-
-<br>
-
-### Estimating the impact of expanding PEP Access
-We use this framework to compare three scenarios of PEP provisioning in Madagascar:
-
-1. The baseline with the current clinic locations (n = 31)
-2. Expansion of ARMC to one clinic per district (n = 114)
-3. Expansion of ARMC to all CSB IIs (*something to describe CSB IIs here*), that is primary hospitals (n = X)
-
-We use data on the location of **CSBs** provided by IPM to regenerate travel times to the nearest ARMC given expansion as per scenario 2 and 3. We then predict the expected bite incidence from the model given these new travel times and compare the relative decreases in burden for the three scenarios.
+### Strategically expanding PEP access
+Given limited resources and capacity of clinics to provision PEP, we developed a framework to look at the incremental benefit of expanding PEP provisioning to additional ARMC. Starting with the current locations, we added one clinic and recalculated the proportion of people living < 3 hours away from a clinic for the country. We added the clinic which minimized this metric, and then repeated the process iteratively, ranking clinics and adding the top clinic sequentially. We calculate burden for the given clinic locations and look at the incremental reduction in burden as each clinic is added.
   
 ### Sensitivity analyses for burden estimates 
 - R (increasing or decreasing with pop) (min + max)
 - P-rabid min and max
 - Probability of death min and max
 - Look at change in raw # of deaths and also change in burden by scenarios
-
-<br>
   
+<br>
+
 ## RESULTS 
 
 ### Models of bites as a function of travel times
@@ -826,6 +758,111 @@ abline(v = max(ttimes_plot[bites_100k*0.6 > R_100k_min])/60, col = "grey", lty =
 abline(v = max(ttimes_plot[bites_100k*0.2 > R_100k_max])/60, col = "grey", lty = 3)
 ```
 
+
+```{r scale example}
+## Comparing scales
+## Function for reporting
+get.reporting_burden <- function(pop, ttimes, B_ttimes, B_0, hdr = 25, incidence = 0.01, 
+                          exp_rate = 0.39, p_rabid = 0.6, rho_max = 0.98, p_death = 0.16, 
+                          type = "reporting") {
+  bites_100k <- exp(B_ttimes*ttimes + B_0)*pop
+  R_100k <- pop/hdr*incidence*exp_rate
+  if (type == "reporting"){
+    rho <- bites_100k*(ifelse(bites_100k*p_rabid > R_100k, rho_max*R_100k/bites_100k, p_rabid))/R_100k
+    return(rho)
+  } else {
+    unreported <- R_100k - bites_100k*(ifelse(bites_100k*p_rabid > R_100k, 
+                                              rho_max*R_100k/bites_100k, p_rabid))
+    deaths <- 0.16*unreported
+    return(deaths)
+  }
+}
+
+comm_data$reporting_min <- get.reporting_burden(pop = comm_data$pop, ttimes = comm_data$ttimes_weighted, 
+                                            B_ttimes = B_ttimes_mada, B_0 = B_0_mada,
+                                            hdr = 5, p_rabid = 0.2)
+
+comm_data$reporting_max <- get.reporting_burden(pop = comm_data$pop, ttimes = comm_data$ttimes_weighted, 
+                                            B_ttimes = B_ttimes_mada, B_0 = B_0_mada,
+                                            hdr = 25, p_rabid = 0.6)
+comm_data %>%
+  group_by(district) %>%
+  mutate(pop_total = sum(pop, na.rm = TRUE), prop_pop = pop/pop_total) %>%
+  summarize(reporting_min = sum(reporting_min*prop_pop), 
+            reporting_max = sum(reporting_max*prop_pop)) %>%
+  mutate(reporting_med = (reporting_min + reporting_max)/2,
+         type = "summed from commune") -> summed_rep_dist
+
+mada_district@data %>%
+  mutate(reporting_min = get.reporting_burden(pop = pop2015un, ttimes = ttimes_weighted, 
+                                              B_ttimes = B_ttimes_dist, B_0 = B_0_dist, hdr = 5, 
+                                              p_rabid = 0.2), 
+         reporting_max = get.reporting_burden(pop = pop2015un, ttimes = ttimes_weighted, 
+                                              B_ttimes = B_ttimes_dist, B_0 = B_0_dist, hdr = 25, 
+                                              p_rabid = 0.6),
+         reporting_med = (reporting_min + reporting_max)/2,
+         type = "district level") %>%
+  select(district, reporting_min, reporting_max, reporting_med, type) -> rep_comp
+
+rep_comp <- rbind(rep_comp, summed_rep_dist)
+rep_comp$ttime <- mada_district$ttimes_weighted[match(rep_comp$district, mada_district$district)]
+
+ggplot(rep_comp, aes(x = reporting_med, y = reorder(district, ttime), 
+                              color = type)) +
+  ggstance::geom_pointrangeh(aes(xmin = reporting_min, xmax = reporting_max), fatten = 2) 
+
+
+
+bites_100k <- exp(B_ttimes_mada*ttimes_plot + B_0_mada)*pop_plot
+R_100k_min <- pop_plot/25*0.01*0.39
+R_100k_max <- pop_plot/5*0.01*0.39
+
+plot(ttimes_plot/60, 
+     bites_100k*(ifelse(bites_100k*0.6 > R_100k_min, 0.98*R_100k_min/bites_100k, 0.6))/R_100k_min,
+     type = "l", bty = "n",
+     ylab = "Reporting of rabid exposures", xlab = "Travel times (hrs)", col = "darkred")
+lines(ttimes_plot/60, 
+     bites_100k*(ifelse(bites_100k*0.2 > R_100k_min, 0.98*R_100k_min/bites_100k, 0.2))/R_100k_min,
+     col = "darkred")
+lines(ttimes_plot/60, 
+     bites_100k*(ifelse(bites_100k*0.6 > R_100k_max, 0.98*R_100k_max/bites_100k, 0.6))/R_100k_max,
+     col = "red", lty = 2)
+lines(ttimes_plot/60, 
+     bites_100k*(ifelse(bites_100k*0.2 > R_100k_max, 0.98*R_100k_max/bites_100k, 0.2))/R_100k_max,
+     col = "red", lty = 2)
+polygon(x = c(ttimes_plot/60, rev(ttimes_plot/60)), 
+        y = c(bites_100k*(ifelse(bites_100k*0.2 > R_100k_min, 0.98*R_100k_min/bites_100k, 0.2))/R_100k_min,
+             rev(bites_100k*(ifelse(bites_100k*0.2 > R_100k_max, 0.98*R_100k_max/bites_100k, 0.2))/R_100k_max)),
+        border = NA, col = alpha("red", 0.2))
+polygon(x = c(ttimes_plot/60, rev(ttimes_plot/60)), 
+        y = c(bites_100k*(ifelse(bites_100k*0.6 > R_100k_min, 0.98*R_100k_min/bites_100k, 0.6))/R_100k_min,
+             rev(bites_100k*(ifelse(bites_100k*0.6 > R_100k_max, 0.98*R_100k_max/bites_100k, 0.6))/R_100k_max)),
+        border = NA, col = alpha("red", 0.6))
+
+## Mora
+comm_data %>%
+  filter(district == "Moramanga") -> comm_level
+bites_100k <- exp(B_ttimes_mada*comm_level$ttimes_weighted + B_0_mada)*comm_level$pop
+R_100k_min <- comm_level$pop/25*0.01*0.39
+R_100k_max <- comm_level$pop/5*0.01*0.39
+
+## district val for Moramanga
+## need to merge names
+exps_dist %>%
+  filter(dist_name == "Moramanga") %>%
+  mutate(rep_max = get.reporting_burden(pop = pop, ttimes = ttimes_weighted_dist, 
+                                              B_ttimes = B_ttimes_dist, B_0 = B_0_dist, hdr = 25, 
+                                              p_rabid = 0.6),
+         rep_min = get.reporting_burden(pop = pop, ttimes = ttimes_weighted_dist, 
+                                              B_ttimes = B_ttimes_dist, B_0 = B_0_dist, hdr = 5, 
+                                              p_rabid = 0.2)) -> dist_level
+dist_level %$% points(ttimes_weighted_dist/60, rep_max, col = "red", pch = 20)
+dist_level %$% points(ttimes_weighted_dist/60, rep_min, col = "red", pch = 20)
+dist_level %$% abline(v = ttimes_weighted_dist/60, col = "red", lty = 2)
+
+```
+
+
 Generally, estimated reporting of rabies exposures decayed with travel times given model predicted bite incidence and a range of rabies incidence and $p_{rabid}$ (Figure 6). Given our model assumptions, reporting was estimated at the maximum of 0.98 for travel times under 1 hour given the maximum estimated rabies exposure incidence and the minimum estimate of $p_{rabid}$ (the lower range of reporting probabilities), and travel times under 5.5 hours given the minimum estimated rabies exposure incidence and the maximum estimate of $p_{rabid}$ (the upper range of reporting probabilities). 
 
 
@@ -909,7 +946,34 @@ ggsave("burden_map_commune.pdf")
 
 When we estimate burden of deaths stochastically within this range of incidence and given our high and low estimates of proportion of reported bites that are rabid, we see that burden of deaths also decreases with travel times (Figure 7, results presented aggregated at the district level). Overall, we estimate average annual deaths between `r round(sum(results_pr60$deaths_mean))` - `r round(sum(results_pr20$deaths_mean))`. **Also estimate deaths averted here!**. 
 
-When we compare our burden estimates at the district vs. the commune level (summed to district), we see that while overall, the estimates are very similar (Fig NA), at low travel times, calculating burden at the district level results in an assumption of maximum reporting for the whole district, which assumes very low burden
+When we compare our burden estimates at the district vs. the commune level (summed to district), we see that while overall, the estimates are very similar (Fig NA), at low travel times, calculating burden at the district level results in an assumption of maximum reporting for the whole district, which assumes very low burden.
+
+### Expanding access to PEP
+
+```{r scenario analysis}
+## new ctar
+expanded <- read.csv("output/incremental_ARMC_nofilter.csv")
+dist_ttimes <- read.csv("output/district_temp_scenario_20190212_181056.csv", row.names = 1)
+comm_ttimes <- read.csv("output/commune_temp_scenario_20190212_182810.csv", row.names = 1)
+
+dist_burden_min <- apply(dist_ttimes, 2, function(x) get.reporting_burden(pop = mada_district$pop2015adj, ttimes = x, B_ttimes = B_ttimes_dist, B_0 = B_0_dist, hdr = 25, p_rabid = 0.6, type = "burden"))
+dist_burden_max <- apply(dist_ttimes, 2, function(x) get.reporting_burden(pop = mada_district$pop2015adj, ttimes = x, B_ttimes = B_ttimes_dist, B_0 = B_0_dist, hdr = 5, p_rabid = 0.2, type = "burden"))
+
+comm_burden_min <- apply(comm_ttimes, 2, function(x) get.reporting_burden(pop = mada_communes$MDG__201, ttimes = x, B_ttimes = B_ttimes_mada, B_0 = B_0_mada, hdr = 25, p_rabid = 0.6, type = "burden"))
+comm_burden_max <- apply(comm_ttimes, 2, function(x) get.reporting_burden(pop = mada_communes$MDG__201, ttimes = x, B_ttimes = B_ttimes_mada, B_0 = B_0_mada, hdr = 5, p_rabid = 0.2, type = "burden"))
+
+## Decrease in burden over times
+plot(colSums(comm_burden_min, na.rm = TRUE)/sum(comm_burden_min[,1], na.rm = TRUE), type = "l", col = "blue", bty = "n", ylim = c(0, 1), xlab = "# Additional ARMC", 
+     ylab = "Proportion of deaths compared to baseline ")
+lines(colSums(dist_burden_min, na.rm = TRUE)/sum(dist_burden_min[, 1], na.rm = TRUE),
+      col = "purple")
+lines(colSums(comm_burden_max, na.rm = TRUE)/sum(comm_burden_max[, 1], na.rm = TRUE), 
+     type = "l", col = "blue", 
+     bty = "n", ylim = c(0, 1), xlab = "# Additional ARMC", ylab = "Number of deaths")
+lines(colSums(dist_burden_max, na.rm = TRUE)/sum(dist_burden_max[, 1], na.rm = TRUE), col = "purple")
+
+```
+
 
 ### Sensitivity analyses
 
@@ -920,11 +984,18 @@ When we compare our burden estimates at the district vs. the commune level (summ
 ### Key findings
 
 ### Strengths and Limitations
-- Not accounting for clinic functioning
-- Not explicit data on reporting or rabies incidence!
-- Other factors that drive reporting
-- While we use a signficiant amount of assumptions, these are the same set of assumptions that underlie current rabies estimates, we're just improving them a bit... and ours are a likely a little bit more in line with reality @ a sub-national level?
 
 ### Broader context
 
 ### Conclusions
+
+## Acknowledgements 
+
+## Supplementary Figures
+
+#### S1
+#### S2
+#### S3
+#### S4
+#### S5
+#### S6
