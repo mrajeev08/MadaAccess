@@ -150,9 +150,10 @@ ctar %>%
   filter(consult.type == "Animal bite/exposure") %>%
   group_by(mdg_cm_) %>%
   summarize(bites = round(n()/n_months*12)) %>%
-  left_join(comm_data) %>%
+  right_join(filter(comm_data, CTAR == "Moramanga")) %>% ## only districts within catchment (@ comm level)
   filter(!is.na(ttimes_weighted), 
-         district %in% mada_district@data$district[mada_district@data$CTAR == "Moramanga"]) -> mora_bites
+         dist_catch == "Moramanga") %>%
+  replace_na(list(bites = 0)) -> mora_bites
 ```
 
 <br>
@@ -440,7 +441,9 @@ ctar_check %>%
   group_by(district, year) %>%
   mutate(bites = n/prop) %>%
   summarise(bites = sum(bites, na.rm = TRUE)) %>%
-  left_join(covars) -> exps
+  right_join(covars) %>%
+  filter(exclude == 0) %>%
+  replace_na(list(bites = 0)) -> exps
 
 col_vals <- dist_catchments$color
 names(col_vals) <- dist_catchments$mdg_dis_co
@@ -511,22 +514,19 @@ such that rabid reported bites (i.e. $p_{rabid} \times B_i$) cannot exceed the e
 
 To generate $R$, the rabies incidence in dogs in the absence of any vaccination, $r$, is  multiplied by the estimated dog population in the commune ($D_i$) and the exposure rate per rabid dogs ($p_{exp}$ = 0.39 persons exposed per rabid dog)(Hampson et al. 2018). We use a human:dog ratio (HDR) of 5 to generate our maximum expected incidence and an HDR of 25 for our minimum expected incidence. As there is little data on dog populations in Madagascar, this range of HDRs encompasses a wide range observed across Africa (cite!).
 
-To estimate the average number of deaths for each commune, we extended the above framework into a stochastic framework as follows (TO DO: take neg bin around min and max for RI instead):
+To estimate the average number of deaths for each commune, we extended the above framework into a stochastic framework as follows):
 $$
-deaths_i = (R_i - p_{rabid}B_i) \times p_{death}
+deaths_i = (R_i - p_{rabid_i}B_i) \times p_{death}
 $$
-where $R_i$ is drawn from a uniform distribution between the minimum and maximum expected number of human exposures for each location and $B_i$, the number of reported bites, is drawn from a poisson distribution with the mean predicted number of bites from the travel time model. We constrain $p_rabid$ as in Equation N, and we assume that all rabies exposures reported to an ARMC receive and complete PEP, and PEP is completely effective at preventing death due to rabies. The probability of death in the absence of PEP is taken from cite GAVI/Joel paper.  
+where $R_i$ is drawn from a uniform distribution between the minimum and maximum expected number of human exposures for each location and $B_i$, the number of reported bites, is drawn from a poisson distribution with the mean predicted number of bites from the travel time model. We draw $p_rabid_i$ from a uniform distribution between 0.2 - 0.6, while constraining it as per Equation N. We assume that all rabies exposed patients who report to an ARMC receive and complete PEP, and PEP is completely effective at preventing death due to rabies. The probability of death in the absence of PEP is taken from cite GAVI/Joel paper.  
 <br>
 
 ### Strategically expanding PEP access
-Given limited resources and capacity of clinics to provision PEP, we developed a framework to look at the incremental benefit of expanding PEP provisioning to additional ARMC. Starting with the current locations, we added one clinic and recalculated the proportion of people living < 3 hours away from a clinic for the country. We added the clinic which minimized this metric, and then repeated the process iteratively, ranking clinics and adding the top clinic sequentially. We calculate burden for the given clinic locations and look at the incremental reduction in burden as each clinic is added.
+Given limited resources and capacity of clinics to provision PEP, we developed a framework to look at the incremental benefit of expanding PEP provisioning to additional ARMC. Starting with the current locations, we added one clinic at a time, calculating the proportion of people living < 3 hours away from any clinic for the country. We added the clinic which minimized this metric, and then repeated the process iteratively, ranking clinics and adding the top clinic sequentially. We calculate burden for the given clinic locations and look at the incremental reduction in burden as each clinic is added.
   
 ### Sensitivity analyses for burden estimates 
-- R (increasing or decreasing with pop) (min + max)
-- P-rabid min and max
-- Probability of death min and max
-- Look at change in raw # of deaths and also change in burden by scenarios
-  
+We estimate burden deterministically across a range of parameter values to test the effects of our model assumptions on estimates of rabies burden. Specifically, we fix rabies incidence at the minimum and maximum of our estimated range, look at the range of values of p_rabid between 0.2 - 0.6 (as per Moramanga), and the range of values of rho_max (0.85 - 0.99) to get at maximum and minimum estimates of burden. We also examine the impact of systematic variation in rabies incidence with human population (a potential proxy for changes in the dog population/HDR) by looking at how estimates of burden changes if rabies incidence were to scale positively or negatively with human population.
+
 <br>
 
 ## RESULTS 
@@ -534,117 +534,249 @@ Given limited resources and capacity of clinics to provision PEP, we developed a
 ### Models of bites as a function of travel times
 ```{r likelihood of observing moramanga data @ commune level, fig.cap = "Figure 5A"}
 library(boot)
+likelihoods <- list(
+  get.likelihood.bites = function(bites, covar, pop, beta, intercept, ...) {
+    exp_bites <- inv.logit(beta*covar + intercept)*pop
+    return(-sum(dpois(round(bites), lambda = exp_bites, log = TRUE)))
+  },
+  get.likelihood.sumbites = function(bites, aggregate_bites, covar_agg, aggregate_covar, 
+                                     pop_agg, beta, 
+                                     intercept, ...) {
+    exp_bites <- inv.logit(beta*covar_agg + intercept)*pop_agg
+    df <- as.data.frame(list(exp_bites = exp_bites, names = aggregate_covar))
+    df %>%
+      group_by(names) %>%
+      summarize(sum_bites = sum(exp_bites, na.rm = TRUE)) %>%
+      left_join(as.data.frame(list(bites = bites, names = aggregate_bites))) -> sum_bites
+    return(-sum(dpois(round(sum_bites$bites), lambda = sum_bites$sum_bites, log = TRUE)))
+  }, 
+  get.likelihood.pop = function(bites, pop, beta, intercept, trans...) {
+    exp_bites <- exp(beta*pop/trans + intercept)
+    return(-sum(dpois(round(bites), lambda = exp_bites, log = TRUE)))
+  },
+  get.likelihood.sumpop = function(bites, aggregate_bites, aggregate_covar, pop_agg, beta, 
+                                   intercept, trans, ...) {
+    exp_bites <- exp(beta*pop_agg/trans + intercept)
+    df <- as.data.frame(list(exp_bites = exp_bites, names = aggregate_covar))
+    df %>%
+      group_by(names) %>%
+      summarize(sum_bites = sum(exp_bites, na.rm = TRUE)) %>%
+      left_join(as.data.frame(list(bites = bites, names = aggregate_bites))) -> sum_bites
+    return(-sum(dpois(round(sum_bites$bites), lambda = sum_bites$sum_bites, log = TRUE)))
+  })
 
-get.likelihood.bites <- function(bites, covar, pop, params) {
-  beta <- params[1]
-  intercept <- params[2]
-  exp_bites <- inv.logit(beta*covar + intercept)*pop
-  return(-sum(dpois(round(bites), lambda = exp_bites, log = TRUE)))
+mods_mada <- lapply(likelihoods, function(x) mle2(minuslogl = x, 
+                                     data = list(bites = exps_dist$bites, 
+                                                 aggregate_bites = exps_dist$district,
+                                                 aggregate_covar = comm_data$mdg_dis_co,
+                                                 covar_agg = comm_data$ttimes_weighted/60,
+                                                 covar = exps_dist$ttimes_weighted_dist/60, 
+                                                 pop = exps_dist$pop, 
+                                                 pop_agg = comm_data$pop, trans = 1e5), 
+       start = list(beta = 1e-5, intercept = 0.1)))
+prof_CI <- lapply(mods_mada, confint)
+
+mada_mod_predicts <- as.data.frame(list(beta = mapply(function(x) coef(x)["beta"], mods_mada), 
+     intercept = mapply(function(x) coef(x)["intercept"], mods_mada), 
+     beta_upper = mapply(function(x) x["beta", 2], prof_CI),
+     beta_lower = mapply(function(x) x["beta", 1], prof_CI),
+     intercept_upper = mapply(function(x) x["intercept", 2], prof_CI),
+     intercept_lower = mapply(function(x) x["intercept", 1], prof_CI),
+     likelihood = mapply(function(x) logLik(x), mods_mada),
+     data = "Mada"))
+
+mada_mod_results <- as.data.frame(list(params = c("beta", "intercept"), 
+                   estimates = t(mapply(function(x) coef(x), mods_mada)), 
+                   upper = t(mapply(function(x) x[, 2], prof_CI)),
+                   lower = t(mapply(function(x) x[, 1], prof_CI)), 
+                   data = "Mada"))
+
+## Predictions
+library(foreach)
+predicts <- list(
+  pred.ttimes = function(bites, covar, pop, beta, intercept, ...) {
+    exp_bites <- inv.logit(beta*covar + intercept)*pop
+    return(as.data.frame(list(observed = bites, 
+                              predicted = rpois(length(bites), exp_bites))))
+  },
+  pred.sumttimes = function(bites, aggregate_bites, covar_agg, aggregate_covar, 
+                                     pop_agg, beta, 
+                                     intercept, ...) {
+    exp_bites <- inv.logit(beta*covar_agg + intercept)*pop_agg
+    df <- as.data.frame(list(exp_bites = exp_bites, names = aggregate_covar))
+    df %>%
+      group_by(names) %>%
+      summarize(sum_bites = sum(exp_bites, na.rm = TRUE)) %>%
+      left_join(as.data.frame(list(bites = bites, names = aggregate_bites))) -> sum_bites
+    return(as.data.frame(list(observed = sum_bites$bites, 
+                              predicted = rpois(nrow(sum_bites), sum_bites$sum_bites))))
+  }, 
+  pred.pop = function(bites, pop, beta, intercept, trans, ...) {
+    exp_bites <- exp(beta*pop/trans + intercept)
+   return(as.data.frame(list(observed = bites, 
+                              predicted = rpois(length(bites), exp_bites))))
+  },
+  pred.sumpop = function(bites, aggregate_bites, aggregate_covar, pop_agg, beta, 
+                                   intercept, trans, ...) {
+    exp_bites <- exp(beta*pop_agg/trans + intercept)
+    df <- as.data.frame(list(exp_bites = exp_bites, names = aggregate_covar))
+    df %>%
+      group_by(names) %>%
+      summarize(sum_bites = sum(exp_bites, na.rm = TRUE)) %>%
+      left_join(as.data.frame(list(bites = bites, names = aggregate_bites))) -> sum_bites
+    return(as.data.frame(list(observed = sum_bites$bites, 
+                              predicted = rpois(nrow(sum_bites), sum_bites$sum_bites))))
+  })
+mada_mod_predicts$predict_fun <- predicts
+preds <- foreach(i = 1:nrow(mada_mod_predicts), .combine = rbind) %do% {
+  
+  check <- mada_mod_predicts$predict_fun[[i]]
+  
+  pred <- check(beta = mada_mod_predicts$beta[i], intercept = mada_mod_predicts$intercept[i],
+          bites = exps_dist$bites, aggregate_bites = exps_dist$district,
+          aggregate_covar = comm_data$mdg_dis_co, covar_agg = comm_data$ttimes_weighted/60,
+          covar = exps_dist$ttimes_weighted_dist/60, 
+          pop = exps_dist$pop, pop_agg = comm_data$pop, trans = 1e5)
+  
+  pred$upper <- check(beta = mada_mod_predicts$beta_upper[i], 
+                      intercept = mada_mod_predicts$intercept_upper[i],
+                      bites = exps_dist$bites, aggregate_bites = exps_dist$district,
+                      aggregate_covar = comm_data$mdg_dis_co, covar_agg = comm_data$ttimes_weighted/60,
+                      covar = exps_dist$ttimes_weighted_dist/60, 
+                      pop = exps_dist$pop, pop_agg = comm_data$pop, trans = 1e5)$predicted
+  pred$lower <- check(beta = mada_mod_predicts$beta_lower[i], 
+                      intercept = mada_mod_predicts$intercept_lower[i],
+                      bites = exps_dist$bites, aggregate_bites = exps_dist$district,
+                      covar = exps_dist$ttimes_weighted_dist/60, 
+                      aggregate_covar = comm_data$mdg_dis_co, covar_agg = comm_data$ttimes_weighted/60,
+                      pop = exps_dist$pop, pop_agg = comm_data$pop, trans = 1e5)$predicted
+  
+  pred$model <- rownames(mada_mod_predicts)[i]
+  pred$data <- mada_mod_predicts$data[i]
+  pred
 }
 
-get.likelihood.mora <- function(commune, params) {
-  # To test likelihood function
-  # commune = comm_data
-  # district = exps_dist
-  # params = c(1e-6, 0.1)
-  B_ttimes <- params[1]
-  B_0 <- params[2]
-  commune %>%
-      mutate(bites_mu = inv.logit(B_ttimes*ttimes_weighted + B_0)*pop) -> sum_bites
-  return(-sum(dpois(round(sum_bites$), lambda = sum_bites$bites_mu, log = TRUE)))
+expected <- list(
+  pred.ttimes = function(covar, pop, beta, intercept, ...) {
+    return(inv.logit(beta*covar + intercept)*pop)
+  },
+  pred.sumttimes = function(covar, pop, beta, 
+                                     intercept, ...) {
+    return(inv.logit(beta*covar + intercept)*pop)
+  }, 
+  pred.pop = function(pop_covar, beta, intercept, trans, ...) {
+   return(exp(beta*pop_covar/trans + intercept))
+  },
+  pred.sumpop = function(pop_covar, beta, intercept, trans, ...) {
+    return(exp(beta*pop_covar/trans + intercept))
+  })
+mada_mod_predicts$expect_fun <- expected
+ttimes_plot <- seq(0, 720, by = 30)
+pop_plot <- seq(100, 1e6, length.out = length(ttimes_plot))
+expect <- foreach(i = 1:nrow(mada_mod_predicts), .combine = rbind) %do% {
+  check <- mada_mod_predicts$expect_fun[[i]]
+  exp <- check(beta = mada_mod_predicts$beta[i], intercept = mada_mod_predicts$intercept[i],
+               covar = ttimes_plot/60, pop = 1e5, pop_covar = pop_plot, 
+               trans = 1e5)
+  exp_upper <- check(beta = mada_mod_predicts$beta_upper[i], 
+                     intercept = mada_mod_predicts$intercept_upper[i],
+                     covar = ttimes_plot/60, pop = 1e5, pop_covar = pop_plot, trans = 1e5)
+  exp_lower <- check(beta = mada_mod_predicts$beta_lower[i], 
+                     intercept = mada_mod_predicts$intercept_lower[i],
+                     covar = ttimes_plot/60, pop = 1e5, pop_covar = pop_plot, trans = 1e5)
+  as.data.frame(list(ttimes = ttimes_plot, 
+                     pop = pop_plot, exp = exp, exp_upper = exp_upper, exp_lower = exp_lower, 
+                     model = rownames(mada_mod_predicts)[i], data = mada_mod_predicts$data[i]))
 }
 
-get.likelihood.mada <- function(commune, district, params) {
-  # To test likelihood function
-  # commune = comm_data
-  # district = exps_dist
-  # params = c(1e-6, 0.1)
-  B_ttimes <- params[1]
-  B_0 <- params[2]
-  commune %>%
-      filter(exclude == 0) %>%
-      group_by(mdg_dis_co) %>%
-      mutate(bites = inv.logit(B_ttimes*ttimes_weighted + B_0)*pop) %>%
-      summarize(sum_bites = sum(bites)) %>%
-      left_join(select(district, district, dist_bites = bites), 
-                by = c("mdg_dis_co" = "district")) %>%
-      filter(!is.na(dist_bites)) -> sum_bites
-  return(-sum(dpois(round(sum_bites$dist_bites), lambda = sum_bites$sum_bites, log = TRUE)))
-}
-get.likelihood.dist <- function(district, params) {
-  # To test likelihood function
-  # commune = comm_data
-  # district = exps_dist
-  # params = c(1e-6, 0.1)
-  B_ttimes <- params[1]
-  B_0 <- params[2]
-  district %>%
-      filter(exclude == 0) %>%
-      mutate(exp_bites = inv.logit(B_ttimes*ttimes_weighted_dist + B_0)*pop) -> district
-  return(-sum(dpois(round(district$exp_bites), lambda = round(district$bites), log = TRUE)))
-}
+ggplot(data = preds, aes(x = observed, y = predicted, color = model)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1, linetype = 2, color = "grey")
+ggplot(data = filter(expect, !grepl("pop", model, fixed = TRUE)), 
+       aes(x = ttimes, y = exp, color = model)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = exp_lower, ymax = exp_upper, fill = model), alpha = 0.5)
+
+## Mada pars
+library(bbmle)
+mada_ttimes_fit <- mle2(get.likelihood.bites, start = list(beta = 1e-4, intercept = 0.1), 
+                  data = list(bites = exps_dist$bites, covar = exps_dist$ttimes_weighted_dist, 
+                              pop = exps_dist$pop))
+mada_sumttimes_fit <- mle2(get.likelihood.sumbites, start = list(beta = 1e-5, intercept = 0.1), 
+                  data = list(bites = exps_dist$bites, aggregate_bites = exps_dist$district,
+                              covar = comm_data$ttimes_weighted, 
+                              aggregate_covar = comm_data$mdg_dis_co,
+                              pop = comm_data$pop))
+## Pop
+mada_pop_fit <- mle2(get.likelihood.pop, start = list(beta = 1e-5, intercept = 0.1), 
+                  data = list(bites = exps_dist$bites, pop = exps_dist$pop/1e5))
+mada_sumpop_fit <- mle2(get.likelihood.sumpop, start = list(beta = 1e-5, intercept = 0.1), 
+                  data = list(bites = exps_dist$bites, aggregate_bites = exps_dist$district,
+                              aggregate_covar = comm_data$mdg_dis_co,
+                              pop = comm_data$pop/1e5))
+
+## Distance to CTAR
+ctar_coords <- cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE)
+district_coords <- coordinates(mada_district)
+library(geosphere)
+distance_mat <- distm(district_coords, ctar_coords)
+mada_district$dist_min <- apply(distance_mat, 1, min)/1000
+exps_dist$dist_min <- mada_district$dist_min[match(exps_dist$district, mada_district$mdg_dis_co)]
+mada_distance_fit <- mle2(get.likelihood.bites, start = list(beta = 1e-5, intercept = 0.1), 
+                  data = list(bites = exps_dist$bites, covar = exps_dist$dist_min, 
+                              pop = exps_dist$pop))
+
+mada_communes@data %>%
+  mutate(long = coordinates(mada_communes)[, 1], lat = coordinates(mada_communes)[, 2]) %>%
+  select(commune, mdg_cm_, mtch_ds, long, lat) %>%
+  right_join(comm_data) %>%
+  mutate(distance = apply(distm(select(., long, lat), ctar_coords), 1, min)/1000) -> comm_data
+mada_sumdist_fit <- mle2(get.likelihood.sumbites, start = list(beta = 1e-5, intercept = 0.1), 
+                  data = list(bites = exps_dist$bites, aggregate_bites = exps_dist$district,
+                              covar = comm_data$distance, 
+                              aggregate_covar = comm_data$mdg_dis_co,
+                              pop = comm_data$pop))
+
+plot(exps_dist$bites, inv.logit(mada_distance_fit@coef["beta"]*exps_dist$dist_min +
+                                  mada_distance_fit@coef["intercept"])*exps_dist$pop)
+points(exps_dist$bites, inv.logit(mada_ttimes_fit@coef["beta"]*exps_dist$ttimes_weighted_dist +
+                                  mada_ttimes_fit@coef["intercept"])*exps_dist$pop, col = "blue")
+points(exps_dist$bites, exp(mada_pop_fit@coef["beta"]*exps_dist$pop/1e5 +
+                                  mada_pop_fit@coef["intercept"]), col = "red")
+abline(a = 0, b = 1, lty = 2)
+AICctab(mada_ttimes_fit, mada_distance_fit, mada_pop_fit, mada_sumttimes_fit, mada_sumpop_fit,
+        mada_sumdist_fit, nobs = nrow(exps_dist))
+
+exps_dist %>%
+      mutate(bites_mu = exp(B_ttimes_dist*ttimes_weighted_dist + B_0_dist)*pop) -> check
+points(check$bites, check$bites_mu, col = alpha("purple", 0.5), pch = 20)
 
 ### Moramanga model ###
-mora_pars <- optim(par = c(1e-6, 0.1), get.likelihood.mora, commune = mora_bites, hessian = TRUE)
-B_ttimes_mora <- mora_pars$par[1]
-B_0_mora <- mora_pars$par[2]
+mora_coords <- cbind(ctar_metadata$LONGITUDE[ctar_metadata$CTAR == "Moramanga"], 
+                     ctar_metadata$LATITUDE[ctar_metadata$CTAR == "Moramanga"])
+library(geosphere)
+mada_communes@data %>%
+  mutate(long = coordinates(mada_communes)[, 1], lat = coordinates(mada_communes)[, 2]) %>%
+  select(commune, mdg_cm_, mtch_ds, long, lat) %>%
+  right_join(mora_bites) %>%
+  mutate(distance = distm(select(mora_bites, long, lat), mora_coords)[, 1]/1000) -> mora_bites
+mora_distance_fit <- mle2(get.likelihood.bites, start = list(beta = 1e-5, intercept = 0.1), 
+                  data = list(bites = mora_bites$bites, covar = mora_bites$distance, 
+                              pop = mora_bites$pop))
+mora_pop_fit <- mle2(get.likelihood.pop, start = list(beta = 1e-5, intercept = 0.1), 
+                  data = list(bites = mora_bites$bites, pop = mora_bites$pop/1e5))
+mora_ttimes_fit <- mle2(get.likelihood.bites, start = list(beta = 1e-5, intercept = 0.1), 
+                  data = list(bites = mora_bites$bites, covar = mora_bites$ttimes_weighted/60, 
+                              pop = mora_bites$pop))
+AICctab(mora_ttimes_fit, mora_distance_fit, mora_pop_fit, nobs = nrow(mora_bites))
 
-## Getting standard errors
-# this is how you can get standard errors from optim, but inverting the hessian
-se <- sqrt(abs(diag(solve(mora_pars$hessian)))); se
 
-#simulate "standard errors"
-varcov <- solve(mora_pars$hessian)
-
-ntest = 1000; testpar = mora_pars$par; sim.par = matrix(NA, ntest, 2)
-for (k in 1:ntest) {
-  sim.par[k, ] = mvrnorm(1, mora_pars$par, varcov)
-}
-
-B_ttimes_mora_CI <- quantile(sim.par[,1],c(0.025,0.975))
-B_0_mora_CI <- quantile(sim.par[,2],c(0.025,0.975))
-
-### Madagascar model ###
-mada_pars <- optim(par = c(1e-6, 0.1), get.likelihood.mada, district = exps_dist,
-             commune = comm_data, hessian = TRUE)
-B_ttimes_mada <- mada_pars$par[1]
-B_0_mada <- mada_pars$par[2]
-
-## Getting standard errors
-# this is how you can get standard errors from optim, but inverting the hessian
-se <- sqrt(abs(diag(solve(mada_pars$hessian)))); se
-
-#simulate "standard errors"
-varcov <- solve(mada_pars$hessian)
-
-ntest = 1000; testpar = mada_pars$par; sim.par = matrix(NA, ntest, 2)
-for (k in 1:ntest) {
-  sim.par[k, ] = mvrnorm(1, mada_pars$par, varcov)
-}
-
-B_ttimes_mada_CI <- quantile(sim.par[,1],c(0.025,0.975))
-B_0_mada_CI <- quantile(sim.par[,2],c(0.025,0.975))
-
-### District parameters
-dist_pars <- optim(par = c(1e-6, 0.1), get.likelihood.dist, district = exps_dist,
-              hessian = TRUE)
-B_ttimes_dist <- dist_pars$par[1]
-B_0_dist <- dist_pars$par[2]
-
-## Getting standard errors
-# this is how you can get standard errors from optim, but inverting the hessian
-se <- sqrt(abs(diag(solve(dist_pars$hessian)))); se
-
-#simulate "standard errors"
-varcov <- solve(dist_pars$hessian)
-
-ntest = 1000; testpar = dist_pars$par; sim.par = matrix(NA, ntest, 2)
-for (k in 1:ntest) {
-  sim.par[k, ] = mvrnorm(1, dist_pars$par, varcov)
-}
-
-B_ttimes_dist_CI <- quantile(sim.par[,1],c(0.025,0.975))
-B_0_dist_CI <- quantile(sim.par[,2],c(0.025,0.975))
+mada_check_fit <- mle2(get.likelihood.bites, start = list(beta = 1e-5, intercept = 0.1), 
+                  data = list(bites = exps_dist$bites, covar = exps_dist$pop/1e5, 
+                              pop = exps_dist$pop))
+mora_check_fit <- mle2(get.likelihood.bites, start = list(beta = 1e-5, intercept = 0.1), 
+                  data = list(bites = mora_bites$bites, covar = mora_bites$pop/1e5, 
+                              pop = mora_bites$pop))
 
 par_df <- data.frame(model = c("Mada communes", "Moramanga communes", "Mada districts", 
                                "Mada communes", "Moramanga communes", "Mada districts"),
@@ -682,31 +814,7 @@ preds <- foreach(i = 1:nrow(par_df), .combine = rbind) %do% {
 }
 ggplot(data = preds, aes(x = ttimes, y = bites, color = model)) +
   geom_line() +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = model), alpha = 0.5) +
-
-plot(ttimes_plot/60, inv.logit(B_ttimes_mada*ttimes_plot + B_0_mada)*pop_plot, type = "l", bty = "l",
-     ylab = "Mean bites per 100k", xlab = "Travel times (hrs)", col = "darkblue")
-points(ttimes_plot/60, inv.logit(B_ttimes_mada_CI[1]*ttimes_plot + B_0_mada_CI[1])*pop_plot, type = "l", 
-       lty = 2, col = "lightblue")
-points(ttimes_plot/60, inv.logit(B_ttimes_mada_CI[2]*ttimes_plot + B_0_mada_CI[2])*pop_plot, type = "l", 
-       lty = 2, col = "lightblue")
-
-points(ttimes_plot/60, inv.logit(B_ttimes_mora*ttimes_plot + B_0_mora)*pop_plot, type = "l", col = "red")
-points(ttimes_plot/60, inv.logit(B_ttimes_mora_CI[1]*ttimes_plot + B_0_mora_CI[1])*pop_plot, type = "l", 
-       lty = 2, col = "pink")
-points(ttimes_plot/60, inv.logit(B_ttimes_mora_CI[2]*ttimes_plot + B_0_mora_CI[2])*pop_plot, type = "l",
-       lty = 2, col = "pink")
-
-points(ttimes_plot/60, inv.logit(B_ttimes_dist*ttimes_plot + B_0_dist)*pop_plot, type = "l", col = "purple")
-points(ttimes_plot/60, inv(B_ttimes_dist_CI[1]*ttimes_plot + B_0_dist_CI[1])*pop_plot, type = "l", 
-       lty = 2, col = "lavender")
-points(ttimes_plot/60, exp(B_ttimes_dist_CI[2]*ttimes_plot + B_0_dist_CI[2])*pop_plot, type = "l",
-       lty = 2, col = "lavender")
-
-legend("topright", c("Mada communes", "Mada districts", "Moramanga communes"), 
-       col = c("darkblue", "purple", "red"), 
-       lty = c(1, 1, 1), 
-       bty = "n")
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = model), alpha = 0.5)
 ```
 
 ```{r model table, results = "show"}
