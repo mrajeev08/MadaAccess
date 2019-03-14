@@ -2,14 +2,15 @@
 ## Malavika Rajeev
 ## Jan 2019
 
-
 # Get burden or reporting (fixed) -------------------------------------------------------------
 ## Function for reporting
-get.reporting_burden <- function(pop = 1e5, names, ttimes, B_ttimes, B_0, hdr = 25, incidence = 0.01, 
+get.burden.fixed <- function(pop = 1e5, names, ttimes, B_ttimes, B_0, hdr = 25, incidence = 0.01, 
                                  exp_rate = 0.39, p_rabid = 0.6, rho_max = 0.98, 
-                                 p_death = 0.16, scenario = 0, scale = TRUE, 
+                                 p_death = 0.16, scenario = 0, scale = FALSE, 
                                  type = "reporting", slope = 1, intercept = 0) {
-  bites_100k <- exp(B_ttimes*ttimes + B_0)*pop
+
+  bites_100k <- inv.logit(B_ttimes*ttimes + B_0)*pop
+  
   if(scale == TRUE) {
     R_100k <- (slope*pop + intercept)*pop
   } else {
@@ -34,51 +35,6 @@ get.reporting_burden <- function(pop = 1e5, names, ttimes, B_ttimes, B_0, hdr = 
   }
 }
 
-
-# Get burden using any params -------------------------------------------------------
-get.burden <- function(names = comm_data$mdg_cm_, ttimes = comm_data$ttimes_weighted, 
-                       pop = comm_data$pop, scenario = comm_data$scenario, 
-                       param_ttimes = B_ttimes_mada,
-                       param_intercept = B_0_mada,
-                       p_rabid = 0.5, rho_max = 0.9,
-                       max_HDR = 25, min_HDR = 5, 
-                       dog_rabies_inc = 0.01, human_exp_rate = 0.39, 
-                       prob_death = 0.16, nsims = 1000) {
-  
-  store_deaths <- store_p_rabid <- matrix(NA, length(ttimes), nsims)
-  
-  for (i in 1:nsims) {
-    ## for testing
-    #                    names = comm_data$mdg_cm_, ttimes = comm_data$ttimes_weighted; 
-    #                    pop = comm_data$pop; scenario = comm_data$scenario;
-    #                    param_ttimes = B_ttimes_mada;
-    #                    param_intercept = B_0_mada;
-    #                    p_rabid = 0.5; rho_max = 0.9;
-    #                    max_HDR = 25; min_HDR = 5;
-    #                    dog_rabies_inc = 0.01; human_exp_rate = 0.39;
-    #                    prob_death = 0.16;
-    
-    bites <- rpois(length(ttimes), exp(param_ttimes*ttimes + param_intercept)*pop)
-    hdr <- runif(length(ttimes), min = min_HDR, max = max_HDR)
-    rabid_exps <- rpois(length(ttimes), human_exp_rate*dog_rabies_inc*pop/hdr)
-    p_rabid_t <- ifelse(bites == 0 & rabid_exps == 0, 0,
-                        ifelse(bites*p_rabid/rabid_exps > rho_max, (rho_max*rabid_exps)/bites, p_rabid))
-    reported_rabid <- round(bites*p_rabid_t)
-    reported_rabid <- ifelse(reported_rabid > rabid_exps, rabid_exps, reported_rabid)
-    deaths <- rbinom(length(ttimes), rabid_exps - reported_rabid, prob_death)
-    store_deaths[, i] <- deaths
-    store_p_rabid[, i] <- p_rabid_t
-  }
-  
-  results <- cbind(get.meanCI(store_deaths), get.meanCI(store_p_rabid), rep(p_rabid, length(ttimes)))
-  colnames(results) <- c("deaths_mean", "deaths_lowerCI", "deaths_upperCI",
-                         "p_rabid_mean", "p_rabid_lowerCI", "p_rabid_upperCI", "pr")
-  results <- as.data.frame(list(names = names, scenario = scenario, ttimes = ttimes, pop = pop, 
-                                results))
-  return(results)
-}
-
-
 # Get flat estimate of burden -----------------------------------------------------------------
 get.burden.flat <- function(names = comm_data$mdg_cm_, ttimes = comm_data$ttimes_weighted, 
                             pop = comm_data$pop, scenario = comm_data$scenario, 
@@ -97,6 +53,52 @@ get.burden.flat <- function(names = comm_data$mdg_cm_, ttimes = comm_data$ttimes
   results <- get.meanCI(store_deaths)
   colnames(results) <- c("deaths_mean", "deaths_lowerCI", "deaths_upperCI")
   results <- cbind(names, scenario, ttimes, pop, results)
+  return(results)
+}
+
+# Get burden using any params -------------------------------------------------------
+get.burden.stochastic <- function(names = comm_data$mdg_cm_, ttimes = comm_data$ttimes_weighted, 
+                           pop = comm_data$pop, scenario = comm_data$scenario, 
+                           param_ttimes = B_ttimes_mada,
+                           param_intercept = B_0_mada,
+                           p_rab_min = 0.2, p_rab_max = 0.6, rho_max = 0.9,
+                           max_HDR = 25, min_HDR = 5, 
+                           dog_rabies_inc = 0.01, human_exp_rate = 0.39, 
+                           prob_death = 0.16, nsims = 1000) {
+  
+  store_deaths <- store_p_rabid <- store_averted <- matrix(NA, length(ttimes), nsims)
+  
+  for (i in 1:nsims) {
+    ## for testing
+    #                    names = comm_data$mdg_cm_, ttimes = comm_data$ttimes_weighted; 
+    #                    pop = comm_data$pop; scenario = comm_data$scenario;
+    #                    param_ttimes = B_ttimes_mada;
+    #                    param_intercept = B_0_mada;
+    #                    p_rabid = 0.5; rho_max = 0.9;
+    #                    max_HDR = 25; min_HDR = 5;
+    #                    dog_rabies_inc = 0.01; human_exp_rate = 0.39;
+    #                    prob_death = 0.16;
+    
+    bites <- rpois(length(ttimes), exp(param_ttimes*ttimes + param_intercept)*pop)
+    hdr <- runif(length(ttimes), min = min_HDR, max = max_HDR)
+    rabid_exps <- rpois(length(ttimes), human_exp_rate*dog_rabies_inc*pop/hdr)
+    p_rabid <- runif(length(ttimes), min = p_rab_min, max = p_rab_max)
+    p_rabid_t <- ifelse(bites == 0 & rabid_exps == 0, 0,
+                        ifelse(bites*p_rabid/rabid_exps > rho_max, (rho_max*rabid_exps)/bites, p_rabid))
+    reported_rabid <- round(bites*p_rabid_t)
+    reported_rabid <- ifelse(reported_rabid > rabid_exps, rabid_exps, reported_rabid)
+    deaths <- rbinom(length(ttimes), rabid_exps - reported_rabid, prob_death)
+    store_averted[, i] <- reported_rabid
+    store_deaths[, i] <- deaths
+    store_p_rabid[, i] <- p_rabid_t
+  }
+  
+  results <- cbind(get.meanCI(store_deaths), get.meanCI(store_p_rabid), get.meanCI(store_averted))
+  colnames(results) <- c("deaths_mean", "deaths_lowerCI", "deaths_upperCI",
+                         "p_rabid_mean", "p_rabid_lowerCI", "p_rabid_upperCI",
+                         "averted_mean", "averted_lowerCI", "averted_upperCI")
+  results <- as.data.frame(list(names = names, scenario = scenario, ttimes = ttimes, pop = pop, 
+                                results))
   return(results)
 }
 
@@ -134,48 +136,4 @@ get.meanCI <- function(matrix_by_row, nboots = 1000) {
   summ <- cbind(mean_rows, lower, upper)
   colnames(summ) <- c("mean", "lower", "upper")
   return(summ)
-}
-
-# Get burden using any params -------------------------------------------------------
-get.burden_med <- function(names = comm_data$mdg_cm_, ttimes = comm_data$ttimes_weighted, 
-                       pop = comm_data$pop, scenario = comm_data$scenario, 
-                       param_ttimes = B_ttimes_mada,
-                       param_intercept = B_0_mada,
-                       p_rab_min = 0.2, p_rab_max = 0.6, rho_max = 0.9,
-                       max_HDR = 25, min_HDR = 5, 
-                       dog_rabies_inc = 0.01, human_exp_rate = 0.39, 
-                       prob_death = 0.16, nsims = 1000) {
-  
-  store_deaths <- store_p_rabid <- matrix(NA, length(ttimes), nsims)
-  
-  for (i in 1:nsims) {
-    ## for testing
-    #                    names = comm_data$mdg_cm_, ttimes = comm_data$ttimes_weighted; 
-    #                    pop = comm_data$pop; scenario = comm_data$scenario;
-    #                    param_ttimes = B_ttimes_mada;
-    #                    param_intercept = B_0_mada;
-    #                    p_rabid = 0.5; rho_max = 0.9;
-    #                    max_HDR = 25; min_HDR = 5;
-    #                    dog_rabies_inc = 0.01; human_exp_rate = 0.39;
-    #                    prob_death = 0.16;
-    
-    bites <- rpois(length(ttimes), exp(param_ttimes*ttimes + param_intercept)*pop)
-    hdr <- runif(length(ttimes), min = min_HDR, max = max_HDR)
-    rabid_exps <- rpois(length(ttimes), human_exp_rate*dog_rabies_inc*pop/hdr)
-    p_rabid <- runif(length(ttimes), min = p_rab_min, max = p_rab_max)
-    p_rabid_t <- ifelse(bites == 0 & rabid_exps == 0, 0,
-                        ifelse(bites*p_rabid/rabid_exps > rho_max, (rho_max*rabid_exps)/bites, p_rabid))
-    reported_rabid <- round(bites*p_rabid_t)
-    reported_rabid <- ifelse(reported_rabid > rabid_exps, rabid_exps, reported_rabid)
-    deaths <- rbinom(length(ttimes), rabid_exps - reported_rabid, prob_death)
-    store_deaths[, i] <- deaths
-    store_p_rabid[, i] <- p_rabid_t
-  }
-  
-  results <- cbind(get.meanCI(store_deaths), get.meanCI(store_p_rabid))
-  colnames(results) <- c("deaths_mean", "deaths_lowerCI", "deaths_upperCI",
-                         "p_rabid_mean", "p_rabid_lowerCI", "p_rabid_upperCI")
-  results <- as.data.frame(list(names = names, scenario = scenario, ttimes = ttimes, pop = pop, 
-                                results = results))
-  return(results)
 }
