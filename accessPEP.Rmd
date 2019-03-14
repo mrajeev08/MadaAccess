@@ -53,10 +53,10 @@ Inequities in access to care are a major driver of disease burden globally. Ofte
 
 Canine mediated rabies is estimated to cause approximately 60,000 human deaths anually. These deaths can be prevented through prompt administration of post-exposure prophylaxis. However, access to this intervention is highly limited in areas where the disease is endemic (*cite GAVI paper or Nandini's paper of geographic availability of PEP*). Data on true rabies exposures in humans and incidence in animals is also lacking in most of these countries, with the most commonly available data being numbers of bite victims reporting to health facilities. The majority of rabies burden studies thus far have integrated these data on reported bites into a probability decision tree framework to estimate rabies burden, often with the key assumption that overall reported bite incidence (i.e. both bites due to non-rabid and rabid animals) are proportional to rabies incidence (i.e. the more bites reported in a location, the higher the incidence of *rabies* exposures there) and that reporting is uniform across space. At the sub-national level where access to PEP is highly heterogenous, these assumptions likely underestimate rabies deaths in places with low reporting and overestimate rabies deaths in places with high reporting of bites. 
 
-In 2018, Gavi added PEP to their vaccine investment portfolio, and soon countries will be able to apply for funding to expand access to PEP. Expanding access strategically by identifying places with limited access...
+In Madagascar, Institut Pasteur de Madagascar (IPM) provides PEP at no-cost to patients at 31 clinics, or anti-rabies medical centers (ARMC) across the country. PEP is not available at any other public clinics or through the private sector. In addition, there is limited control in dog populations and the disease is endemic throughout the country. Due to the spatially restricted nature of PEP, geographic access is likely to be a major driver of disease burden within the country. To get spatial estimates of disease burden in this context, we use data on reported bite incidence at the sub-national level (district) and assume that bite incidence reflects access to PEP rather than than differences in rabies incidence. We fit the data to travel times to the closest ARMC, a metric of geographic access. Then using a range of rabies incidence given endemic transmission with no mass dog vaccination (*GAVI paper*), we generate sub-national estimates of rabies burden in an adapted decision tree framework. 
 
-In Madagascar, Institut Pasteur de Madagascar (IPM) provides PEP at no-cost to patients at 31 clinics across the country. PEP is not available at any other public clinics or through the private sector. In addition, there is limited control in dog populations and the disease is endemic throughout the country. Due to the spatially restricted nature of PEP, geographic access is likely to be a major driver of disease burden within the country. To get spatial estimates of disease burden in this context, we assume that bite incidence reflects access to PEP rather than than differences in rabies incidence, using travel times to clinics as a predictor of reported bites. Then using a range of rabies incidence given endemic transmission with no mass dog vaccination (*GAVI paper*), we generate sub-national estimates of rabies burden in an adapted decision tree framework. Finally, using this same model pipeline, we explore the impacts of geographically expanding access to PEP in Madagascar on reducing the burden of human rabies deaths.   
-
+ In 2018, Gavi added PEP to their vaccine investment portfolio, and by 2020, Gavi-eligible countries will be able to apply for funding to expand access to PEP, which has the potential to drastically reduce burden of rabies. We explore the impact of this potential intervention using this same model pipeline, we explore the impacts of geographically expanding access to PEP in Madagascar on reducing the burden of human rabies deaths.  
+  
 ## METHODS
 
 ### GIS Data
@@ -135,6 +135,12 @@ exps_dist <- get.district.data(ctar_data = ctar_data, ctar_metadata = ctar_metad
                                start = ymd("2014-01-01"), end = ymd("2017-12-31"))
 exps_mora <- get.morabites(mada_communes = mada_communes)
 
+## Getting other data
+rep_data <- get.reporting(ctar_data, ctar_metadata, start_date = ymd("2014-01-01"), 
+                          end_date = ymd("2017-12-31"), 
+                          threshold = 10)
+ctar_contacts <- get.contacts(ctar_data, times_sd = 3)
+ctar_contacts <- ctar_contacts[["ctar_data"]]
 ```
 
 <br>
@@ -144,47 +150,43 @@ We used a database of bite patient forms submitted to IPM from ARMC across the c
 
 <br>
 
-For most districts, the majority of bites were reported to the closest clinic as estimated by our travel time metric (Fig 1A, Fig S1). Therefore, we defined the catchment area for each clinic as all districts for which the clinic was the closest ARMC. We excluded any catchment areas for which the clinic did not submit any forms (n = `r length(no_data)`, districts in grey in Fig 1A).
+For most districts, the majority of bites were reported to the closest clinic as estimated by our travel time metric (Fig 1A, Fig S1). Therefore, we defined the catchment area for each clinic as all districts for which the clinic was the closest ARMC. We excluded any catchment areas for which the clinic did not submit any forms (catchments = `r length(no_data)`, districts = `r nrow(exps_dist) - nrow(mada_district)`, in grey in Fig 1A).
 
 
-As even for clinics which submitted data, there was substantial undersubmission of forms, we estimated clinic level reporting as the proportion of days on which forms were submitted, excluding any periods for which there were no forms submitted for 15 consecutive days (Figure S2). Our estimate of reporting did vary based on our assumption of the threshold number of consecutive days (Figure S3), so we did look at the sensitivity of model parameter estimates to changing this threshold. To estimate the average annual bites reported for each district, we further excluded data from any years for which there was less than 25% reporting at the clinic level.
+As even for clinics which submitted data, there was substantial undersubmission of forms, we estimated clinic level reporting as the proportion of days on which forms were submitted, excluding any periods for which there were no forms submitted for 15 consecutive days (Figure S2). Our estimate of reporting did vary based on our assumption of the threshold number of consecutive days (Figure S3), so in subsequent analyses we looked at the sensitivity of model parameter estimates to changing this threshold. To estimate the average annual bites reported for each district, we further excluded data from any years for which there was less than 25% reporting at the clinic level.
 
-Previous work in the Moramanga District showed that low risk contacts with probable or confirmed rabies cases make up approximately 20% of patients reporting to ARMC (Rajeev et al. 2018). Generally, contacts present as clustered cases, so we excluded patients reporting on any dates that had greater than 3 standard deviations above the mean number of patients reporting per day (Figure 3A). We validated this method using the Moramanga ARMC data for which we had details on the type of exposure, and found that setting the threshold to 3 standard deviations (SDs) resulted in approximately 50% of known contacts excluded, with only 2% of non-contacts excluded (Figure S4). For the national data for which a subset of patient forms were explicitly noted to be contacts, we found that our exclusion criteria of 3 SDs identified *r round((ctar_check %$% length(exclude_bycomment[exclude_bycomment == 1 & exclude_bydate == 1]))/length(ctar_check %$% exclude_bycomment[exclude_bycomment == 1])**100, 2)"* of known contacts. We further excluded these known contacts which were not identified based on the daily distribution of patients, resulting in the exclusion of approximately *r round((ctar_check %$% length(exclude_bycomment[exclude_bycomment == 1 | exclude_bydate == 1]))/nrow(ctar_check)**100, 2)*% of patient records from the national data. We also compared this method to assuming that 20% of total bites at the district level were contacts.
+Previous work in the Moramanga District showed that low risk contacts, i.e. touching or feeding a suspected animal or human rabies case, make up approximately 20% of patients reporting to ARMC (Rajeev et al. 2018). These low risk exposures do not contribute to burden and therefore we attempted to exclude them from our analysis. Generally, contacts present as clustered cases, so we excluded patients reporting on any dates that had greater than 3 standard deviations above the mean number of patients reporting per day (Figure 3A). We validated this method using the Moramanga ARMC data for which we had details on the type of exposure, and found that setting the threshold to 3 standard deviations (SDs) resulted in approximately 50% of known contacts excluded, with only 2% of non-contacts excluded (Figure S4). For the national data for which a subset of patient forms were explicitly noted to be contacts, we found that our exclusion criteria of 3 SDs identified `r round((ctar_contacts %$% length(exclude_bycomment[exclude_bycomment == 1 & exclude_bydate == 1]))/length(ctar_contacts %$% exclude_bycomment[exclude_bycomment == 1])*100, 2)` of known contacts. We further excluded these known contacts which were not identified based on the daily distribution of patients, resulting in the exclusion of approximately `r round((ctar_contacts %$% length(exclude_bycomment[exclude_bycomment == 1 | exclude_bydate == 1]))/nrow(ctar_contacts)*100, 2)` % of patient records from the national data.
 
 <br>
 
-After excluding contacts and correcting for undersubmission of forms, our final dataset consisted of estimates of average bite incidence for `r nrow(exps_dist)` districts from *r length(unique(exps_dist$dist_catch))* catchments (Figure 4). 
+After excluding contacts and correcting for undersubmission of forms, our final dataset consisted of estimates of average bite incidence for `r nrow(exps_dist)` districts from `r length(unique(exps_dist$dist_catch))` catchments (Figure 4). 
 
 <br> 
 
 
 ### Model of reported bites as a function of travel time
-We modeled bites as a function of travel times as follows:
+We modeled incidence of bites as a function of travel times in hours as follows:
 $$ 
   \mu = exp(\beta_{t}T + \beta_0)P 
 $$
-where $mu$ is the expected number of bites given travel times and population for a given location. In this way, we can model the impact of travel time on incidence as 
-$exp(\beta_{t}T + \beta_0)$ gives an estimate of incidence and multiplying by the population size gives the expected number of bites, so that we can fit this model to the number of bites in each location.
-
-We then estimate the likelihood of observing the bites at the district level where bites are a poisson distribution around the mean $\mu_{d}$, given $\beta_t$, the effect of travel times of reported bites and $\beta_0$, the model intercept.
+where $mu$ is the expected number of bites given travel times and population for a given location. We then estimate the likelihood of observing the bites at the district level where bites are a poisson distribution around the mean $\mu_{d}$, given $\beta_t$, the effect of travel times of reported bites and $\beta_0$, the model intercept.
 
 We fit this to our available data in three ways:
-1) the commune data available at the moramanga district, where we fit to $mu_j$
-2) The district data available nationally
-3) To compare estimates from 1 directly to the national data, the district data but where $mu_d$ is the sum of the travel time effect at the commune level, i.e.:
+1) Commune level bite incidence from the Moramanga District
+2) District level bite incidence as calculated above from the national database
+3) District level bite incidence, but with commune level travel times ($T_j$) so that:
 
 $$ 
-  \mu_{d} = \sum \limits_{j=1}^jexp(\beta_{t}T_j + \beta_0)P_j 
+  \mu = \sum \limits_{j=1}^jexp(\beta_{t}T_j + \beta_0)P_j 
 $$
 
- As travel times are correlated with human population size (Figure Z), we also compared how well bites were predicted by human population size alone for these different models (replacing $Tj$ with log-transformed population in $j$ to avoid squared terms), as a test of whether the observed patterns could be predicted by bite incidence scaling with population size alone. We also looked at how well distance from the closest ARMC (rather than travel times) predicted bites as an alternative proxy for access. 
+As travel times are correlated with human population size (Figure S4), we also compared how well bites were predicted by human population size. We used a generalized linear model with a possion response-now predicting the number of bites rather than bite incidence` with either population size alone or in combination with travel times, so that incidence could scale with population size. We also looked at how well distance from the closest ARMC (rather than travel times) predicted bites as an alternative proxy for access, replacing travel times in hours ($T$) with distance from the nearest ARMC in km ($D$). Distance to the nearest ARMC was taken as the minimum distance from the centroid of the commune or district to any ARMC. 
 
 <br>
 
 ### Estimation of burden and reporting 
 We used our model to predict average annual bite incidence for all 114 districts in Madagascar, and estimated average reporting of rabid exposures and deaths due to rabies given this and assumptions about rabies exposures.
 
-TO DO: Instead of reporting calculate as incidence of deaths here!!
 We calculated the expected reporting of rabid exposures ($\overline\rho$) given bite incidence as predicted by our model($\mu$) as:
 $$
   \overline\rho = \frac{\mu \times p_{rabid}}{R}
@@ -199,13 +201,13 @@ $$
 $$
 <br>
 
-such that rabid reported bites (i.e. $p_{rabid} \times B_i$) cannot exceed the expected number of human exposures given maximum reporting (i.e. $R_i \times \rho_{max}$). $\rho_{max}$ is taken from the Moramanga ARMC data for Moramanga Ville, the commune with the ARMC (i.e. the area with the minimum travel time in the district, on average *xx* minutes). 
+such that rabid reported bites (i.e. $p_{rabid} \times B_i$) cannot exceed the expected number of human exposures given maximum reporting (i.e. $R_i \times \rho_{max}$). $\rho_{max}$ is taken from the Moramanga ARMC data for Moramanga Ville, the commune with the ARMC (i.e. the area with the minimum travel time in the district, on average `r round(exps_mora$ttimes_weighted[exps_mora$commune == "Moramanga"], 2)` minutes). 
 
 <br>
 
-To generate $R$, the rabies incidence in dogs in the absence of any vaccination, $r$, is  multiplied by the estimated dog population in the commune ($D_i$) and the exposure rate per rabid dogs ($p_{exp}$ = 0.39 persons exposed per rabid dog)(Hampson et al. 2018). We use a human:dog ratio (HDR) of 5 to generate our maximum expected incidence and an HDR of 25 for our minimum expected incidence. As there is little data on dog populations in Madagascar, this range of HDRs encompasses a wide range observed across Africa (cite!).
+To generate $R$, the rabies incidence in dogs in the absence of any vaccination, $r$, is  multiplied by the estimated dog population in the commune ($D_i$) and the exposure rate per rabid dogs ($p_{exp}$ = 0.39 persons exposed per rabid dog)(Hampson et al. 2018). We use a human:dog ratio (HDR) of 5 to generate our maximum expected incidence and an HDR of 25 for our minimum expected incidence, which gives a range of approximately `r 1e5/25*0.01*0.39` - `r 1e5/5*0.01*0.39` exposures per 100,000 persons. As there is little data on dog populations in Madagascar, this range encompasses both a wide range of observed HDRs and exposure rates across Africa (cite!).
 
-To estimate the average number of deaths for each commune, we extended the above framework into a stochastic framework as follows):
+To estimate the average number of deaths for each commune, we extended the above framework into a stochastic framework as follows:
 $$
 deaths_i = (R_i - p_{rabid_i}B_i) \times p_{death}
 $$
@@ -214,9 +216,11 @@ where $R_i$ is drawn from a uniform distribution between the minimum and maximum
 
 ### Strategically expanding PEP access
 Given limited resources and capacity of clinics to provision PEP, we developed a framework to look at the incremental benefit of expanding PEP provisioning to additional ARMC. Starting with the current locations, we added one clinic at a time, calculating the proportion of people living < 3 hours away from any clinic for the country. We added the clinic which minimized this metric, and then repeated the process iteratively, ranking clinics and adding the top clinic sequentially. We calculate burden for the given clinic locations and look at the incremental reduction in burden as each clinic is added.
+
+We also look at how this may impact vaccine demand. Specifically, we fit the observed daily distribution of patients receiving PEP at each clinic to a negative binomial distribution, with both the dispersion parameter and mean as a function of the annual average number of reported bites. We use this to simulate clinic throughput and vials used as clinics are added, assuming routine vial sharing practices used currently in Madagascar (i.e. each vial is split between two patients, and vials are discarded at the end of each day). We project the potential increase in vial demand and change in the ratio of number of vials per death averted.
   
 ### Sensitivity analyses for burden estimates 
-We estimate burden deterministically across a range of parameter values to test the effects of our model assumptions on estimates of rabies burden. Specifically, we fix rabies incidence at the minimum and maximum of our estimated range, look at the range of values of p_rabid between 0.2 - 0.6 (as per Moramanga), and the range of values of rho_max (0.85 - 0.99) to get at maximum and minimum estimates of burden. We also examine the impact of systematic variation in rabies incidence with human population (a potential proxy for changes in the dog population/HDR) by looking at how estimates of burden changes if rabies incidence were to scale positively or negatively with human population.
+We estimate burden deterministically across a range of parameter values to test the effects of our model assumptions on estimates of rabies burden. Specifically, we fix rabies incidence at the minimum and maximum of our estimated range, look at the range of values of p_rabid between 0.2 - 0.6 (as per Moramanga), and the range of values of rho_max (0.85 - 0.99) to get at maximum and minimum estimates of burden. We also examine the impact of systematic variation in rabies incidence with human population (a potential proxy for changes in the dog population/HDR) by looking at how estimates of burden change if rabies incidence were to scale positively or negatively with human population.
 
 <br>
 
@@ -262,43 +266,94 @@ preds_fixed <- run.predicts.fixed(covar_df = bite_mods, pop_fixed = 1e5, pop_seq
 preds_data <- run.predicts.data(covar_df = bite_mods, run_type = "predict.data")
 preds_raw <- run.predicts.data(covar_df = bite_mods, run_type = "predict.raw")
 
-ggplot(preds_fixed, aes(x = covar, y = predicted, color = scale)) + 
+library(patchwork)
+a <- ggplot(preds_fixed, aes(x = covar, y = predicted, color = scale)) + 
   geom_line() + 
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = scale), color = NA, alpha = 0.5) +
   scale_color_manual(values = c("navy", "blue", "purple")) +
-  scale_fill_manual(values = c("blue", "lightblue", "pink")) +
+  scale_fill_manual(values = c("blue", "lightblue", "pink"), name = "Model scale") +
   xlab("Travel time (hrs)") +
-  ylab("Reported bites per \n 100,000 persons")
+  ylab("Reported bites per \n 100,000 persons") +
+  labs(tag = "A")
 
-ggplot(preds_data, aes(x = observed, y = predicted, color = scale)) + 
+b <- ggplot(preds_data, aes(x = observed, y = predicted, color = scale)) + 
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +
   expand_limits(y = c(0, 4000)) +
-  scale_color_manual(values = c("navy", "blue", "purple"))
+  scale_color_manual(values = c("navy", "blue", "purple"), name = "Model scale") +
+  xlab("Mean annual bites observed") +
+  ylab("Mean annual bites predicted") +
+  labs(tag = "B")
+a / b
 
-
+kable(bite_mods)
 ```
 
 <br> 
 
 We estimated similar parameter values from our commune-level data from the Moramanga ARMC and the district level data from 19 clinics across the country (Table 1, Figure 5A), with reported bite incidence decreasing with travel times to the ARMC. All of the models produced reasonable fits to the data (Figure 5B), however, there was some variation in bite incidence that was not captured by the model. 
 
+The best fitting model did not include population as a predictor for the district data...write up from supplement!
+
 ### Estimation of burden and reporting 
+```{r}
+B_ttimes_mada <- bite_mods$beta[bite_mods$model == "Mada flatPop ttimes_commune"]
+B_0_mada <- bite_mods$intercept[bite_mods$model == "Mada flatPop ttimes_commune"]
 
+B_ttimes_dist <- bite_mods$beta[bite_mods$model == "Mada flatPop ttimes_district"]
+B_0_dist <- bite_mods$intercept[bite_mods$model == "Mada flatPop ttimes_district"]
 
-Generally, estimated reporting of rabies exposures decayed with travel times given model predicted bite incidence and a range of rabies incidence and $p_{rabid}$ (Figure 6). Given our model assumptions, reporting was estimated at the maximum of 0.98 for travel times under 1 hour given the maximum estimated rabies exposure incidence and the minimum estimate of $p_{rabid}$ (the lower range of reporting probabilities), and travel times under 5.5 hours given the minimum estimated rabies exposure incidence and the maximum estimate of $p_{rabid}$ (the upper range of reporting probabilities). 
+ttimes <- seq(0, 1200, by = 60)/60
+p_rabid_vals <- c(0.2, 0.6)
+hdr_vals <- c(5, 25)
+beta_vals <- list(District = B_ttimes_dist, Commune = B_ttimes_mada)
+int_vals <- list(District = B_0_dist, Commune = B_0_mada)
 
+rep_df <- 
+  foreach(i = 1:length(p_rabid_vals), .combine = rbind) %:% 
+  foreach(k = 1:length(hdr_vals), .combine = rbind) %:%
+  foreach(j = 1:length(beta_vals), .combine = rbind) %do% {
+    rep <- as.data.frame(list(p_rabid = p_rabid_vals[i], ttimes = ttimes, hdr = hdr_vals[k], 
+                                         reporting = get.burden.fixed(pop = 1e5, ttimes = ttimes,
+                                                          B_ttimes = beta_vals[[j]], B_0 = int_vals[[j]],
+                                            hdr = hdr_vals[k], p_rabid = p_rabid_vals[i],
+                                            type = "reporting", scale = FALSE), scale = names(beta_vals)[j]))
+  }
+
+rep_min_max <- 
+  foreach(j = 1:length(beta_vals), .combine = rbind) %do% {
+    rep_max <- get.burden.fixed(pop = 1e5, ttimes = ttimes, B_ttimes = beta_vals[[j]], B_0 = int_vals[[j]],
+                                            hdr = 25, p_rabid = 0.6,
+                                            type = "reporting", scale = FALSE)
+    
+    rep_min <- get.burden.fixed(pop = 1e5, ttimes = ttimes, B_ttimes = beta_vals[[j]], B_0 = int_vals[[j]],
+                                            hdr = 5, p_rabid = 0.2,
+                                            type = "reporting", scale = FALSE)
+    rep <- as.data.frame(list(ttimes = ttimes, rep_max = rep_max, rep_min = rep_min, 
+                              scale = names(beta_vals)[j]))
+  }
+
+ggplot(rep_df, aes(x = ttimes, y = reporting, color = interaction(p_rabid, hdr), linetype = as.factor(hdr))) +
+  geom_line() +
+  facet_wrap(~ scale) +
+  scale_color_manual(values = c("red", "red", "blue", "blue"))
+
+ggplot(rep_min_max, aes(x = ttimes, y = rep_min, fill = scale)) +
+  geom_line(aes(y = rep_min, color = scale), linetype = 2) +
+  geom_line(aes(y = rep_max, color = scale), linetype = 1) +
+  geom_ribbon(aes(ymax = rep_max, ymin = rep_min), alpha = 0.5) +
+  scale_fill_manual(values = c("navy", "blue")) +
+  scale_color_manual(values = c("navy", "blue"))
+
+```
+
+Generally, estimated reporting of rabies exposures decayed with travel times given model predicted bite incidence and a range of rabies incidence and $p_{rabid}$ (Figure N). Given our model assumptions, reporting was estimated at the maximum of 0.98 for travel times under 1 hour given the maximum estimated rabies exposure incidence and the minimum estimate of $p_{rabid}$ (the lower range of reporting probabilities), and travel times under 5.5 hours given the minimum estimated rabies exposure incidence and the maximum estimate of $p_{rabid}$ (the upper range of reporting probabilities). We found that the commune model of bites estimated a lower range of reporting probabilities that the district model (Figure SX), so we compared estimates of these two models in subsequent analyses.  
 
 ```{r burden results, fig.cap = "Figure 7", cache = TRUE}
 # Incremental analysis ------------------------------------------------------------------------
 ## District travel times
 dist_ttimes <- read.csv("output/district_temp_scenario_20190212_181056.csv", row.names = 1)
 comm_ttimes <- read.csv("output/commune_temp_scenario_20190212_182810.csv", row.names = 1)
-B_ttimes_mada <- bite_mods$beta[bite_mods$model == "Mada flatPop ttimes_commune"]
-B_0_mada <- bite_mods$intercept[bite_mods$model == "Mada flatPop ttimes_commune"]
-
-B_ttimes_dist <- bite_mods$beta[bite_mods$model == "Mada flatPop ttimes_district"]
-B_0_dist <- bite_mods$intercept[bite_mods$model == "Mada flatPop ttimes_district"]
 
 dist_ttimes <- cbind(dist_catchments$ttimes_weighted, dist_ttimes)
 dist_mat <- matrix(NA, nrow(dist_ttimes), ncol(dist_ttimes))
@@ -372,13 +427,17 @@ results_comm_med %>%
   group_by(scenario, mdg_dis_co) %>%
   summarize(deaths_mean = sum(deaths_mean, na.rm = TRUE), 
             deaths_upperCI = sum(deaths_upperCI, na.rm = TRUE),
-            deaths_lowerCI = sum(deaths_lowerCI, na.rm = TRUE)) %>%
+            deaths_lowerCI = sum(deaths_lowerCI, na.rm = TRUE),
+            averted_mean = sum(averted_mean, na.rm = TRUE), 
+            averted_upperCI = sum(averted_upperCI, na.rm = TRUE),
+            averted_lowerCI = sum(averted_lowerCI, na.rm = TRUE)) %>%
   rename(names = mdg_dis_co) -> results_comm_summarized
 results_comm_summarized$model <- "commune"
 colnames(results_dist_med) <- gsub("results.", "", colnames(results_dist_med))
 results_dist_med %>%
   mutate(model = "district") %>%
   select(scenario, names, deaths_mean, deaths_lowerCI, deaths_upperCI, 
+         averted_mean, averted_lowerCI, averted_upperCI,
          model) -> results_dist_med
 results_all <- bind_rows(results_dist_med, results_comm_summarized)
 results_all %>%
@@ -390,8 +449,49 @@ results_all %>%
   group_by(scenario, model) %>% 
   summarize(deaths_mean = sum(deaths_mean, na.rm = TRUE), 
             deaths_upperCI = sum(deaths_upperCI, na.rm = TRUE),
-            deaths_lowerCI = sum(deaths_lowerCI, na.rm = TRUE)) -> results_natl
+            deaths_lowerCI = sum(deaths_lowerCI, na.rm = TRUE), 
+            averted_mean = sum(averted_mean, na.rm = TRUE), 
+            averted_upperCI = sum(averted_upperCI, na.rm = TRUE),
+            averted_lowerCI = sum(averted_lowerCI, na.rm = TRUE)) -> results_natl
 
+## Baseline results
+results_all %>% filter(scenario == 0) -> results_all_base
+ggplot(results_all_base, aes(y = reorder(district, ttimes_weighted), x = deaths_mean, 
+                              color = model)) +
+  ggstance::geom_pointrangeh(aes(xmin = deaths_lowerCI, xmax = deaths_upperCI), fatten = 2) +
+  ylab("") +
+  xlab("Average annual deaths") +
+  scale_color_manual(values = c("district" = alpha("blue", 0.5), 
+                                "commune" = alpha("purple", 0.5)), 
+                     name = "Scale") -> p
+p + theme(axis.text.y = element_text(margin = margin(t = 10, r = 0, b = 10, l = 0), size = 7)) 
+
+
+## Deaths averted
+ggplot(results_all_base, aes(y = reorder(district, ttimes_weighted), x = averted_mean, 
+                              color = model)) +
+  ggstance::geom_pointrangeh(aes(xmin = averted_lowerCI, xmax = averted_upperCI), fatten = 2) +
+  ylab("") +
+  xlab("Average annual deaths") +
+  scale_color_manual(values = c("district" = alpha("blue", 0.5), 
+                                "commune" = alpha("purple", 0.5)), 
+                     name = "Scale") -> p
+p + theme(axis.text.y = element_text(margin = margin(t = 10, r = 0, b = 10, l = 0), size = 7)) 
+
+kable(results_all_base %>%
+  group_by(model) %>%
+  summarize(averted = sum(averted_mean), 
+            deaths = sum(deaths_mean)) -> summary_burden)
+
+```
+
+When we estimate burden of deaths stochastically within this range of incidence and of proportion of reported bites that are rabid, we see that burden of deaths also decreases with travel times (Figure XA, results presented aggregated at the district level). Overall, we estimate average annual deaths between `r min(summary_burden$deaths)` - `r max(summary_burden$deaths)` and deaths_averted between `r min(summary_burden$averted)` - `r max(summary_burden$averted)`. 
+
+Our sensitivity analyses show, that while there is considerable uncertainty in the number of deaths estimated, the pattern of deaths increasing with travel times is robust...write up from supplement!
+
+### Expanding access to PEP
+
+``` {r scenario}
 ## Plotting national level
 ggplot(data = results_natl, aes (x = scenario, y = deaths_mean, color = model)) +
   geom_line() +
@@ -413,28 +513,134 @@ ggplot(data = results_all, aes(x = deaths_mean, y = reorder(district, ttimes_wei
                              fatten = 2) +
   facet_wrap(~model)
 
-## Baseline results
-results_all %>% filter(scenario == 0) -> results_all_base
-ggplot(results_all_base, aes(y = reorder(district, ttimes_weighted), x = deaths_mean, 
-                              color = model)) +
-  ggstance::geom_pointrangeh(aes(xmin = deaths_lowerCI, xmax = deaths_upperCI), fatten = 2) +
-  ylab("") +
-  xlab("Average annual deaths") +
-  scale_color_manual(values = c("district" = alpha("blue", 0.5), 
-                                "commune" = alpha("purple", 0.5)), 
-                     name = "Scale") -> p
-p + theme(axis.text.y = element_text(margin = margin(t = 10, r = 0, b = 10, l = 0), size = 7)) 
+## Deaths averted
+ggplot(data = results_natl, aes (x = scenario, y = averted_mean, color = model)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = averted_upperCI, ymax = averted_lowerCI, 
+                  color = NULL, fill = model),
+              alpha = 0.5) +
+  scale_color_manual(values = c("district" = "blue", "commune" = "purple"),  guide = "none") +
+  scale_fill_manual(values = c("district" = "blue", "commune" = "purple")) +
+  guides(color = guide_legend(), fill = guide_legend(override.aes = list(linetype = 1)))
+
+ggplot(data = results_all, aes(x = averted_mean, y = reorder(district, ttimes_weighted), 
+                               color = scenario)) +
+  ggstance::geom_pointrangeh(aes(xmin = deaths_lowerCI, xmax = deaths_upperCI), alpha = 0.25,
+                             fatten = 2) +
+  facet_wrap(~model)
 
 ```
 
-When we estimate burden of deaths stochastically within this range of incidence and given our high and low estimates of proportion of reported bites that are rabid, we see that burden of deaths also decreases with travel times (Figure 7, results presented aggregated at the district level). Overall, we estimate average annual deaths between .... **Also estimate deaths averted here!**. 
+We find that both expanding access to PEP reduces burden of rabies death, but this effect decays as ARMC are added, saturating after about approximately 200 clinics (or 2 ARMC per district). This effect is more pronouned for the commune level model than for the district model. Sensitivity analyses...write up from supplement!
 
-When we compare our burden estimates at the district vs. the commune level (summed to district), we see that while overall, the estimates are very similar (Fig NA), at low travel times, calculating burden at the district level results in an assumption of maximum reporting for the whole district, which assumes very low burden.
+### Estimating vaccine demand with increased access
 
-### Expanding access to PEP
+```{r vial analysis}
+# ## new ctar
+rep_data <- get.reporting(ctar_data, ctar_metadata, start_date = ymd("2014-01-01"), 
+                          end_date = ymd("2017-12-31"), 
+                          threshold = 10)
+date_mat <- rep_data[["date_mat"]]
+dose_mat <- rep_data[["doses_wide"]]
+colnames(date_mat) <- colnames(dose_mat)[2:(ncol(dose_mat)-1)]
+doses <- melt(dose_mat, id.vars = "date_de_consultation", value.name = "patients", variable.name = "id_ctar")
 
+date_mat %>% 
+  as_tibble() %>%
+  mutate(date = dose_mat$date_de_consultation) -> date_mat
+exclude <- melt(date_mat, id.vars = "date", value.name = "exclude", variable.name = "id_ctar")
+doses %>%
+  left_join(exclude, by = c("date_de_consultation" = "date", "id_ctar" = "id_ctar")) -> doses
+doses %>%
+  filter(exclude == 1) %>%
+  group_by(id_ctar) %>%
+  mutate(sum = sum(patients, na.rm = TRUE), mean = mean(patients, na.rm = TRUE)) %>%
+  filter(sum > 10) -> doses
 
-<br>
+ggplot(data = doses, aes(x = date_de_consultation, y = id_ctar)) +
+  geom_tile(aes(fill = patients))
+
+library(ggridges)
+ggplot(doses, aes(x = patients, y = id_ctar)) +
+  geom_density_ridges() 
+
+doses %>%
+  split(.$id_ctar) %>% # from base R
+  map(~ fitdistr(.$patients, "negative binomial")) -> dist_ts
+
+coeff_df <- as.data.frame(list(mu = mapply(function(x) coef(x)["mu"], dist_ts),
+                                k = mapply(function(x) coef(x)["size"], dist_ts),
+                                mu_sd = mapply(function(x) x$sd["mu"], dist_ts),
+                                k_sd = mapply(function(x) x$sd["size"], dist_ts)))
+coeff_df$id_ctar <- names(dist_ts)
+ggplot(data = coeff_df, aes(x = mu, y = k)) + geom_point()
+
+exps_dist %>%
+  left_join(select(ctar_metadata, CTAR, id_ctar), by = c("dist_catch" = "CTAR")) %>%
+  mutate(id_ctar = as.character(id_ctar)) %>%
+  group_by(id_ctar) %>%
+  summarize(bites = sum(bites)) %>%
+  left_join(coeff_df, by = c("id_ctar" = "id_ctar")) -> coeff_df
+ggplot(data = coeff_df, aes(x = bites, y = mu)) + geom_point()
+ggplot(data = coeff_df, aes(x = bites, y = k)) + geom_point()
+
+exps_dist %>%
+  left_join(select(ctar_metadata, CTAR, id_ctar), by = c("dist_catch" = "CTAR")) %>%
+  mutate(id_ctar = as.character(id_ctar)) %>%
+  group_by(id_ctar) %>%
+  summarize(bites = sum(bites)) %>%
+  left_join(doses, by = c("id_ctar" = "id_ctar")) -> doses
+
+get.throughput <- function(patient_ts, bites, B_k, B_0_k, B_mu, B_0_mu) {
+  mu <- exp(B_mu*bites/100 + B_0_mu) 
+  k <- exp(B_k*bites/100 + B_0_k)
+  return(-sum(dnbinom(patient_ts, size = k, mu = mu, log = TRUE)))
+}
+
+fit <- mle2(get.throughput, start = list(B_0_mu = 0.1, B_k = 0.1, B_mu = 0.1, B_0_k = 0.1),
+             data = list(patient_ts = doses$patients, bites = doses$bites))
+
+## Get the observed + predicted distribution for each set of coeffs
+check <- foreach(i = iter(coeff_df, by = "row"), .combine = rbind) %do% {
+  check <- rnbinom(n = 365, mu = exp(0.029*i$bites/100 + -0.307),
+                  size = exp(0.022*i$bites/100 + -0.39))
+  as.data.frame(list(patients = check, type = "predicted", id_ctar = i$id_ctar))
+}
+
+doses %>%
+  select(id_ctar, patients) %>%
+  mutate(type = "observed") %>%
+  bind_rows(check) -> compare_dists
+
+compare_dists %>%
+  group_by(type, id_ctar, patients) %>%
+  summarize(count = n()) %>%
+  group_by(type, id_ctar) %>% # next get # of days total (should always be 365 for predicted)
+  mutate(total = sum(count), prop = count/total) -> compare_dists
+compare_dists %>%
+  mutate(prop_plot = ifelse(type == "predicted", -prop, prop)) -> compare_dists
+
+ggplot(compare_dists, aes(x = patients, y = prop_plot, fill = type)) +
+  geom_col(color = NA, alpha = 0.5, position = "identity") +
+  scale_fill_manual(values = c("red", "blue")) +
+  facet_wrap(~id_ctar, scales = "free") +
+  xlab("# of Patients") +
+  ylab("Proportion of days")
+
+rep_bites = seq(0, 15000, by = 100)
+predicts <- as.data.frame(list(rep_bites = rep_bites,
+                               predicted_mu = exp(0.029*rep_bites/100 + -0.307),
+                               predicted_k = exp(0.022*rep_bites/100 + -0.39)))
+ggplot(predicts, aes(x = rep_bites, y = predicted_mu)) +
+  geom_line()
+ggplot(predicts, aes(x = rep_bites, y = predicted_k)) +
+  geom_line() 
+
+```
+
+We fit the distributions of patients reporting per day to the estimated average annual bites reported to each clinic. We found that as reported bites increase, the average number of patients reporting per day increases linearly, and that the heterogeneity in this increases with lower reported bites to a clinic. 
+
+We use this to estimate how vaccine demand will change as access to PEP is expanded...
 
 ## DISCUSSION
 
@@ -723,7 +929,7 @@ comm_ttimes <- rbind(comm_ttimes,
                        as.data.frame(list(mdg_cm_ = comm_catchments$mdg_cm_, scenario = 0,
                                           ttimes = comm_catchments$ttimes_weighted)))
 comm_ttimes %>%
-  left_join(select(mada_communes@data, mdg_cm_, commune, pop = MDG_201, mtch_ds)) -> comm_ttimes
+  left_join(select(mada_communes@data, mdg_cm_, commune, pop = MDG__201, mtch_ds)) -> comm_ttimes
 
 scenario_comm <- 
   foreach(i = 1:length(p_rabid_vals), .combine = rbind) %:%
@@ -739,7 +945,8 @@ scenario_comm <-
 scenario_comm %>%
   filter(scenario == 0) %>%
   group_by(hdr, p_rabid, rho_max) %>%
-  summarize(deaths = sum(deaths, na.rm = TRUE)) -> deaths_multivar
+  summarize(deaths = sum(deaths, na.rm = TRUE), scenario = 0) -> deaths_multivar
+
 ggplot(data = deaths_multivar, aes(x = p_rabid, y = deaths, color = rho_max)) +
   geom_point() +
   facet_grid(~ hdr)
@@ -747,14 +954,20 @@ ggplot(data = filter(scenario_comm, scenario == 0), aes(x = ttimes, y = deaths/p
   geom_point() +
   facet_grid(rho_max ~ hdr)
 
+hdr_name <- c(`5` = paste0(1e5/5*0.01*0.39, " per \n 100k"),
+                    `10` = paste0(1e5/10*0.01*0.39, " per \n 100k"),
+                    `15` = paste0(1e5/15*0.01*0.39, " per \n 100k"),
+                    `20` = paste0(1e5/20*0.01*0.39, " per \n 100k"),
+                    `25` = paste0(1e5/25*0.01*0.39, " per \n 100k"))
+
 scenario_comm %>%
   group_by(scenario, hdr, p_rabid, rho_max) %>%
-  summarize(deaths = sum(deaths)) -> deaths_scenario
+  summarize(deaths = sum(deaths, na.rm = TRUE)) -> deaths_scenario
 deaths_scenario %>%
   left_join(select(deaths_multivar, hdr, p_rabid, rho_max, deaths_base = deaths)) -> deaths_scenario
-ggplot(data = deaths_scenario, aes(x = scenario, y = deaths, color = p_rabid)) +
+ggplot(data = deaths_scenario, aes(x = scenario, y = deaths/deaths_base, color = p_rabid)) +
   geom_point() +
-  facet_grid(hdr ~ rho_max, scales = "free_y")
+  facet_grid(hdr ~ rho_max, scales = "free_y", labeller = labeller(hdr = as_labeller(hdr_name)))
 
 
 ```
@@ -764,6 +977,9 @@ ggplot(data = deaths_scenario, aes(x = scenario, y = deaths, color = p_rabid)) +
 
 ```{r scaling w/ pop, cache = TRUE}
 ## Pop scaling
+p_rabid_vals <- c(0.2, 0.3, 0.4, 0.5, 0.6)
+rho_max_vals <- c(0.80, 0.85, 0.9, 0.95, 0.9)
+
 pop <- mada_district$pop2015adj
 pop <- pop[order(pop, decreasing = FALSE)]
 inc100k_max <- 0.01*0.39/5
@@ -773,7 +989,7 @@ neg_scale <- seq(0.01*0.39/5, 0.01*0.39/25, length.out = length(pop))
 pos <- lm(pos_scale ~ pop) ## use these and constrain
 neg <- lm(neg_scale ~ pop) ## use these and constrain
 
-scale_df <- rbind(as.data.frame(list(scale = "neg", 
+scale_df_dist <- rbind(as.data.frame(list(scale = "neg", 
                                      sf = seq(neg$coefficients[2], 0, length.out = 5),
                                      intercept = inc100k_max)),
                   as.data.frame(list(scale = "pos", 
@@ -785,9 +1001,10 @@ constrained_inc <- function(slope, intercept, pop, max, min){
   inc[inc <= min] <- min
   return(inc)
 }
-scale_df %>%
-  merge(., select(mada_district@data, mdg_dis_co, ttimes_weighted, pop = pop2015adj)) -> scale_df_dist
-ggplot(data = scale_df_dist, aes(x = log(pop), 
+
+scale_df_dist %>%
+  merge(., select(mada_district@data, mdg_dis_co, ttimes_weighted, pop = pop2015adj)) -> scale_df_check
+ggplot(data = scale_df_check, aes(x = log(pop), 
                             y = constrained_inc(sf, intercept, pop, inc100k_max, inc100k_min)*1e5, 
                             color = sf)) +
   geom_point() +
@@ -796,29 +1013,39 @@ ggplot(data = scale_df_dist, aes(x = log(pop),
 ## getting scaling factors 
 scenario_scaled <- 
   foreach(i = 1:length(p_rabid_vals), .combine = rbind) %:%
-  foreach(k = 1:nrow(scale_df), .combine = rbind) %:%
+  foreach(k = 1:nrow(scale_df_dist), .combine = rbind) %:%
   foreach(j = 1:length(rho_max_vals), .combine = rbind) %do% {
- get.burden.fixed(names = dist_ttimes$mdg_dis_co, pop = dist_ttimes$pop, 
+  check <- get.burden.fixed(names = dist_ttimes$mdg_dis_co, pop = dist_ttimes$pop, 
                      ttimes = dist_ttimes$ttimes/60, scenario = dist_ttimes$scenario,
                      B_ttimes = B_ttimes_dist, B_0 = B_0_dist, 
                      p_rabid = p_rabid_vals[i], 
                      rho_max = rho_max_vals[j], type = "burden", scale = TRUE, 
-                     slope = scale_df$sf[k], intercept = scale_df$intercept[k])
+                     slope = scale_df_dist$sf[k], intercept = scale_df_dist$intercept[k])
+  check$scale <- scale_df_dist$scale[k]
+  check
   }
 
 scenario_scaled %>%
+  mutate(slope = case_when(slope == 0 & scale =="neg" ~ -10, 
+                           slope == 0 & scale =="pos" ~ 10,
+                           slope > 0 | slope < 0 ~ round(slope*1e10))) -> scenario_scaled_dist
+scenario_scaled_dist %>%
   filter(scenario == 0) %>%
   group_by(slope, p_rabid, rho_max) %>%
   summarize(deaths = sum(deaths, na.rm = TRUE)) -> deaths_multivar
+
+slope_name <- c(`-9` = "----", `-7` = "---", `-4` = "--", `-2` = "--",
+                    `-10` =  "max", `9` = "++++", `7` = "+++", `4` = "++", `2` = "+",`10` =  "min")
+
 ggplot(data = deaths_multivar, aes(x = p_rabid, y = deaths, color = rho_max)) +
   geom_point() +
-  facet_grid(~ slope)
-ggplot(data = filter(scenario_scaled, scenario == 0),  
+  facet_grid(~ slope, labeller = labeller(slope = as_labeller(slope_name)))
+ggplot(data = filter(scenario_scaled_dist, scenario == 0),  
        aes(x = ttimes, y = deaths/pop, color = p_rabid)) +
   geom_point() +
-  facet_grid(rho_max ~ slope)
+  facet_grid(rho_max ~ slope, labeller = labeller(slope = as_labeller(slope_name)))
 
-scenario_scaled %>%
+scenario_scaled_dist %>%
   group_by(scenario, slope, p_rabid, rho_max) %>%
   summarize(deaths = sum(deaths)) -> deaths_scenario
 deaths_scenario %>%
@@ -828,38 +1055,92 @@ ggplot(data = deaths_scenario, aes(x = scenario, y = deaths/deaths_base, color =
   facet_grid(slope ~ rho_max, scales = "free_y")
 
 ## Commune
+pop <- mada_communes$MDG__201
+pop <- pop[order(pop, decreasing = FALSE)]
+inc100k_max <- 0.01*0.39/5
+inc100k_min <- 0.01*0.39/25
+pos_scale <- seq(0.01*0.39/25, 0.01*0.39/5, length.out = length(pop))
+neg_scale <- seq(0.01*0.39/5, 0.01*0.39/25, length.out = length(pop))
+pos <- lm(pos_scale ~ pop) ## use these and constrain
+neg <- lm(neg_scale ~ pop) ## use these and constrain
+
+scale_df_comm <- rbind(as.data.frame(list(scale = "neg", 
+                                     sf = seq(neg$coefficients[2], 0, length.out = 5),
+                                     intercept = inc100k_max)),
+                  as.data.frame(list(scale = "pos", 
+                                     sf = seq(0, pos$coefficients[2], length.out = 5),
+                                     intercept = inc100k_min)))
+constrained_inc <- function(slope, intercept, pop, max, min){
+  inc <- slope*pop + intercept
+  inc[inc >= max] <- max
+  inc[inc <= min] <- min
+  return(inc)
+}
+
+scale_df_comm <- rbind(as.data.frame(list(scale = "neg", 
+                                     sf = seq(neg$coefficients[2], 0, length.out = 5),
+                                     intercept = inc100k_max)),
+                  as.data.frame(list(scale = "pos", 
+                                     sf = seq(0, pos$coefficients[2], length.out = 5),
+                                     intercept = inc100k_min)))
+constrained_inc <- function(slope, intercept, pop, max, min){
+  inc <- slope*pop + intercept
+  inc[inc >= max] <- max
+  inc[inc <= min] <- min
+  return(inc)
+}
+scale_df_comm %>%
+  merge(., select(mada_communes@data, mdg_cm_, ttms_ll, pop = MDG__201)) -> scale_df_check_comm
+ggplot(data = scale_df_check_comm, aes(x = log(pop), 
+                            y = constrained_inc(sf, intercept, pop, inc100k_max, inc100k_min)*1e5, 
+                            color = sf)) +
+  geom_point() +
+  geom_hline(yintercept = c(inc100k_max*1e5, inc100k_min*1e5), linetype = 2, color = "grey")
+
 scenario_scaled <- 
   foreach(i = 1:length(p_rabid_vals), .combine = rbind) %:%
-  foreach(k = 1:nrow(scale_df), .combine = rbind) %:%
+  foreach(k = 1:nrow(scale_df_comm), .combine = rbind) %:%
   foreach(j = 1:length(rho_max_vals), .combine = rbind) %do% {
- get.burden.fixed(names = comm_ttimes$mdg_cm_, pop = comm_ttimes$pop, 
+  check <- get.burden.fixed(names = comm_ttimes$mdg_cm_, pop = comm_ttimes$pop, 
                      ttimes = comm_ttimes$ttimes/60, scenario = comm_ttimes$scenario,
                      B_ttimes = B_ttimes_mada, B_0 = B_0_mada,
                      p_rabid = p_rabid_vals[i], 
                      rho_max = rho_max_vals[j], type = "burden", scale = TRUE, 
-                     slope = scale_df$sf[k], intercept = scale_df$intercept[k])
+                     slope = scale_df_comm$sf[k], intercept = scale_df_comm$intercept[k])
+  check$scale <- scale_df_comm$scale[k]
+  check
   }
 
 scenario_scaled %>%
+  mutate(slope = case_when(slope == 0 & scale =="neg" ~ -10, 
+                           slope == 0 & scale =="pos" ~ 10,
+                           slope > 0 | slope < 0 ~ round(slope*1e10))) -> scenario_scaled_comm
+
+scenario_scaled_comm %>%
   filter(scenario == 0) %>%
   group_by(slope, p_rabid, rho_max) %>%
   summarize(deaths = sum(deaths, na.rm = TRUE)) -> deaths_multivar
+
+slope_name <- c(`-9` = "----", `-7` = "---", `-4` = "--", `-2` = "--",
+                    `-10` =  "max", `9` = "++++", `7` = "+++", `4` = "++", `2` = "+",`10` =  "min")
+
 ggplot(data = deaths_multivar, aes(x = p_rabid, y = deaths, color = rho_max)) +
   geom_point() +
-  facet_grid(~ slope)
-ggplot(data = filter(scenario_scaled, scenario == 0),  
+  facet_grid(~ slope, labeller = labeller(slope = as_labeller(slope_name)))
+ggplot(data = filter(scenario_scaled_comm, scenario == 0),  
        aes(x = ttimes, y = deaths/pop, color = p_rabid)) +
   geom_point() +
-  facet_grid(rho_max ~ slope)
+  facet_grid(rho_max ~ slope, labeller = labeller(slope = as_labeller(slope_name)))
 
-scenario_scaled %>%
+
+scenario_scaled_comm %>%
   group_by(scenario, slope, p_rabid, rho_max) %>%
   summarize(deaths = sum(deaths)) -> deaths_scenario
 deaths_scenario %>%
   left_join(select(deaths_multivar, slope, p_rabid, rho_max, deaths_base = deaths)) -> deaths_scenario
 ggplot(data = deaths_scenario, aes(x = scenario, y = deaths/deaths_base, color = p_rabid)) +
   geom_point() +
-  facet_grid(slope ~ rho_max, scales = "free_y")
+  facet_grid(slope ~ rho_max, scales = "free_y", labeller = labeller(slope = as_labeller(slope_name)))
 
 ```
 
@@ -1009,5 +1290,53 @@ dist_level %$% abline(v = ttimes_weighted_dist/60, col = "red", lty = 2)
 ```
 
 
-**Remember that the only other variable is p_death which should just shift these estimates up or down**
+```{r simulate vials used}
+## Get catchment
+# comm_catchments <- read.csv("output/temp_ARMC.csv", row.names = 1)
+# comm_ttimes <- read.csv("output/commune_temp_scenario_20190212_182810.csv", row.names = 1)[, 1:231]
+# comm_ttimes <- cbind(mada_communes@data$ttms_ll, comm_ttimes)
+# comm_mat <- matrix(NA, nrow(comm_ttimes), ncol(comm_ttimes))
+# comm_mat[, 1] <- comm_ttimes[, 1]
+# 
+# for (i in 2:ncol(comm_ttimes)){
+#   comm_mat[, i] <- ifelse(comm_ttimes[, i] < comm_ttimes[, i - 1], comm_ttimes[, i], NA)
+# }
+# 
+# comm_mat <- as.data.table(comm_mat)
+# comm_mat$mdg_cm_ <- mada_communes$mdg_cm_
+# comm_mat <- melt(comm_mat, id.vars = "mdg_cm_", value.name = "ttimes", variable.name = "scenario")
+# comm_mat$scenario <- as.numeric(gsub("V", "", comm_mat$scenario)) - 1
+# 
+# comm_catchments$scenario <- 1:nrow(comm_catchments)
+# comm_mat %>%
+#   drop_na(ttimes) %>%
+#   left_join(select(comm_data, mdg_cm_, pop)) -> comm_mat
+# comm_mat %>%
+#   left_join(comm_catchments, by = c("scenario" = "scenario")) -> comm_mat
+# comm_mat$CTAR <- as.character(comm_mat$CTAR)
+# comm_data$CTAR <- as.character(comm_data$CTAR)
+# comm_mat %>%
+#   left_join(select(comm_data, mdg_cm_, catch0 = CTAR), by = c("mdg_cm_" = "mdg_cm_")) %>%
+#   mutate(catchment = ifelse(scenario == 0 | scenario == 1, catch0, CTAR)) -> comm_mat 
+
+## getting new catchments-> comm_mat ## getting new catchments
+
+# pop <- mada_communes$MDG__201[!is.na(comm_ttimes[1, ])]
+# comm_ttimes <- comm_ttimes[!is.na(comm_ttimes[1, ]), ]
+# comm_ttimes <- as.matrix(comm_ttimes)
+# bites_predicted <- inv.logit(B_ttimes_mada*comm_ttimes/60 + B_0_mada)*pop
+# mu_predicted <- 
+# k_predicted <- 
+# 
+# function(bites, mu, k, times){
+#   for (t in 1:times) {
+#   ## draw bites
+#   
+#   ## do RLEs to get distribution of ts
+#   
+#   ## get # vials used
+#   }
+# }
+
+```
 
