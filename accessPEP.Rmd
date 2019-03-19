@@ -46,7 +46,6 @@ source("R/data_functions.R")
 source("R/get.burden.R")
 select <- dplyr::select
 knitr::opts_chunk$set(fig.pos = 'h', echo = FALSE, message = FALSE, warning = FALSE, 
-                      results = "hide",
                       include = TRUE)
 ```
 
@@ -464,6 +463,7 @@ dist_ttimes <- cbind(dist_catchments$ttimes_weighted, dist_ttimes)
 dist_mat <- matrix(NA, nrow(dist_ttimes), ncol(dist_ttimes))
 dist_mat[, 1] <- dist_ttimes[, 1]
 for (i in 2:ncol(dist_ttimes)){
+  i = 3
   dist_mat[, i] <- ifelse(dist_ttimes[, i] < dist_ttimes[, i - 1], dist_ttimes[, i], NA)
 }
 dist_mat <- as.data.table(dist_mat)
@@ -498,7 +498,7 @@ results_comm_med <- get.burden.stochastic(names = comm_mat$mdg_cm_, ttimes = com
                            p_rab_min = 0.2, p_rab_max = 0.6, rho_max = 0.98,
                            max_HDR = 25, min_HDR = 5, 
                            dog_rabies_inc = 0.01, human_exp_rate = 0.39, 
-                           prob_death = 0.16, nsims = 1000)
+                           prob_death = 0.16, nsims = 2)
 
 
 ## Filling it in
@@ -515,7 +515,7 @@ results_dist_med <- get.burden.stochastic(names = dist_mat$mdg_dis_co, ttimes = 
                            p_rab_min = 0.2, p_rab_max = 0.6, rho_max = 0.98,
                            max_HDR = 25, min_HDR = 5, 
                            dog_rabies_inc = 0.01, human_exp_rate = 0.39, 
-                           prob_death = 0.16, nsims = 1000)
+                           prob_death = 0.16, nsims = 2)
 
 results_dist_med %>%
   complete(scenario, names) %>%
@@ -600,14 +600,6 @@ Our sensitivity analyses show, that while there is considerable uncertainty in t
 ### Expanding access to PEP
 
 ``` {r scenario, cache = TRUE}
-##
-ctar_pts <- read.csv("output/incremental_ARMC_nofilter.csv")
-ctar_pts$order <- 1:nrow(ctar_pts)
-ggplot() + geom_polygon(data = gg_district, aes(x = long, y = lat, group = group), fill = "grey",
-                         color = "grey50", alpha = 0.5) +
-  geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "black", shape = 1) +
-  geom_point(data = ctar_pts, aes(x = Y_COORD, y = X_COORD, color = order, alpha = order))
- 
 ## Plotting national level
 ggplot(data = results_natl, aes (x = scenario, y = deaths_mean, color = model)) +
   geom_line() +
@@ -645,12 +637,6 @@ ggplot(data = results_natl, aes (x = scenario, y = averted_mean*0.16, color = mo
   labs(tag = "B") -> f
 
 e / f
-
-ggplot(data = results_all, aes(x = averted_mean, y = reorder(district, ttimes_weighted), 
-                               color = scenario)) +
-  ggstance::geom_pointrangeh(aes(xmin = deaths_lowerCI, xmax = deaths_upperCI), alpha = 0.25,
-                             fatten = 2) +
-  facet_wrap(~model)
 
 ```
 
@@ -767,6 +753,116 @@ a / b
 We fit the distributions of patients reporting per day to the estimated average annual bites reported to each clinic. We found that as reported bites increase, the average number of patients reporting per day increases linearly, and that the heterogeneity in this increases with lower reported bites to a clinic. 
 
 We use this to estimate how vaccine demand will change as access to PEP is expanded...
+```{r simulate vials used}
+## Get catchment
+catch_scenario <- read.csv("output/temp_ARMC.csv", row.names = 1)
+comm_ttimes <- read.csv("output/commune_temp_scenario_20190212_182810.csv", row.names = 1)[, 1:231]
+mada_communes@data %>%
+  left_join(comm_data) -> comm_catches
+comm_ttimes <- cbind(comm_ttimes[, 1], comm_ttimes)
+names(comm_ttimes)[1] <- "result.0"
+comm_mat <- matrix(NA, nrow(comm_ttimes), ncol(comm_ttimes))
+comm_mat[, 1] <- as.character(comm_catches$CTAR)
+
+for (i in 2:ncol(comm_ttimes)){
+  comm_mat[, i] <- ifelse(comm_ttimes[, i] < comm_ttimes[, i - 1], as.character(catch_scenario$CTAR[i - 1]), 
+                          comm_mat[, 1])
+}
+
+comm_mat <- as.data.table(comm_mat)
+comm_mat$mdg_cm_ <- mada_communes$mdg_cm_
+comm_mat <- melt(comm_mat, id.vars = "mdg_cm_", value.name = "catchment", variable.name = "scenario")
+comm_mat$scenario <- as.numeric(gsub("V", "", comm_mat$scenario)) - 1
+comm_ttimes <- as.data.table(comm_ttimes)
+comm_ttimes$mdg_cm_ <- mada_communes$mdg_cm_
+comm_ttimes <- melt(comm_ttimes, id.vars = "mdg_cm_", value.name = "ttimes", variable.name = "scenario")
+comm_ttimes$scenario <- as.numeric(gsub("result.", "", comm_ttimes$scenario))
+
+comm_mat %>%
+  left_join(comm_ttimes) %>%
+  left_join(select(mada_communes@data, pop = MDG__201, mdg_cm_)) %>%
+  mutate(exp_bites = inv.logit(B_ttimes_mada*ttimes/60 + B_0_mada)*pop) %>%
+  group_by(scenario, catchment) %>%
+  summarize(bites = sum(exp_bites, na.rm = TRUE)) %>%
+  drop_na(catchment) -> comm_master
+
+sim.throughput <- function(bites, nsims = 100) {
+  get.vials <- function(x) {
+    day0 <- round(runif(rpois(1, x), min = 1, max = 365))
+    days <- c(day0, day0 + 3, day0 + 7)
+    vials <- sum(ceiling(table(days)/2))
+    return(vials)
+  }
+
+  check <- foreach(i = 1:nsims, .combine = cbind) %dopar% {
+    vials <- sapply(bites, get.vials, simplify = TRUE)
+  }
+  
+  mean_vials <- rowMeans(check, na.rm = TRUE)
+  sd_vials <- apply(check, 1, sd, na.rm = TRUE)
+  return(as.data.frame(list(bites = bites, mean_vials = mean_vials, sd_vials = sd_vials)))
+}
+
+## local cluster
+library(doParallel)
+# Calculate the number of cores
+no_cores <- detectCores() - 1
+# Initiate cluster
+cl <- makeCluster(no_cores)
+registerDoParallel(cl)
+system.time({throughput <- sim.throughput(bites = comm_master$bites, nsims = 10)})
+stopCluster(cl) ## for doParallel
+
+comm_throughput <- bind_cols(comm_master, throughput)
+
+```
+
+```{r throughput district}
+## Get catchment
+catch_scenario <- read.csv("output/temp_ARMC.csv", row.names = 1)
+dist_ttimes <- read.csv("output/district_temp_scenario_20190212_181056.csv", row.names = 1)
+dist_ttimes <- cbind(dist_ttimes[, 1], dist_ttimes)
+names(dist_ttimes)[1] <- "result.0"
+dist_mat <- matrix(NA, nrow(dist_ttimes), ncol(dist_ttimes))
+dist_mat[, 1] <- as.character(mada_district$CTAR)
+
+for (i in 2:ncol(dist_ttimes)){
+  dist_mat[, i] <- ifelse(dist_ttimes[, i] < dist_ttimes[, i - 1], as.character(catch_scenario$CTAR[i - 1]), 
+                          dist_mat[, 1])
+}
+
+dist_mat <- as.data.table(dist_mat)
+dist_mat$mdg_dis_co <- mada_district$mdg_dis_co
+dist_mat <- melt(dist_mat, id.vars = "mdg_dis_co", value.name = "catchment", variable.name = "scenario")
+dist_mat$scenario <- as.numeric(gsub("V", "", dist_mat$scenario)) - 1
+dist_ttimes <- as.data.table(dist_ttimes)
+dist_ttimes$mdg_dis_co <- mada_district$mdg_dis_co
+dist_ttimes <- melt(dist_ttimes, id.vars = "mdg_dis_co", value.name = "ttimes", variable.name = "scenario")
+dist_ttimes$scenario <- as.numeric(gsub("result.", "", dist_ttimes$scenario))
+
+dist_mat %>%
+  left_join(dist_ttimes) %>%
+  left_join(select(mada_district@data, pop = pop2015adj, mdg_dis_co)) %>%
+  mutate(exp_bites = inv.logit(B_ttimes_dist*ttimes/60 + B_0_dist)*pop) %>%
+  group_by(scenario, catchment) %>%
+  summarize(bites = sum(exp_bites, na.rm = TRUE)) %>%
+  drop_na(catchment) -> dist_master
+
+## local cluster
+library(doParallel)
+# Calculate the number of cores
+no_cores <- detectCores() - 1
+# Initiate cluster
+cl <- makeCluster(no_cores)
+registerDoParallel(cl)
+system.time({throughput <- sim.throughput(bites = dist_master$bites, nsims = 10)})
+stopCluster(cl) ## for doParallel
+
+dist_throughput <- bind_cols(dist_master, throughput)
+
+
+```
+
 
 ## DISCUSSION
 
@@ -1114,7 +1210,6 @@ ggplot(preds_data_df, aes(x = observed, y = predicted,
 
 
 ### S5. Sensitity analyses for burden estimates
-
 #### District
 ```{r scaling w/ pop, cache = TRUE}
 ## Dist ttimes
@@ -1156,55 +1251,111 @@ constrained_inc <- function(slope, intercept, pop, max, min){
 }
 
 scale_df_dist %>%
-  merge(., select(mada_district@data, mdg_dis_co, ttimes_weighted, pop = pop2015adj)) -> scale_df_check
-ggplot(data = scale_df_check, aes(x = log(pop), 
+  merge(., select(mada_district@data, mdg_dis_co, ttimes_weighted, pop = pop2015adj)) -> scale_df_check_dist
+
+A_dist <- ggplot(data = scale_df_check_dist, aes(x = log(pop), 
                             y = constrained_inc(sf, intercept, pop, inc100k_max, inc100k_min)*1e5, 
                             color = sf)) +
   geom_point() +
-  geom_hline(yintercept = c(inc100k_max*1e5, inc100k_min*1e5), linetype = 2, color = "grey")
-## getting scaling factors 
-scenario_scaled <- 
+  geom_hline(yintercept = c(inc100k_max*1e5, inc100k_min*1e5), linetype = 2, color = "grey") +
+  scale_color_gradient2(low = "red", mid = "grey50", high = "blue", midpoint = 0, name = "Scaling Factor") +
+  ylab("Rabies exposures per \n 100k persons") +
+  xlab("Human population size (log)")
+
+system.time({
+scenario_natl_dist <- 
   foreach(i = 1:length(p_rabid_vals), .combine = rbind) %:%
   foreach(k = 1:nrow(scale_df_dist), .combine = rbind) %:%
   foreach(j = 1:length(rho_max_vals), .combine = rbind) %do% {
   check <- get.burden.fixed(names = dist_ttimes$mdg_dis_co, pop = dist_ttimes$pop, 
                      ttimes = dist_ttimes$ttimes/60, scenario = dist_ttimes$scenario,
-                     B_ttimes = B_ttimes_dist, B_0 = B_0_dist, 
+                     B_ttimes = B_ttimes_mada, B_0 = B_0_mada,
+                     p_rabid = p_rabid_vals[i], 
+                     rho_max = rho_max_vals[j], type = "burden", scale = TRUE, 
+                     slope = scale_df_dist$sf[k], intercept = scale_df_dist$intercept[k])
+  check$scale <- scale_df_dist$scale[k]
+  check %>% 
+    group_by(p_rabid, rho_max, slope, scale, scenario) %>% 
+    summarize(deaths = sum(deaths, na.rm = TRUE)) -> check
+  check
+  }
+})
+
+dist_base <- filter(dist_ttimes, scenario == 0)
+
+system.time({
+scenario_base_dist <- 
+  foreach(i = 1:length(p_rabid_vals), .combine = rbind) %:%
+  foreach(k = 1:nrow(scale_df_dist), .combine = rbind) %:%
+  foreach(j = 1:length(rho_max_vals), .combine = rbind) %do% {
+  check <- get.burden.fixed(names = dist_base$mdg_dis_co, pop = dist_base$pop, 
+                     ttimes = dist_base$ttimes/60, scenario = dist_base$scenario,
+                     B_ttimes = B_ttimes_mada, B_0 = B_0_mada,
                      p_rabid = p_rabid_vals[i], 
                      rho_max = rho_max_vals[j], type = "burden", scale = TRUE, 
                      slope = scale_df_dist$sf[k], intercept = scale_df_dist$intercept[k])
   check$scale <- scale_df_dist$scale[k]
   check
   }
+})
 
-scenario_scaled %>%
-  mutate(slope = case_when(slope == 0 & scale =="neg" ~ -10, 
+scenario_natl_dist %>%
+  mutate(slope_order = case_when(slope == 0 & scale =="neg" ~ -10, 
                            slope == 0 & scale =="pos" ~ 10,
-                           slope > 0 | slope < 0 ~ round(slope*1e10))) -> scenario_scaled_dist
-scenario_scaled_dist %>%
-  filter(scenario == 0) %>%
-  group_by(slope, p_rabid, rho_max) %>%
+                           slope > 0 | slope < 0 ~ round(slope*1e10)), 
+         slope_order = round(1/slope_order, 2), 
+         slope_order = ifelse(slope_order == -0.1, -Inf, 
+                                 ifelse(slope_order == 0.1, Inf, slope_order))) -> scenario_scaled_dist
+scenario_base_dist %>%
+   mutate(slope_order = case_when(slope == 0 & scale =="neg" ~ -10, 
+                           slope == 0 & scale =="pos" ~ 10,
+                           slope > 0 | slope < 0 ~ round(slope*1e10)), 
+         slope_order = round(1/slope_order, 2), 
+         slope_order = ifelse(slope_order == -0.1, -Inf, 
+                                 ifelse(slope_order == 0.1, Inf, slope_order))) -> scenario_base_dist
+scenario_base_dist %>%
+  group_by(slope_order, p_rabid, rho_max) %>%
   summarize(deaths = sum(deaths, na.rm = TRUE)) -> deaths_multivar
 
-slope_name <- c(`-9` = "----", `-7` = "---", `-4` = "--", `-2` = "--",
-                    `-10` =  "max", `9` = "++++", `7` = "+++", `4` = "++", `2` = "+",`10` =  "min")
+slope_name_dist <- c(`-0.11` = "----", `-0.14` = "---", `-0.25` = "--", `-0.5` = "-",
+                `-Inf` =  "max", `0.11` = "++++", `0.14` = "+++", `0.25` = "++", 
+                `0.5` = "+",`Inf` =  "min")
 
-ggplot(data = deaths_multivar, aes(x = p_rabid, y = deaths, color = rho_max)) +
+B_dist <- ggplot(data = deaths_multivar, aes(x = p_rabid, y = deaths, color = rho_max)) +
   geom_point() +
-  facet_grid(~ slope, labeller = labeller(slope = as_labeller(slope_name)))
-ggplot(data = filter(scenario_scaled_dist, scenario == 0),  
-       aes(x = ttimes, y = deaths/pop, color = p_rabid)) +
+  facet_grid(~ slope_order, labeller = labeller(slope_order = as_labeller(slope_name_dist))) +
+  xlab("Prop. of reported \n bites assumed \n to be rabid") +
+  ylab("Burden of rabies deaths \n at national level") +
+  scale_x_continuous(breaks = c(0.2, 0.6)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_color_gradient(name = "Maximum \n reporting")
+
+C_dist <- ggplot(data = scenario_base_dist,  
+       aes(x = ttimes, y = deaths/pop*1e5, color = p_rabid)) +
   geom_point() +
-  facet_grid(rho_max ~ slope, labeller = labeller(slope = as_labeller(slope_name)))
+  facet_grid(rho_max ~ slope_order, labeller = labeller(slope_order = as_labeller(slope_name_dist))) +
+  scale_color_gradient(name = "Proportion of reported \n bites assumed \n to be rabid") + 
+  ylab("Rabies deaths \n per 100k persons") +
+  xlab("Travel times (hours)") +
+  scale_x_continuous(breaks = c(0, 6, 12)) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 scenario_scaled_dist %>%
-  group_by(scenario, slope, p_rabid, rho_max) %>%
-  summarize(deaths = sum(deaths)) -> deaths_scenario
-deaths_scenario %>%
-  left_join(select(deaths_multivar, slope, p_rabid, rho_max, deaths_base = deaths)) -> deaths_scenario
-ggplot(data = deaths_scenario, aes(x = scenario, y = deaths/deaths_base, color = p_rabid)) +
+  filter(scenario == 0) %>%
+  mutate(deaths_base = deaths) %>%
+  select(-deaths, -scenario) %>%
+  right_join(scenario_scaled_dist) -> deaths_scenario_dist
+
+D_dist <- ggplot(data = deaths_scenario_dist, aes(x = scenario, y = deaths/deaths_base, color = p_rabid)) +
   geom_point() +
-  facet_grid(slope ~ rho_max, scales = "free_y")
+  facet_grid(rho_max ~ slope_order, 
+             labeller = labeller(slope_order = as_labeller(slope_name_dist))) +
+  scale_color_gradient(name = "Proportion of reported \n bites assumed \n to be rabid") + 
+  scale_x_continuous(breaks = c(0, 250, 500)) +
+  scale_y_continuous(breaks = c(0, 0.5, 1), limits = c(0, 1)) + 
+  xlab("# Additional ARMC") +
+  ylab("Proportion of baseline burden") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 ```
 
@@ -1212,7 +1363,6 @@ ggplot(data = deaths_scenario, aes(x = scenario, y = deaths/deaths_base, color =
 
 ```{r commune scaling, cache = TRUE}
 ## Commune
-
 ## Commune ttimes
 comm_ttimes <- read.csv("output/commune_temp_scenario_20190212_182810.csv", row.names = 1)
 comm_ttimes <- as.data.table(comm_ttimes)
@@ -1240,6 +1390,7 @@ scale_df_comm <- rbind(as.data.frame(list(scale = "neg",
                   as.data.frame(list(scale = "pos", 
                                      sf = seq(0, pos$coefficients[2], length.out = 5),
                                      intercept = inc100k_min)))
+
 constrained_inc <- function(slope, intercept, pop, max, min){
   inc <- slope*pop + intercept
   inc[inc >= max] <- max
@@ -1247,74 +1398,139 @@ constrained_inc <- function(slope, intercept, pop, max, min){
   return(inc)
 }
 
-scale_df_comm <- rbind(as.data.frame(list(scale = "neg", 
-                                     sf = seq(neg$coefficients[2], 0, length.out = 5),
-                                     intercept = inc100k_max)),
-                  as.data.frame(list(scale = "pos", 
-                                     sf = seq(0, pos$coefficients[2], length.out = 5),
-                                     intercept = inc100k_min)))
-constrained_inc <- function(slope, intercept, pop, max, min){
-  inc <- slope*pop + intercept
-  inc[inc >= max] <- max
-  inc[inc <= min] <- min
-  return(inc)
-}
 scale_df_comm %>%
   merge(., select(mada_communes@data, mdg_cm_, ttms_ll, pop = MDG__201)) -> scale_df_check_comm
-ggplot(data = scale_df_check_comm, aes(x = log(pop), 
+
+scale_df_check_comm$admin <- "commune"
+scale_df_check_dist$admin <- "district"
+scale_df_check <- bind_rows(scale_df_check_dist, scale_df_check_comm)
+
+A_comm <- ggplot(data = scale_df_check_comm, aes(x = log(pop), 
                             y = constrained_inc(sf, intercept, pop, inc100k_max, inc100k_min)*1e5, 
                             color = sf)) +
   geom_point() +
-  geom_hline(yintercept = c(inc100k_max*1e5, inc100k_min*1e5), linetype = 2, color = "grey")
+  geom_hline(yintercept = c(inc100k_max*1e5, inc100k_min*1e5), linetype = 2, color = "grey") +
+  scale_color_gradient2(low = "red", mid = "grey50", high = "blue", midpoint = 0, name = "Scaling Factor", 
+                        guide = "none") +
+  ylab("Rabies exposures per \n 100k persons") +
+  xlab("Human population size (log)")
 
-scenario_scaled <- 
+system.time({
+scenario_natl_comm <- 
   foreach(i = 1:length(p_rabid_vals), .combine = rbind) %:%
   foreach(k = 1:nrow(scale_df_comm), .combine = rbind) %:%
   foreach(j = 1:length(rho_max_vals), .combine = rbind) %do% {
-  check <- get.burden.fixed(names = comm_ttimes$mdg_dis_co, pop = comm_ttimes$pop, 
+  check <- get.burden.fixed(names = comm_ttimes$mdg_cm_, pop = comm_ttimes$pop, 
                      ttimes = comm_ttimes$ttimes/60, scenario = comm_ttimes$scenario,
                      B_ttimes = B_ttimes_mada, B_0 = B_0_mada,
                      p_rabid = p_rabid_vals[i], 
                      rho_max = rho_max_vals[j], type = "burden", scale = TRUE, 
                      slope = scale_df_comm$sf[k], intercept = scale_df_comm$intercept[k])
+  check$scale <- scale_df_comm$scale[k]
   check %>% 
-    group_by(names, scenario, p_rabid, rho_max, slope) %>%
-    summarize(ttimes = mean(ttimes, na.rm = TRUE), pop = sum(pop, na.rm = TRUE),
-              deaths = sum(deaths, na.rm = TRUE)) -> check
+    group_by(p_rabid, rho_max, slope, scale, scenario) %>% 
+    summarize(deaths = sum(deaths, na.rm = TRUE)) -> check
+  check
+  }
+})
+
+comm_base <- filter(comm_ttimes, scenario == 0)
+
+system.time({
+scenario_base_comm <- 
+  foreach(i = 1:length(p_rabid_vals), .combine = rbind) %:%
+  foreach(k = 1:nrow(scale_df_comm), .combine = rbind) %:%
+  foreach(j = 1:length(rho_max_vals), .combine = rbind) %do% {
+  check <- get.burden.fixed(names = comm_base$mdg_cm_, pop = comm_base$pop, 
+                     ttimes = comm_base$ttimes/60, scenario = comm_base$scenario,
+                     B_ttimes = B_ttimes_mada, B_0 = B_0_mada,
+                     p_rabid = p_rabid_vals[i], 
+                     rho_max = rho_max_vals[j], type = "burden", scale = TRUE, 
+                     slope = scale_df_comm$sf[k], intercept = scale_df_comm$intercept[k])
   check$scale <- scale_df_comm$scale[k]
   check
   }
+})
 
-scenario_scaled %>%
-  mutate(slope = case_when(slope == 0 & scale =="neg" ~ -10, 
+scenario_natl_comm %>%
+  mutate(slope_order = case_when(slope == 0 & scale =="neg" ~ -10, 
                            slope == 0 & scale =="pos" ~ 10,
-                           slope > 0 | slope < 0 ~ round(slope*1e10))) -> scenario_scaled_comm
+                           slope > 0 | slope < 0 ~ round(slope*1e9, 2)), 
+         slope_order = round(1/slope_order, 2), 
+         slope_order = ifelse(slope_order == -0.1, -Inf, 
+                                 ifelse(slope_order == 0.1, Inf, slope_order))) -> scenario_scaled_comm
+scenario_base_comm %>%
+   mutate(slope_order = case_when(slope == 0 & scale =="neg" ~ -10, 
+                           slope == 0 & scale =="pos" ~ 10,
+                           slope > 0 | slope < 0 ~ round(slope*1e9, 2)), 
+         slope_order = round(1/slope_order, 2), 
+         slope_order = ifelse(slope_order == -0.1, -Inf, 
+                                 ifelse(slope_order == 0.1, Inf, slope_order))) -> scenario_base_comm
+scenario_base_comm %>%
+  group_by(slope_order, p_rabid, rho_max) %>%
+  summarize(deaths = sum(deaths, na.rm = TRUE)) -> deaths_multivar
+
+slope_name_comm <- c(`-0.19` = "----", `-0.25` = "---", `-0.37` = "--", `-0.75` = "-",
+                `-Inf` =  "max", `0.19` = "++++", `0.25` = "+++", `0.37` = "++", 
+                `0.75` = "+",`Inf` =  "min")
+
+B_comm <- ggplot(data = deaths_multivar, aes(x = p_rabid, y = deaths, color = rho_max)) +
+  geom_point() +
+  facet_grid(~ slope_order, labeller = labeller(slope_order = as_labeller(slope_name_comm))) +
+  xlab("Prop. of reported \n bites assumed \n to be rabid") +
+  ylab("Burden of rabies deaths \n at national level") +
+  scale_x_continuous(breaks = c(0.2, 0.6)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_color_gradient(name = "Maximum \n reporting", guide = "none")
+
+C_comm <- ggplot(data = scenario_base_comm,  
+       aes(x = ttimes, y = deaths/pop*1e5, color = p_rabid)) +
+  geom_point() +
+  facet_grid(rho_max ~ slope_order, labeller = labeller(slope_order = as_labeller(slope_name_comm))) +
+  scale_color_gradient(name = "Proportion of reported \n bites assumed \n to be rabid", guide = "none") + 
+  ylab("Rabies deaths \n per 100k persons") +
+  xlab("Travel times (hours)") +
+  scale_x_continuous(breaks = c(0, 6, 12)) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 scenario_scaled_comm %>%
   filter(scenario == 0) %>%
-  group_by(slope, p_rabid, rho_max) %>%
-  summarize(deaths = sum(deaths, na.rm = TRUE)) -> deaths_multivar
+  mutate(deaths_base = deaths) %>%
+  select(-deaths, -scenario) %>%
+  right_join(scenario_scaled_comm) -> deaths_scenario_comm
 
-slope_name <- c(`-9` = "----", `-7` = "---", `-4` = "--", `-2` = "--",
-                    `-10` =  "max", `9` = "++++", `7` = "+++", `4` = "++", `2` = "+",`10` =  "min")
-
-ggplot(data = deaths_multivar, aes(x = p_rabid, y = deaths, color = rho_max)) +
+D_comm <- ggplot(data = deaths_scenario_comm, aes(x = scenario, y = deaths/deaths_base, color = p_rabid)) +
   geom_point() +
-  facet_grid(~ slope, labeller = labeller(slope = as_labeller(slope_name)))
-ggplot(data = filter(scenario_scaled_comm, scenario == 0),  
-       aes(x = ttimes, y = deaths/pop, color = p_rabid)) +
-  geom_point() +
-  facet_grid(rho_max ~ slope, labeller = labeller(slope = as_labeller(slope_name)))
+  facet_grid(rho_max ~ slope_order, 
+             labeller = labeller(slope_order = as_labeller(slope_name_comm))) +
+  scale_color_gradient(name = "Proportion of reported \n bites assumed \n to be rabid", guide = "none") + 
+  scale_x_continuous(breaks = c(0, 250, 500)) +
+  scale_y_continuous(breaks = c(0, 0.5, 1), limits = c(0, 1)) + 
+  xlab("# Additional ARMC") +
+  ylab("Proportion of baseline burden") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+# S5.2 <- (D + A)/(B + C)
+# ggsave("figs/S5.2.jpeg", device = "jpeg", plot = S5.2, width = 10, height = 10)
+
+```
 
 
-scenario_scaled_comm %>%
-  group_by(scenario, slope, p_rabid, rho_max) %>%
-  summarize(deaths = sum(deaths)) -> deaths_scenario
-deaths_scenario %>%
-  left_join(select(deaths_multivar, slope, p_rabid, rho_max, deaths_base = deaths)) -> deaths_scenario
-ggplot(data = deaths_scenario, aes(x = scenario, y = deaths/deaths_base, color = p_rabid)) +
-  geom_point() +
-  facet_grid(slope ~ rho_max, scales = "free_y", labeller = labeller(slope = as_labeller(slope_name)))
+```{r scaling factor}
+A_dist / A_comm
+```
+
+```{r differences with ttimes}
+C_dist / C_comm
+```
+
+```{r national burden baseline}
+B_dist / B_comm
+
+```
+
+```{r national burden scenario}
+D_dist / D_comm
 
 ```
 
@@ -1407,86 +1623,46 @@ dist_level %$% abline(v = ttimes_weighted_dist/60, col = "red", lty = 2)
 ```
 
 
-```{r scenario analysis}
-# ## new ctar
-# expanded <- read.csv("output/incremental_ARMC_nofilter.csv")
-# dist_ttimes <- read.csv("output/district_temp_scenario_20190212_181056.csv", row.names = 1)
-# comm_ttimes <- read.csv("output/commune_temp_scenario_20190212_182810.csv", row.names = 1)
-# 
-# 
-# scenario_scaled <- 
-#   foreach(i = 1:length(p_rabid_vals), .combine = rbind) %:%
-#   foreach(k = 1:nrow(scale_df), .combine = rbind) %:%
-#   foreach(j = 1:length(rho_max_vals), .combine = rbind) %do% {
-#   get.burden.fixed(names = dist_ttimes$mdg_dis_co, pop = dist_ttimes$pop, 
-#                      ttimes = dist_ttimes$ttimes/60, scenario = dist_ttimes$scenario,
-#                      B_ttimes = B_ttimes_dist, B_0 = B_0_dist, 
-#                      p_rabid = p_rabid_vals[i], 
-#                      rho_max = rho_max_vals[j], type = "burden", scale = TRUE, 
-#                      slope = scale_df$sf[k], intercept = scale_df$intercept[k])
-#   }
-# dist_burden_min <- do.call("rbind", apply(dist_ttimes, 2, function(x) get.burden.fixed(pop = mada_district$pop2015adj, ttimes = x/60, names = mada_district$mdg_dis_co, B_ttimes = B_ttimes_dist, B_0 = B_0_dist, hdr = 25, p_rabid = 0.6, type = "burden")))
-# dist_burden_max <- do.call("rbind", apply(dist_ttimes, 2, function(x) get.burden.fixed(pop = mada_district$pop2015adj, ttimes = x/60, names = mada_district$mdg_dis_co, B_ttimes = B_ttimes_dist, B_0 = B_0_dist, hdr = 5, p_rabid = 0.2, type = "burden")))
-# 
-# comm_burden_min <- do.call("rbind", apply(comm_ttimes, 2, function(x) get.burden.fixed(pop = mada_communes$MDG__201, ttimes = x/60, names = mada_communes$mtch_ds, B_ttimes = B_ttimes_mada, B_0 = B_0_mada, hdr = 25, p_rabid = 0.6, type = "burden")))
-# comm_burden_max <- do.call("rbind", apply(comm_ttimes, 2, function(x) get.burden.fixed(pop = mada_communes$MDG__201, ttimes = x/60, names = mada_communes$mtch_ds, B_ttimes = B_ttimes_mada, B_0 = B_0_mada, hdr = 5, p_rabid = 0.2, type = "burden")))
-# 
-# ## Decrease in burden over times proportional
-# comm_burden_min$scale <- "commune"
-# comm_burden_max$scale <- "commune"
-# dist_burden_max$scale <- "district"
-# dist_burden_min$scale <- "district"
-# burden_range <- bind_rows(comm_burden_max, comm_burden_min, dist_burden_max, dist_burden_min)
-# burden_range %>%
-#   group_by(scenario, scale, hdr) %>%
-#   summarize(burden_total = sum(deaths)) %>%
-#   group_by(scale, hdr, names) %>%
-#   mutate(burden_base = deaths[scenario == 0]) -> burden_all
-#   
-# ggplot(data = comm_burden_min, aes(x = scenario, ))
-# 
-# plot(colSums(comm_burden_min, na.rm = TRUE)/sum(comm_burden_min[,1], na.rm = TRUE), type = "l", col = "blue", bty = "n", ylim = c(0, 1), xlab = "# Additional ARMC", 
-#      ylab = "Proportion of deaths compared to baseline ")
-# lines(colSums(dist_burden_min, na.rm = TRUE)/sum(dist_burden_min[, 1], na.rm = TRUE),
-#       col = "purple")
-# lines(colSums(comm_burden_max, na.rm = TRUE)/sum(comm_burden_max[, 1], na.rm = TRUE), 
-#      type = "l", col = "blue")
-# lines(colSums(dist_burden_max, na.rm = TRUE)/sum(dist_burden_max[, 1], na.rm = TRUE), col = "purple")
-# 
-# ## Decrease in burden over times absolute
-# plot(colSums(comm_burden_min, na.rm = TRUE), type = "l", col = "blue", bty = "n",
-#      ylim = c(0, 1500), xlab = "# Additional ARMC",
-#      ylab = "Number of deaths")
-# lines(colSums(dist_burden_min, na.rm = TRUE), col = "purple")
-# lines(colSums(comm_burden_max, na.rm = TRUE), type = "l", col = "blue")
-# lines(colSums(dist_burden_max, na.rm = TRUE), col = "purple")
-
-```
-
-
 ```{r simulate vials used}
 ## Get catchment
-# comm_catchments <- read.csv("output/temp_ARMC.csv", row.names = 1)
-# comm_ttimes <- read.csv("output/commune_temp_scenario_20190212_182810.csv", row.names = 1)[, 1:231]
-# comm_ttimes <- cbind(mada_communes@data$ttms_ll, comm_ttimes)
-# comm_mat <- matrix(NA, nrow(comm_ttimes), ncol(comm_ttimes))
-# comm_mat[, 1] <- comm_ttimes[, 1]
-# 
-# for (i in 2:ncol(comm_ttimes)){
-#   comm_mat[, i] <- ifelse(comm_ttimes[, i] < comm_ttimes[, i - 1], comm_ttimes[, i], NA)
-# }
-# 
-# comm_mat <- as.data.table(comm_mat)
-# comm_mat$mdg_cm_ <- mada_communes$mdg_cm_
-# comm_mat <- melt(comm_mat, id.vars = "mdg_cm_", value.name = "ttimes", variable.name = "scenario")
-# comm_mat$scenario <- as.numeric(gsub("V", "", comm_mat$scenario)) - 1
-# 
-# comm_catchments$scenario <- 1:nrow(comm_catchments)
+catch_scenario <- read.csv("output/temp_ARMC.csv", row.names = 1)
+comm_ttimes <- read.csv("output/commune_temp_scenario_20190212_182810.csv", row.names = 1)[, 1:231]
+mada_communes@data %>%
+  left_join(comm_data) -> comm_catches
+comm_ttimes <- cbind(comm_ttimes[, 1], comm_ttimes)
+names(comm_ttimes)[1] <- "result.0"
+comm_mat <- matrix(NA, nrow(comm_ttimes), ncol(comm_ttimes))
+comm_mat[, 1] <- as.character(comm_catches$CTAR)
+
+for (i in 2:ncol(comm_ttimes)){
+  comm_mat[, i] <- ifelse(comm_ttimes[, i] < comm_ttimes[, i - 1], as.character(catch_scenario$CTAR[i - 1]), 
+                          comm_mat[, 1])
+}
+
+comm_mat <- as.data.table(comm_mat)
+comm_mat$mdg_cm_ <- mada_communes$mdg_cm_
+comm_mat <- melt(comm_mat, id.vars = "mdg_cm_", value.name = "catchment", variable.name = "scenario")
+comm_mat$scenario <- as.numeric(gsub("V", "", comm_mat$scenario)) - 1
+comm_ttimes <- as.data.table(comm_ttimes)
+comm_ttimes$mdg_cm_ <- mada_communes$mdg_cm_
+comm_ttimes <- melt(comm_ttimes, id.vars = "mdg_cm_", value.name = "ttimes", variable.name = "scenario")
+comm_ttimes$scenario <- as.numeric(gsub("result.", "", comm_ttimes$scenario))
+
+comm_mat %>%
+  left_join(comm_ttimes) %>%
+  left_join(select(mada_communes@data, pop = MDG__201, mdg_cm_)) %>%
+  mutate(exp_bites = inv.logit(B_ttimes_mada*ttimes/60 + B_0_mada)*pop) %>%
+  group_by(scenario, catchment) %>%
+  summarize(bites = sum(exp_bites, na.rm = TRUE)) -> comm_master
+
+sim.throughput <- function(B_bites, B_0, )
+
+# catch_scenario$scenario <- 1:nrow(catch_scenario)
 # comm_mat %>%
 #   drop_na(ttimes) %>%
 #   left_join(select(comm_data, mdg_cm_, pop)) -> comm_mat
 # comm_mat %>%
-#   left_join(comm_catchments, by = c("scenario" = "scenario")) -> comm_mat
+#   left_join(catch_scenario, by = c("scenario" = "scenario")) -> comm_mat
 # comm_mat$CTAR <- as.character(comm_mat$CTAR)
 # comm_data$CTAR <- as.character(comm_data$CTAR)
 # comm_mat %>%
