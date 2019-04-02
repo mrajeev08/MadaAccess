@@ -9,7 +9,7 @@
 
 model.bites <- function(bites, names_bites, covar, pop, names_covar, sum = TRUE, 
                         pop_predict = "addPop", covar_name = "ttimes_weighted",
-                        beta = 1e-5, beta_pop = 1e-5, intercept = 0.1, trans = 1e5, run = "optim",...) {
+                        beta = 1e-6, beta_pop = 1e-6, intercept = 0.1, trans = 1e5, run = "optim",...) {
   ## Testing
   ## Need a dataframe with all covars + pop + names_covar
   # beta_pop = 1e-5;
@@ -22,7 +22,7 @@ model.bites <- function(bites, names_bites, covar, pop, names_covar, sum = TRUE,
   }
   
   if(pop_predict == "flatPop") {
-    exp_bites <- inv.logit(beta*covar + intercept)*pop
+    exp_bites <- exp(beta*covar + intercept)*pop
   }
   
   if(pop_predict == "addPop") {
@@ -142,7 +142,7 @@ run.predicts.fixed <- function(covar_df, pop_fixed = 1e5, pop_seq = pop_plot) {
     covar_name <- mod_attrs[3]
     scale <- ifelse(mod_attrs[1] == "Mora", "Moramanga", 
                     ifelse(grepl("district", covar_name, fixed = TRUE), "District", 
-                           "Commune summed"))
+                           "Commune"))
     covar_name <- str_split(covar_name, "_")[[1]][1]
     names_covar = comm_covars$mdg_dis_co
     
@@ -160,10 +160,10 @@ run.predicts.fixed <- function(covar_df, pop_fixed = 1e5, pop_seq = pop_plot) {
       pop = pop_fixed
     }
     
-    if(scale == "District" | scale == "Commune summed") {
+    if(scale == "District" | scale == "Commune") {
       bites = exps_dist$bites
       names_bites = exps_dist$district
-      if(scale == "Commune summed") {
+      if(scale == "Commune") {
         sum_it = TRUE
       } else {
         sum_it = FALSE
@@ -210,7 +210,7 @@ run.predicts.data<- function(covar_df, run_type = "predict.raw") {
     loc <- mod_attrs[1]
     scale <- ifelse(mod_attrs[1] == "Mora", "Moramanga", 
                     ifelse(grepl("district", covar_name, fixed = TRUE), "District", 
-                           "Commune summed"))
+                           "Commune"))
     covar_name <- str_split(covar_name, "_")[[1]][1]
     
     if(mod_pop == "addPop"){
@@ -224,7 +224,7 @@ run.predicts.data<- function(covar_df, run_type = "predict.raw") {
     if(loc == "Mada") {
       bites = exps_dist$bites
       names_bites = exps_dist$district
-      if(scale == "Commune summed") {
+      if(scale == "Commune") {
         names_covar = comm_covars$mdg_dis_co
         sum_it = TRUE
         pop_data = comm_covars$pop
