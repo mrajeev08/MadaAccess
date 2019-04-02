@@ -2,6 +2,38 @@
 ## Malavika Rajeev
 ## March 2019
 
+## Get days ------------------------------------------------------------------------------------
+get.days <- function(dmat = dose_mat, doses_wide, threshold = 10) {
+  date_mat <- matrix(NA, nrow(dmat), ncol(dmat))
+  for (j in 1:ncol(date_mat)){
+    rle(dmat[ , j]) %>%
+      unclass() %>%
+      as.data.frame() %>%
+      mutate(end = cumsum(lengths),
+             start = c(1, lag(end)[-1] + 1)) %>%
+      filter(values == 0, lengths >= threshold) -> rles
+    if(nrow(rles) > 0){
+      for (i in 1:nrow(rles)){
+        date_mat[rles$start[i]:rles$end[i], j] <- 0
+      }
+    }
+  }
+  
+  date_mat <- replace(date_mat, is.na(date_mat), 1)
+  date_mat %>% 
+    as_tibble() %>%
+    group_by(date = year(doses_wide$date_de_consultation)) %>%
+    summarise_all(funs(sum(.)/n())) -> clinic_reporting
+  colnames(clinic_reporting) <- colnames(doses_wide)[1:(ncol(doses_wide)-1)]
+  
+  clinic_reporting <- gather(clinic_reporting, id_ctar, prop, -date_de_consultation)
+  clinic_reporting$ctar <- ctar_metadata$CTAR[match(clinic_reporting$id_ctar, 
+                                                    ctar_metadata$id_ctar)]
+  clinic_reporting$id_ctar <- as.numeric(clinic_reporting$id_ctar)
+  clinic_reporting$threshold <- threshold
+  return(list(clinic_reporting, date_mat))
+}
+
 ## Get estimate of reporting annually  -----------------------------------------------------
 get.reporting <- function(ctar_data, ctar_metadata, start_date = ymd("2014-01-01"), 
                           end_date = ymd("2017-12-31"), 
@@ -28,7 +60,7 @@ get.reporting <- function(ctar_data, ctar_metadata, start_date = ymd("2014-01-01
     spread(id_ctar, n) %>%
     replace(., is.na(.), 0) -> doses_wide
   
-  dose_mat <- as.matrix(doses_wide[, 2:(ncol(doses_wide) - 1)])
+  dose_mat <- dmat <- as.matrix(doses_wide[, 2:(ncol(doses_wide) - 1)])
   
   date_mat <- matrix(NA, nrow(dose_mat), ncol(dose_mat))
   for (j in 1:ncol(date_mat)){
@@ -45,7 +77,7 @@ get.reporting <- function(ctar_data, ctar_metadata, start_date = ymd("2014-01-01
     }
   }
   
-  date_mat <- replace(date_mat, is.na(date_mat), 1)
+  date_mat <- check_mat <- replace(date_mat, is.na(date_mat), 1) 
   date_mat %>% 
     as_tibble() %>%
     group_by(date = year(doses_wide$date_de_consultation)) %>%
@@ -58,8 +90,14 @@ get.reporting <- function(ctar_data, ctar_metadata, start_date = ymd("2014-01-01
   clinic_reporting$id_ctar <- as.numeric(clinic_reporting$id_ctar)
   clinic_reporting$threshold <- threshold
   
+  date_mat <- as.data.frame(date_mat)
+  date_mat$date_de_consultation <- doses_wide$date_de_consultation
+  date_mat <-melt(date_mat, id = "date_de_consultation")
+  levels(date_mat$variable) <- names(doses_wide)[2:23]
+  names(date_mat) <- c("date_de_consultation", "id_ctar", "exclude")
+  
   return(list(clinic_reporting = clinic_reporting, patient_ts = patient_ts, 
-              date_mat = date_mat))
+              date_mat = date_mat, doses_wide = doses_wide, dose_mat = dmat, check_mat = check_mat))
 
 }
 
@@ -99,7 +137,7 @@ get.contacts <- function(ctar_data, times_sd) {
 }
 
 ## Get bite data with covariates @ district level --------------------------------------------------
-get.district.data <- function(ctar_data, ctar_metadata, mada_district, catchments, consec_days = 15, 
+get.district.data <- function(ctar_data, ctar_metadata, covars, consec_days = 15, 
                               contact_cutoff = 3, reporting_thresh = 0.25, 
                               start = ymd("2014-01-01"), end = ymd("2017-12-31")) {
   
@@ -111,18 +149,7 @@ get.district.data <- function(ctar_data, ctar_metadata, mada_district, catchment
   clinic_reporting <- get.reporting(ctar_data, ctar_metadata, start_date = start, 
                                     end_date = end, 
                                     threshold = consec_days)[["clinic_reporting"]]
-  ## 3. Get spatial data
-  ## Distance to CTAR
-  ctar_coords <- cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE)
-  district_coords <- coordinates(mada_district)
-  distance_mat <- distm(district_coords, ctar_coords)
-  mada_district$dist_min <- apply(distance_mat, 1, min)/1000
-  mada_district@data %>%
-    select(district = mdg_dis_co, dist_name = district, pop = pop2015adj, 
-           ttimes_weighted_dist = ttimes_weighted, 
-           dist_catch = CTAR, distance = dist_min, exclude, color) -> covars
-  
-  ## 4. Exclude, apply reporting, join with covar data
+  ## 3. Exclude, apply reporting, join with covar data
   patient_data %>% 
     filter(exclude_bydate == 0, exclude_bycomment == 0) %>% # exclude contacts
     mutate_at(vars(starts_with("date")), funs(ymd(.))) %>% # format dates
@@ -137,12 +164,8 @@ get.district.data <- function(ctar_data, ctar_metadata, mada_district, catchment
     summarise(bites = sum(bites, na.rm = TRUE)) %>%
     right_join(covars) %>%
     filter(exclude == 0) %>%
-    replace_na(list(bites = 0)) %>%
-    group_by(district) %>%
-    summarise(bites = mean(bites), n = n()) %>%
-    left_join(covars) -> exps_dist
-    
- return(exps_dist)
+    replace_na(list(bites = 0)) -> exps
+ return(exps)
 }
   
 # Get bite data with covariates for Moramanga  ----------------------------------------------------
@@ -201,4 +224,5 @@ get.morabites <- function(mada_communes) {
     right_join(mora_bites) -> mora_bites
   mora_bites %>% 
     mutate(distance = distm(select(mora_bites, long, lat), mora_coords)[, 1]/1000) -> mora_bites
+  return(list(mora_bites = mora_bites, ctar = ctar))
 }
