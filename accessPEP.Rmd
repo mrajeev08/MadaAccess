@@ -689,12 +689,14 @@ ggplot(results_all_base,
 
 gg_district %>%
   left_join(results_all_base, by = c("id" = "names")) -> gg_district_burden
+```
 
+```{r burden figure}
 p <- ggplot() +
   geom_polygon(data = gg_district_burden, aes(x = long, y = lat, group = group, 
                                               fill = deaths_mean/pop*1e5), 
                color = "grey50") +
-  geom_point(data = ctar_points, aes(x = LONGITUDE, y = LATITUDE), color = "blue") + 
+  geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "blue") + 
   scale_fill_gradient(low = "white", high = "red", name = "Annual deaths per 100k \n persons") +
   labs(tag = "B") +
   facet_grid(covar_name~model)
@@ -1349,7 +1351,7 @@ ggsave("figs/S4.2.jpeg", B, device = "jpeg")
 
 
 ### S5. Sensitity analyses for burden estimates
-```{r district scaling w/ pop, cache = TRUE}
+```{r district scaling w pop, cache = TRUE}
 ## Dist ttimes
 dist_ttimes <- read.csv("output/district_temp_scenario_20190212_181056.csv", row.names = 1)
 dist_ttimes <- as.data.table(dist_ttimes)
@@ -1364,7 +1366,7 @@ dist_ttimes %>%
 
 ## Pop scaling
 p_rabid_vals <- c(0.2, 0.3, 0.4, 0.5, 0.6)
-rho_max_vals <- c(0.80, 0.85, 0.9, 0.95, 0.9)
+rho_max_vals <- c(0.80, 0.85, 0.9, 0.95, 0.99)
 
 pop <- mada_district$pop2015adj
 pop <- pop[order(pop, decreasing = FALSE)]
