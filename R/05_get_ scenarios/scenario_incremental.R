@@ -1,5 +1,4 @@
 ## Scenario analysis, incremental parallelized
-
 ## Init MPI Backend
 rm(list = ls())
 # args <- commandArgs(trailingOnly = TRUE)
