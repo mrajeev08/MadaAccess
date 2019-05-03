@@ -13,24 +13,6 @@ catch_mat_comm_masked <- read.csv("output/commune_catchmat_masked_20181201_10162
 catch_mat_comm_unmasked <- read.csv("output/commune_catchmat_unmasked_20181201_101133.csv", row.names = 1)
 
 
-get.catchments <- function(catch_mat, shape, place_names, point_names, 
-                           type = "masked", admin = "district") {
-  rownames(catch_mat) <- place_names
-  colnames(catch_mat) <- point_names
-  
-  min <-apply(catch_mat, 1, function (x) (range(x[is.finite(x)])[1]))
-  
-  inds <-apply(catch_mat, 1, function (x) {
-    which(x == range(x[is.finite(x)])[1], arr.ind=TRUE)[1]
-  })
-  
-  catchments <- as.data.frame(cbind(rownames(catch_mat), colnames(catch_mat)[inds], min))
-  
-  write.csv(catchments, paste0("output/catchments_", admin, "_", type, ".csv"))
-  return(catchments)
-}
-
-
 dist_catch_unmasked <- get.catchments(catch_mat = catch_mat_dist_unmasked, shape = mada_district, 
                       place_names = mada_district$mdg_dis_co, point_names = gps_locs$CTAR,
                       type = "unmasked", admin = "district")

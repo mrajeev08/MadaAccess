@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --ntasks=101
+#SBATCH --ntasks=50
 #SBATCH --cpus-per-task=1
 #SBATCH -J  incremental
-#SBATCH -t 48:00:00
+#SBATCH -t 12:00:00
 # sends mail when process begins, and
 # when it ends
 #SBATCH --mail-type=begin
@@ -11,4 +11,4 @@
 
 export OMPI_MCA_btl="tcp,self,sm"
 module load openmpi/gcc/2.0.2
-srun Rscript ./R/scenario_incremental.R
+srun Rscript ./R/scenario_temp.R

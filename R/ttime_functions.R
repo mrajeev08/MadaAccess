@@ -96,6 +96,23 @@ get.catchmat <- function(point_mat, fric, shape, admin = "district",
   return(catch_mat)
 }
 
+get.catchments <- function(catch_mat, shape, place_names, point_names, 
+                           type = "masked", admin = "district") {
+  rownames(catch_mat) <- place_names
+  colnames(catch_mat) <- point_names
+  
+  min <-apply(catch_mat, 1, function (x) (range(x[is.finite(x)])[1]))
+  
+  inds <-apply(catch_mat, 1, function (x) {
+    which(x == range(x[is.finite(x)])[1], arr.ind=TRUE)[1]
+  })
+  
+  catchments <- as.data.frame(cbind(rownames(catch_mat), colnames(catch_mat)[inds], min))
+  
+  write.csv(catchments, paste0("output/catchments_", admin, "_", type, ".csv"))
+  return(catchments)
+}
+
 # 3. Add ARMC for scenario analysis --------------------------------------------------------------
 ## parallelized function to add ARMC sequentially
 ## updating base proportion at each step to eliminate ones that don't reduce that threshold further
