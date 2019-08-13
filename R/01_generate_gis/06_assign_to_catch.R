@@ -31,3 +31,5 @@ comm_catch_masked <- get.catchments(catch_mat = catch_mat_comm_masked, shape = m
                                     place_names = mada_communes$mdg_com_co, 
                                     point_names = gps_locs$CTAR,
                                     type = "masked", admin = "commune")
+
+##' To do: Combine with 5!
