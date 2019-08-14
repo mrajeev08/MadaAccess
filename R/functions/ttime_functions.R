@@ -54,7 +54,7 @@ get.catchmat <- function(point_mat, fric, shape, admin = "district",
                          pop_rast, pop_pol, weighted = TRUE, type = "masked"){
   
   ## getting catchments
-  catch_mat <- foreach(coords = iter(point_mat,"row"),
+  catchmat <- foreach(coords = iter(point_mat,"row"),
                        .packages = c('raster', 'rgdal', 'sp', 'gdistance'),
                        .errorhandling = 'stop',
                        .export = 'get.travel.times',
@@ -91,25 +91,25 @@ get.catchmat <- function(point_mat, fric, shape, admin = "district",
     out$ttimes 
   }
   
-  write.csv(catch_mat, paste0("output/", admin, "_", "catchmat_", type, "_", 
+  write.csv(catchmat, paste0("output/catchmats/", admin, "_", "catchmat_", type, "_", 
                               format(Sys.time(), "%Y%m%d_%H%M%S"), ".csv"))
-  return(catch_mat)
+  return(catchmat)
 }
 
-get.catchments <- function(catch_mat, shape, place_names, point_names, 
+get.catchments <- function(catchmat, shape, place_names, point_names, 
                            type = "masked", admin = "district") {
-  rownames(catch_mat) <- place_names
-  colnames(catch_mat) <- point_names
+  rownames(catchmat) <- place_names
+  colnames(catchmat) <- point_names
   
-  min <-apply(catch_mat, 1, function (x) (range(x[is.finite(x)])[1]))
+  min <-apply(catchmat, 1, function (x) (range(x[is.finite(x)])[1]))
   
-  inds <-apply(catch_mat, 1, function (x) {
+  inds <-apply(catchmat, 1, function (x) {
     which(x == range(x[is.finite(x)])[1], arr.ind=TRUE)[1]
   })
   
-  catchments <- as.data.frame(cbind(rownames(catch_mat), colnames(catch_mat)[inds], min))
+  catchments <- as.data.frame(cbind(rownames(catchmat), colnames(catchmat)[inds], min))
   
-  write.csv(catchments, paste0("output/catchments_", admin, "_", type, ".csv"))
+  write.csv(catchments, paste0("output/", "catchments_", admin, "_", type, ".csv"))
   return(catchments)
 }
 
