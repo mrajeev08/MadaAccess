@@ -1,7 +1,7 @@
 ####################################################################################################
-##' Generate GIS files 
-##' Step 1: get friction surface and shapefiles from Malaria Atlas Project 
+##' Generating GIS files Step 1
 ##' Details: Getting masked and unmasked friction layers to input into travel time estimates 
+##' Need to do this outside of the cluster because problem with connecting to external server
 ##' Author: Malavika Rajeev 
 ####################################################################################################
 
@@ -12,11 +12,11 @@ library(malariaAtlas) # for friction surface
 ##' Shapefiles
 mada_communes <- getShp(country = "Madagascar", admin_level = "admin3") ## commune level shapefile
 plot(mada_communes)
-writeOGR(mada_communes, "output/shapefiles", layer = "communes", driver = "ESRI Shapefile", 
+writeOGR(mada_communes, "data/shapefiles", layer = "communes", driver = "ESRI Shapefile", 
          overwrite_layer = TRUE)
 mada_districts <- getShp(country = "Madagascar", admin_level = "admin2") ## district level shapefile
 plot(mada_districts)
-writeOGR(mada_districts, "output/shapefiles", layer = "districts", driver = "ESRI Shapefile",
+writeOGR(mada_districts, "data/shapefiles", layer = "districts", driver = "ESRI Shapefile",
          overwrite_layer = TRUE)
 
 ##' Masked friction surface
