@@ -1,7 +1,9 @@
 ####################################################################################################
 ##' Generating GIS files Step 2
 ##' Details: Getting travel time estimates for the baseline clinics (n = 31)
-##' Author: Malavika Rajeev 
+##'   Recommended that code be run in parallel to limit compute time (particularly the resampling, # 2)
+##'   On the Della cluster at Princeton with NN cores, it takes approximately XX hrs
+##' Author: Malavika Rajeev
 ####################################################################################################
 
 ##' Set up
@@ -24,8 +26,8 @@ library(doRNG)
 source("R/ttime_functions.R")
 
 ##' Load in GIS files written out from Malaria Atlas Project
-mada_communes <- readOGR("output/shapefiles/communes.shp")
-mada_districts <- readOGR("output/shapefiles/districts.shp")
+mada_communes <- readOGR("data/shapefiles/communes.shp")
+mada_districts <- readOGR("data/shapefiles/districts.shp")
 friction_masked <- raster("output/friction_mada_masked.tif")
 friction_unmasked <- raster("output/friction_mada_unmasked.tif")
 
@@ -37,6 +39,7 @@ names(gps_locs) <- c ("CTAR", "X_COORD", "Y_COORD")
 coordinates(gps_locs) <- ~ Y_COORD + X_COORD
 proj4string(gps_locs) <- proj4string(mada_communes)
 point_mat <- as.matrix(gps_locs@coords)
+write.csv(point_mat, "output/point_mat_CTAR.csv", row.names = FALSE)
 
 ##' Masked ttimes
 ttimes_masked <- get.travel.times(friction = friction_masked, shapefile = mada_communes,
