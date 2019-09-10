@@ -16,10 +16,10 @@ library(lubridate)
 ## Read in and format shapefiles
 ## have to change the codes a bit to account for some formatting
 mada_districts <- readOGR(
-  "data/raw/shapefiles/mdg_admbnda_adm2_BNGRC_OCHA_20181031/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
+  "data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
 mada_districts$distcode <- substring(as.character(mada_districts$ADM2_PCODE), 1, 7)
 mada_communes <- readOGR(
-  "data/raw/shapefiles/mdg_admbnda_adm3_bngrc_ocha_20181031/mdg_admbnda_adm3_BNGRC_OCHA_20181031.shp")
+  "data/raw/shapefiles/communes/mdg_admbnda_adm3_BNGRC_OCHA_20181031.shp")
 mada_communes$distcode <- substring(as.character(mada_communes$ADM2_PCODE), 1, 7)
 
 ## Read in raw bite data

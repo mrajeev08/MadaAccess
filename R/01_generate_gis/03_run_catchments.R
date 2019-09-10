@@ -27,12 +27,12 @@ library(foreach)
 source("R/functions/ttime_functions.R")
 
 ##' Shapefiles from Malaria Atlas and CTAR point matrix
-mada_communes <- readOGR("data/processed/shapefiles/communes.shp")
-mada_districts <- readOGR("data/processed/shapefiles/districts.shp")
-pop1x1<- raster("data/processed/worldpop2015adj_mada_1x1km.tif")
+mada_communes <- readOGR("data/raw/shapefiles/communes/mdg_admbnda_adm3_BNGRC_OCHA_20181031.shp")
+mada_districts <- readOGR("data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
+pop1x1<- raster("data/processed/rasters/worldpop2015adj_mada_1x1km.tif")
 point_mat <- read.csv("data/processed/point_mat_CTAR.csv")
-friction_mada_unmasked <- raster("data/raw/friction_mada_unmasked.tif")
-friction_mada_masked <- raster("data/raw/friction_mada_masked.tif")
+friction_mada_unmasked <- raster("data/processed/rasters/friction_mada_unmasked.tif")
+friction_mada_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
 ##' Getting catchment matrix masked and unmasked
 ##' This function generates travel times to each CTAR for each admin unit (district or commune)
@@ -56,6 +56,8 @@ comm_mat_masked <- get.catchmat(point_mat = point_mat, fric = friction_mada_mask
                                 shape = mada_communes, admin = "commune", pop_rast = pop1x1, 
                                 pop_pol = mada_communes$pop, weighted = TRUE, type = "masked")
 print(paste(Sys.time(), ": finished generating commune catchmats"))
+
+## Get unweighted vals too?!
 
 ##' Close out cluster
 closeCluster(cl)
