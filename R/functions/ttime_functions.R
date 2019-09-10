@@ -87,23 +87,6 @@ get.catchmat <- function(point_mat, fric, shape, admin = "district", pop_rast,
   return(catchmat)
 }
 
-get.catchments <- function(catchmat, shape, place_names, point_names, 
-                           type = "masked", admin = "district") {
-  rownames(catchmat) <- place_names
-  colnames(catchmat) <- point_names
-  
-  min <-apply(catchmat, 1, function (x) (range(x[is.finite(x)])[1]))
-  
-  inds <-apply(catchmat, 1, function (x) {
-    which(x == range(x[is.finite(x)])[1], arr.ind=TRUE)[1]
-  })
-  
-  catchments <- data.frame(list(admin = rownames(catchmat), ctar = colnames(catchmat)[inds], 
-                                ttime = min))
-  
-  write.csv(catchments, paste0("output/", "catchments_", admin, "_", type, ".csv"))
-  return(catchments)
-}
 
 # 3. Add ARMC for scenario analysis --------------------------------------------------------------
 ## parallelized function to add ARMC sequentially
