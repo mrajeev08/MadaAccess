@@ -91,8 +91,8 @@ get.catchmat <- function(point_mat, fric, shape, admin = "district",
     out$ttimes 
   }
   
-  write.csv(catchmat, paste0("output/catchmats/", admin, "_", "catchmat_", type, "_", 
-                              format(Sys.time(), "%Y%m%d_%H%M%S"), ".csv"))
+  write.csv(catchmat, paste0("output/catchmat_", admin, "_", type, "_", 
+                              format(Sys.time(), "%Y%m%d_%H%M%S"), ".csv"), row.names = FALSE)
   return(catchmat)
 }
 
@@ -107,7 +107,8 @@ get.catchments <- function(catchmat, shape, place_names, point_names,
     which(x == range(x[is.finite(x)])[1], arr.ind=TRUE)[1]
   })
   
-  catchments <- as.data.frame(cbind(rownames(catchmat), colnames(catchmat)[inds], min))
+  catchments <- data.frame(list(admin = rownames(catchmat), ctar = colnames(catchmat)[inds], 
+                                ttime = min))
   
   write.csv(catchments, paste0("output/", "catchments_", admin, "_", type, ".csv"))
   return(catchments)
