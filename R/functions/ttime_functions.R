@@ -50,8 +50,8 @@ get.travel.times <- function(friction, shapefile, coords, trans_matrix_exists = 
 ### Function for getting catchment matrix
 ## Admin level average or weighted average by pop for each clinic
 
-get.catchmat <- function(point_mat, fric, shape, admin = "district",
-                         pop_rast, pop_pol, weighted = TRUE, type = "masked"){
+get.catchmat <- function(point_mat, fric, shape, admin = "district", pop_rast, 
+                         pop_pol, trans_mat, weighted = TRUE, type = "masked"){
   
   ## getting catchments
   catchmat <- foreach(coords = iter(point_mat,"row"),
@@ -63,13 +63,7 @@ get.catchmat <- function(point_mat, fric, shape, admin = "district",
     print(coords)
     print(Sys.time())
     point_mat_sub <- as.matrix(coords)
-    
-    if (type == "masked"){
-      trans_mat <- "output/trans_gc_masked.rds"
-    } else {
-      trans_mat = "output/trans_gc_unmasked.rds"
-    }
-    
+
     travel_time_pt <- get.travel.times(friction = fric, shapefile = shape, 
                                        coords = point_mat_sub, 
                                        trans_matrix_exists = TRUE, 
