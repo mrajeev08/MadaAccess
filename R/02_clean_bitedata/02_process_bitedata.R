@@ -32,27 +32,29 @@ moramanga <- read.csv("data/raw/bite_data/moramanga/CTAR_%28V2%29_20190908190136
 ## Peripheral data to the district
 peripheral$distcode <- paste0(substring(peripheral$district, 1, 1), 
                               substring(peripheral$district, 3, 8))
-## automatically do communes that were matched to within 2 differences
+## automatically do communes that were matched 
+## using best fixed matches with minimum matching distance <= 2
 peripheral_comm_matches <- read.csv("data/raw/match_names/peripheral_comm_matches.csv")
 mada_communes$matchcode <- interaction(mada_communes$distcode, tolower(mada_communes$ADM3_EN))
 peripheral_comm_matches %>%
-  mutate(match = ifelse(min <= 2, as.character(X1), NA),
+  mutate(match = ifelse(min_fixed <= 2, as.character(fixed_best), NA),
          matchcode_comm = interaction(nest, match), 
          matchcode_data = interaction(nest, names_tomatch),
          commcode = mada_communes$ADM3_PCODE[match(matchcode_comm, 
                                                    mada_communes$matchcode)]) %>%
-  select(names_tomatch, min, match, matchcode_comm, matchcode_data, commcode) -> peripheral_comm_matches
+  select(names_tomatch, min_fixed, match, matchcode_comm, 
+         matchcode_data, commcode) -> peripheral_comm_matches
 peripheral %>%
   mutate(matchcode_data = interaction(distcode, tolower(commune))) %>%
   left_join(peripheral_comm_matches) -> peripheral
 
 ## Also do contact matching (identify known contacts)
-known_contacts <- read.csv("data/processed/matched_names/peripheral_notes_contacts_Sep092019.csv")
+known_contacts <- read.csv("data/processed/matched_names/peripheral_notes_knowncontacts.csv")
 peripheral$known_contact <- known_contacts$known_contact[match(peripheral$remarque, 
                                                                 known_contacts$Note)]
 
 ## IPM data to the district
-names_matched <- read.csv("data/processed/matched_names/ipm_dist_matches_processed_Sep262019.csv")
+names_matched <- read.csv("data/processed/matched_names/ipm_dist_matched.csv")
 names_matched$distcode <- mada_districts$distcode[match(names_matched$match, 
                                                         tolower(mada_districts$ADM2_EN))]
 IPM$distcode <- names_matched$distcode[match(tolower(IPM$fiv), names_matched$names_tomatch)]
@@ -60,12 +62,12 @@ IPM$distcode <- names_matched$distcode[match(tolower(IPM$fiv), names_matched$nam
 ## automatically do communes that were matched to within 4 differences
 ipm_comm_matches <- read.csv("data/raw/match_names/ipm_comm_matches.csv")
 ipm_comm_matches %>%
-  mutate(match = ifelse(min <= 2, as.character(X1), NA),
+  mutate(match = ifelse(min_fixed <= 2, as.character(fixed_best), NA),
          matchcode_comm = interaction(nest, match), 
          matchcode_data = interaction(nest, names_tomatch),
          commcode = mada_communes$ADM3_PCODE[match(matchcode_comm, 
                                                    mada_communes$matchcode)]) %>%
-  select(names_tomatch, min, match, matchcode_comm, matchcode_data, commcode) -> ipm_comm_matches
+  select(names_tomatch, min_fixed, match, matchcode_comm, matchcode_data, commcode) -> ipm_comm_matches
 IPM %>%
   mutate(matchcode_data = interaction(distcode, tolower(fir))) %>%
   left_join(ipm_comm_matches) -> IPM
@@ -74,7 +76,7 @@ IPM %>%
 ## To the district
 moramanga$district <- sapply(strsplit(as.character(moramanga$Patient.Home), "\\, "), "[", 2)
 moramanga$district <- gsub(" \\(District\\)", "", moramanga$district)
-moramanga_dist_matches <- read.csv("data/processed/matched_names/moramanga_dist_matches_Sep092019.csv")
+moramanga_dist_matches <- read.csv("data/processed/matched_names/moramanga_dist_matched.csv")
 moramanga_dist_matches$distcode <- mada_districts$distcode[match(moramanga_dist_matches$match, 
                                                                  tolower(mada_districts$ADM2_EN))]
 moramanga$distcode <- moramanga_dist_matches$distcode[match(tolower(moramanga$district), 
@@ -84,14 +86,15 @@ moramanga$distcode <- moramanga_dist_matches$distcode[match(tolower(moramanga$di
 ## pull in manually matched districts
 moramanga$commune <- sapply(strsplit(as.character(moramanga$Patient.Home), "\\("), "[", 1)
 moramanga$commune <- trimws(moramanga$commune, which = "right")
-moramanga_comm_matches <- read.csv("data/processed/matched_names/moramanga_comm_matches_Sep092019")
+moramanga_comm_matches <- read.csv("data/raw/match_names/moramanga_comm_matches.csv")
+
 moramanga_comm_matches %>%
-  mutate(match = ifelse(min <= 2, as.character(X1), NA),
+  mutate(match = ifelse(min_fixed <= 2, as.character(fixed_best), NA),
          matchcode_comm = interaction(nest, match), 
          matchcode_data = interaction(nest, names_tomatch),
          commcode = mada_communes$ADM3_PCODE[match(matchcode_comm, 
                                                    mada_communes$matchcode)]) %>%
-  select(min, match, matchcode_comm, matchcode_data, commcode) -> moramanga_comm_matches
+  select(min_fixed, match, matchcode_comm, matchcode_data, commcode) -> moramanga_comm_matches
 moramanga %>%
   mutate(matchcode_data = interaction(distcode, tolower(commune))) %>%
   left_join(moramanga_comm_matches) -> moramanga
