@@ -37,3 +37,15 @@ writeRaster(friction_unmasked, "data/processed/rasters/friction_mada_unmasked.ti
 trans <- transition(friction_unmasked, function(x) 1/mean(x), 8) # RAM intensive, can be very slow for large areas
 trans_gc <- geoCorrection(trans)
 saveRDS(trans_gc, "data/processed/rasters/trans_gc_unmasked.rds")
+
+##' Write out current CTAR point mat
+##' ##' 1. Get masked and unmaksed versions of travel time layers with baseline ctar (N = 31)
+##' Primarily doing this to generate transition matrix to speed up run_catchments.R script
+##' ------------------------------------------------------------------------------------------------
+##' Locations of CTAR (N = 31)
+gps_locs <- read.csv(file = "data/raw/ctar_metadata.csv")[, c(1, 3, 4)] ##' to do: change this so not indexing columns!
+names(gps_locs) <- c ("CTAR", "X_COORD", "Y_COORD")
+coordinates(gps_locs) <- ~ Y_COORD + X_COORD
+proj4string(gps_locs) <- proj4string(mada_communes)
+point_mat <- as.matrix(gps_locs@coords)
+write.csv(point_mat, "data/processed/point_mat_CTAR.csv", row.names = FALSE)
