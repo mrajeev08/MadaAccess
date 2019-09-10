@@ -86,8 +86,8 @@ match.admin <- function(data_names, data_nest, match_names, match_nest, match_me
       
       if(length(matches) == 1) {
         df <- data.frame(list(names_tomatch = tomatch, nest = unique_nests[i],
-                              fixed_best = matches, min_fixed = NA,
-                              partial_best = matches, min_partial = NA))
+                              fixed_best = matches, min_fixed = 0,
+                              partial_best = matches, min_partial = 0))
       }
       
       match_df <- bind_rows(match_df, df)
@@ -108,10 +108,11 @@ match.admin <- function(data_names, data_nest, match_names, match_nest, match_me
     partial_matches <- t(apply(partial, 1, function(x) matches[order(x)]))
   
     ## make df
-    df <- data.frame(list(names_tomatch = tomatch, 
+    match_df <- data.frame(list(names_tomatch = tomatch, 
                           fixed_best = ranked_matches[, 1], min_fixed = min_dist,
                           partial_best = partial_matches[, 1], min_partial = min_part, 
-                          ranked_matches))  }
+                          ranked_matches))  
+  }
   return(match_df)
 }
 
