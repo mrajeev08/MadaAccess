@@ -84,9 +84,6 @@ get.catchmat <- function(point_mat, fric, shape, admin = "district", pop_rast,
     }
     out$ttimes 
   }
-  
-  write.csv(catchmat, paste0("output/catchmat_", admin, "_", type, "_", 
-                              format(Sys.time(), "%Y%m%d_%H%M%S"), ".csv"), row.names = FALSE)
   return(catchmat)
 }
 
