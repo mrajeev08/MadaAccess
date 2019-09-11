@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH -N 1 # node count
-#SBATCH --ntasks-per-node=12
-#SBATCH -J  catchments
-#SBATCH -t 24:00:00
+#SBATCH --ntasks=32
+#SBATCH --cpus-per-task=1
+#SBATCH -J  01_02_catchments
+#SBATCH -t 12:00:00
 # sends mail when process begins, and
 # when it ends
 #SBATCH --mail-type=begin
@@ -11,4 +11,4 @@
 
 export OMPI_MCA_btl="tcp,self,sm"
 module load openmpi/gcc/2.0.2
-srun Rscript ./R/extract_WP_to_ttimes.R
+srun Rscript ./R/01_generate_gis/03_run_catchments.R
