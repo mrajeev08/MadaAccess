@@ -6,9 +6,9 @@ output:
   html_document: default
   pdf_document:
     includes:
-      in_header: mystyle.sty
+      in_header: format/mystyle.sty
   word_document:
-    reference_docx: format_docs/word_styles_reference_01.docx
+    reference_docx: format/word_styles_reference_01.docx
 ---
 
 
@@ -51,8 +51,6 @@ knitr::opts_chunk$set(fig.pos = 'h', echo = FALSE, message = FALSE, warning = FA
 
 ## Travel times
 ttimes <- raster("output/ttimes_masked.tif")
-gg_SD <- fortify(SD_shape, region = "VILLCODE")
-
 
 ##### Getting raster of coverage
 library(rasterVis)
@@ -98,7 +96,7 @@ prop_pop <- pop10/sum(values(pop10), na.rm = TRUE)
 ## baseline proportion
 threshold = 3 # threshold # of hours to calculate the proportion of pop at
 sum(prop_pop[ttimes >= 60*threshold], na.rm = TRUE)
-sum(prop_pop[ttimes_best >= 60*5], na.rm = TRUE)
+sum(prop_pop[ttimes_best >= 60*3], na.rm = TRUE)
 
 ```
 
@@ -686,6 +684,43 @@ distance_comm <- get.burden.stochastic(names = comm_data$mdg_dis_co, covar = com
 distance_comm$model <- "Commune"
 distance_comm$covar_name <- "Distance (km)"
 
+### Figure from 538
+distance_summ <- bind_rows(distance_dist, distance_comm)
+distance_summ %>%
+  group_by(scenario, names, model, covar_name) %>%
+  summarize(deaths_mean = sum(deaths_mean, na.rm = TRUE), 
+            deaths_upperCI = sum(deaths_upperCI, na.rm = TRUE),
+            deaths_lowerCI = sum(deaths_lowerCI, na.rm = TRUE),
+            averted_mean = sum(averted_mean, na.rm = TRUE), 
+            averted_upperCI = sum(averted_upperCI, na.rm = TRUE),
+            averted_lowerCI = sum(averted_lowerCI, na.rm = TRUE), 
+            covar = mean(covar, na.rm = TRUE))   %>%
+  left_join(dist_data, by = c("names" = "district")) %>%
+  drop_na(names) -> distance_summ
+
+(sum(distance_comm$deaths_mean)/sum(distance_comm$pop))*1e5
+
+ggplot(data = distance_summ, 
+       aes(y = deaths_mean/pop*1e5, x = reorder_within(names, by = covar, within = covar_name))) +
+  geom_point(data = distance_comm, 
+             aes(y = deaths_mean/pop*1e5, x = reorder_within(names, by = covar, within = covar_name)), 
+             shape = 16, color = "#3a9679", alpha = 0.5) + 
+  geom_point(shape = 22, aes(fill = model), color = "black", alpha = 1, size = 2.5) +
+  xlab("Districts ordered by access \n (high to low)") +
+  ylab("Annual deaths per 100k persons") +
+  geom_hline(yintercept = 1, color = "black", linetype = 2) + 
+  scale_fill_manual(values = c(alpha("#3a9679", 1), alpha("#e4c666", 1)), 
+                     name = "Scale") +
+  scale_x_reordered() +
+  coord_flip() +
+  theme(axis.text.y = element_blank(), 
+        panel.grid.major.y = element_line(color = alpha("grey", 0.25)), 
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(), 
+        panel.background = element_rect(fill = "white")) +
+  # facet_wrap(~covar_name, scales = "free_y") +
+  labs(tag = "A") 
+
 ### District ttimes
 ttimes_dist <- get.burden.stochastic(names = dist_data$district, 
                                      covar = dist_data$ttimes_weighted_dist/60,
@@ -732,7 +767,7 @@ ggplot(results_all_base,
   xlab("Districts ordered by access \n (high to low)") +
   ylab("Annual deaths per 100k persons") +
   coord_flip() +
-  scale_color_manual(values = c(alpha("navy", 0.5), alpha("purple", 0.5)), 
+  scale_color_manual(values = c(alpha("#3a9679", 1), alpha("#e4c666", 1)), 
                      name = "Scale") +
   scale_x_reordered() +
   theme(axis.text.y = element_blank()) +
