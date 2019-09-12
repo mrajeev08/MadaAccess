@@ -38,7 +38,7 @@ pop <- raster("data/raw/WorldPop/MDG_ppp_2015_adj_v2.tif")
 ##' resampling to 1x1 km apprx
 dist_pops <- foreach(i = 1:nrow(mada_districts),.packages = c('raster', 'rgdal', 'sp'), 
           .errorhandling = 'remove',
-          .export = c("mada_districts", "pop", "ttimes_masked")
+          .export = c("mada_districts", "pop", "friction_masked")
   ) %dopar% {
     cat(i)
     dist <- mada_districts[i, ]
@@ -56,6 +56,9 @@ dist_pops <- foreach(i = 1:nrow(mada_districts),.packages = c('raster', 'rgdal',
 pop1x1 <- do.call(raster::merge, dist_pops)
 names(pop1x1) <- "pop"
 writeRaster(pop1x1, "data/processed/rasters/worldpop2015adj_mada_1x1km.tif", overwrite = TRUE)
+
+##' quick check
+sum(getValues(pop1x1), na.rm = TRUE)
 
 ##' Close out cluster
 closeCluster(cl)
