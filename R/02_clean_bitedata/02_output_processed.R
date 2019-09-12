@@ -1,8 +1,8 @@
 ####################################################################################################
 ##' Generating master data sets
-##' Details: deets 
-##' Author: author 
-##' Date started:  date started 
+##' Details: Taking raw data from 1) Peripheral clinics, 2) IPM clinic, and 3) Moramanga clinic and
+##' combining into the master data (output into ~data/processed/)  
+##' Author: Malavika Rajeev 
 ####################################################################################################
 rm(list = ls())
 
