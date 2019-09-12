@@ -8,26 +8,23 @@
 ##' 1. Getting travel times 
 ##' ------------------------------------------------------------------------------------------------
 #' Get minimum travel times
-#' \code[get.travel.times] calculates the minimum travel times for an input raster to an input set of 
+#' \code{get.travel.times} calculates the minimum travel times for an input raster to an input set of 
 #' GPS points. 
 #' This function uses the friction surface from the Malaria Atlas Project. Script adapted
 #' from https://map.ox.ac.uk/research-project/accessibility_to_cities/. Uses least-cost algorithms
 #' from the gdistance package.
 #' @param friction raster, the friction surface downloaded from MAP website
-#' @param shapefile shapefile, to mask the friction surface to
+#' @param shapefile polygon shapefile, to mask the friction surface to
 #' @param coords matrix of two columns of x(longitude) and y (latitude) points to 
 #'   input to calculate the least-cost distance (here travel times)
 #' @param trans_matrix_exists logical, if TRUE then looks for file as specified by filename_trans
 #'   if FALSE then creates the transition matrix using function transition from gdistance package
-#' @param filename_trans character vector, the path to which the transition matrix should either be 
+#' @param filename_trans character, the path to which the transition matrix should either be 
 #'   read from or written to
 #' @return raster at same resolution as the input friction surface and cropped to the shapefile with 
 #'   the minimum travel time estimate as the values
 #' @section Dependencies:
-#'  Packages: gdistance, raster 
-# 1. Getting travel time raster layer from set of points -----------------------------------------
-## Function for getting travel times given points 
-## Adapted from 
+#'  Packages: gdistance, raster, rgdal, sp
 
 get.travel.times <- function(friction, shapefile, coords, trans_matrix_exists = TRUE, 
                              filename_trans){
@@ -71,17 +68,25 @@ get.travel.times <- function(friction, shapefile, coords, trans_matrix_exists = 
 
 ##' 2. Getting minimum travel times for each point to each admin unit 
 ##' ------------------------------------------------------------------------------------------------
-#' Title
-#' Description
-#' Details
-#' @param Paramters
-#' @return Returned
+#' Get travel time matrix for admin units x GPS points
+#' \code{get.catchmat} uses \code{get.travel.times} and \code{raster::extract} to calculate minimum
+#' travel times for each admin unit to each point.
+#' Using the foreach package to parallelize. In order to speed up, the transition matrix must already
+#' have been created.
+#' @param point_mat two-column matrix with x (longitude) and y (latitude)
+#' @param fric raster friction surface to pass to \code{get.travel.times}
+#' @param shape polygon shapefile to pass to \code{get.travel.times} and extract travel times to
+#' @param pop_rast raster of population size at same resolution and extent as friction surface
+#' @param pop_pol vector of population sizes associated with the shapefile polygons 
+#' @param trans_mat character, name of file name of transition matrix, this must already exist!
+#' @return Returns a matrix of minimum travel time estimates to each of the admin units in the
+#' shapefile to each of the gps points input
 #' @section Dependencies:
-#'     List dependencies here, i.e. packages and other functions
+#'     Packages: gdistance, raster, foreach, rgdal, sp
 
 ## Admin level average or weighted average by pop for each clinic
 
-get.catchmat <- function(point_mat, fric, shape, admin = "district", pop_rast, 
+get.catchmat <- function(point_mat, fric, shape, pop_rast, 
                          pop_pol, trans_mat, weighted = TRUE, type = "masked"){
   
   ## getting catchments
