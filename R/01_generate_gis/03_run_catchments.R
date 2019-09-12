@@ -39,6 +39,10 @@ friction_mada_masked <- raster("data/processed/rasters/friction_mada_masked.tif"
 mada_communes$pop <- extract(pop1x1, mada_communes, fun = sum, small = TRUE, na.rm = TRUE)[, 1]
 mada_districts$pop <- extract(pop1x1, mada_districts, fun = sum, small = TRUE, na.rm = TRUE)[, 1]
 
+##' checks on extracted pop
+sum(mada_districts$pop)
+sum(mada_communes$pop)
+
 ##' Getting catchment matrix masked and unmasked
 ##' This function generates travel times to each CTAR for each admin unit (district or commune)
 ##' ------------------------------------------------------------------------------------------------
