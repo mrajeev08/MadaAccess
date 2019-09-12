@@ -10,6 +10,10 @@ rm(list=ls())
 library(malariaAtlas) # for friction surface
 library(raster)
 library(rgdal)
+library(gdistance)
+
+##' Shapefile for masking
+mada_communes <- readOGR("data/raw/shapefiles/communes/mdg_admbnda_adm3_BNGRC_OCHA_20181031.shp")
 
 ##' Masked friction surface
 friction_masked <- getRaster(
@@ -39,8 +43,6 @@ trans_gc <- geoCorrection(trans)
 saveRDS(trans_gc, "data/processed/rasters/trans_gc_unmasked.rds")
 
 ##' Write out current CTAR point mat
-##' ##' 1. Get masked and unmaksed versions of travel time layers with baseline ctar (N = 31)
-##' Primarily doing this to generate transition matrix to speed up run_catchments.R script
 ##' ------------------------------------------------------------------------------------------------
 ##' Locations of CTAR (N = 31)
 gps_locs <- read.csv(file = "data/raw/ctar_metadata.csv")[, c(1, 3, 4)] ##' to do: change this so not indexing columns!
