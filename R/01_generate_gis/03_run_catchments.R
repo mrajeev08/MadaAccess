@@ -49,13 +49,13 @@ sum(mada_communes$pop)
 ##' Districts
 print(paste(Sys.time(), ": started generating district catchmats"))
 dist_mat_unmasked <- get.catchmat(point_mat = point_mat, fric = friction_mada_unmasked, 
-                         shape = mada_districts, admin = "district", pop_rast = pop1x1, 
+                         shape = mada_districts, pop_rast = pop1x1, 
                          pop_pol = mada_districts$pop, 
                          trans_mat = "data/processed/rasters/trans_gc_unmasked.rds",
                          weighted = TRUE, type = "unmasked")
 write.csv(dist_mat_unmasked, "data/processed/catchmats/dist_mat_unmasked.csv", row.names = FALSE)
 dist_mat_masked <- get.catchmat(point_mat = point_mat, fric = friction_mada_masked, 
-                                shape = mada_districts, admin = "district", pop_rast = pop1x1, 
+                                shape = mada_districts, pop_rast = pop1x1, 
                                 pop_pol = mada_districts$pop, 
                                 trans_mat = "data/processed/rasters/trans_gc_masked.rds",
                                 weighted = TRUE, type = "masked")
@@ -65,13 +65,13 @@ print(paste(Sys.time(), ": finished generating district catchmats"))
 ##' Communes
 print(paste(Sys.time(), ": started generating commune catchmats"))
 comm_mat_unmasked <- get.catchmat(point_mat = point_mat, fric = friction_mada_unmasked, 
-                                  shape = mada_communes, admin = "commune", pop_rast = pop1x1, 
+                                  shape = mada_communes, pop_rast = pop1x1, 
                                   trans_mat = "data/processed/rasters/trans_gc_unmasked.rds",
                                   pop_pol = mada_communes$pop, weighted = TRUE, type = "unmasked")
 write.csv(comm_mat_unmasked, "data/processed/catchmats/comm_mat_unmasked.csv", row.names = FALSE)
 
 comm_mat_masked <- get.catchmat(point_mat = point_mat, fric = friction_mada_masked, 
-                                shape = mada_communes, admin = "commune", pop_rast = pop1x1, 
+                                shape = mada_communes, pop_rast = pop1x1, 
                                 trans_mat = "data/processed/rasters/trans_gc_masked.rds",
                                 pop_pol = mada_communes$pop, weighted = TRUE, type = "masked")
 write.csv(comm_mat_masked, "data/processed/catchmats/comm_mat_masked.csv", row.names = FALSE)
