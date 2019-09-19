@@ -60,6 +60,15 @@ writeRaster(pop1x1, "data/processed/rasters/worldpop2015adj_mada_1x1km.tif", ove
 ##' quick check
 sum(getValues(pop1x1), na.rm = TRUE)
 
+
+##' Dissolve Tana polygons to one district
+##' ------------------------------------------------------------------------------------------------
+##' Last bit because these are new districts and we do not have data to the arrondisement level for 
+##' Tana (i.e. Antananarivo Renivohitra)
+districts_dissolved <- gUnaryUnion(mada_districts, id = mada_districts$distcode)
+districts_df <- mada_districts@data
+
+
 ##' Close out cluster
 closeCluster(cl)
 mpi.quit()
