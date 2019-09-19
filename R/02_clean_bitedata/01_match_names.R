@@ -50,7 +50,7 @@ ipm_comm_matches <- match.admin(data_names = IPM$fir, data_nest = IPM$distcode,
 write.csv(ipm_comm_matches, "data/raw/match_names/ipm_comm_matches.csv", row.names = FALSE)
 
 ## match district names in Moramanga data
-moramanga <- read.csv("data/raw/bite_data/moramanga/CTAR_%28V2%29_20190908190136.csv")
+moramanga <- read.csv("data/raw/bite_data/moramanga/CTAR_%28V3%29_20190918150219.csv")
 moramanga$commune <- sapply(strsplit(as.character(moramanga$Patient.Home), "\\("), "[", 1)
 moramanga$commune <- trimws(moramanga$commune, which = "right")
 moramanga$district <- sapply(strsplit(as.character(moramanga$Patient.Home), "\\, "), "[", 2)
