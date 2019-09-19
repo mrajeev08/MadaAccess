@@ -9,6 +9,7 @@ rm(list = ls())
 library(tidyverse)
 library(rgdal)
 library(lubridate)
+library(rgeos)
 
 ## Read in data
 bitedata <- read.csv("data/processed/master_bites.csv")
@@ -39,7 +40,7 @@ ctar_metadata$fill <- ctar_metadata$color
 ctar_metadata$color[ctar_metadata$CTAR %in% no_data] <- "#D3D3D3"
 
 
-##' 2. Mapping raw data
+##' 2. Mapping raw data: National at district level
 ##' ------------------------------------------------------------------------------------------------
 bitedata %>% 
   filter(source != "Moramanga", year(date_reported) > 2013, 
@@ -73,11 +74,11 @@ ctar_todist_lines %>%
          group_id = paste0(distcode, id_ctar)) %>%
   select(group_id, contains("lat"), contains("long"), -to_lat, -to_long, color) -> ctar_todist_pols
 
-ctar_todist_pols <- bind_rows(select(natl_pols, lat = end_lat_plus, long = end_long_plus,
+ctar_todist_pols <- bind_rows(select(ctar_todist_pols, lat = end_lat_plus, long = end_long_plus,
                                      group = group_id, color),
-                              select(natl_pols, lat = end_lat_minus, long = end_long_minus, 
+                              select(ctar_todist_pols, lat = end_lat_minus, long = end_long_minus, 
                                      group = group_id, color),
-                              select(natl_pols, lat = from_lat, long = from_long, 
+                              select(ctar_todist_pols, lat = from_lat, long = from_long, 
                                      group = group_id, color))
 
 mada_districts$color <- ctar_metadata$color[match(mada_districts$ctch_wtd_n, ctar_metadata$CTAR)]
@@ -94,17 +95,16 @@ cols <- c("#FCC56F","#FFDBE5", "#7A4900", "#CBCDD2", "#0000A6", "#EFF2F1",
 names(cols) <- as.character(cols)
 
 sizes <- log(c(100, 200, 400, 800, 1600) + 0.1)
-
-p <- ggplot() +
+fig1A <- ggplot() +
   geom_polygon(data = gg_district, 
                aes(x = long, y = lat, group = group, fill = color), color = "grey50", alpha = 0.5) +
-  geom_polygon(data = natl_pols, aes(x = long, y = lat, group = group,
+  geom_polygon(data = ctar_todist_pols, aes(x = long, y = lat, group = group,
                                      fill = color), color = NA, alpha = 0.5, 
                show.legend = FALSE) +
-  geom_point(data = natl_emptypts, aes(x = long, y = lat, fill = fill,
-                                     size = log(count + 0.1)), color = alpha("black", 0.75),
+  geom_point(data = ctar_pts, aes(x = long, y = lat, fill = fill,
+                                       size = log(count + 0.1)), color = alpha("black", 0.75),
              shape = 21, alpha = 0.75) +
-  geom_point(data = natl_points, aes(x = long, y = lat, 
+  geom_point(data = dist_pts, aes(x = long, y = lat, 
                                      size = log(count + 0.1), color = color), 
              shape = 1) +
   scale_fill_manual(values = cols, guide = "none") +
@@ -115,19 +115,56 @@ p <- ggplot() +
   labs(tag = "A") +
   theme_void()
 
-p <- ggplot() +
-  geom_polygon(data = gg_district, 
+##' 3. Mapping raw data: Moramanga at commune level
+##' ------------------------------------------------------------------------------------------------
+bitedata %>%
+  mutate(date_reported = ymd(date_reported)) %>%
+  filter(source == "Moramanga", date_reported >= "2016-10-01", date_reported < "2019-05-01", 
+         type == "new") -> mora
+mora %>%
+  group_by(commcode) %>%
+  summarize(count = n()) %>%
+  left_join(select(mada_communes@data, long, lat, commcode = ADM3_PC, ctar = ctch_wtd_n)) %>%
+  left_join(select(ctar_metadata, ctar = CTAR, color, fill)) -> comm_pts
+comm_pts$from_long <- ctar_metadata$LONGITUDE[ctar_metadata$CTAR == "Moramanga"]
+comm_pts$from_lat <- ctar_metadata$LATITUDE[ctar_metadata$CTAR == "Moramanga"]
+
+comm_pts %>%
+  ungroup() %>%
+  mutate(end_lat_plus = lat + log(count + 1)*0.05, 
+         end_long_plus = long + log(count + 1)*0.05,
+         end_lat_minus = lat - log(count + 1)*0.05, 
+         end_long_minus = long - log(count + 1)*0.05,
+         group_id = commcode) %>%
+  select(group_id, contains("lat"), contains("long"), -lat, -long, color) -> ctar_tocomm_pols
+
+ctar_tocomm_pols <- bind_rows(select(ctar_tocomm_pols, lat = end_lat_plus, long = end_long_plus,
+                                     group = group_id, color),
+                              select(ctar_tocomm_pols, lat = end_lat_minus, long = end_long_minus, 
+                                     group = group_id, color),
+                              select(ctar_tocomm_pols, lat = from_lat, long = from_long, 
+                                     group = group_id, color))
+
+mada_communes$color <- ctar_metadata$color[match(mada_communes$ctch_wtd_n, ctar_metadata$CTAR)]
+gg_commune <- fortify(mada_communes, region = "ADM3_PC")
+gg_commune %>% 
+  left_join(select(mada_communes@data, distcod, ADM3_PC, color, ctar = ctch_wtd_n), 
+            by = c("id" = "ADM3_PC")) %>%
+  left_join(select(comm_pts, commcode, count), by = c("id" = "commcode")) %>%
+  group_by(distcod) %>%
+  mutate(count_check = sum(count, na.rm = TRUE)) %>%
+  filter(count_check > 0) -> gg_commune_plot
+
+## TO DO: add inset with districts included in catchment outlined (or other way of showing what this refers to)
+fig1B <- ggplot() +
+  geom_polygon(data = gg_commune_plot, 
                aes(x = long, y = lat, group = group, fill = color), color = "grey50", alpha = 0.5) +
-  geom_segment(data = natl_lines, aes(x = from_long, y = from_lat, xend = to_long, 
-                                      yend = to_lat, 
-                                     color = color, size = log(count + 0.1)*0.5), alpha = 0.5, 
+  geom_polygon(data = ctar_tocomm_pols, aes(x = long, y = lat, group = group,
+                                     fill = color), color = NA, alpha = 0.5, 
                show.legend = FALSE) +
-  geom_point(data = natl_emptypts, aes(x = long, y = lat, fill = fill,
-                                       size = log(count + 0.1)), color = alpha("black", 0.75),
-             shape = 21, alpha = 0.75) +
-  geom_point(data = natl_points, aes(x = long, y = lat, 
-                                     size = log(count + 0.1), color = color), 
-             shape = 1) +
+  geom_point(data = comm_pts, aes(x = long, y = lat, 
+                                     size = log(count + 0.1), fill = color), 
+             shape = 21, color = alpha("black", 0.5)) +
   scale_fill_manual(values = cols, guide = "none") +
   scale_color_manual(values = cols, guide = "none") +
   scale_size_identity("Reported bites", labels = as.character(c(100, 200, 400, 800, 1600)),
@@ -138,10 +175,7 @@ p <- ggplot() +
 
 ggsave("check.jpg", p, device = "jpeg", height = 10, width = 7)
 
-bitedata %>%
-  mutate(date_reported = ymd(date_reported)) %>%
-  filter(source == "Moramanga", date_reported >= "2016-10-01", date_reported < "2019-05-01", 
-         type == "new") -> mora
+## Save these as objects and read back in to make final figs using patchwork
 
 ## Stats on transfers
 ## Date limits and reporting
