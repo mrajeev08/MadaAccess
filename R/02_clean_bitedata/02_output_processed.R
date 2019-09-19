@@ -25,7 +25,7 @@ mada_communes$distcode <- substring(as.character(mada_communes$ADM2_PCODE), 1, 7
 ## Read in raw bite data
 peripheral <- read.csv("data/raw/bite_data/peripheral/SaisieRage_DATA_2018-09-21_1755.csv")
 load("data/raw/bite_data/ipm/ipm.rda")
-moramanga <- read.csv("data/raw/bite_data/moramanga/CTAR_%28V2%29_20190908190136.csv")
+moramanga <- read.csv("data/raw/bite_data/moramanga/CTAR_%28V3%29_20190918150219.csv")
 
 ##' 2. Match admin names 
 ##' ------------------------------------------------------------------------------------------------
