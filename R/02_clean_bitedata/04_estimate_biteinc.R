@@ -3,18 +3,79 @@
 ##' Details: 
 ##' Author: Malavika Rajeev 
 ####################################################################################################
+rm(list = ls())
+
+## Libraries
+library(tidyverse)
+library(rgdal)
+library(lubridate)
+library(rgeos)
+
+## Read in data
+bitedata <- read.csv("data/processed/master_bites.csv")
+ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
+mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
+mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
+source("R/functions/data_functions.R")
+
+##' 1. National data (at district level)
+##' ------------------------------------------------------------------------------------------------
+bitedata %>%
+  filter(source != "Moramanga", year(date_reported) > 2013, 
+         year(date_reported) < 2018, !is.na(distcode), !is.na(id_ctar)) %>%
+  mutate(date_reported = ymd(date_reported)) %>%
+  group_by(date_reported, id_ctar) %>%
+  summarise(no_patients = n()) %>%
+  ungroup() %>%
+  complete(date_reported = seq(min(date_reported), max(date_reported), by = "day"), id_ctar, 
+           fill = list(no_patients = 0)) -> throughput
 
 
-## Stats on transfers
-## Date limits and reporting
-## Contacts
-## Bite incidence estimates
+## rle.days = Helper function for getting which days to include (moved to functions from data_functions.R)
+## get if estimated contact by the throughput mean/sd
+throughput %>%
+  group_by(id_ctar) %>%
+  arrange(date_reported, .by_group = TRUE) %>%
+  mutate(include = rle.days(no_patients, threshold = 10), 
+         mean_throughput = mean(no_patients[include == 1]),
+         sd_throughput = sd(no_patients[include == 1]),
+         estimated_contact = ifelse(no_patients >= mean_throughput + 3*sd_throughput, 
+                                     1, 0),
+         year = year(date_reported)) -> throughput
 
 
-##' 1. Filter out transfers (these are people that came from other clinics)
-##' 2. Filter Cat 1 based on clinic throughput (compare to doses delivered to clinic in metadata)
-##' 3. Calc reporting
-##' 4. Summarize by year and admin unit
-##' 5. Filter out excluded catchments and correct for reporting
+## yearly reporting
+throughput %>%
+  group_by(year, id_ctar) %>%
+  summarize(reporting = sum(include/365)) -> reporting
+
+bitedata %>%
+  filter(source != "Moramanga", year(date_reported) > 2013, 
+         year(date_reported) < 2018, !is.na(distcode), !is.na(id_ctar), 
+         type == "new") %>% 
+  mutate(date_reported = ymd(date_reported)) %>%
+  left_join(select(throughput, date_reported, id_ctar, include, estimated_contact, year)) -> bites
+
+## yearly bite incidence
+bites %>%
+  ## filter known contacts and estimated ones based on throughput
+  filter(estimated_contact == 0, include == 1) %>% 
+  group_by(year, distcode, id_ctar) %>%
+  summarize(bites = n()) %>%
+  left_join(reporting) %>% 
+  ## filter any years with reporting < 25%
+  filter(reporting > 0.25) %>%
+  ## correct for reporting
+  mutate(bites_corrected = bites/reporting) %>%
+  group_by(distcode, year) %>%
+  summarize(total = sum(bites_corrected)) %>%
+  group_by(distcode) %>%
+  summarize(est_inc = mean(total, na.rm = TRUE)) -> bite_incidence
+
+## Then join with covars and catchment variables (filter any to exclude)
+bite_incidence %>%
+  left_join(mada_districts@data, by = c("distcode" = "distcod")) -> ests
+
+## filter out excluded catchments
 
 ##' 6. Make figure of bite incidence for Mada and Mora
