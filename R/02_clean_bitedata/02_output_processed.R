@@ -115,7 +115,7 @@ IPM %>%
                           categorie == "R" ~ "restart", 
                           categorie == "T" ~ "transfer"), 
          date_reported = ymd(dat_consu), 
-         known_contact = ifelse(type_cont == "C", "Y", "N"),
+         known_contact = ifelse(type_cont == "C", 1, 0),
          ctar = "IPM", id_ctar = 5, source = "IPM") %>%
   select(date_reported, type, ctar, id_ctar, distcode, commcode, known_contact, source) -> IPM_clean
   
@@ -125,7 +125,7 @@ moramanga %>%
                         "new"), 
          date_reported = dmy(Date.of.consultation), 
          known_contact = ifelse(Type.of.consultation == "Contact with suspect case", 
-                           "Y", "N"), 
+                           1, 0), 
          ctar = "Moramanga", id_ctar = 8, source = "Moramanga") %>% 
   select(date_reported, type, ctar, id_ctar, distcode, commcode, known_contact, 
          source) -> moramanga_clean
