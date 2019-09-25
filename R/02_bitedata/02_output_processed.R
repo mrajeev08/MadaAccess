@@ -14,13 +14,9 @@ library(lubridate)
 
 ## 1. Reading in data
 ## Read in and format shapefiles
-## have to change the codes a bit to account for some formatting
-mada_districts <- readOGR(
-  "data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
-mada_districts$distcode <- substring(as.character(mada_districts$ADM2_PCODE), 1, 7)
-mada_communes <- readOGR(
-  "data/raw/shapefiles/communes/mdg_admbnda_adm3_BNGRC_OCHA_20181031.shp")
-mada_communes$distcode <- substring(as.character(mada_communes$ADM2_PCODE), 1, 7)
+## Read in shapefiles
+mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
+mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 
 ## Read in raw bite data
 peripheral <- read.csv("data/raw/bite_data/peripheral/SaisieRage_DATA_2018-09-21_1755.csv")

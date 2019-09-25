@@ -16,9 +16,8 @@ extract <- raster::extract
 
 ##' Read in files 
 ##' ------------------------------------------------------------------------------------------------
-mada_communes <- readOGR("data/raw/shapefiles/communes/mdg_admbnda_adm3_BNGRC_OCHA_20181031.shp")
-mada_districts <- readOGR("data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
-pop1x1<- raster("data/processed/rasters/worldpop2015adj_mada_1x1km.tif")
+mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
+mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 dist_mat_masked <- read.csv("data/processed/catchmats/dist_mat_masked.csv")
 dist_mat_unmasked <- read.csv("data/processed/catchmats/dist_mat_unmasked.csv")
 comm_mat_masked <- read.csv("data/processed/catchmats/comm_mat_masked.csv")

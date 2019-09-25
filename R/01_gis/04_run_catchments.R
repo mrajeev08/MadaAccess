@@ -26,9 +26,9 @@ library(doRNG)
 library(foreach)
 source("R/functions/ttime_functions.R")
 
-##' Shapefiles from Malaria Atlas and CTAR point matrix
-mada_communes <- readOGR("data/raw/shapefiles/communes/mdg_admbnda_adm3_BNGRC_OCHA_20181031.shp")
-mada_districts <- readOGR("data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
+##' Shapefiles and CTAR point matrix
+mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
+mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 pop1x1<- raster("data/processed/rasters/worldpop2015adj_mada_1x1km.tif")
 ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
 point_mat <- as.matrix(select(ctar_metadata, Y_COORD = LONGITUDE, X_COORD = LATITUDE))

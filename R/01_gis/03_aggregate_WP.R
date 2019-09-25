@@ -25,8 +25,9 @@ library(foreach)
 source("R/functions/ttime_functions.R")
 source("R/functions/utils.R")
 
-##' Load in GIS files written out from Malaria Atlas Project
-mada_districts <- readOGR("data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
+##' Load in GIS files 
+mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
+mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
 ##' Aggregate World Pop to 1x1 km 
@@ -66,8 +67,8 @@ mada_communes$pop <- extract(pop1x1, mada_communes, fun = sum, small = TRUE, na.
 mada_districts$pop <- extract(pop1x1, mada_districts, fun = sum, small = TRUE, na.rm = TRUE)[, 1]
 
 ##' checks on extracted pop
-sum(mada_districts$pop)
-sum(mada_communes$pop)
+sum(mada_districts$pop, na.rm = TRUE)
+sum(mada_communes$pop, na.rm = TRUE)
 
 ##' Write out the shapefiles to processed/shapefiles/ (overwrite)
 ##' ------------------------------------------------------------------------------------------------
