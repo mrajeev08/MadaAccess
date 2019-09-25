@@ -60,14 +60,21 @@ writeRaster(pop1x1, "data/processed/rasters/worldpop2015adj_mada_1x1km.tif", ove
 ##' quick check
 sum(getValues(pop1x1), na.rm = TRUE)
 
-
-##' Dissolve Tana polygons to one district
+##' Extract pop to shapefiles and write out 
 ##' ------------------------------------------------------------------------------------------------
-##' Last bit because these are new districts and we do not have data to the arrondisement level for 
-##' Tana (i.e. Antananarivo Renivohitra)
-districts_dissolved <- gUnaryUnion(mada_districts, id = mada_districts$distcode)
-districts_df <- mada_districts@data
+mada_communes$pop <- extract(pop1x1, mada_communes, fun = sum, small = TRUE, na.rm = TRUE)[, 1]
+mada_districts$pop <- extract(pop1x1, mada_districts, fun = sum, small = TRUE, na.rm = TRUE)[, 1]
 
+##' checks on extracted pop
+sum(mada_districts$pop)
+sum(mada_communes$pop)
+
+##' Write out the shapefiles to processed/shapefiles/ (overwrite)
+##' ------------------------------------------------------------------------------------------------
+writeOGR(mada_communes, dsn = "data/processed/shapefiles", layer = "mada_communes", 
+         driver = "ESRI Shapefile", overwrite_layer = TRUE)
+writeOGR(mada_districts, dsn = "data/processed/shapefiles", layer = "mada_districts", 
+         driver = "ESRI Shapefile", overwrite_layer = TRUE)
 
 ##' Close out cluster
 closeCluster(cl)
