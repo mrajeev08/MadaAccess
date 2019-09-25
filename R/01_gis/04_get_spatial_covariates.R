@@ -25,16 +25,6 @@ comm_mat_masked <- read.csv("data/processed/catchmats/comm_mat_masked.csv")
 comm_mat_unmasked <- read.csv("data/processed/catchmats/comm_mat_unmasked.csv")
 ctar_points <- read.csv(file = "data/raw/ctar_metadata.csv")[, c("CTAR", "LATITUDE", "LONGITUDE")]
 
-##' Format distcodes 
-##' ------------------------------------------------------------------------------------------------
-mada_districts$distcode <- substring(as.character(mada_districts$ADM2_PCODE), 1, 7)
-mada_communes$distcode <- substring(as.character(mada_communes$ADM2_PCODE), 1, 7)
-
-##' Extract Pop 1x1 km at district and commune level
-##' ------------------------------------------------------------------------------------------------
-mada_communes$pop <- extract(pop1x1, mada_communes, fun = sum, small = TRUE, na.rm = TRUE)[, 1]
-mada_districts$pop <- extract(pop1x1, mada_districts, fun = sum, small = TRUE, na.rm = TRUE)[, 1]
-
 ##' Get travel times and catchments at district and commune level
 ##' ------------------------------------------------------------------------------------------------
 ##' Var names have to be <= 10 characters long for ESRI shapefile output
@@ -82,7 +72,7 @@ mada_communes$mindist <- apply(comm_distance_mat, 1, min, na.rm = TRUE)
 mada_communes$ctch_dist <- ctar_points$CTAR[unlist(apply(comm_distance_mat, 
                                                                          1, which.min.inf))]
 
-##' Write out the shapefiles to processed/shapefiles/
+##' Write out the shapefiles to processed/shapefiles/ (overwrite)
 ##' ------------------------------------------------------------------------------------------------
 writeOGR(mada_communes, dsn = "data/processed/shapefiles", layer = "mada_communes", 
          driver = "ESRI Shapefile", overwrite_layer = TRUE)
