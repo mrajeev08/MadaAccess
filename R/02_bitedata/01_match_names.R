@@ -27,6 +27,12 @@ peripheral_comm_matches <- match.admin (data_names = peripheral$commune, data_ne
              match_method = "osa", nested = TRUE)
 write.csv(peripheral_comm_matches, "data/raw/match_names/peripheral_comm_matches.csv", row.names = FALSE)
 
+## Also get table of notes to match to see if known Category 1 (manually match afterwards)
+peripheral %>%
+  group_by(notes = remarque) %>%
+  summarize(Freq = n()) -> notes_to_match
+write.csv(notes_to_match, "data/raw/match_names/peripheral_notes_to_match.csv", row.names = FALSE)
+
 ## match district names in IPM
 load("data/raw/bitedata/ipm/ipm.rda")
 head(IPM)
