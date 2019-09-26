@@ -48,6 +48,7 @@ peripheral %>%
 known_contacts <- read.csv("data/processed/matched_names/peripheral_notes_knowncontacts.csv")
 peripheral$known_contact <- known_contacts$known_contact[match(peripheral$remarque, 
                                                                 known_contacts$Note)]
+peripheral$known_contact[is.na(peripheral$known_contact)] <- 0
 
 ## IPM data to the district
 names_matched <- read.csv("data/processed/matched_names/ipm_dist_matched.csv")
@@ -130,18 +131,3 @@ moramanga %>%
 ##' ------------------------------------------------------------------------------------------------
 master <- bind_rows(moramanga_clean, IPM_clean, peripheral_clean)
 write.csv(master, "data/processed/master_bites.csv", row.names = FALSE)
-
-## With known commune and district
-sum(table(as.factor(moramanga$distcode)))/nrow(moramanga)
-sum(table(as.factor(moramanga$commcode)))/nrow(moramanga)
-
-sum(table(as.factor(IPM$distcode)))/nrow(IPM)
-sum(table(as.factor(IPM$commcode)))/nrow(IPM)
-
-sum(table(as.factor(peripheral$distcode)))/nrow(peripheral)
-sum(table(as.factor(peripheral$commcode)))/nrow(peripheral)
-
-sum(table(as.factor(master$commcode)))/nrow(master)
-
-## With known date
-sum(table(master$date_reported))/nrow(master)
