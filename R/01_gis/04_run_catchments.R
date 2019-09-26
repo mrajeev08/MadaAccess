@@ -24,6 +24,8 @@ library(malariaAtlas)
 library(gdistance)
 library(doRNG)
 library(foreach)
+library(dplyr)
+select <- dplyr::select
 source("R/functions/ttime_functions.R")
 
 ##' Shapefiles and CTAR point matrix
