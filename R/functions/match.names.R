@@ -53,7 +53,7 @@ match.admin <- function(data_names, data_nest, match_names, match_nest, match_me
   if (nested == TRUE) {
     
     if (class(data_nest) != "character") data_nest = as.character(data_nest)
-    if (class(match_nest) != "character") data_nest = as.character(match_nest)
+    if (class(match_nest) != "character") match_nest = as.character(match_nest)
     
     unique_nests <- unique(match_nest)
     match_df <- NULL
