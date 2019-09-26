@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --ntasks=39
+#SBATCH --ntasks=32
 #SBATCH --cpus-per-task=1
-#SBATCH -J  0102_aggregateWP
+#SBATCH -J  0104_catchments
 #SBATCH -t 12:00:00
 # sends mail when process begins, and
 # when it ends
@@ -11,4 +11,4 @@
 
 export OMPI_MCA_btl="tcp,self,sm"
 module load openmpi/gcc/2.0.2
-srun Rscript ./R/01_generate_gis/02_aggregate_WP.R
+srun Rscript ./R/01_gis/04_run_catchments.R
