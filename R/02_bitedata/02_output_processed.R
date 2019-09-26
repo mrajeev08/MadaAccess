@@ -45,10 +45,10 @@ peripheral %>%
   left_join(peripheral_comm_matches) -> peripheral
 
 ## Also do contact matching (identify known contacts)
-known_contacts <- read.csv("data/processed/matched_names/peripheral_notes_knowncontacts.csv")
-peripheral$known_contact <- known_contacts$known_contact[match(peripheral$remarque, 
-                                                                known_contacts$Note)]
-peripheral$known_contact[is.na(peripheral$known_contact)] <- 0
+known_cat1 <- read.csv("data/processed/matched_names/peripheral_notes_known_cat1.csv")
+peripheral$known_cat1 <- known_cat1$known_cat1[match(peripheral$remarque, 
+                                                                known_cat1$Note)]
+peripheral$known_cat1[is.na(peripheral$known_cat1)] <- 0
 
 ## IPM data to the district
 names_matched <- read.csv("data/processed/matched_names/ipm_dist_matched.csv")
@@ -98,13 +98,13 @@ moramanga %>%
 
 ##' 3. Format other columns
 ##' ------------------------------------------------------------------------------------------------
-##' Date reported, CTAR, type, commcode, distcode, known_contact, notes
+##' Date reported, CTAR, type, commcode, distcode, known_cat1, notes
 ##' 
 ## Peripheral
 peripheral %>%
   mutate(type = "new", date_reported = ymd(date_de_consultation), 
          source = "peripheral") %>%
-  select(date_reported, type, ctar, id_ctar, distcode, commcode, known_contact, source) -> peripheral_clean
+  select(date_reported, type, ctar, id_ctar, distcode, commcode, known_cat1, source) -> peripheral_clean
 
 ## IPM
 IPM %>%
@@ -112,19 +112,19 @@ IPM %>%
                           categorie == "R" ~ "restart", 
                           categorie == "T" ~ "transfer"), 
          date_reported = ymd(dat_consu), 
-         known_contact = ifelse(type_cont == "C", 1, 0),
+         known_cat1 = ifelse(type_cont == "C", 1, 0),
          ctar = "IPM", id_ctar = 5, source = "IPM") %>%
-  select(date_reported, type, ctar, id_ctar, distcode, commcode, known_contact, source) -> IPM_clean
+  select(date_reported, type, ctar, id_ctar, distcode, commcode, known_cat1, source) -> IPM_clean
   
 ## Moramanga
 moramanga %>%
   mutate(type = if_else(Type.of.consultation == "Passage", "transfer",
                         "new"), 
          date_reported = dmy(Date.of.consultation), 
-         known_contact = ifelse(Type.of.consultation == "Contact with suspect case", 
+         known_cat1 = ifelse(Type.of.consultation == "Contact with suspect case", 
                            1, 0), 
          ctar = "Moramanga", id_ctar = 8, source = "Moramanga") %>% 
-  select(date_reported, type, ctar, id_ctar, distcode, commcode, known_contact, 
+  select(date_reported, type, ctar, id_ctar, distcode, commcode, known_cat1, 
          source) -> moramanga_clean
 
 ##' Output master data and summary stats

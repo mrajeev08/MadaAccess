@@ -18,7 +18,7 @@ source("R/functions/match.names.R")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 
-## ## match commune names in peripheral data (leave manually unmatched but any with below 3 match to name)
+## match commune names in peripheral data (leave manually unmatched but any with below 3 match to name)
 peripheral <- read.csv("data/raw/bitedata/peripheral/SaisieRage_DATA_2018-09-21_1755.csv")
 peripheral$distcode <- paste0(substring(peripheral$district, 1, 1), 
                               substring(peripheral$district, 3, 8))
