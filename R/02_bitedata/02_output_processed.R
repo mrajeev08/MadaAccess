@@ -19,9 +19,9 @@ mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 
 ## Read in raw bite data
-peripheral <- read.csv("data/raw/bite_data/peripheral/SaisieRage_DATA_2018-09-21_1755.csv")
-load("data/raw/bite_data/ipm/ipm.rda")
-moramanga <- read.csv("data/raw/bite_data/moramanga/CTAR_%28V3%29_20190918150219.csv")
+peripheral <- read.csv("data/raw/bitedata/peripheral/SaisieRage_DATA_2018-09-21_1755.csv")
+load("data/raw/bitedata/ipm/ipm.rda")
+moramanga <- read.csv("data/raw/bitedata/moramanga/CTAR_%28V3%29_20190918150219.csv")
 
 ##' 2. Match admin names 
 ##' ------------------------------------------------------------------------------------------------
@@ -129,5 +129,6 @@ moramanga %>%
 
 ##' Output master data and summary stats
 ##' ------------------------------------------------------------------------------------------------
-master <- bind_rows(moramanga_clean, IPM_clean, peripheral_clean)
-write.csv(master, "data/processed/master_bites.csv", row.names = FALSE)
+national <- bind_rows(IPM_clean, peripheral_clean)
+write.csv(national, "data/processed/bitedata/national.csv", row.names = FALSE)
+write.csv(moramanga_clean, "data/processed/bitedata/moramanga.csv", row.names = FALSE)

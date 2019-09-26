@@ -19,7 +19,7 @@ mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 
 ## ## match commune names in peripheral data (leave manually unmatched but any with below 3 match to name)
-peripheral <- read.csv("data/raw/bite_data/peripheral/SaisieRage_DATA_2018-09-21_1755.csv")
+peripheral <- read.csv("data/raw/bitedata/peripheral/SaisieRage_DATA_2018-09-21_1755.csv")
 peripheral$distcode <- paste0(substring(peripheral$district, 1, 1), 
                               substring(peripheral$district, 3, 8))
 peripheral_comm_matches <- match.admin (data_names = peripheral$commune, data_nest = peripheral$distcode, 
@@ -28,7 +28,7 @@ peripheral_comm_matches <- match.admin (data_names = peripheral$commune, data_ne
 write.csv(peripheral_comm_matches, "data/raw/match_names/peripheral_comm_matches.csv", row.names = FALSE)
 
 ## match district names in IPM
-load("data/raw/bite_data/ipm/ipm.rda")
+load("data/raw/bitedata/ipm/ipm.rda")
 head(IPM)
 ipm_dist_matches <- match.admin(data_names = IPM$fiv, data_nest = NULL, 
                                 match_names = mada_districts$ADM2_EN, match_nest = NULL,
@@ -47,7 +47,7 @@ ipm_comm_matches <- match.admin(data_names = IPM$fir, data_nest = IPM$distcode,
 write.csv(ipm_comm_matches, "data/raw/match_names/ipm_comm_matches.csv", row.names = FALSE)
 
 ## match district names in Moramanga data
-moramanga <- read.csv("data/raw/bite_data/moramanga/CTAR_%28V3%29_20190918150219.csv")
+moramanga <- read.csv("data/raw/bitedata/moramanga/CTAR_%28V3%29_20190918150219.csv")
 moramanga$commune <- sapply(strsplit(as.character(moramanga$Patient.Home), "\\("), "[", 1)
 moramanga$commune <- trimws(moramanga$commune, which = "right")
 moramanga$district <- sapply(strsplit(as.character(moramanga$Patient.Home), "\\, "), "[", 2)
