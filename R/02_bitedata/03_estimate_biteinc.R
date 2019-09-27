@@ -39,7 +39,7 @@ throughput %>%
   mutate(include = rle.days(no_patients, threshold = 10), 
          mean_throughput = mean(no_patients[include == 1]),
          sd_throughput = sd(no_patients[include == 1]),
-         estimated_cat1 = ifelse(no_patients >= mean_throughput + 3*sd_throughput, 
+         estimated_cat1 = ifelse(no_patients >= mean_throughput + 2*sd_throughput, 
                                      1, 0),
          year = year(date_reported)) -> throughput
 
@@ -67,7 +67,7 @@ national %>%
   mutate(total_forms = ifelse(is.na(total_forms), 0, total_forms),
          exclude = ifelse(total_forms > 10, 0, 1)) -> ctar_metadata
 
-mada_districts$exclude_by_ttimes <- ctar_metadata$exclude[match(mada_districts$ctch_wtd_u, ctar_metadata$CTAR)]
+mada_districts$exclude_by_ttimes <- ctar_metadata$exclude[match(mada_districts$ctch_wtd, ctar_metadata$CTAR)]
 mada_districts$exclude_by_distance <- ctar_metadata$exclude[match(mada_districts$ctch_dist, ctar_metadata$CTAR)]
 
 ##' Getting bite incidence estimates
@@ -89,13 +89,13 @@ bites %>%
 
 mada_districts@data %>%
   select(distcode, district = ADM2_EN, pop, long, lat, 
-                   ctch_wtd_u, ttms_wtd_m, exclude_by_ttimes) %>%
+                   ctch_wtd, ctch_unwtd, ttms_wtd, ttms_unwtd, exclude_by_ttimes) %>%
   filter(exclude_by_ttimes == 0) %>%
   left_join(bite_ests, by = c("distcode" = "distcode")) -> bites_by_ttimes
 
 mada_districts@data %>%
   select(distcode, district = ADM2_EN, pop, long, lat, 
-           mindist, ctch_dist, exclude_by_distance) %>%
+           distance, ctch_dist, exclude_by_distance) %>%
   filter(exclude_by_distance == 0) %>%
   left_join(bite_ests, by = c("distcode" = "distcode")) -> bites_by_distance
 
@@ -134,12 +134,17 @@ moramanga %>%
 
 mada_communes@data %>%
   select(distcode, commcode = ADM3_PCODE, commune = ADM3_EN, pop, 
-         long, lat, ttms_wtd_m, ctch_wtd_u) %>%
-  filter(ctch_wtd_u == "Moramanga") %>%
+         long, lat, ttms_wtd, ttms_unwtd, ctch_wtd, ctch_unwtd) %>%
+  filter(ctch_wtd == "Moramanga") %>%
   left_join(mora_bites) -> morabites_by_ttimes
 
 mada_communes@data %>%
   select(distcode, commcode = ADM3_PCODE, commune = ADM3_EN, pop, 
-         long, lat, mindist, ctch_dist) %>%
+         long, lat, distance, ctch_dist) %>%
   filter(ctch_dist == "Moramanga") %>%
   left_join(mora_bites) -> morabites_by_distance
+
+##' TO DO:
+##' Fix masked vs. unmasked travel times
+##' Calculate unweighted travel times and see what happens (if this fixes it, then issue with pop)
+##' If not, then something with the acc cost...
