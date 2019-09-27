@@ -22,7 +22,7 @@ mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 peripheral <- read.csv("data/raw/bitedata/peripheral/SaisieRage_DATA_2018-09-21_1755.csv")
 peripheral$distcode <- paste0(substring(peripheral$district, 1, 1), 
                               substring(peripheral$district, 3, 8))
-peripheral_comm_matches <- match.admin (data_names = peripheral$commune, data_nest = peripheral$distcode, 
+peripheral_comm_matches <- match.admin(data_names = peripheral$commune, data_nest = peripheral$distcode, 
              match_names = mada_communes$ADM3_EN, match_nest = mada_communes$distcode,
              match_method = "osa", nested = TRUE)
 write.csv(peripheral_comm_matches, "data/raw/match_names/peripheral_comm_matches.csv", row.names = FALSE)
