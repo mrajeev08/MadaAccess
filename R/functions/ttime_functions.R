@@ -72,6 +72,10 @@ get.travel.times <- function(friction, shapefile, coords, trans_matrix_exists = 
 #' @param pop_rast raster of population size at same resolution and extent as friction surface
 #' @param pop_pol vector of population sizes associated with the shapefile polygons 
 #' @param trans_mat character, name of file name of transition matrix, this must already exist!
+#' @param weighted boolean, whether to weight by population in grid cells
+#' @param type character, either "masked" or "unmasked" to get ttimes for coastal admin unit/islands
+#' used unmasked (allows for travel by sea basically, see https://www.nature.com/articles/nature25181 
+#' for more details on how they treat travel times over water.
 #' @return Returns a matrix of minimum travel time estimates to each of the admin units in the
 #' shapefile to each of the gps points input
 #' @section Dependencies:

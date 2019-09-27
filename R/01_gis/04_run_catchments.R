@@ -37,38 +37,68 @@ point_mat <- as.matrix(select(ctar_metadata, Y_COORD = LONGITUDE, X_COORD = LATI
 friction_mada_unmasked <- raster("data/processed/rasters/friction_mada_unmasked.tif")
 friction_mada_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
-##' Getting catchment matrix masked and unmasked
-##' This function generates travel times to each CTAR for each admin unit (district or commune)
+##' Getting catchment matrix weighted and unweighted
+##' If masked is.na then replace with unmasked (basically for the coastal and island admin units 
+##' allows for travel over water)
 ##' ------------------------------------------------------------------------------------------------
 ##' Districts
 print(paste(Sys.time(), ": started generating district catchmats"))
+
+## Weighted
 dist_mat_unmasked <- get.catchmat(point_mat = point_mat, fric = friction_mada_unmasked, 
-                         shape = mada_districts, pop_rast = pop1x1, 
-                         pop_pol = mada_districts$pop, 
-                         trans_mat = "data/processed/rasters/trans_gc_unmasked.rds",
-                         weighted = TRUE, type = "unmasked")
-write.csv(dist_mat_unmasked, "data/processed/catchmats/dist_mat_unmasked.csv", row.names = FALSE)
+                                  shape = mada_districts, pop_rast = pop1x1, 
+                                  pop_pol = mada_districts$pop, 
+                                  trans_mat = "data/processed/rasters/trans_gc_unmasked.rds",
+                                  weighted = TRUE, type = "unmasked")
 dist_mat_masked <- get.catchmat(point_mat = point_mat, fric = friction_mada_masked, 
                                 shape = mada_districts, pop_rast = pop1x1, 
                                 pop_pol = mada_districts$pop, 
                                 trans_mat = "data/processed/rasters/trans_gc_masked.rds",
                                 weighted = TRUE, type = "masked")
-write.csv(dist_mat_masked, "data/processed/catchmats/dist_mat_masked.csv", row.names = FALSE)
+dist_mat_masked[dist_mat_masked == Inf] <- dist_mat_unmasked[dist_mat_masked == Inf]
+write.csv(dist_mat_masked, "data/processed/catchmats/dist_mat_weighted.csv", row.names = FALSE)
+
+## Unweighted
+dist_mat_unmasked <- get.catchmat(point_mat = point_mat, fric = friction_mada_unmasked, 
+                         shape = mada_districts, pop_rast = pop1x1, 
+                         pop_pol = mada_districts$pop, 
+                         trans_mat = "data/processed/rasters/trans_gc_unmasked.rds",
+                         weighted = FALSE, type = "unmasked")
+dist_mat_masked <- get.catchmat(point_mat = point_mat, fric = friction_mada_masked, 
+                                shape = mada_districts, pop_rast = pop1x1, 
+                                pop_pol = mada_districts$pop, 
+                                trans_mat = "data/processed/rasters/trans_gc_masked.rds",
+                                weighted = FALSE, type = "masked")
+dist_mat_masked[dist_mat_masked == Inf] <- dist_mat_unmasked[dist_mat_masked == Inf]
+write.csv(dist_mat_masked, "data/processed/catchmats/dist_mat_unweighted.csv", row.names = FALSE)
 print(paste(Sys.time(), ": finished generating district catchmats"))
 
 ##' Communes
 print(paste(Sys.time(), ": started generating commune catchmats"))
+
+## Weighted
 comm_mat_unmasked <- get.catchmat(point_mat = point_mat, fric = friction_mada_unmasked, 
                                   shape = mada_communes, pop_rast = pop1x1, 
                                   trans_mat = "data/processed/rasters/trans_gc_unmasked.rds",
                                   pop_pol = mada_communes$pop, weighted = TRUE, type = "unmasked")
-write.csv(comm_mat_unmasked, "data/processed/catchmats/comm_mat_unmasked.csv", row.names = FALSE)
-
 comm_mat_masked <- get.catchmat(point_mat = point_mat, fric = friction_mada_masked, 
                                 shape = mada_communes, pop_rast = pop1x1, 
                                 trans_mat = "data/processed/rasters/trans_gc_masked.rds",
                                 pop_pol = mada_communes$pop, weighted = TRUE, type = "masked")
-write.csv(comm_mat_masked, "data/processed/catchmats/comm_mat_masked.csv", row.names = FALSE)
+comm_mat_masked[comm_mat_masked == Inf] <- comm_mat_unmasked[comm_mat_masked == Inf]
+write.csv(comm_mat_masked, "data/processed/catchmats/comm_mat_weighted.csv", row.names = FALSE)
+
+## Unweighted
+comm_mat_unmasked <- get.catchmat(point_mat = point_mat, fric = friction_mada_unmasked, 
+                                  shape = mada_communes, pop_rast = pop1x1, 
+                                  trans_mat = "data/processed/rasters/trans_gc_unmasked.rds",
+                                  pop_pol = mada_communes$pop, weighted = FALSE, type = "unmasked")
+comm_mat_masked <- get.catchmat(point_mat = point_mat, fric = friction_mada_masked, 
+                                shape = mada_communes, pop_rast = pop1x1, 
+                                trans_mat = "data/processed/rasters/trans_gc_masked.rds",
+                                pop_pol = mada_communes$pop, weighted = FALSE, type = "masked")
+comm_mat_masked[comm_mat_masked == Inf] <- comm_mat_unmasked[comm_mat_masked == Inf]
+write.csv(comm_mat_masked, "data/processed/catchmats/comm_mat_unweighted.csv", row.names = FALSE)
 print(paste(Sys.time(), ": finished generating commune catchmats"))
 
 ## Get unweighted vals too?!

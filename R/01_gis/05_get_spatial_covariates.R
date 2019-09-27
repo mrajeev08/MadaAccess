@@ -17,10 +17,10 @@ library(tidyverse)
 ##' ------------------------------------------------------------------------------------------------
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
-dist_mat_masked <- read.csv("data/processed/catchmats/dist_mat_masked.csv")
-dist_mat_unmasked <- read.csv("data/processed/catchmats/dist_mat_unmasked.csv")
-comm_mat_masked <- read.csv("data/processed/catchmats/comm_mat_masked.csv")
-comm_mat_unmasked <- read.csv("data/processed/catchmats/comm_mat_unmasked.csv")
+dist_mat_weighted <- read.csv("data/processed/catchmats/dist_mat_weighted.csv")
+dist_mat_unweighted <- read.csv("data/processed/catchmats/dist_mat_unweighted.csv")
+comm_mat_weighted <- read.csv("data/processed/catchmats/comm_mat_weighted.csv")
+comm_mat_unweighted <- read.csv("data/processed/catchmats/comm_mat_unweighted.csv")
 ctar_metadata <- read.csv(file = "data/raw/ctar_metadata.csv")
 
 ##' Get travel times and catchments at district and commune level
@@ -35,30 +35,19 @@ which.min.inf  <- function(x) {
   }
 }
 ##' Communes
-mada_communes$ttms_wtd_m <- apply(comm_mat_masked, 1, min, na.rm = TRUE)
-mada_communes$ttms_wtd_u <- apply(comm_mat_unmasked, 1, min, na.rm = TRUE)
-mada_communes$ctch_wtd_m <- ctar_metadata$CTAR[unlist(apply(comm_mat_masked, 
+mada_communes$ttms_wtd <- apply(comm_mat_weighted, 1, min, na.rm = TRUE)
+mada_communes$ttms_unwtd <- apply(comm_mat_unweighted, 1, min, na.rm = TRUE)
+mada_communes$ctch_wtd <- ctar_metadata$CTAR[unlist(apply(comm_mat_weighted, 
                                                                            1, which.min.inf))]
-mada_communes$ctch_wtd_u <- ctar_metadata$CTAR[unlist(apply(comm_mat_masked, 
+mada_communes$ctch_unwtd <- ctar_metadata$CTAR[unlist(apply(comm_mat_unweighted, 
                                                                              1, which.min.inf))]
 ##' District
-mada_districts$ttms_wtd_m <- apply(dist_mat_masked, 1, min, na.rm = TRUE)
-mada_districts$ttms_wtd_u <- apply(dist_mat_unmasked, 1, min, na.rm = TRUE)
-mada_districts$ctch_wtd_m <- ctar_metadata$CTAR[unlist(apply(dist_mat_masked, 
-                                                                            1, which.min.inf))]
-mada_districts$ctch_wtd_u <- ctar_metadata$CTAR[unlist(apply(dist_mat_unmasked, 
-                                                                           1, which.min.inf))]
-
-## Compare unmasked w/ masked
-ggplot(data = mada_communes@data, aes(x = ttms_wtd_m, y = ttms_wtd_u)) + geom_point()
-ggplot(data = mada_districts@data, aes(x = ttms_wtd_m, y = ttms_wtd_u)) + geom_point()
-
-mada_communes@data %>%
-  mutate(ttms_wtd = ifelse(ttms_wtd_m == Inf, ttms_wtd_u, ttms_wtd_m), 
-         ctch_wtd = ifelse(is.na(ctch_wtd_m), ctch_wtd_u, ctch_wtd_m)) -> mada_communes@data
-mada_districts@data %>%
-  mutate(ttms_wtd = ifelse(ttms_wtd_m == Inf, ttms_wtd_u, ttms_wtd_m), 
-         ctch_wtd = ifelse(is.na(ctch_wtd_m), ctch_wtd_u, ctch_wtd_m)) -> mada_districts@data
+mada_districts$ttms_wtd <- apply(dist_mat_weighted, 1, min, na.rm = TRUE)
+mada_districts$ttms_unwtd <- apply(dist_mat_unweighted, 1, min, na.rm = TRUE)
+mada_districts$ctch_wtd <- ctar_metadata$CTAR[unlist(apply(dist_mat_weighted, 
+                                                          1, which.min.inf))]
+mada_districts$ctch_unwtd <- ctar_metadata$CTAR[unlist(apply(dist_mat_unweighted, 
+                                                            1, which.min.inf))]
 
 ##' Get distance to closest CTAR
 ##' ------------------------------------------------------------------------------------------------
@@ -67,7 +56,7 @@ mada_district_coords <- coordinates(mada_districts)
 mada_districts$long <- mada_district_coords[, 1]
 mada_districts$lat <- mada_district_coords[, 2]
 dist_distance_mat <- distm(mada_district_coords, ctar_metadata[, c("LONGITUDE", "LATITUDE")])/1000
-mada_districts$mindist <- apply(dist_distance_mat, 1, min, na.rm = TRUE)
+mada_districts$distance <- apply(dist_distance_mat, 1, min, na.rm = TRUE)
 mada_districts$ctch_dist <- ctar_metadata$CTAR[unlist(apply(dist_distance_mat, 
                                                                  1, which.min.inf))]
 
@@ -76,7 +65,7 @@ mada_commune_coords <- coordinates(mada_communes)
 mada_communes$long <- mada_commune_coords[, 1]
 mada_communes$lat <- mada_commune_coords[, 2]
 comm_distance_mat <- distm(mada_commune_coords, ctar_metadata[, c("LONGITUDE", "LATITUDE")])/1000
-mada_communes$mindist <- apply(comm_distance_mat, 1, min, na.rm = TRUE)
+mada_communes$distance <- apply(comm_distance_mat, 1, min, na.rm = TRUE)
 mada_communes$ctch_dist <- ctar_metadata$CTAR[unlist(apply(comm_distance_mat, 
                                                                          1, which.min.inf))]
 
