@@ -41,7 +41,6 @@ mada_communes$ctch_wtd_m <- ctar_metadata$CTAR[unlist(apply(comm_mat_masked,
                                                                            1, which.min.inf))]
 mada_communes$ctch_wtd_u <- ctar_metadata$CTAR[unlist(apply(comm_mat_masked, 
                                                                              1, which.min.inf))]
-
 ##' District
 mada_districts$ttms_wtd_m <- apply(dist_mat_masked, 1, min, na.rm = TRUE)
 mada_districts$ttms_wtd_u <- apply(dist_mat_unmasked, 1, min, na.rm = TRUE)
@@ -49,7 +48,18 @@ mada_districts$ctch_wtd_m <- ctar_metadata$CTAR[unlist(apply(dist_mat_masked,
                                                                             1, which.min.inf))]
 mada_districts$ctch_wtd_u <- ctar_metadata$CTAR[unlist(apply(dist_mat_unmasked, 
                                                                            1, which.min.inf))]
- 
+
+## Compare unmasked w/ masked
+ggplot(data = mada_communes@data, aes(x = ttms_wtd_m, y = ttms_wtd_u)) + geom_point()
+ggplot(data = mada_districts@data, aes(x = ttms_wtd_m, y = ttms_wtd_u)) + geom_point()
+
+mada_communes@data %>%
+  mutate(ttms_wtd = ifelse(ttms_wtd_m == Inf, ttms_wtd_u, ttms_wtd_m), 
+         ctch_wtd = ifelse(is.na(ctch_wtd_m), ctch_wtd_u, ctch_wtd_m)) -> mada_communes@data
+mada_districts@data %>%
+  mutate(ttms_wtd = ifelse(ttms_wtd_m == Inf, ttms_wtd_u, ttms_wtd_m), 
+         ctch_wtd = ifelse(is.na(ctch_wtd_m), ctch_wtd_u, ctch_wtd_m)) -> mada_districts@data
+
 ##' Get distance to closest CTAR
 ##' ------------------------------------------------------------------------------------------------
 ##' Districts
