@@ -9,6 +9,7 @@ rm(list = ls())
 library(tidyverse)
 library(rgdal)
 library(lubridate)
+select <- dplyr::select
 
 ## Read in data
 national <- read.csv("data/processed/bitedata/national.csv")
@@ -36,10 +37,10 @@ national %>%
 throughput %>%
   group_by(id_ctar) %>%
   arrange(date_reported, .by_group = TRUE) %>%
-  mutate(include = rle.days(no_patients, threshold = 10), 
+  mutate(include = rle.days(no_patients, threshold = 15), 
          mean_throughput = mean(no_patients[include == 1]),
          sd_throughput = sd(no_patients[include == 1]),
-         estimated_cat1 = ifelse(no_patients >= mean_throughput + 2*sd_throughput, 
+         estimated_cat1 = ifelse(no_patients >= mean_throughput + 3*sd_throughput, 
                                      1, 0),
          year = year(date_reported)) -> throughput
 
@@ -89,33 +90,15 @@ bites %>%
 
 mada_districts@data %>%
   select(distcode, district = ADM2_EN, pop, long, lat, 
-                   ctch_wtd, ctch_unwtd, ttms_wtd, ttms_unwtd, exclude_by_ttimes) %>%
+                   catchment = ctch_wtd, ttimes = ttms_wtd, exclude_by_ttimes) %>%
   filter(exclude_by_ttimes == 0) %>%
   left_join(bite_ests, by = c("distcode" = "distcode")) -> bites_by_ttimes
 
 mada_districts@data %>%
   select(distcode, district = ADM2_EN, pop, long, lat, 
-           distance, ctch_dist, exclude_by_distance) %>%
+           distance, catchment = ctch_dist, exclude_by_distance) %>%
   filter(exclude_by_distance == 0) %>%
   left_join(bite_ests, by = c("distcode" = "distcode")) -> bites_by_distance
-
-## ctar ests
-bites %>%
-  ## filter known contacts and estimated ones based on throughput
-  filter(estimated_cat1 == 0, include == 1) %>% 
-  group_by(year, id_ctar) %>%
-  summarize(bites = n()) %>%
-  left_join(reporting) %>%
-  ## filter any years with reporting < 25% 
-  filter(reporting > 0.25) %>%
-  ## correct for reporting by year and ctar reported to 
-  mutate(bites_corrected = bites/reporting) %>%
-  group_by(id_ctar) %>%
-  summarize(avg_bites = mean(bites_corrected, na.rm = TRUE)) %>%
-  left_join(select(ctar_metadata, CTAR, id_ctar, exclude)) %>%
-  filter(exclude == 0) -> bites_by_ctar
-
-##' output bite ests here
 
 ##' 2. Moramanga data 
 ##' ------------------------------------------------------------------------------------------------
@@ -134,17 +117,38 @@ moramanga %>%
 
 mada_communes@data %>%
   select(distcode, commcode = ADM3_PCODE, commune = ADM3_EN, pop, 
-         long, lat, ttms_wtd, ttms_unwtd, ctch_wtd, ctch_unwtd) %>%
-  filter(ctch_wtd == "Moramanga") %>%
+         long, lat, catchment = ctch_wtd, ttimes = ttms_wtd) %>%
+  filter(catchment == "Moramanga") %>%
   left_join(mora_bites) -> morabites_by_ttimes
 
 mada_communes@data %>%
   select(distcode, commcode = ADM3_PCODE, commune = ADM3_EN, pop, 
-         long, lat, distance, ctch_dist) %>%
-  filter(ctch_dist == "Moramanga") %>%
+         long, lat, distance, catchment = ctch_dist) %>%
+  filter(catchment == "Moramanga") %>%
   left_join(mora_bites) -> morabites_by_distance
 
-##' TO DO:
-##' Fix masked vs. unmasked travel times
-##' Calculate unweighted travel times and see what happens (if this fixes it, then issue with pop)
-##' If not, then something with the acc cost...
+
+## Covariate data frames (for summed models)
+mada_districts@data %>%
+  select(distcode, district = ADM2_EN, pop, long, lat, 
+         catchment = ctch_wtd, ttimes = ttms_wtd, exclude_by_ttimes) %>%
+  filter(exclude_by_ttimes == 0) -> distcovars_by_ttimes
+
+mada_districts@data %>%
+  select(distcode, district = ADM2_EN, pop, long, lat, 
+         distance, catchment = ctch_dist, exclude_by_distance) %>%
+  filter(exclude_by_distance == 0) -> distcovars_by_distance
+
+mada_communes$exclude_by_ttimes <- ctar_metadata$exclude[match(mada_communes$ctch_wtd, ctar_metadata$CTAR)]
+mada_communes$exclude_by_distance <- ctar_metadata$exclude[match(mada_communes$ctch_dist, ctar_metadata$CTAR)]
+
+mada_communes@data %>%
+  select(distcode, district = ADM2_EN, pop, long, lat, 
+         catchment = ctch_wtd, ttimes = ttms_wtd, exclude_by_ttimes) %>%
+  filter(exclude_by_ttimes == 0) -> commcovars_by_ttimes
+
+mada_communes@data %>%
+  select(distcode, district = ADM2_EN, pop, long, lat, 
+         distance, catchment = ctch_dist, exclude_by_distance) %>%
+  filter(exclude_by_distance == 0) -> commcovars_by_distance
+
