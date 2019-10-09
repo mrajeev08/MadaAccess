@@ -73,6 +73,7 @@ predict.bites <- function(names_bites, covar, pop, names_covar, sum = TRUE,
   
   if(pop_predict == "onlyPop") {
     covar <- pop
+    covar_name = "pop"
     exp_bites <- exp(beta*covar/trans + intercept)
   }
   

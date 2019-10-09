@@ -9,8 +9,8 @@ get.burden.fixed <- function(pop = 1e5, names, covar, B_covar, B_0, hdr = 25, in
                               p_death = 0.16, scenario = 0, scale = FALSE, 
                               type = "reporting", slope = 1, intercept = 0, inc_max = inc100k_max, 
                               inc_min = inc100k_min) {
-
-  bites_100k <- inv.logit(B_covar*covar + B_0)*pop
+  
+  bites_100k <- exp(B_covar*covar + B_0)*pop
   
   if(scale == TRUE) {
     ## Constrained and scaled incidence
