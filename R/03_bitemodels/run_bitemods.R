@@ -153,7 +153,9 @@ preds_fixed <- foreach(i = iter(mod_df, by = "row"), .combine = "rbind") %do% {
   
   if (i$pop_predict == "onlyPop"){
     pop_plot <- seq(1000, 1e6, length.out = length(covar_plot))
-  } else{ pop_plot = 1e5 } 
+  } else {
+    pop_plot = 1e5
+  } 
   
   preds <- predict.bites(names_bites = NA,
                          covar = covar_plot, pop = pop_plot, 
@@ -197,9 +199,9 @@ mod_names <- c("flatPop" = "Flat incidence", "addPop" = "With pop",
                "onlyPop" = "Only pop")
 
 ggplot(preds_data, aes(x = log(observed + 0.1), y = log(predicted + 0.1), color = scale)) + 
-  geom_point(alpha = 0.5) +
+  geom_point(alpha = 0.5, size = 2) +
   geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +
-  scale_color_manual(values = c("#004b49", "#cc7722", "#b7410e"), name = "Scale") +
+  scale_color_manual(values = c("darkred", "#cc7722", "#004b49"), name = "Scale") +
   facet_grid(pop_predict ~ covar_name, scales = "free_x", 
              labeller = labeller(pop_predict = as_labeller(mod_names)), drop = TRUE) +
   expand_limits(y = 0) +
@@ -223,13 +225,17 @@ morabites_by_ttimes %>%
   bind_rows(mora_covar_dist) %>%
   bind_rows(obs_covar_dist) -> obs_covar_dist
 
-ggplot(filter(preds_fixed, pop_predict != "onlyPop"), aes(x = covar, y = predicted, color = scale)) + 
-  geom_line() +
-  geom_point(data = obs_covar_dist, aes(x = covar, y = avg_bites/pop*1e5, color = scale), alpha = 0.5) +
-  scale_color_manual(values = c("#004b49", "#cc7722", "darkred"), name = "Scale") +
+ggplot() + 
+  geom_line(data = filter(preds_fixed, pop_predict == "flatPop"), 
+            aes(x = covar, y = predicted/pop*1e5, color = scale), size = 1.2, alpha = 0.75) +
+  geom_point(data = obs_covar_dist, aes(x = covar, y = avg_bites/pop*1e5, color = scale), 
+             alpha = 0.5, size = 2, shape = 1, stroke = 1.2) +
+  scale_color_manual(values = c("darkred", "#cc7722", "#004b49"), name = "Scale") +
   facet_grid(pop_predict ~ covar_name, scales = "free", 
              labeller = labeller(pop_predict = as_labeller(mod_names)), drop = TRUE) +
   expand_limits(y = 0) +
   xlab("Covariate") +
   ylab("Predicted bites") +
-  labs(tag = "A")
+  labs(tag = "A") +
+  theme(panel.grid.minor = element_blank())
+
