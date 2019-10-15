@@ -71,6 +71,10 @@ get.access <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #' Using the foreach package to parallelize. In order to speed up, the transition matrix must already
 #' have been created.
 #' @param point_mat two-column matrix with x (longitude) and y (latitude)
+#' @param point_names names of clinics corresponding to each point in point_mat, foreach loop keeps the output
+#' in order so these are passed as colnames to the output matrix
+#' @param admin_names names of admin units corresponding to shapefile, foreach loop keeps the output
+#' in order so these are passed as rownames to the output matrix
 #' @param fric raster friction surface to pass to \code{get.access}
 #' @param shape polygon shapefile to pass to \code{get.access} and extract travel times to
 #' @param pop_rast raster of population size at same resolution and extent as friction surface
@@ -87,7 +91,7 @@ get.access <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #'     Packages: gdistance, raster, foreach, rgdal, sp
 #'     Functions: get.access
 
-get.catchmat <- function(point_mat, fric, shape, pop_rast, 
+get.catchmat <- function(point_mat, point_names, admin_names, fric, shape, pop_rast, 
                          pop_pol, trans_mat, weighted = TRUE, type = "masked",
                          met = "ttimes"){
   
@@ -123,6 +127,10 @@ get.catchmat <- function(point_mat, fric, shape, pop_rast,
     }
     out$access 
   }
+  
+  colnames(catchmat) <- point_names
+  rownames(catchmat) <- admin_names
+  
   return(catchmat)
 }
 
