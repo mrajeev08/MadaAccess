@@ -19,6 +19,14 @@ mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 source("R/functions/data_functions.R")
 
+##' CTAR IN DISTRICT
+pts <- SpatialPoints(cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE), 
+                     proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+mada_districts$ctar_in_district<- over(mada_districts, pts)
+mada_districts$ctar_in_district <- ifelse(is.na(mada_districts$ctar_in_district), 0, 1)
+mada_communes$ctar_in_district <- mada_districts$ctar_in_district[match(mada_communes$distcode, 
+                                                                        mada_districts$distcode)]
+
 ##' 1. National bite data: getting incidence estimates
 ##' ------------------------------------------------------------------------------------------------
 
@@ -88,17 +96,21 @@ bites %>%
   summarize(avg_bites = mean(total, na.rm = TRUE)) %>%
   complete(distcode = mada_districts$distcode, fill = list(avg_bites = 0)) -> bite_ests
 
-mada_districts@data %>%
-  select(distcode, district = ADM2_EN, pop, long, lat, 
-                   catchment = ctch_wtd, ttimes = ttms_wtd, exclude_by_ttimes) %>%
+ mada_districts@data %>%
+  select(names_covar = distcode, district = ADM2_EN, pop, long, lat, 
+         catchment = ctch_wtd, covar = ttms_wtd, exclude_by_ttimes,
+         ctar_in_district) %>%
+  mutate(covar_name = "ttimes") %>%
   filter(exclude_by_ttimes == 0) %>%
-  left_join(bite_ests, by = c("distcode" = "distcode")) -> bites_by_ttimes
+  left_join(bite_ests, by = c("names_covar" = "distcode")) -> bites_by_ttimes
 
 mada_districts@data %>%
-  select(distcode, district = ADM2_EN, pop, long, lat, 
-           distance, catchment = ctch_dist, exclude_by_distance) %>%
+  select(names_covar = distcode, district = ADM2_EN, pop, long, lat, 
+         covar = distance, catchment = ctch_dist, exclude_by_distance,
+         ctar_in_district) %>%
+  mutate(covar_name = "distance") %>%
   filter(exclude_by_distance == 0) %>%
-  left_join(bite_ests, by = c("distcode" = "distcode")) -> bites_by_distance
+  left_join(bite_ests, by = c("names_covar" = "distcode")) -> bites_by_distance
 
 ##' 2. Moramanga data 
 ##' ------------------------------------------------------------------------------------------------
@@ -116,39 +128,36 @@ moramanga %>%
   complete(commcode = mada_communes$ADM3_PCODE, fill = list(avg_bites = 0)) -> mora_bites 
 
 mada_communes@data %>%
-  select(distcode, commcode = ADM3_PCODE, commune = ADM3_EN, pop, 
-         long, lat, catchment = ctch_wtd, ttimes = ttms_wtd) %>%
+  mutate(ctar_in_district = ifelse(distcode == "MG33314", 1, 0),
+         covar_name = "ttimes") %>%
+  select(names_covar = ADM3_PCODE, commune = ADM3_EN, pop, 
+         long, lat, catchment = ctch_wtd, covar = ttms_wtd, ctar_in_district, covar_name) %>%
   filter(catchment == "Moramanga") %>%
-  left_join(mora_bites) -> morabites_by_ttimes
+  left_join(mora_bites, by = c("names_covar" = "commcode")) -> morabites_by_ttimes
 
 mada_communes@data %>%
-  select(distcode, commcode = ADM3_PCODE, commune = ADM3_EN, pop, 
-         long, lat, distance, catchment = ctch_dist) %>%
+  mutate(ctar_in_district = ifelse(distcode == "MG33314", 1, 0),
+         covar_name = "distance") %>%
+  select(names_covar = ADM3_PCODE, commune = ADM3_EN, pop, 
+         long, lat, covar = distance, covar_name, catchment = ctch_dist,
+         ctar_in_district) %>%
   filter(catchment == "Moramanga") %>%
-  left_join(mora_bites) -> morabites_by_distance
+  left_join(mora_bites, by = c("names_covar" = "commcode")) -> morabites_by_distance
 
 
-## Covariate data frames (for summed models)
-mada_districts@data %>%
-  select(distcode, district = ADM2_EN, pop, long, lat, 
-         catchment = ctch_wtd, ttimes = ttms_wtd, exclude_by_ttimes) %>%
-  filter(exclude_by_ttimes == 0) -> distcovars_by_ttimes
-
-mada_districts@data %>%
-  select(distcode, district = ADM2_EN, pop, long, lat, 
-         distance, catchment = ctch_dist, exclude_by_distance) %>%
-  filter(exclude_by_distance == 0) -> distcovars_by_distance
-
+## Covariate data frames (for summed models need commune level covariates)
 mada_communes$exclude_by_ttimes <- ctar_metadata$exclude[match(mada_communes$ctch_wtd, ctar_metadata$CTAR)]
 mada_communes$exclude_by_distance <- ctar_metadata$exclude[match(mada_communes$ctch_dist, ctar_metadata$CTAR)]
 
 mada_communes@data %>%
-  select(distcode, district = ADM2_EN, pop, long, lat, 
-         catchment = ctch_wtd, ttimes = ttms_wtd, exclude_by_ttimes) %>%
+  select(names_covar = distcode, district = ADM2_EN, pop, long, lat, 
+         catchment = ctch_wtd, covar = ttms_wtd, exclude_by_ttimes, ctar_in_district) %>%
+  mutate(covar_name = "ttimes") %>%
   filter(exclude_by_ttimes == 0) -> commcovars_by_ttimes
 
 mada_communes@data %>%
-  select(distcode, district = ADM2_EN, pop, long, lat, 
-         distance, catchment = ctch_dist, exclude_by_distance) %>%
+  select(names_covar = distcode, district = ADM2_EN, pop, long, lat, 
+         covar = distance, catchment = ctch_dist, exclude_by_distance, ctar_in_district) %>%
+  mutate(covar_name = "distance") %>%
   filter(exclude_by_distance == 0) -> commcovars_by_distance
 
