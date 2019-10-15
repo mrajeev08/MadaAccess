@@ -147,13 +147,15 @@ get.catchmat <- function(point_mat, point_names, admin_names, fric, shape, pop_r
 #' change so that uses rownames from this instead?
 #' @param prop_pop a numeric vector of the proportion of the total population in each admin unit
 #' @param max_clinics numeric, the number of clinics that you want to add total
+#' @param threshold numeric, the threshold distance or travel times for which you're trying to improve
+#' access
 #' @return A matrix with the minimum access metrics for each admin unit as each clinic is added.
 #' Column names correspond to which clinic was added.
 #' @section Dependencies:
 #'     Packages: none
 
 add.armc <- function(base_metric, clinic_names, clinic_catchmat, prop_pop, 
-                     max_clinics = ncol(clinic_catchmat)) {
+                     max_clinics = ncol(clinic_catchmat), threshold) {
   
   metric_mat <- matrix(NA, nrow = nrow(clinic_catchmat), ncol = max_clinics + 1)
   metric_mat[, 1] <- base_metric
