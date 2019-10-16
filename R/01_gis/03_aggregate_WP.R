@@ -22,7 +22,6 @@ library(raster)
 library(foreach)
 
 ##' Source
-source("R/functions/ttime_functions.R")
 source("R/functions/utils.R")
 
 ##' Load in GIS files 
