@@ -27,7 +27,7 @@
 #' @return raster at same resolution as the input friction surface and cropped to the shapefile with 
 #'   the minimum access metric estimate as the values
 #' @section Dependencies:
-#'  Packages: gdistance, raster, rgdal, sp
+#'  Packages: gdistance, raster, rgdal, sp, geosphere
 
 get.access <- function(friction, shapefile, coords, trans_matrix_exists = TRUE, 
                              filename_trans, metric = "ttimes"){
@@ -102,7 +102,7 @@ get.catchmat <- function(point_mat, point_names, admin_names, fric, shape, pop_r
   
   ## getting catchments
   catchmat <- foreach(coords = iter(point_mat,"row"),
-                       .packages = c('raster', 'rgdal', 'sp', 'gdistance'),
+                       .packages = c('raster', 'rgdal', 'sp', 'gdistance', 'geosphere'),
                        .errorhandling = 'stop',
                        .export = 'get.access',
                        .combine = "cbind"
