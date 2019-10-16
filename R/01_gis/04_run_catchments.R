@@ -2,7 +2,7 @@
 ##' Step 3: Generating catchment matrix
 ##' Details: Getting travel times and distance to each clinic for each admin unit 
 ##'   Recommended to run in parallel to limit compute time
-##'   On the Della cluster at Princeton with 32 cores, it takes approximately 6 minutes
+##'   On the Della cluster at Princeton with 32 cores, it takes approximately 12 minutes
 ##' Author: Malavika Rajeev 
 ####################################################################################################
 
@@ -25,6 +25,7 @@ library(gdistance)
 library(doRNG)
 library(foreach)
 library(dplyr)
+library(geosphere)
 select <- dplyr::select
 source("R/functions/access_functions.R")
 
