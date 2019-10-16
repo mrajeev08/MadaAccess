@@ -36,28 +36,32 @@ get.access <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
   friction <- crop(friction, shapefile)
   
   if (metric == "distance") {
-    friction[!is.na(friction)] <- 1
+    fric_coords <- coordinates(friction)[-which(is.na(values(friction))), ]
+    access <- friction
+    access[!is.na(access)] <- apply(distm(fric_coords, coords), 1, min)/1000
   }
   
-  ## Fetch the number of points
-  n_points <- nrow(coords)
-  
-  ## Make the graph and the geocorrected version of the graph (or read in the latter).
-  if (trans_matrix_exists == TRUE) {
-    # Read in the transition matrix object if it has been pre-computed
-    trans_gc <- readRDS(filename_trans)
-  } else {
-    # Make and geocorrect the transition matrix (i.e., the graph)
-    trans <- transition(friction, function(x) 1/mean(x), 8) # RAM intensive, can be very slow for large areas
-    #saveRDS(Trans, filename.nonGCtrans)
-    trans_gc <- geoCorrection(trans)
-    saveRDS(trans_gc, filename_trans)
+  if(metric == "ttimes") {
+    ## Fetch the number of points
+    n_points <- nrow(coords)
+    
+    ## Make the graph and the geocorrected version of the graph (or read in the latter).
+    if (trans_matrix_exists == TRUE) {
+      # Read in the transition matrix object if it has been pre-computed
+      trans_gc <- readRDS(filename_trans)
+    } else {
+      # Make and geocorrect the transition matrix (i.e., the graph)
+      trans <- transition(friction, function(x) 1/mean(x), 8) # RAM intensive, can be very slow for large areas
+      #saveRDS(Trans, filename.nonGCtrans)
+      trans_gc <- geoCorrection(trans)
+      saveRDS(trans_gc, filename_trans)
+    }
+    
+    ## Run the accumulated cost algorithm to make the final output map. 
+    ## This can be quite slow (potentially hours).
+    access <- accCost(trans_gc, coords)
   }
   
-  ## Run the accumulated cost algorithm to make the final output map. 
-  ## This can be quite slow (potentially hours).
-  access <- accCost(trans_gc, coords)
-
   ## Return the resulting raster
   return(access)
 }
@@ -75,15 +79,15 @@ get.access <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #' in order so these are passed as colnames to the output matrix
 #' @param admin_names names of admin units corresponding to shapefile, foreach loop keeps the output
 #' in order so these are passed as rownames to the output matrix
-#' @param fric raster friction surface to pass to \code{get.access}
+#' @param fric raster friction surface to pass to \code{get.access}; either "masked" or "unmasked", 
+#' to get ttimes for coastal admin unit/islands used unmasked (allows for travel by sea basically, 
+#' see https://www.nature.com/articles/nature25181 
+#' for more details on how they treat travel times over water).
 #' @param shape polygon shapefile to pass to \code{get.access} and extract travel times to
 #' @param pop_rast raster of population size at same resolution and extent as friction surface
 #' @param pop_pol vector of population sizes associated with the shapefile polygons 
 #' @param trans_mat character, name of file name of transition matrix, this must already exist!
 #' @param weighted boolean, whether to weight by population in grid cells
-#' @param type character, either "masked" or "unmasked" to get ttimes for coastal admin unit/islands
-#' used unmasked (allows for travel by sea basically, see https://www.nature.com/articles/nature25181 
-#' for more details on how they treat travel times over water).
 #' @param met character, either "ttimes" or "distance"
 #' @return Returns a matrix of access estimates for each of the admin units in the
 #' shapefile to each of the gps points 
@@ -92,7 +96,8 @@ get.access <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #'     Functions: get.access
 
 get.catchmat <- function(point_mat, point_names, admin_names, fric, shape, pop_rast, 
-                         pop_pol, trans_mat, weighted = TRUE, type = "masked",
+                         pop_pol, trans_mat = "data/processed/rasters/trans_gc_masked.rds", 
+                         weighted = TRUE, 
                          met = "ttimes"){
   
   ## getting catchments
