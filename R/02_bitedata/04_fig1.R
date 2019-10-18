@@ -24,7 +24,7 @@ ctar_coords <- SpatialPoints(cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITU
                              proj4string = 
                                CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 ctar_metadata$commcode <- over(ctar_coords, mada_communes)$ADM3_PC
-ctar_metadata$distcode <- over(ctar_coords, mada_districts)$distcod
+ctar_metadata$distcode <- over(ctar_coords, mada_districts)$distcode
 
 ## Centers with no data ## Change this to be so that only ones with zero forms!
 no_data <- c("Fianarantsoa", "Ambatomainty", "Ambovombe Androy", "Tsiroanomandidy", 
@@ -49,22 +49,22 @@ bitedata %>%
 natl %>%
   group_by(distcode) %>%
   summarize(count = n()) %>%
-  left_join(select(mada_districts@data, long, lat, distcode = distcod, ctar = ctch_wtd_n)) %>%
+  left_join(select(mada_districts@data, long, lat, distcode = distcode, ctar = ctch_wtd)) %>%
   left_join(select(ctar_metadata, ctar = CTAR, color, fill)) -> dist_pts
                    
 natl %>%
   group_by(id_ctar) %>%
   summarize(count = n()) %>%
   left_join(select(ctar_metadata, distcode, id_ctar, color, fill)) %>%
-  left_join(select(mada_districts@data, distcode = distcod, long, lat)) -> ctar_pts
+  left_join(select(mada_districts@data, distcode = distcode, long, lat)) -> ctar_pts
 
 natl %>%
   group_by(distcode, id_ctar) %>%
   summarize(count = n()) %>%
-  left_join(select(mada_districts@data, to_long = long, to_lat = lat, distcode = distcod)) %>%
+  left_join(select(mada_districts@data, to_long = long, to_lat = lat, distcode = distcode)) %>%
   left_join(select(ctar_metadata, id_ctar, color, fill, ctar_distcode = distcode)) %>%
   left_join(select(mada_districts@data, from_long = long, from_lat = lat, 
-                    ctar_distcode = distcod))-> ctar_todist_lines
+                    ctar_distcode = distcode))-> ctar_todist_lines
 
 ctar_todist_lines %>%
   ungroup() %>%
@@ -82,11 +82,11 @@ ctar_todist_pols <- bind_rows(select(ctar_todist_pols, lat = end_lat_plus, long 
                               select(ctar_todist_pols, lat = from_lat, long = from_long, 
                                      group = group_id, color))
 
-mada_districts$color <- ctar_metadata$color[match(mada_districts$ctch_wtd_n, ctar_metadata$CTAR)]
-gg_district <- fortify(mada_districts, region = "distcod")
+mada_districts$color <- ctar_metadata$color[match(mada_districts$ctch_wtd, ctar_metadata$CTAR)]
+gg_district <- fortify(mada_districts, region = "distcode")
 gg_district %>% 
-  left_join(select(mada_districts@data, distcod, color, ctar = ctch_wtd_n), 
-            by = c("id" = "distcod")) -> gg_district
+  left_join(select(mada_districts@data, distcode, color, ctar = ctch_wtd), 
+            by = c("id" = "distcode")) -> gg_district
 
 cols <- c("#FCC56F","#FFDBE5", "#7A4900", "#CBCDD2", "#0000A6", "#EFF2F1",
           "#99d8c9", "#B79762", "#004D43", "#8FB0FF", "#FFFFFF", "#FD9C54", "#8362B5",
@@ -149,10 +149,10 @@ ctar_tocomm_pols <- bind_rows(select(ctar_tocomm_pols, lat = end_lat_plus, long 
 mada_communes$color <- ctar_metadata$color[match(mada_communes$ctch_wtd_n, ctar_metadata$CTAR)]
 gg_commune <- fortify(mada_communes, region = "ADM3_PC")
 gg_commune %>% 
-  left_join(select(mada_communes@data, distcod, ADM3_PC, color, ctar = ctch_wtd_n), 
+  left_join(select(mada_communes@data, distcode, ADM3_PC, color, ctar = ctch_wtd_n), 
             by = c("id" = "ADM3_PC")) %>%
   left_join(select(comm_pts, commcode, count), by = c("id" = "commcode")) %>%
-  group_by(distcod) %>%
+  group_by(distcode) %>%
   mutate(count_check = sum(count, na.rm = TRUE)) %>%
   filter(count_check > 0) -> gg_commune_plot
 
@@ -177,3 +177,5 @@ fig1B <- ggplot() +
 ggsave("check.jpg", p, device = "jpeg", height = 10, width = 7)
 
 ## Save these as objects and read back in to make final figs using patchwork
+
+
