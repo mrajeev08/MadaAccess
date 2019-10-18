@@ -4,7 +4,8 @@ source("R/functions/utils.R")
 mod_df %>%
   filter(pop_predict == "flatPop") %>%
   select(-bites, -covar, -pop, -names_bites, -names_covar) %>%
-  mutate(covar_preds = case_when(covar_name == "distance" & scale %in% c("Commune", 
+  mutate(covar_preds = 
+           case_when(covar_name == "distance" & scale %in% c("Commune", 
                                                                          "Moramanga") ~ list(mada_communes$distance),
                                  covar_name == "ttimes" & scale %in% c("Commune", 
                                                                        "Moramanga") ~ list(mada_communes$ttms_wtd/60),
@@ -16,6 +17,7 @@ mod_df %>%
                                  scale == "District" ~ list(mada_districts$distcode)),
          pop_preds = case_when(scale %in% c("Commune", "Moramanga") ~ list(mada_communes$pop),
                                scale == "District" ~ list(mada_districts$pop))) -> mod_df_preds
+mod_df_preds <- filter(mod_df_preds, scale != "District")
 
 preds_fixed <- foreach(i = iter(mod_df_preds, by = "row"), .combine = "rbind") %do% {
   preds <- predict.bites(names_bites = unlist(i$names_preds),
