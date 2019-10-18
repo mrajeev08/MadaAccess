@@ -76,8 +76,8 @@ national %>%
   mutate(total_forms = ifelse(is.na(total_forms), 0, total_forms),
          exclude = ifelse(total_forms > 10, 0, 1)) -> ctar_metadata
 
-mada_districts$exclude_by_ttimes <- ctar_metadata$exclude[match(mada_districts$ctch_wtd, ctar_metadata$CTAR)]
-mada_districts$exclude_by_distance <- ctar_metadata$exclude[match(mada_districts$ctch_dist, ctar_metadata$CTAR)]
+mada_districts$exclude_by_ttimes <- ctar_metadata$exclude[match(mada_districts$ctch_ttwtd, ctar_metadata$CTAR)]
+mada_districts$exclude_by_distance <- ctar_metadata$exclude[match(mada_districts$ctch_dsct, ctar_metadata$CTAR)]
 
 ##' Getting bite incidence estimates
 bites %>%
@@ -98,7 +98,7 @@ bites %>%
 
  mada_districts@data %>%
   select(names_covar = distcode, district = ADM2_EN, pop, long, lat, 
-         catchment = ctch_wtd, covar = ttms_wtd, exclude_by_ttimes,
+         catchment = ctch_ttwtd, covar = ttms_wtd, exclude_by_ttimes,
          ctar_in_district) %>%
   mutate(covar_name = "ttimes") %>%
   filter(exclude_by_ttimes == 0) %>%
@@ -106,9 +106,9 @@ bites %>%
 
 mada_districts@data %>%
   select(names_covar = distcode, district = ADM2_EN, pop, long, lat, 
-         covar = distance, catchment = ctch_dist, exclude_by_distance,
+         covar = dist_cent, catchment = ctch_dsct, exclude_by_distance,
          ctar_in_district) %>%
-  mutate(covar_name = "distance") %>%
+  mutate(covar_name = "dist_cent") %>%
   filter(exclude_by_distance == 0) %>%
   left_join(bite_ests, by = c("names_covar" = "distcode")) -> bites_by_distance
 
@@ -131,33 +131,38 @@ mada_communes@data %>%
   mutate(ctar_in_district = ifelse(distcode == "MG33314", 1, 0),
          covar_name = "ttimes") %>%
   select(names_covar = ADM3_PCODE, commune = ADM3_EN, pop, 
-         long, lat, catchment = ctch_wtd, covar = ttms_wtd, ctar_in_district, covar_name) %>%
+         long, lat, catchment = ctch_ttwtd, covar = ttms_wtd, ctar_in_district, covar_name) %>%
   filter(catchment == "Moramanga") %>%
   left_join(mora_bites, by = c("names_covar" = "commcode")) -> morabites_by_ttimes
 
 mada_communes@data %>%
   mutate(ctar_in_district = ifelse(distcode == "MG33314", 1, 0),
-         covar_name = "distance") %>%
+         covar_name = "dist_cent") %>%
   select(names_covar = ADM3_PCODE, commune = ADM3_EN, pop, 
-         long, lat, covar = distance, covar_name, catchment = ctch_dist,
+         long, lat, covar = dist_cent, covar_name, catchment = ctch_dsct,
          ctar_in_district) %>%
   filter(catchment == "Moramanga") %>%
   left_join(mora_bites, by = c("names_covar" = "commcode")) -> morabites_by_distance
 
 
 ## Covariate data frames (for summed models need commune level covariates)
-mada_communes$exclude_by_ttimes <- ctar_metadata$exclude[match(mada_communes$ctch_wtd, ctar_metadata$CTAR)]
-mada_communes$exclude_by_distance <- ctar_metadata$exclude[match(mada_communes$ctch_dist, ctar_metadata$CTAR)]
-
+mada_communes$exclude_by_ttimes <- mada_districts$exclude_by_ttimes[match(mada_communes$distcode,
+                                                               mada_districts$distcode)]
+mada_communes$exclude_by_distance <- mada_districts$exclude_by_distance[match(mada_communes$distcode,
+                                                                          mada_districts$distcode)]
+mada_communes$ctch_ttwtd_dist <- mada_districts$ctch_ttwtd[match(mada_communes$distcode,
+                                                                 mada_districts$distcode)]
+mada_communes$ctch_dsct_dist <- mada_districts$ctch_dsct[match(mada_communes$distcode,
+                                                                 mada_districts$distcode)]
 mada_communes@data %>%
   select(names_covar = distcode, district = ADM2_EN, pop, long, lat, 
-         catchment = ctch_wtd, covar = ttms_wtd, exclude_by_ttimes, ctar_in_district) %>%
+         catchment = ctch_ttwtd_dist, covar = ttms_wtd, exclude_by_ttimes, ctar_in_district) %>%
   mutate(covar_name = "ttimes") %>%
   filter(exclude_by_ttimes == 0) -> commcovars_by_ttimes
 
 mada_communes@data %>%
   select(names_covar = distcode, district = ADM2_EN, pop, long, lat, 
-         covar = distance, catchment = ctch_dist, exclude_by_distance, ctar_in_district) %>%
-  mutate(covar_name = "distance") %>%
+         covar = dist_cent, catchment = ctch_dsct_dist, exclude_by_distance, ctar_in_district) %>%
+  mutate(covar_name = "dist_cent") %>%
   filter(exclude_by_distance == 0) -> commcovars_by_distance
 
