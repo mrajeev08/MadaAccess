@@ -2,7 +2,7 @@
 ##' Step 1: Generating catchment matrix for all possible additional clinics
 ##' Details: Getting travel times and distance to each clinic for each admin unit 
 ##'   Recommended to run in parallel to limit compute time
-##'   On the Della cluster at Princeton with 32 cores, it takes approximately 6 minutes
+##'   On the Della cluster at Princeton with 32 cores, it takes approximately N minutes
 ##' Author: Malavika Rajeev 
 ####################################################################################################
 
@@ -23,6 +23,7 @@ library(raster)
 library(gdistance)
 library(doRNG)
 library(foreach)
+library(iterators)
 library(geosphere)
 library(dplyr)
 select <- dplyr::select
@@ -43,74 +44,66 @@ csbs %>%
   dplyr::select(CTAR = nom_fs, X_COORD = ycoor, Y_COORD = xcoor) -> csbs
 point_mat <- as.matrix(select(csbs, Y_COORD, X_COORD))
 
-## Weighted travel times
+##' Quick function for getting catchments accounting for Inf returns
+which.min.inf  <- function(x) {
+  if(min(x) == Inf | is.na(min(x))) {
+    return(NA)
+  } else {
+    return(which.min(x))
+  }
+}
+
 ## District
+## Weighted travel times
 dist_mat_unmasked <- get.catchmat(point_mat = point_mat, fric = friction_mada_unmasked, 
                                   point_names = csbs$CTAR, admin_names = mada_districts$distcode,
                                   shape = mada_districts, pop_rast = pop1x1, 
                                   pop_pol = mada_districts$pop, 
                                   trans_mat = "data/processed/rasters/trans_gc_unmasked.rds",
-                                  weighted = TRUE, type = "unmasked", met = "ttimes")
+                                  weighted = TRUE, met = "ttimes")
 dist_mat_masked <- get.catchmat(point_mat = point_mat, fric = friction_mada_masked, 
                                 point_names = csbs$CTAR, admin_names = mada_districts$distcode,
                                 shape = mada_districts, pop_rast = pop1x1, 
                                 pop_pol = mada_districts$pop, 
                                 trans_mat = "data/processed/rasters/trans_gc_masked.rds",
-                                weighted = TRUE, type = "masked", met = "ttimes")
+                                weighted = TRUE, met = "ttimes")
 dist_mat_masked[which(is.na(apply(dist_mat_masked, 1, which.min.inf))), ] <- 
   dist_mat_unmasked[which(is.na(apply(dist_mat_masked, 1, which.min.inf))), ]
 write.csv(dist_mat_masked, "data/processed/catchmats/candidates_district_ttimes_weighted.csv")
 
+## Weighted distance
+dist_mat_masked <- get.catchmat(point_mat = point_mat, fric = friction_mada_masked, 
+                                point_names = csbs$CTAR, admin_names = mada_districts$distcode,
+                                shape = mada_districts, pop_rast = pop1x1, 
+                                pop_pol = mada_districts$pop, 
+                                weighted = TRUE, met = "distance")
+write.csv(dist_mat_masked, "data/processed/catchmats/candidates_district_distance_weighted.csv")
+
 ## Commune
+## Weighted travel times
 comm_mat_unmasked <- get.catchmat(point_mat = point_mat, fric = friction_mada_unmasked, 
                                   point_names = csbs$CTAR, admin_names = mada_communes$ADM3_PCODE,
                                   shape = mada_communes, pop_rast = pop1x1, 
                                   trans_mat = "data/processed/rasters/trans_gc_unmasked.rds",
-                                  pop_pol = mada_communes$pop, weighted = TRUE, type = "unmasked",
+                                  pop_pol = mada_communes$pop, weighted = TRUE,
                                   met = "ttimes")
 comm_mat_masked <- get.catchmat(point_mat = point_mat, fric = friction_mada_masked, 
                                 shape = mada_communes, pop_rast = pop1x1, 
                                 point_names = csbs$CTAR, admin_names = mada_communes$ADM3_PCODE,
                                 trans_mat = "data/processed/rasters/trans_gc_masked.rds",
-                                pop_pol = mada_communes$pop, weighted = TRUE, type = "masked",
+                                pop_pol = mada_communes$pop, weighted = TRUE, 
                                 met = "ttimes")
 comm_mat_masked[which(is.na(apply(comm_mat_masked, 1, which.min.inf))), ] <- 
   comm_mat_unmasked[which(is.na(apply(comm_mat_masked, 1, which.min.inf))), ]
 write.csv(comm_mat_masked, "data/processed/catchmats/candidates_commune_ttimes_weighted.csv")
 
-## Weighted distance
-## District
-dist_mat_unmasked <- get.catchmat(point_mat = point_mat, fric = friction_mada_unmasked, 
-                                  point_names = csbs$CTAR, admin_names = mada_districts$distcode,
-                                  shape = mada_districts, pop_rast = pop1x1, 
-                                  pop_pol = mada_districts$pop, 
-                                  trans_mat = "data/processed/rasters/trans_gc_unmasked.rds",
-                                  weighted = TRUE, type = "unmasked", met = "distance")
-dist_mat_masked <- get.catchmat(point_mat = point_mat, fric = friction_mada_masked, 
-                                point_names = csbs$CTAR, admin_names = mada_districts$distcode,
-                                shape = mada_districts, pop_rast = pop1x1, 
-                                pop_pol = mada_districts$pop, 
-                                trans_mat = "data/processed/rasters/trans_gc_masked.rds",
-                                weighted = TRUE, type = "masked", met = "distance")
-dist_mat_masked[which(is.na(apply(dist_mat_masked, 1, which.min.inf))), ] <- 
-  dist_mat_unmasked[which(is.na(apply(dist_mat_masked, 1, which.min.inf))), ]
-write.csv(dist_mat_masked, "data/processed/catchmats/candidates_district_distance_weighted.csv")
 
-## Commune
-comm_mat_unmasked <- get.catchmat(point_mat = point_mat, fric = friction_mada_unmasked, 
-                                  point_names = csbs$CTAR, admin_names = mada_communes$ADM3_PCODE,
-                                  shape = mada_communes, pop_rast = pop1x1, 
-                                  trans_mat = "data/processed/rasters/trans_gc_unmasked.rds",
-                                  pop_pol = mada_communes$pop, weighted = TRUE, type = "unmasked",
-                                  met = "distance")
+## Weighted distance
 comm_mat_masked <- get.catchmat(point_mat = point_mat, fric = friction_mada_masked, 
                                 shape = mada_communes, pop_rast = pop1x1, 
                                 point_names = csbs$CTAR, admin_names = mada_communes$ADM3_PCODE,
-                                trans_mat = "data/processed/rasters/trans_gc_masked.rds",
-                                pop_pol = mada_communes$pop, weighted = TRUE, type = "masked",
+                                pop_pol = mada_communes$pop, weighted = TRUE,
                                 met = "distance")
-comm_mat_masked[which(is.na(apply(comm_mat_masked, 1, which.min.inf))), ] <- 
-  comm_mat_unmasked[which(is.na(apply(comm_mat_masked, 1, which.min.inf))), ]
 write.csv(comm_mat_masked, "data/processed/catchmats/candidates_commune_distance_weighted.csv")
 
 ##' Distance Centroid
