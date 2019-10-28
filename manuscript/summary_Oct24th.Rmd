@@ -1,0 +1,275 @@
+---
+title: "summary_Oct23"
+author: "Malavika Rajeev"
+date: "10/23/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo = FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = FALSE)
+
+##' Libraries
+library(rgdal)
+library(raster)
+library(malariaAtlas)
+library(gdistance)
+library(doRNG)
+library(foreach)
+library(dplyr)
+library(geosphere)
+select <- dplyr::select
+
+## calling in functions
+source("R/functions/access_functions.R")
+
+## data
+source("R/02_bitedata/03_estimate_biteinc.R") # either source this or output bite data
+mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
+mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
+pop1x1<- raster("data/processed/rasters/worldpop2015adj_mada_1x1km.tif")
+ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
+friction_mada_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
+
+```
+
+## The garden of forking paths...
+Currently stuck proliferating options.
+
+### Covariate options {.tabset}
+```{r maps + rasters, echo = FALSE}
+## Baseline surfaces
+point_mat <- select(ctar_metadata, Y_COORD = LONGITUDE, X_COORD = LATITUDE)
+# ttimes <- get.access(friction = friction_mada_masked, shapefile = mada_districts, 
+#                      coords = point_mat, trans_matrix_exists = TRUE, 
+#                      filename_trans = "data/processed/rasters/trans_gc_masked.rds", metric = "ttimes")
+# writeRaster(ttimes, "data/processed/rasters/ttimes_baseline.tif")
+# distance <- get.access(friction = friction_mada_masked, shapefile = mada_districts, 
+#                       coords = point_mat, trans_matrix_exists = TRUE, 
+#                        filename_trans = "data/processed/rasters/trans_gc_masked.rds", metric = "distance")
+# writeRaster(distance, "data/processed/rasters/distance_baseline.tif")
+
+ttimes <- raster("data/processed/rasters/ttimes_baseline.tif")
+distance <- raster("data/processed/rasters/distance_baseline.tif")
+
+library(rasterVis)
+library(patchwork)
+
+gplot(ttimes) +
+  geom_raster(aes(fill = value/60)) +
+  scale_fill_gradient(low = "white", high = "red", na.value = "white", 
+                      name = "Travel times \n (hours)") +
+  geom_point(data = point_mat, aes(x = Y_COORD, y = X_COORD), color = "blue", alpha = 0.25) +
+  theme_void() +
+  coord_equal()
+
+gplot(distance) +
+  geom_raster(aes(fill = value)) +
+  scale_fill_gradient(low = "white", high = "red", na.value = "white", 
+                      name = "Distance \n (km)") +
+  geom_point(data = point_mat, aes(x = Y_COORD, y = X_COORD), color = "blue", alpha = 0.25) +
+  theme_void() +
+  coord_equal()
+
+
+mada_districts@data %>%
+  select(distcode, ctch_dsct, dist_cent) %>%
+  mutate(from_long = coordinates(mada_districts)[, 1], 
+         from_lat = coordinates(mada_districts)[, 2]) -> centroids_district
+ctar_points <- select(ctar_metadata, CTAR, to_long = LONGITUDE, to_lat = LATITUDE)
+segments_plot <- left_join(centroids_district, ctar_points, by = c("ctch_dsct" = "CTAR"))
+
+gg_districts <- fortify(mada_districts, region = "distcode")
+
+catch_cols <- as.character(ctar_metadata$color)
+names(catch_cols) <- ctar_metadata$CTAR
+```
+
+```{r fig.width = 5, fig.height = 8}
+ggplot() +
+  geom_polygon(data = gg_districts, aes(x = long, y = lat, group = group), color = "grey50", 
+               fill = NA) +
+  geom_segment(data = segments_plot, aes(x = to_long, xend = from_long, y = to_lat,
+                                          yend = from_lat, color = ctch_dsct)) +
+  geom_point(data = segments_plot, aes(x = to_long, y = to_lat, color = ctch_dsct), size = 2) +
+  geom_point(data = segments_plot, aes(x = from_long, y = from_lat, color = ctch_dsct), size = 2, 
+             alpha = 0.5) +
+  scale_color_manual(values = catch_cols, guide = "none") +
+  theme_void() +
+  labs(title = "Distance by centroid (km)")
+
+```
+
+### Resulting data
+```{r}
+allbites <- bind_rows(bites_by_distcent, bites_by_distwtd, bites_by_ttimes)
+
+ggplot(allbites, aes(x = covar, y = avg_bites/pop*1e5, 
+                            color = catchment)) +
+  geom_point() +
+  theme(legend.position = "none") +
+  scale_color_manual(values = catch_cols, guide = "none") + 
+  ylab("Annual bites per 100k") +
+  xlab("Districts ordered by \n travel times (high to low)") +
+  facet_wrap(~covar_name, scales = "free")
+
+```
+
+### Modeling options
+
+#### Districts with & without CTAR
+```{r ctar_bump, echo = FALSE}
+ggplot(allbites, aes(x = as.factor(ctar_in_district), y = avg_bites/pop*1e5)) +
+  geom_violin() +
+  facet_wrap(~covar_name)
+```
+
+#### A Random Effect by Catchment
+Models with a random intercept by catchment. May help to capture variation between clinics 
+not explained by travel times alone. And provide more realistic estimates of vials.
+
+```{r echo = FALSE}
+ggplot(allbites, aes(x = as.factor(catchment), y = avg_bites/pop*1e5)) +
+  geom_boxplot() +
+  facet_wrap(~covar_name) + 
+  theme(axis.text.x = element_text(hjust = 1, angle = 45))
+```
+
+## Model Results
+### Convergence fig
+```{r convergence}
+model_ests <- read.csv("output/bitemod_results.csv")
+## convergence plots
+model_ests %>%
+  select(data_source, covar_name, data_source, scale, pop_predict, ctar_bump, 
+           summed, intercept, val = psrf_upper) %>%
+  mutate(type = "psrf_upper") -> psrf
+model_ests %>%
+  select(data_source, covar_name, data_source, scale, pop_predict, ctar_bump, 
+         summed, intercept, val = mpsrf) %>%
+  mutate(type = "mpsrf") -> mpsrf
+convergence <- bind_rows(mpsrf, psrf)
+ggplot(convergence, aes(x = type, y = val, color = interaction(data_source, intercept))) + 
+  geom_boxplot() +
+  ylim(c(0.90, 1.2)) +
+  facet_grid(pop_predict ~ covar_name, scales = "free_x", drop = TRUE) +
+  geom_hline(yintercept = 1, linetype = 2, color = "grey")
+  
+```
+
+### DIC fig
+```{r}
+## Estimates
+model_ests %>%
+  group_by(data_source, covar_name, data_source, scale, pop_predict, ctar_bump, 
+           summed, intercept) %>%
+  summarize(dic = mean(dic)) -> dic_ests
+dic_ests %>%
+  group_by(data_source, covar_name) %>%
+  arrange(dic, .by_group = TRUE) -> dic_ranks
+ggplot(data = dic_ranks, aes(x = pop_predict, y = dic, color = interaction(scale, intercept),
+                             shape = ctar_bump))+
+  geom_point() +
+  facet_grid(data_source ~ covar_name, scales = "free") +
+  theme(axis.text.x = element_text(hjust = 1, angle = 45))
+```
+
+### Estimates
+```{r}
+model_ests %>%
+  select(params, Mean, covar_name, pop_predict, intercept, ctar_bump, summed, data_source,
+         scale) %>%
+  spread(key = params, value = Mean, fill = 0) -> model_means
+
+## Estimates of access
+ggplot(data = filter(model_means, pop_predict != "onlyPop"), 
+       aes(x = interaction(scale, data_source), y = beta_access, 
+           color = intercept, shape = ctar_bump)) +
+  geom_point(alpha = 0.5, size = 4) +
+  scale_color_manual(values = c("darkred", "#cc7722", "#004b49"), name = "Scale") +
+  facet_grid(covar_name ~ pop_predict, scales = "free", drop = TRUE)  +
+  theme(axis.text.x = element_text(hjust = 1, angle = 45))
+
+```
+
+### Predictions to Data
+```{r}
+preds_grouped <- read.csv("output/preds/preds_grouped_all.csv")
+
+ggplot(data = filter(preds_grouped, intercept == "fixed"), 
+       aes(x = log(avg_bites + 0.1), y = log(bites_mean + 0.1), 
+                                 color = interaction(scale, data_source), shape = ctar_bump)) +
+  geom_point(alpha = 0.5, size = 2) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +
+  scale_color_manual(values = c("darkred", "#cc7722", "#004b49"), name = "Scale") +
+  facet_grid(pop_predict ~ covar_name, scales = "free_x", drop = TRUE) +
+  expand_limits(y = 0) +
+  xlab("log(Observed bites)") +
+  ylab("log(Predicted bites)") +
+  labs(tag = "A") 
+  
+ggplot(data = filter(preds_grouped, intercept == "random"), 
+       aes(x = log(avg_bites + 0.1), y = log(bites_mean + 0.1), 
+           color = interaction(scale, data_source), shape = ctar_bump)) +
+  geom_point(alpha = 0.5, size = 2) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +
+  scale_color_manual(values = c("darkred", "#cc7722", "#004b49"), name = "Scale") +
+  facet_grid(pop_predict ~ covar_name, scales = "free_x", drop = TRUE) +
+  expand_limits(y = 0) +
+  xlab("log(Observed bites)") +
+  ylab("log(Predicted bites)") +
+  labs(tag = "B") 
+```
+
+### Predictions out-of-fit
+
+#### Moramanga estimates on Mada commune and districts
+
+
+```{r}
+outfit_mora <- read.csv("output/preds/outfit_mora.csv")
+
+ggplot(data = filter(outfit_mora, intercept == "fixed"), 
+       aes(x = log(avg_bites + 0.1), y = log(bites_mean + 0.1), 
+           color = scale, shape = ctar_bump)) +
+  geom_point(alpha = 0.5, size = 2) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +
+  scale_color_manual(values = c("darkred", "#cc7722"), name = "Scale") +
+  facet_grid(pop_predict ~ covar_name, scales = "free_x", drop = TRUE) +
+  expand_limits(y = 0) +
+  xlab("log(Observed bites)") +
+  ylab("log(Predicted bites)") +
+  labs(tag = "A") 
+
+ggplot(data = filter(outfit_mora, intercept == "random"), 
+       aes(x = log(avg_bites + 0.1), y = log(bites_mean + 0.1), 
+           color = scale, shape = ctar_bump)) +
+  geom_point(alpha = 0.5, size = 2) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +
+  scale_color_manual(values = c("darkred", "#cc7722"), name = "Scale") +
+  facet_grid(pop_predict ~ covar_name, scales = "free_x", drop = TRUE) +
+  expand_limits(y = 0) +
+  xlab("log(Observed bites)") +
+  ylab("log(Predicted bites)") +
+  labs(tag = "B") 
+
+```
+
+#### Mada commune and districts estimates on Moramanga data
+```{r}
+outfit_grouped <- read.csv("output/preds/outfit_grouped_mada.csv")
+
+ggplot(data = outfit_grouped, 
+       aes(x = log(avg_bites + 0.1), y = log(bites_mean + 0.1), 
+           color = scale, shape = ctar_bump)) +
+  geom_point(alpha = 0.5, size = 2) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +
+  scale_color_manual(values = c("darkred", "#cc7722", "#004b49"), name = "Scale") +
+  facet_grid(pop_predict ~ covar_name, scales = "free", drop = TRUE) +
+  expand_limits(y = 0) +
+  xlab("log(Observed bites)") +
+  ylab("log(Predicted bites)")
+
+```
+
+## Burden estimates
