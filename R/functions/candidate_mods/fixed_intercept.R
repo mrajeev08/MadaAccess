@@ -30,7 +30,7 @@ if (summed == FALSE) {
 
     # Priors
     beta_0 ~ dnorm(0, 10^-6)
-    beta_access ~ dnorm(0, 10^-6) # Common slope
+    beta_access ~ dnorm(0, 10^-6)
     beta_ctar ~ dnorm(0, 10^-6)
     
     # Likelihood
@@ -54,13 +54,13 @@ inits <- list(beta_0 = rnorm(1, 0, 1e-6),
               beta_ctar = rnorm(1, 0, 1e-6))
 
 ## Other options
-if(pop == "addPop") {
+if(pop_predict ==  "addPop") {
   ## edit model text accordingly
   model <- gsub("beta_access ~ dnorm(0, 10^-6)",
                 "beta_access ~ dnorm(0, 10^-6)\n    beta_pop ~ dnorm(0, 10^-6)", 
                 model, fixed = TRUE)   # add extra params + priors
-  model <- gsub("exp_bites[i] <- exp(beta_0 + beta_access*access[i] + beta_ctar*ctar_in[i])*pop[i]",
-                "exp(beta_0 + beta_access*access[i] +  + beta_ctar*ctar_in[i] + beta_pop*pop[i]/trans)", 
+  model <- gsub("exp(beta_0 + beta_access*access[i] + beta_ctar*ctar_in[i])*pop[i]",
+                "exp(beta_0 + beta_access*access[i] + beta_ctar*ctar_in[i] + beta_pop*pop[i]/trans)", 
                 model, fixed = TRUE)    # change formula for exp_bites
   ## data add in trans
   data <- c(data, trans = trans)
@@ -70,15 +70,16 @@ if(pop == "addPop") {
   inits <- c(inits, beta_pop = rnorm(1, 0, 1e-6))
 }
 
-if(pop == "onlyPop") {
+if(pop_predict ==  "onlyPop") {
   ## edit model text accordingly
   model <- gsub("beta_access ~ dnorm(0, 10^-6)",
                 "beta_pop ~ dnorm(0, 10^-6)", model, fixed = TRUE)   # remove extra params + priors
-  model <- gsub("exp_bites[i] <- exp(beta_0 + beta_access*access[i] + beta_ctar*ctar_in[i])*pop[i]",
-                "exp(beta_pop*pop[i]/trans + beta_ctar*ctar_in[i])",
+  model <- gsub("exp(beta_0 + beta_access*access[i] + beta_ctar*ctar_in[i])*pop[i]",
+                "exp(beta_0 + beta_pop*pop[i]/trans + beta_ctar*ctar_in[i])",
                 model, fixed = TRUE)   # change formula for exp_bites
   ## data add in trans
   data <- c(data, trans = trans)
+  params <- c(params, "beta_pop")
   
   ## remove access from every bit
   data[["access"]] <- NULL

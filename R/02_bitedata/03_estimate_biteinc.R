@@ -3,7 +3,7 @@
 ##' Details: 
 ##' Author: Malavika Rajeev 
 ####################################################################################################
-rm(list = ls())
+# rm(list = ls())
 
 ## Libraries
 library(tidyverse)
@@ -77,9 +77,10 @@ national %>%
          exclude = ifelse(total_forms > 10, 0, 1)) -> ctar_metadata
 
 mada_districts$exclude_by_ttimes <- ctar_metadata$exclude[match(mada_districts$ctch_ttwtd, ctar_metadata$CTAR)]
-mada_districts$exclude_by_distance <- ctar_metadata$exclude[match(mada_districts$ctch_dsct, ctar_metadata$CTAR)]
+mada_districts$exclude_by_distcent <- ctar_metadata$exclude[match(mada_districts$ctch_dsct, ctar_metadata$CTAR)]
+mada_districts$exclude_by_distwtd <- ctar_metadata$exclude[match(mada_districts$ctch_dswtd, ctar_metadata$CTAR)]
 
-##' Getting bite incidence estimates
+##' Getting bite incidence estimates for all districts
 bites %>%
   ## filter known contacts and estimated ones based on throughput
   filter(estimated_cat1 == 0, include == 1) %>% 
@@ -96,21 +97,93 @@ bites %>%
   summarize(avg_bites = mean(total, na.rm = TRUE)) %>%
   complete(distcode = mada_districts$distcode, fill = list(avg_bites = 0)) -> bite_ests
 
- mada_districts@data %>%
-  select(names_covar = distcode, district = ADM2_EN, pop, long, lat, 
+##' Bites by ttimes 
+##' ------------------------------------------------------------------------------------------------
+mada_districts@data %>%
+  select(group_name = distcode, district = ADM2_EN, pop, long, lat, 
          catchment = ctch_ttwtd, covar = ttms_wtd, exclude_by_ttimes,
          ctar_in_district) %>%
-  mutate(covar_name = "ttimes") %>%
   filter(exclude_by_ttimes == 0) %>%
-  left_join(bite_ests, by = c("names_covar" = "distcode")) -> bites_by_ttimes
+  mutate(covar_name = "ttimes", catch = as.numeric(droplevels(catchment)), 
+         group = as.numeric(droplevels(group_name)), 
+         names = group_name) %>%
+  left_join(bite_ests, by = c("group_name" = "distcode")) %>%
+  arrange(group) -> bites_by_ttimes
 
+mada_communes$exclude_by_ttimes <- mada_districts$exclude_by_ttimes[match(mada_communes$distcode,
+                                                                          mada_districts$distcode)]
+mada_communes$ctch_ttwtd_dist <- mada_districts$ctch_ttwtd[match(mada_communes$distcode,
+                                                                 mada_districts$distcode)]
+mada_communes@data %>%
+  select(group_name = distcode, district = ADM2_EN, names = ADM3_PCODE, commune = ADM3_EN,
+         pop, long, lat, 
+         catchment = ctch_ttwtd_dist, covar = ttms_wtd, exclude_by_ttimes, ctar_in_district) %>%
+  filter(exclude_by_ttimes == 0) %>%
+  mutate(covar_name = "ttimes", 
+         catch = as.numeric(droplevels(catchment)),
+         group = as.numeric(droplevels(group_name))) %>%
+  arrange(group) -> commcovars_by_ttimes
+bites_by_ttimes$end <- cumsum(rle(commcovars_by_ttimes$group)$lengths)
+bites_by_ttimes$start <- c(1, lag(bites_by_ttimes$end)[-1] + 1)
+
+##' Bites by distance (centroid) 
+##' ------------------------------------------------------------------------------------------------
 mada_districts@data %>%
-  select(names_covar = distcode, district = ADM2_EN, pop, long, lat, 
-         covar = dist_cent, catchment = ctch_dsct, exclude_by_distance,
+  select(group_name = distcode, district = ADM2_EN, pop, long, lat, 
+         covar = dist_cent, catchment = ctch_dsct, exclude_by_distcent,
          ctar_in_district) %>%
-  mutate(covar_name = "dist_cent") %>%
-  filter(exclude_by_distance == 0) %>%
-  left_join(bite_ests, by = c("names_covar" = "distcode")) -> bites_by_distance
+  filter(exclude_by_distcent == 0) %>%
+  mutate(covar_name = "dist_cent", catch = as.numeric(droplevels(catchment)), 
+         group = as.numeric(droplevels(group_name)), 
+         names = group_name) %>%
+  left_join(bite_ests, by = c("group_name" = "distcode")) %>%
+  arrange(group) -> bites_by_distcent
+
+mada_communes$exclude_by_distcent <- mada_districts$exclude_by_distcent[match(mada_communes$distcode,
+                                                                              mada_districts$distcode)]
+mada_communes$ctch_dsct_dist <- mada_districts$ctch_dsct[match(mada_communes$distcode,
+                                                               mada_districts$distcode)]
+mada_communes@data %>%
+  select(group_name = distcode, district = ADM2_EN, names = ADM3_PCODE, commune = ADM3_EN,
+         pop, long, lat, 
+         covar = dist_cent, catchment = ctch_dsct_dist, exclude_by_distcent, ctar_in_district) %>%
+  filter(exclude_by_distcent == 0) %>%
+  mutate(covar_name = "dist_cent", 
+         catch = as.numeric(droplevels(catchment)),
+         group = as.numeric(droplevels(group_name))) %>%
+  arrange(group) -> commcovars_by_distcent
+bites_by_distcent$end <- cumsum(rle(commcovars_by_distcent$group)$lengths)
+bites_by_distcent$start <- c(1, lag(bites_by_distcent$end)[-1] + 1)
+
+##' Bites by distance (weighted) 
+##' ------------------------------------------------------------------------------------------------
+mada_districts@data %>%
+  select(group_name = distcode, district = ADM2_EN, pop, long, lat, 
+         covar = dist_wtd, catchment = ctch_dsct, exclude_by_distwtd,
+         ctar_in_district) %>%
+  filter(exclude_by_distwtd == 0) %>%
+  mutate(covar_name = "dist_wtd", catch = as.numeric(droplevels(catchment)), 
+         group = as.numeric(droplevels(group_name)), 
+         names = group_name) %>%
+  left_join(bite_ests, by = c("group_name" = "distcode")) %>%
+  arrange(group) -> bites_by_distwtd
+
+mada_communes$exclude_by_distwtd <- mada_districts$exclude_by_distwtd[match(mada_communes$distcode,
+                                                                              mada_districts$distcode)]
+mada_communes$ctch_dsct_dist <- mada_districts$ctch_dsct[match(mada_communes$distcode,
+                                                               mada_districts$distcode)]
+
+mada_communes@data %>%
+  select(group_name = distcode, district = ADM2_EN, names = ADM3_PCODE, commune = ADM3_EN,
+         pop, long, lat, 
+         covar = dist_wtd, catchment = ctch_dsct_dist, exclude_by_distwtd, ctar_in_district) %>%
+  filter(exclude_by_distwtd == 0) %>%
+  mutate(covar_name = "dist_wtd",          
+         catch = as.numeric(droplevels(catchment)),
+         group = as.numeric(droplevels(group_name)),) %>%
+  arrange(group) -> commcovars_by_distwtd
+bites_by_distwtd$end <- cumsum(rle(commcovars_by_distwtd$group)$lengths)
+bites_by_distwtd$start <- c(1, lag(bites_by_distwtd$end)[-1] + 1)
 
 ##' 2. Moramanga data 
 ##' ------------------------------------------------------------------------------------------------
@@ -129,40 +202,31 @@ moramanga %>%
 
 mada_communes@data %>%
   mutate(ctar_in_district = ifelse(distcode == "MG33314", 1, 0),
-         covar_name = "ttimes") %>%
-  select(names_covar = ADM3_PCODE, commune = ADM3_EN, pop, 
-         long, lat, catchment = ctch_ttwtd, covar = ttms_wtd, ctar_in_district, covar_name) %>%
+         covar_name = "ttimes", group_name = ADM3_PCODE) %>%
+  select(group_name, district = ADM2_EN, names = ADM3_PCODE, commune = ADM3_EN, 
+         pop, long, lat, catchment = ctch_ttwtd, covar = ttms_wtd, ctar_in_district, covar_name) %>%
   filter(catchment == "Moramanga") %>%
-  left_join(mora_bites, by = c("names_covar" = "commcode")) -> morabites_by_ttimes
+  left_join(mora_bites, by = c("names" = "commcode")) -> morabites_by_ttimes
+morabites_by_ttimes$catch <- bites_by_ttimes$catch[bites_by_ttimes$catchment == "Moramanga"][1]
 
 mada_communes@data %>%
   mutate(ctar_in_district = ifelse(distcode == "MG33314", 1, 0),
-         covar_name = "dist_cent") %>%
-  select(names_covar = ADM3_PCODE, commune = ADM3_EN, pop, 
+         covar_name = "dist_cent", group_name = ADM3_PCODE) %>%
+  select(group_name, district = ADM2_EN, names = ADM3_PCODE, commune = ADM3_EN, pop, 
          long, lat, covar = dist_cent, covar_name, catchment = ctch_dsct,
          ctar_in_district) %>%
   filter(catchment == "Moramanga") %>%
-  left_join(mora_bites, by = c("names_covar" = "commcode")) -> morabites_by_distance
-
-
-## Covariate data frames (for summed models need commune level covariates)
-mada_communes$exclude_by_ttimes <- mada_districts$exclude_by_ttimes[match(mada_communes$distcode,
-                                                               mada_districts$distcode)]
-mada_communes$exclude_by_distance <- mada_districts$exclude_by_distance[match(mada_communes$distcode,
-                                                                          mada_districts$distcode)]
-mada_communes$ctch_ttwtd_dist <- mada_districts$ctch_ttwtd[match(mada_communes$distcode,
-                                                                 mada_districts$distcode)]
-mada_communes$ctch_dsct_dist <- mada_districts$ctch_dsct[match(mada_communes$distcode,
-                                                                 mada_districts$distcode)]
-mada_communes@data %>%
-  select(names_covar = distcode, district = ADM2_EN, pop, long, lat, 
-         catchment = ctch_ttwtd_dist, covar = ttms_wtd, exclude_by_ttimes, ctar_in_district) %>%
-  mutate(covar_name = "ttimes") %>%
-  filter(exclude_by_ttimes == 0) -> commcovars_by_ttimes
+  left_join(mora_bites, by = c("names" = "commcode")) -> morabites_by_distcent
+morabites_by_distcent$catch <- bites_by_distcent$catch[bites_by_distcent$catchment == "Moramanga"][1]
 
 mada_communes@data %>%
-  select(names_covar = distcode, district = ADM2_EN, pop, long, lat, 
-         covar = dist_cent, catchment = ctch_dsct_dist, exclude_by_distance, ctar_in_district) %>%
-  mutate(covar_name = "dist_cent") %>%
-  filter(exclude_by_distance == 0) -> commcovars_by_distance
+  mutate(ctar_in_district = ifelse(distcode == "MG33314", 1, 0),
+         covar_name = "dist_wtd", 
+         group_name = ADM3_PCODE) %>%
+  select(group_name, district = ADM2_EN, names = ADM3_PCODE, commune = ADM3_EN, pop, 
+         long, lat, covar = dist_wtd, covar_name, catchment = ctch_dswtd,
+         ctar_in_district) %>%
+  filter(catchment == "Moramanga") %>%
+  left_join(mora_bites, by = c("names" = "commcode")) -> morabites_by_distwtd
+morabites_by_distwtd$catch <- bites_by_distwtd$catch[bites_by_distwtd$catchment == "Moramanga"][1]
 
