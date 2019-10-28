@@ -49,56 +49,8 @@ select <- dplyr::select
 knitr::opts_chunk$set(fig.pos = 'h', echo = FALSE, message = FALSE, warning = FALSE, 
                       include = TRUE, cache.lazy = FALSE)
 
-## Travel times
-ttimes <- raster("output/ttimes_masked.tif")
-gg_SD <- fortify(SD_shape, region = "VILLCODE")
-
-
 ##### Getting raster of coverage
-library(rasterVis)
-library(patchwork)
-library(animation)
 ctar_metadata <- read.csv("data/ctar_metadata.csv")
-gplot(ttimes) +
-  geom_raster(aes(fill = value/60)) +
-  scale_fill_gradient(low = "white", high = "red", na.value = "white", 
-                      name = "Travel times \n (hours)") +
-  geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), 
-             color = "blue", alpha = 0.5) +
-  theme_void() +
-  coord_equal()
-        
-## Travel times
-ttimes_best <- raster("output/ttimes_best.tif")
-gps_locs <- read.csv(file = "data/ctar_metadata.csv", stringsAsFactors = FALSE)[,c(1, 3, 4)]
-names(gps_locs) <- c ("CTAR", "X_COORD", "Y_COORD")
-
-## candidate points
-csbs <- read.csv("data/csbs.csv", stringsAsFactors = FALSE)
-csbs %>% 
-  dplyr::filter(type == "CSB2", genre_fs != "Priv", type_fs != "Health Post") %>%
-  dplyr::select(CTAR = nom_fs, X_COORD = ycoor, Y_COORD = xcoor) -> csbs
-
-point_mat <- rbind(gps_locs, csbs)
-##### Getting raster of coverage
-library(rasterVis)
-library(patchwork)
-library(animation)
-gplot(ttimes_best) +
-  geom_raster(aes(fill = value/60)) +
-  scale_fill_gradient(low = "white", high = "red", na.value = "white", 
-                      name = "Travel times \n (hours)") +
-  geom_point(data = point_mat, aes(x = Y_COORD, y = X_COORD), color = "blue", alpha = 0.25) +
-  theme_void() +
-  coord_equal()
-
-pop10 <- raster("output/pop10.tif")
-prop_pop <- pop10/sum(values(pop10), na.rm = TRUE)
-
-## baseline proportion
-threshold = 3 # threshold # of hours to calculate the proportion of pop at
-sum(prop_pop[ttimes >= 60*threshold], na.rm = TRUE)
-sum(prop_pop[ttimes_best >= 60*5], na.rm = TRUE)
 
 ```
 
