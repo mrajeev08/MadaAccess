@@ -157,7 +157,7 @@ predict.deaths <- function(access, ctar_in, pop, catch, names, group_name,
     bite_mat[, i] <- bites
     death_mat[, i] <- deaths
     averted_mat[, i] <- averted
-    p_rabid_mat[, i] <- p_rabid
+    p_rabid_mat[, i] <- p_rabid_t
     reporting_mat[, i] <- reported_rabid/rabid_exps
     
   }

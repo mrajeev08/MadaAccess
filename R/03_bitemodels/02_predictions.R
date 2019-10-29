@@ -351,7 +351,7 @@ preds_burden <-
                   summed = i$summed, ctar_bump = i$ctar_bump, data_source = i$data_source, 
                   scale = i$scale,
                   trans = 1e5, known_catch = FALSE, 
-                  p_rab_min = 0.2, p_rab_max = 0.6, rho_max = 0.9,
+                  p_rab_min = 0.2, p_rab_max = 0.6, rho_max = 0.98,
                   max_HDR = 25, min_HDR = 5, 
                   dog_rabies_inc = 0.01, human_exp_rate = 0.39, 
                   prob_death = 0.16, nsims = 1000)
