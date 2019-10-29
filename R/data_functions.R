@@ -80,11 +80,12 @@ get.reporting <- function(ctar_data, ctar_metadata, start_date = ymd("2014-01-01
   date_mat <- check_mat <- replace(date_mat, is.na(date_mat), 1) 
   date_mat %>% 
     as_tibble() %>%
-    group_by(date = year(doses_wide$date_de_consultation)) %>%
+    group_by(year = year(doses_wide$date_de_consultation)) %>%
     summarise_all(funs(sum(.)/n())) -> clinic_reporting
   colnames(clinic_reporting) <- colnames(doses_wide)[1:(ncol(doses_wide)-1)]
   
   clinic_reporting <- gather(clinic_reporting, id_ctar, prop, -date_de_consultation)
+  clinic_reporting <- rename(clinic_reporting, year = date_de_consultation)
   clinic_reporting$ctar <- ctar_metadata$CTAR[match(clinic_reporting$id_ctar, 
                                                     ctar_metadata$id_ctar)]
   clinic_reporting$id_ctar <- as.numeric(clinic_reporting$id_ctar)
@@ -115,7 +116,7 @@ get.contacts <- function(ctar_data, times_sd) {
   patient_ts <- patient_ts[!is.na(patient_ts$date_de_consultation), ]
   patient_ts$ctar <- ctar_metadata$CTAR[match(patient_ts$id_ctar, ctar_metadata$id_ctar)]
   patient_ts <- patient_ts[!is.na(patient_ts$ctar), ]
-    patient_ts %>%
+  patient_ts %>%
     group_by(ctar) %>%
     mutate(exclude = ifelse(n > mean(n) + times_sd*sd(n), 1, 0)) -> patient_ts
   
