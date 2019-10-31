@@ -84,17 +84,19 @@ mada_districts$exclude_by_distwtd <- ctar_metadata$exclude[match(mada_districts$
 bites %>%
   ## filter known contacts and estimated ones based on throughput
   filter(estimated_cat1 == 0, include == 1) %>% 
-  group_by(year, distcode, id_ctar) %>%
-  summarize(bites = n()) %>%
+  group_by(year, distcode) %>%
+  summarize(bites = n()) -> bites_district
+bites_district$CTAR <- mada_districts$ctch_ttwtd[match(bites_district$distcode, 
+                                                       mada_districts$distcode)]
+bites_district$id_ctar<- ctar_metadata$id_ctar[match(bites_district$CTAR, ctar_metadata$CTAR)]
+bites_district %>%
   left_join(reporting) %>%
-  ## filter any years with reporting < 25% 
-  filter(reporting > 0.25) %>%
+  filter(reporting > 0.25) %>% ## dont include any district for which catchment clinic had
+  ## less than 25% reporting
   ## correct for reporting by year and ctar reported to 
-  mutate(bites_corrected = bites/reporting) %>%
-  group_by(distcode, year) %>%
-  summarize(total = sum(bites_corrected)) %>%
+  mutate(bites = bites/reporting) %>%
   group_by(distcode) %>%
-  summarize(avg_bites = mean(total, na.rm = TRUE)) %>%
+  summarize(avg_bites = mean(bites, na.rm = TRUE)) %>%
   complete(distcode = mada_districts$distcode, fill = list(avg_bites = 0)) -> bite_ests
 
 ##' Bites by ttimes 
