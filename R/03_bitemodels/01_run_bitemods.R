@@ -22,40 +22,26 @@ library(iterators)
 library(rjags)
 
 ##' Run all models
-##' ------------------------------------------------------------------------------------------------
+##' ----------------------------------------------------------------------------------------
 ##' Mada data
 ## These all should have same index letter
-bites_list <- list(bites_by_distcent, bites_by_distcent,
-                 bites_by_ttimes, bites_by_ttimes,
-                 bites_by_distwtd, bites_by_distwtd)
-covars_list <- list(bites_by_distcent, commcovars_by_distcent, 
-                 bites_by_ttimes, commcovars_by_ttimes, 
-                 bites_by_distwtd, commcovars_by_distwtd)
-scale <- c("District", "Commune", "District", "Commune", "District", "Commune")
-sum_it <- c(FALSE, TRUE, FALSE, TRUE, FALSE, TRUE)
+bite_df <- bites_by_ttimes
+covars_list <- list(bites_by_ttimes, commcovars_by_ttimes)
+scale <- c("District", "Commune")
+sum_it <- c(FALSE, TRUE)
 
 ## The other index letters
-ctar_bump <- c(TRUE, FALSE)
 intercept_type <- c("random", "fixed")
 pop_predict <- c("addPop", "onlyPop", "flatPop")
 
 mods_mada <- 
-  foreach(i = 1:length(bites_list), .combine = "rbind") %:%
-  foreach(j = 1:length(ctar_bump), .combine = "rbind") %:%
+  foreach(i = 1:length(covars_list), .combine = "rbind") %:%
   foreach(k = 1:length(pop_predict), .combine = "rbind") %:%
   foreach(l = 1:length(intercept_type), .combine = "rbind", 
           .packages = 'rjags') %dopar% {
     
-    print(c(i, j, k, l))
-    
-    bite_df <- bites_list[[i]]
     covar_df <- covars_list[[i]]
-    
-    if(covar_df$covar_name[1] == "ttimes") {
-      access <- covar_df$covar/60
-    } else {
-      access <- covar_df$covar
-    }
+    access <- covar_df$covar/60
     
     out <- estimate.pars(bites = round(bite_df$avg_bites), 
                            access = access, ctar_in = covar_df$ctar_in_district, pop = covar_df$pop, 
@@ -63,7 +49,7 @@ mods_mada <-
                            nlocs = nrow(bite_df), catch = covar_df$catch, ncatches = max(bite_df$catch), 
                            covar_name = covar_df$covar_name[1], pop_predict =  pop_predict[k], 
                            intercept = intercept_type[l], summed = sum_it[i], 
-                           ctar_bump = ctar_bump[j], data_source = "National",
+                           ctar_bump = FALSE, data_source = "National",
                            scale = scale[i], trans = 1e5, 
                            chains = 3, adapt = 500, iter = 10000, thinning = 2,
                            dic = TRUE, save = TRUE)
@@ -84,7 +70,7 @@ mods_mada <-
                                   psrf_upper = diag$psrf[, 2], mpsrf = diag$mpsrf, 
                                   covar_name = covar_df$covar_name[1], 
                                   pop_predict = pop_predict[k], intercept = intercept_type[l], 
-                                  ctar_bump = ctar_bump[j], summed = sum_it[i], 
+                                  ctar_bump = FALSE, summed = sum_it[i], 
                                   data_source = "National", 
                                   scale = scale[i], dic = dic_est))
   }
@@ -93,30 +79,18 @@ mods_mada <-
 ##' Moramanga models 
 ##' ------------------------------------------------------------------------------------------------
 ## These all should have same index letter
-bites_list <- covars_list <- list(morabites_by_distcent, morabites_by_ttimes, morabites_by_distwtd)
+bite_df <- covar_df <- morabites_by_ttimes
 scale <- "Commune"
 sum_it <- FALSE
 intercept_type <- "fixed"
 
 ## The other index letters
-ctar_bump <- c(TRUE, FALSE)
 pop_predict <- c("addPop", "onlyPop", "flatPop")
 
 mods_mora <- 
-  foreach(i = 1:length(bites_list), .combine = "rbind") %:%
-  foreach(j = 1:length(ctar_bump), .combine = "rbind") %:%
   foreach(k = 1:length(pop_predict), .combine = "rbind") %dopar% {
-    
-    print(c(i, j, k))
-    
-    bite_df <- bites_list[[i]]
-    covar_df <- covars_list[[i]]
-    
-    if(covar_df$covar_name[1] == "ttimes") {
-      access <- covar_df$covar/60
-    } else {
-      access <- covar_df$covar
-    }
+    k  = 1
+    access <- covar_df$covar/60
     
     out <- estimate.pars(bites = round(bite_df$avg_bites), 
                          access = access, ctar_in = covar_df$ctar_in_district, pop = covar_df$pop, 
@@ -124,10 +98,10 @@ mods_mora <-
                          nlocs = nrow(bite_df), catch = covar_df$catch, ncatches = max(bite_df$catch), 
                          covar_name = covar_df$covar_name[1], pop_predict =  pop_predict[k], 
                          intercept = intercept_type, summed = sum_it, 
-                         ctar_bump = ctar_bump[j], data_source = "Moramanga",
+                         ctar_bump = FALSE, data_source = "Moramanga",
                          scale = scale, trans = 1e5, 
                          chains = 3, adapt = 500, iter = 10000, thinning = 2,
-                         dic = TRUE, save = FALSE)
+                         dic = TRUE, save = TRUE)
     
     samps <- out[["samps"]]
     dic <- out[["dic"]]
@@ -145,7 +119,7 @@ mods_mora <-
                                   psrf_upper = diag$psrf[, 2], mpsrf = diag$mpsrf, 
                                   covar_name = covar_df$covar_name[1], 
                                   pop_predict = pop_predict[k], intercept = intercept_type, 
-                                  ctar_bump = ctar_bump[j], summed = sum_it, 
+                                  ctar_bump = FALSE, summed = sum_it, 
                                   data_source = "Moramanga", 
                                   scale = scale, dic = dic_est))
   }
