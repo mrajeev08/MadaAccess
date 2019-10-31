@@ -84,7 +84,7 @@ predict.deaths <- function(access, ctar_in, pop, catch, names, group_name,
                           p_rab_min = 0.2, p_rab_max = 0.6, rho_max = 0.9,
                           max_HDR = 25, min_HDR = 5, 
                           dog_rabies_inc = 0.01, human_exp_rate = 0.39, 
-                          prob_death = 0.16, nsims = 1000) {
+                          prob_death = 0.16, nsims = 1000, scenario = 0) {
   
   ## testing
   # access = covar_df$covar; ctar_in = covar_df$ctar_in_district;
@@ -188,7 +188,7 @@ predict.deaths <- function(access, ctar_in, pop, catch, names, group_name,
                     p_rabid_mean, p_rabid_upper95, p_rabid_lower05,
                     reporting_mean, reporting_upper95, reporting_lower05,
                     covar_name, data_source, scale, pop_predict, ctar_bump, summed, intercept, 
-                    access, ctar_in, pop, catch))
+                    access, ctar_in, pop, catch, scenario))
   
 }
 
