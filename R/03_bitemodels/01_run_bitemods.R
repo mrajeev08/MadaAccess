@@ -89,7 +89,6 @@ pop_predict <- c("addPop", "onlyPop", "flatPop")
 
 mods_mora <- 
   foreach(k = 1:length(pop_predict), .combine = "rbind") %dopar% {
-    k  = 1
     access <- covar_df$covar/60
     
     out <- estimate.pars(bites = round(bite_df$avg_bites), 

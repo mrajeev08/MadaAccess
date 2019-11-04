@@ -159,70 +159,79 @@ get.catchmat <- function(point_mat, point_names, admin_names, fric, shape, pop_r
 #' @section Dependencies:
 #'     Packages: none
 
-## helper function for add armc
-sum.lessthan <- function(x, prop_pop, base_metric, threshold) {
-  ## Sum of the proportion of the population changes and changes to less than threshold
-  mets <- prop_pop*(base_metric - x)
-  sum(mets[which(x < base_metric & x > threshold)])
-}
 
-add.armc <- function(base_metric, clinic_names, clinic_catchmat, prop_pop, 
+add.armc <- function(base_metric, base_catches, clinic_names, clinic_catchmat, prop_pop, 
                      max_clinics = ncol(clinic_catchmat), threshold) {
-  # base_metric = mada_communes$ttms_wtd;
-  # clinic_names = colnames(commune_ttimes_candidates);
-  # clinic_catchmat = commune_ttimes_candidates; 
-  # prop_pop = mada_communes$pop/sum(mada_communes$pop); 
-  # max_clinics = ncol(commune_ttimes_candidates);
+  # base_metric = rep(1e6, nrow(stacked_ttimes)); base_catches = rep(NA, nrow(stacked_ttimes));
+  # clinic_names = 1:ncol(stacked_ttimes);
+  # clinic_catchmat = stacked_ttimes;
+  # prop_pop = prop_pop;
+  # max_clinics = ncol(stacked_ttimes);
   # threshold = 3*60;
-  
-  metric_mat <- matrix(NA, nrow = nrow(clinic_catchmat), ncol = max_clinics)
-  colnames(metric_mat) <- 1:max_clinics
 
+  metric_mat <- matrix(NA, nrow = nrow(clinic_catchmat), ncol = max_clinics)
+  catch_mat <- matrix(NA, nrow = nrow(clinic_catchmat), ncol = max_clinics)
+  
+  colnames(metric_mat) <- 1:max_clinics
+  
+  ## helper function for add armc
+  sum.lessthan <- function(x, prop_pop, base_metric, threshold) {
+    ## Sum of the proportion of the population changes and changes to less than threshold
+    mets <- prop_pop*(base_metric - x)
+    sum(mets[which(x < base_metric & x > threshold)], na.rm = TRUE)
+  }
+  
   ## Add clinics incrementally
   for (i in 1:(max_clinics - 1)) {
     
     print(i)
-    sum.change <- foreach(vals = iter(clinic_catchmat, by = "col")) %dopar% {
+    sum.change <- foreach(vals = iter(clinic_catchmat, by = "col"), 
+                          .combine = c) %dopar% {
       sum.lessthan(vals, prop_pop = prop_pop, base_metric = base_metric, 
                    threshold = threshold)
     }
     
     ## In case all admin units go below the threshold
-    if(sum(unlist(sum.change)) == 0) {
+    if(sum(sum.change, na.rm = TRUE) == 0) {
       threshold <- 0
-      sum.change <- foreach(vals = iter(clinic_catchmat, by = "col")) %dopar% {
+      sum.change <- foreach(vals = iter(clinic_catchmat, by = "col"), .combine = c) %dopar% {
         sum.lessthan(vals, prop_pop = prop_pop, base_metric = base_metric, 
                      threshold = threshold)
       }
     }
     
-    if(sum(unlist(sum.change)) == 0) {
+    print(threshold)
+    
+    if(sum(sum.change, na.rm = TRUE) == 0) {
       break
     } else {
-      # sum.change <- apply(clinic_catchmat, 2, sum.lessthan, prop_pop = prop_pop, 
-      #                     base_metric = base_metric, threshold = threshold)
       
       colnames(metric_mat)[i] <- as.character(clinic_names[which.max(sum.change)])
       new_metric <- clinic_catchmat[, which.max(sum.change)]
+      base_catches[which(new_metric < base_metric)] <- as.character(clinic_names[which.max(sum.change)])
+        
       base_metric[which(new_metric < base_metric)] <- new_metric[which(new_metric < base_metric)]
       
       clinic_names <- clinic_names[-which.max(sum.change)]
       clinic_catchmat <- clinic_catchmat[, -which.max(sum.change)]
       
       metric_mat[, i] <- base_metric
+      catch_mat[, i] <- base_catches
     }
   }
   
   ## last clinic to be added
   if(is.null(dim(clinic_catchmat))) {
-    
+    ## Do catches 1st so that it is less than
+    base_catches[which(clinic_catchmat < base_metric)] <- as.character(clinic_names)
     base_metric[which(clinic_catchmat < base_metric)] <- clinic_catchmat[which(clinic_catchmat < base_metric)]
     metric_mat[, ncol(metric_mat)] <- base_metric
+    catch_mat[, ncol(metric_mat)] <- base_catches
     colnames(metric_mat)[ncol(metric_mat)] <- as.character(clinic_names)
     
   } else {
     
-    sum.change <- foreach(vals = iter(clinic_catchmat, by = "col")) %dopar% {
+    sum.change <- foreach(vals = iter(clinic_catchmat, by = "col"), .combine = c) %dopar% {
       sum.lessthan(vals, prop_pop = prop_pop, base_metric = base_metric, 
                    threshold = threshold)
     }
@@ -230,9 +239,12 @@ add.armc <- function(base_metric, clinic_names, clinic_catchmat, prop_pop,
     colnames(metric_mat)[ncol(metric_mat)] <- as.character(clinic_names[which.max(sum.change)])
     new_metric <- clinic_catchmat[, which.max(sum.change)]
     base_metric[which(new_metric < base_metric)] <- new_metric[which(new_metric < base_metric)]
+    base_catches[which(new_metric < base_metric)] <- as.character(clinic_names[which.max(sum.change)])
+    
     metric_mat[, ncol(metric_mat)] <- base_metric
+    catch_mat[, ncol(metric_mat)] <- base_catches
   }
   
-  return(metric_mat)
+  return(list(metric_mat = metric_mat, catch_mat = catch_mat))
 }
 
