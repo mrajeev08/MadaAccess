@@ -9,4 +9,4 @@
 #SBATCH --mail-type=end
 #SBATCH --mail-user=mrajeev@princeton.edu
 
-Rscript ./R/test_scenario.R 18
+Rscript ./R/05_incremental/02_ttimes_incremental.R 18
