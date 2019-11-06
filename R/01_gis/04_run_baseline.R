@@ -23,7 +23,7 @@ library(data.table)
 
 ##' Source
 source("R/functions/utils.R")
-source("R/functions/access_functions.R")
+source("R/functions/ttime_functions.R")
 
 ##' Load in GIS files 
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
@@ -97,7 +97,7 @@ base_times <- ttimes_weighted[["ttimes"]]
 base_catches <- ttimes_weighted[["catches"]]
 
 # ## Quick comparison check
-# ttimes_comp <- get.access(friction = friction_masked, shapefile = mada_districts,
+# ttimes_comp <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
 #                           coords = point_mat_base, trans_matrix_exists = TRUE,
 #                           filename_trans = "data/processed/rasters/trans_gc_masked.rds",
 #                           metric = "ttimes")

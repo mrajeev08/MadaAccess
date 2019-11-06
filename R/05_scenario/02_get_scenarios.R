@@ -31,7 +31,7 @@ library(doParallel)
 
 ##' Source
 source("R/functions/utils.R")
-source("R/functions/access_functions.R")
+source("R/functions/ttime_functions.R")
 
 ## Pull in candidates
 # cand_mat <- fread("output/candidate_matrix.gz") ## locally

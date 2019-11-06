@@ -76,8 +76,8 @@ change_prop <- foreach(vals = iter(stacked_ttimes, by = "col"),
                          prop.lessthan(vals, prop_pop = prop_pop, base_metric = baseline_df$base_times, 
                                        threshold = 3*60)
                        }
-
-stacked_ttimes <- stacked_ttimes[, -which(change_prop < 0.0001)]
+## Only ones above the threshold
+stacked_ttimes <- stacked_ttimes[, which(change_prop > 0.0001)]
 candidate_ids <- candidate_ids[which(change_prop > 0.0001)]
 
 fwrite(stacked_ttimes, "output/candidate_matrix.csv")
