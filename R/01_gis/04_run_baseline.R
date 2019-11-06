@@ -66,7 +66,7 @@ prop_pop <- prop_pop[!is.na(getValues(friction_masked))] ## Filter out masked ce
 
 base_df <- data.table(district_id, commune_id, prop_pop, 
                       pop = getValues(pop1x1)[!is.na(getValues(friction_masked))],
-                      base_times = rep(1e6, nrow(stacked_ttimes)), 
+                      base_times = rep(Inf, nrow(stacked_ttimes)), 
                       base_catches = rep(0, nrow(stacked_ttimes)))
 base_df[, pop_dist := sum(pop, na.rm = TRUE), by = district_id]
 base_df[, pop_comm := sum(pop, na.rm = TRUE), by = commune_id]
