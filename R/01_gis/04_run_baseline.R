@@ -34,14 +34,7 @@ friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
 ## candidate points
 ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
-csbs <- read.csv("data/raw/csbs.csv", stringsAsFactors = FALSE)
-csbs %>% 
-  filter(type == "CSB2", genre_fs != "Priv", type_fs != "Health Post") %>%
-  dplyr::select(CTAR = nom_fs, X_COORD = ycoor, Y_COORD = xcoor) -> csbs
-
 point_mat_base <- as.matrix(select(ctar_metadata, Y_COORD = LONGITUDE, X_COORD = LATITUDE))
-point_mat_candidates <- as.matrix(select(csbs, Y_COORD, X_COORD))
-candidate_ids <- 1:nrow(csbs) + 31 ## above the baseline 
 
 ## Do the baseline
 cl <- makeCluster(3)
