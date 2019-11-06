@@ -36,8 +36,8 @@ source("R/functions/utils.R")
 source("R/functions/ttime_functions.R")
 
 ## Pull in candidates
-# cand_mat <- fread("output/candidate_matrix.gz") ## locally
-cand_mat <- fread("/scratch/gpfs/mrajeev/ttimes/candidate_matrix.gz")
+# cand_mat <- fread("output/ttimes/candidate_matrix.gz") ## locally
+cand_mat <- fread("/scratch/gpfs/mrajeev/output/ttimes/candidate_matrix.gz")
 
 # cand_mat <- as.matrix(cand_mat)
 candidate_ids <- fread("output/ttimes/candidate_ids.csv")$x
@@ -52,7 +52,7 @@ registerDoParallel(cl)
 
 system.time ({
   add.armc(base_df = base_df, clinic_names = candidate_ids, clinic_catchmat = cand_mat, 
-           max_clinics = ncol(cand_mat), threshold = 3*60, thresh_prop = 1e-4, 
+           max_clinics = ncol(cand_mat), thresh_ttimes = 3*60, thresh_prop = 1e-4, 
            dir_name = "/scratch/gpfs/mrajeev/output/ttimes/incremental_")
 })
 
