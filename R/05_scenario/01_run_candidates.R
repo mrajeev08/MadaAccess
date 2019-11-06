@@ -42,7 +42,7 @@ csbs %>%
 
 point_mat_candidates <- as.matrix(select(csbs, Y_COORD, X_COORD))
 candidate_ids <- 1:nrow(csbs) + 31 ## above the baseline 31 clinics (number by rows!)
-baseline_df <- fread("output/baseline.csv")
+baseline_df <- fread("output/scenarios/baseline_grid.csv")
 
 ## Do the candidates
 cl <- makeCluster(3)
@@ -65,20 +65,20 @@ stacked_ttimes <- do.call("stack", stacked_ttimes)
 stacked_ttimes <- raster::as.matrix(stacked_ttimes)
 stacked_ttimes <- stacked_ttimes[!is.na(getValues(friction_masked)), ]
 
-## Filter out any that shift less than 0.01% of people below the threshold
-prop.lessthan <- function(x, prop_pop, base_metric, threshold) {
-  ## Sum of the proportion of the population changed weighted by how much changed below threshold
-  sum(prop_pop[which(x < base_metric & x > threshold)], na.rm = TRUE)
-}
+# ## Filter out any that shift less than 0.01% of people below the threshold
+# prop.lessthan <- function(x, prop_pop, base_metric, threshold) {
+#   ## Sum of the proportion of the population changed weighted by how much changed below threshold
+#   sum(prop_pop[which(x < base_metric & x > threshold)], na.rm = TRUE)
+# }
+# 
+# change_prop <- foreach(vals = iter(stacked_ttimes, by = "col"), 
+#                        .combine = c) %do% {
+#                          prop.lessthan(vals, prop_pop = prop_pop, base_metric = baseline_df$base_times, 
+#                                        threshold = 3*60)
+#                        }
+# ## Only ones above the threshold
+# stacked_ttimes <- stacked_ttimes[, which(change_prop > 0.0001)]
+# candidate_ids <- candidate_ids[which(change_prop > 0.0001)]
 
-change_prop <- foreach(vals = iter(stacked_ttimes, by = "col"), 
-                       .combine = c) %do% {
-                         prop.lessthan(vals, prop_pop = prop_pop, base_metric = baseline_df$base_times, 
-                                       threshold = 3*60)
-                       }
-## Only ones above the threshold
-stacked_ttimes <- stacked_ttimes[, which(change_prop > 0.0001)]
-candidate_ids <- candidate_ids[which(change_prop > 0.0001)]
-
-fwrite(stacked_ttimes, "output/candidate_matrix.csv")
-write.csv(candidate_ids, "output/candidate_ids.csv")
+fwrite(stacked_ttimes, "output/scenarios/candidate_matrix.csv")
+write.csv(candidate_ids, "output/scenarios/candidate_ids.csv")

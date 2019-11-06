@@ -105,4 +105,4 @@ baseline_df[, prop_pop := pop/sum(pop, na.rm = TRUE)]
 baseline_df[, pop_dist := sum(pop, na.rm = TRUE), by = district_id]
 baseline_df[, pop_comm := sum(pop, na.rm = TRUE), by = commune_id]
 
-fwrite(baseline_df, "output/scenarios/baseline.csv")
+fwrite(baseline_df, "output/scenarios/baseline_grid.csv")

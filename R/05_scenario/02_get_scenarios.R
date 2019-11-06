@@ -38,10 +38,10 @@ source("R/functions/ttime_functions.R")
 cand_mat <- fread("/scratch/gpfs/mrajeev/candidate_matrix.gz")
 
 # cand_mat <- as.matrix(cand_mat)
-candidate_ids <- fread("output/candidate_ids.csv")$x
+candidate_ids <- fread("output/scenarios/candidate_ids.csv")$x
 
 ## Baseline df
-base_df <- fread("output/baseline.csv")
+base_df <- fread("output/scenarios/baseline_grid.csv")
 
 ## Do the candidates
 ## WITH SINGLE NODE
