@@ -10,9 +10,9 @@
 ##' ------------------------------------------------------------------------------------------------
 ##' SINGLE NODE
 rm(list = ls())
-# args <- commandArgs(trailingOnly = TRUE)
-# cores <- as.integer(args[1])
-cores <- 4
+args <- commandArgs(trailingOnly = TRUE)
+cores <- as.integer(args[1])
+# cores <- 3
 
 # ##' Init MPI Backend
 # Sys.time()
@@ -34,8 +34,8 @@ source("R/functions/utils.R")
 source("R/functions/access_functions.R")
 
 ## Pull in candidates
-cand_mat <- fread("output/candidate_matrix.gz") ## locally
-# cand_mat <- fread("/scratch/gpfs/mrajeev/candidate_matrix.gz")
+# cand_mat <- fread("output/candidate_matrix.gz") ## locally
+cand_mat <- fread("/scratch/gpfs/mrajeev/candidate_matrix.gz")
 
 # cand_mat <- as.matrix(cand_mat)
 candidate_ids <- fread("output/candidate_ids.csv")$x
@@ -44,7 +44,6 @@ candidate_ids <- fread("output/candidate_ids.csv")$x
 base_df <- fread("output/baseline.csv")
 
 ## Do the candidates
-
 ## WITH SINGLE NODE
 cl <- makeCluster(cores)
 registerDoParallel(cl)
@@ -52,7 +51,7 @@ registerDoParallel(cl)
 system.time ({
   add.armc(base_df = base_df, clinic_names = candidate_ids, clinic_catchmat = cand_mat, 
            max_clinics = ncol(cand_mat), threshold = 3*60, thresh_prop = 1e-4, 
-           dir_name = "output/scenarios/scenario_")
+           dir_name = "/scratch/gpfs/mrajeev/output/scenario_")
 })
 
 ##' WITH SINGLE NODE TO CLOSE
