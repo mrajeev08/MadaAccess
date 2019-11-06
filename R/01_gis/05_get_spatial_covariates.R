@@ -1,6 +1,6 @@
 ####################################################################################################
-##' Step 4: Assigning catchment to each admin unit based on travel times
-##' Details: Uses catchment matrixes generated in step 03 to select the catchment
+##'Assigning catchment to each admin unit based on travel times
+##' Details: Uses data frames generated in step 04
 ##'   Does not need to be run in parallel
 ##' Author: Malavika Rajeev 
 ####################################################################################################
@@ -12,66 +12,53 @@ library(geosphere)
 library(raster)
 library(rgdal)
 library(tidyverse)
+library(data.table)
 
 ##' Read in files 
 ##' ------------------------------------------------------------------------------------------------
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
-district_ttimes_weighted <- read.csv("data/processed/catchmats/baseline_district_ttimes_weighted.csv",
-                                     row.names = 1)
-district_distance_weighted <- read.csv("data/processed/catchmats/baseline_district_distance_weighted.csv",
-                                       row.names = 1)
-commune_ttimes_weighted <- read.csv("data/processed/catchmats/baseline_commune_ttimes_weighted.csv",
-                                    row.names = 1)
-commune_distance_weighted <- read.csv("data/processed/catchmats/baseline_commune_distance_weighted.csv",
-                                      row.names = 1)
 ctar_metadata <- read.csv(file = "data/raw/ctar_metadata.csv")
+baseline_df <- fread("output/ttimes/baseline_grid.csv")
 
 ##' Get travel times and catchments at district and commune level
 ##' ------------------------------------------------------------------------------------------------
 ##' Var names have to be <= 10 characters long for ESRI shapefile output
-##' Quick function for getting catchments accounting for Inf returns
-which.min.inf  <- function(x) {
-  if(min(x) == Inf | is.na(min(x))) {
-    return(NA)
-  } else {
-    return(which.min(x))
-  }
+district_df <- fread("output/ttimes/baseline_district.csv")
+district_df <- district_df[scenario == 31]
+district_df <- district_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], by = district_id]
+## Fix so that is base catch is 0, then NA (this means that Inf returned for all clinics)
+district_df[, weighted_times := ifelse(base_catches == 0, NA, weighted_times)]
+
+## Match district_id with row number in mada_districts@data
+setorder(district_df, district_id)
+if (nrow(district_df) == nrow(mada_districts@data)) {
+  mada_districts$ttms_wtd <- district_df$weighted_times
+  mada_districts$ctch_ttwtd <- district_df$base_catches
+  mada_districts$prop_pop <- district_df$prop_pop_catch
 }
-##' Communes ttimes and distance
-mada_communes$ttms_wtd <- apply(commune_ttimes_weighted, 1, min, na.rm = TRUE)
-mada_communes$dist_wtd <- apply(commune_distance_weighted, 1, min, na.rm = TRUE)
-mada_communes$ctch_ttwtd <- ctar_metadata$CTAR[unlist(apply(commune_ttimes_weighted, 
-                                                                           1, which.min.inf))]
-mada_communes$ctch_dswtd <- ctar_metadata$CTAR[unlist(apply(commune_distance_weighted, 
-                                                                             1, which.min.inf))]
-##' District
-mada_districts$ttms_wtd <- apply(district_ttimes_weighted, 1, min, na.rm = TRUE)
-mada_districts$dist_wtd <- apply(district_distance_weighted, 1, min, na.rm = TRUE)
-mada_districts$ctch_ttwtd <- ctar_metadata$CTAR[unlist(apply(district_ttimes_weighted, 
-                                                          1, which.min.inf))]
-mada_districts$ctch_dswtd <- ctar_metadata$CTAR[unlist(apply(district_distance_weighted, 
-                                                            1, which.min.inf))]
 
-##' Get distance to closest CTAR based on centroids
-##' ------------------------------------------------------------------------------------------------
-##' Districts
-mada_district_coords <- coordinates(mada_districts)
-mada_districts$long <- mada_district_coords[, 1]
-mada_districts$lat <- mada_district_coords[, 2]
-dist_distance_mat <- distm(mada_district_coords, ctar_metadata[, c("LONGITUDE", "LATITUDE")])/1000
-mada_districts$dist_cent <- apply(dist_distance_mat, 1, min, na.rm = TRUE)
-mada_districts$ctch_dsct <- ctar_metadata$CTAR[unlist(apply(dist_distance_mat, 
-                                                                 1, which.min.inf))]
+## Communes
+commune_df <- fread("output/ttimes/baseline_commune.csv")
+commune_df <- commune_df[scenario == 31]
+commune_df <- commune_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], by = commune_id]
+## Fix so that is base catch is 0, then NA (this means that Inf returned for all clinics)
+commune_df[, weighted_times := ifelse(base_catches == 0, NA, weighted_times)]
 
-##' Communes
-mada_commune_coords <- coordinates(mada_communes)
-mada_communes$long <- mada_commune_coords[, 1]
-mada_communes$lat <- mada_commune_coords[, 2]
-comm_distance_mat <- distm(mada_commune_coords, ctar_metadata[, c("LONGITUDE", "LATITUDE")])/1000
-mada_communes$dist_cent <- apply(comm_distance_mat, 1, min, na.rm = TRUE)
-mada_communes$ctch_dsct <- ctar_metadata$CTAR[unlist(apply(comm_distance_mat, 
-                                                                         1, which.min.inf))]
+## Match commune_id with row number in mada_communes@data
+setorder(commune_df, commune_id)
+if (nrow(commune_df) == nrow(mada_communes@data)) {
+  mada_communes$ttimes <- commune_df$weighted_times
+  mada_communes$catch <- commune_df$base_catches
+  mada_communes$prop_pop <- commune_df$prop_pop_catch
+}
+
+## Clean up the shapefile attribute data
+
+mada_communes@data %>%
+  select(district_id = 1:nrow(mada_communes@data), distcode, district = ADM2_EN, commcode = ADM3_PCODE,
+         commune = ADM3_EN, pop long, lat, ttimes, catch, prop_pop) -> mada_communes@data
+
 
 ##' Write out the shapefiles to processed/shapefiles/ (overwrite)
 ##' ------------------------------------------------------------------------------------------------
