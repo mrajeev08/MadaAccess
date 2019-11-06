@@ -29,13 +29,17 @@ no_data <- c("Fianarantsoa", "Ambatomainty", "Ambovombe Androy", "Tsiroanomandid
 ctar_metadata$exclude <- 0
 ctar_metadata$exclude[ctar_metadata$CTAR %in% no_data] <- 1
 ctar_metadata$color <- c("#FCC56F","#FFDBE5", "#7A4900", "#CBCDD2", "#0000A6", "#EFF2F1",
-                         "#99d8c9", "#B79762", "#004D43", "#8FB0FF", "lightgrey", "#FD9C54", "#8362B5",
+                         "#99d8c9", "#B79762", "#004D43", "#8FB0FF", "white", "#FD9C54", "#8362B5",
                          "#578FB0","#5A0007", "#809693", "#D16100", "#1B4400", "#4FC601", "#3B5DFF", 
                          "#4A3B53", "#FF2F80","#61615A", "#BA0900", "#6B7900", "#00C2A0", "#FFAA92",
                          "#FF90C9", "#B903AA", "#FEFFE6", "#E9E9D2")
 ctar_metadata$fill <- ctar_metadata$color
-ctar_metadata$color[ctar_metadata$CTAR %in% no_data] <- "#D3D3D3"
+ctar_metadata$color[ctar_metadata$CTAR %in% no_data] <- "black"
 
+catch_cols <- ctar_metadata$color
+names(catch_cols) <- ctar_metadata$CTAR
+catch_fills <- ctar_metadata$fill
+names(catch_fills) <- ctar_metadata$CTAR
 
 ##' 2. Mapping raw data: National at district level
 ##' ------------------------------------------------------------------------------------------------
@@ -50,14 +54,14 @@ national %>%
 national %>%
   group_by(id_ctar) %>%
   summarize(count = n()) %>%
-  left_join(select(ctar_metadata, distcode, id_ctar, color, fill)) %>%
+  left_join(select(ctar_metadata, ctar = CTAR, distcode, id_ctar, color, fill)) %>%
   left_join(select(mada_districts@data, distcode, long, lat)) -> ctar_pts
 
 national %>%
   group_by(distcode, id_ctar) %>%
   summarize(count = n()) %>%
   left_join(select(mada_districts@data, to_long = long, to_lat = lat, distcode)) %>%
-  left_join(select(ctar_metadata, id_ctar, color, fill, ctar_distcode = distcode)) %>%
+  left_join(select(ctar_metadata, id_ctar, ctar = CTAR, color, fill, ctar_distcode = distcode)) %>%
   left_join(select(mada_districts@data, from_long = long, from_lat = lat, 
                     ctar_distcode = distcode))-> ctar_todist_lines
 
@@ -69,14 +73,14 @@ ctar_todist_lines %>%
          end_long_minus = to_long - log(count + 1)*0.05,
          group_id = paste0(distcode, id_ctar)) %>%
   select(group_id, contains("lat"), contains("long"), 
-         -to_lat, -to_long, color) -> ctar_todist_pols
+         -to_lat, -to_long, color, ctar) -> ctar_todist_pols
 
 ctar_todist_pols <- bind_rows(select(ctar_todist_pols, lat = end_lat_plus, long = end_long_plus,
-                                     group = group_id, color),
+                                     group = group_id, color, ctar),
                               select(ctar_todist_pols, lat = end_lat_minus, long = end_long_minus,
-                                     group = group_id, color),
+                                     group = group_id, color, ctar),
                               select(ctar_todist_pols, lat = from_lat, long = from_long, 
-                                     group = group_id, color))
+                                     group = group_id, color, ctar))
 
 mada_districts$color <- ctar_metadata$color[match(mada_districts$ctch_ttwtd, ctar_metadata$CTAR)]
 gg_district <- fortify(mada_districts, region = "distcode")
@@ -84,28 +88,21 @@ gg_district %>%
   left_join(select(mada_districts@data, distcode, color, ctar = ctch_ttwtd), 
             by = c("id" = "distcode")) -> gg_district
 
-cols <- c("#FCC56F","#FFDBE5", "#7A4900", "#CBCDD2", "#0000A6", "#EFF2F1",
-          "#99d8c9", "#B79762", "#004D43", "#8FB0FF", "#FFFFFF", "#FD9C54", "#8362B5",
-          "#578FB0","#5A0007", "#809693", "#D16100", "#1B4400", "#4FC601", "#3B5DFF", 
-          "#4A3B53", "#FF2F80","#61615A", "#BA0900", "#6B7900", "#00C2A0", "#FFAA92",
-          "#FF90C9", "#B903AA", "#FEFFE6", "#E9E9D2", "#D3D3D3")
-names(cols) <- as.character(cols)
-
 sizes <- log(c(100, 200, 400, 800, 1600) + 0.1)
 fig1A <- ggplot() +
   geom_polygon(data = gg_district, 
-               aes(x = long, y = lat, group = group, fill = color), color = "grey50", alpha = 0.5) +
-  geom_polygon(data = ctar_todist_pols, aes(x = long, y = lat, group = group,
-                                     fill = color), color = NA, alpha = 0.5, 
+               aes(x = long, y = lat, group = group, fill = ctar), color = "white", alpha = 0.5) +
+  geom_polygon(data = filter(ctar_todist_pols, color != "black"), aes(x = long, y = lat, group = group,
+                                     fill = ctar), color = NA, alpha = 0.5, 
                show.legend = FALSE) +
-  geom_point(data = ctar_pts, aes(x = long, y = lat, fill = fill,
+  geom_point(data = dist_pts, aes(x = long, y = lat, fill = ctar,
                                        size = log(count + 0.1)), color = alpha("black", 0.75),
              shape = 21, alpha = 0.75) +
-  geom_point(data = dist_pts, aes(x = long, y = lat, 
-                                     size = log(count + 0.1), color = color), 
-             shape = 1) +
-  scale_fill_manual(values = cols, guide = "none") +
-  scale_color_manual(values = cols, guide = "none") +
+  geom_point(data = ctar_pts, aes(x = long, y = lat, 
+                                     size = log(count + 0.1), color = ctar), 
+             shape = 1, stroke = 1.2) +
+  scale_fill_manual(values = catch_cols, guide = "none") +
+  scale_color_manual(values = catch_fills, guide = "none") +
   scale_size_identity("Reported bites", labels = as.character(c(100, 200, 400, 800, 1600)),
                       breaks = sizes, guide = "legend") +
   guides(size = guide_legend(override.aes = list(color = "grey50"))) +
@@ -132,35 +129,39 @@ comm_pts %>%
          end_lat_minus = lat - log(count + 1)*0.05, 
          end_long_minus = long - log(count + 1)*0.05,
          group_id = commcode) %>%
-  select(group_id, contains("lat"), contains("long"), -lat, -long, color) -> ctar_tocomm_pols
+  select(group_id, contains("lat"), contains("long"), -lat, -long, color, ctar) -> ctar_tocomm_pols
 
 ctar_tocomm_pols <- bind_rows(select(ctar_tocomm_pols, lat = end_lat_plus, long = end_long_plus,
-                                     group = group_id, color),
+                                     group = group_id, color, ctar),
                               select(ctar_tocomm_pols, lat = end_lat_minus, long = end_long_minus, 
-                                     group = group_id, color),
+                                     group = group_id, color, ctar),
                               select(ctar_tocomm_pols, lat = from_lat, long = from_long, 
-                                     group = group_id, color))
+                                     group = group_id, color, ctar))
 
 mada_communes$color <- ctar_metadata$color[match(mada_communes$ctch_ttwtd, ctar_metadata$CTAR)]
 gg_commune <- fortify(mada_communes, region = "ADM3_PCODE")
 gg_commune %>% 
-  left_join(select(mada_communes@data, distcode, ADM3_PCODE, color, ctar = ctch_ttwtd), 
+  left_join(select(mada_communes@data, ADM2_EN, ADM3_PCODE, color, ctar = ctch_ttwtd), 
             by = c("id" = "ADM3_PCODE")) %>%
   left_join(select(comm_pts, commcode, count), by = c("id" = "commcode")) %>%
-  filter(distcode == "Moramanga") -> gg_commune_plot
+  filter(ctar == "Moramanga") -> gg_commune_plot
 
-## TO DO: add inset with districts included in catchment outlined (or other way of showing what this refers to)
+## TO DO: add inset with districts included in ment outlined (or other way of showing what this refers to)
 fig1B <- ggplot() +
   geom_polygon(data = gg_commune_plot, 
-               aes(x = long, y = lat, group = group, fill = color), color = "grey50", alpha = 0.5) +
+               aes(x = long, y = lat, group = group), fill = "#4A3B53", 
+               color = "white", alpha = 0.5) +
   geom_polygon(data = ctar_tocomm_pols, aes(x = long, y = lat, group = group,
-                                     fill = color), color = NA, alpha = 0.5, 
+                                     fill = ctar), color = NA, alpha = 0.5, 
                show.legend = FALSE) +
-  geom_point(data = comm_pts, aes(x = long, y = lat, 
-                                     size = log(count + 0.1), fill = color), 
-             shape = 21, color = alpha("black", 0.5)) +
-  scale_fill_manual(values = cols, guide = "none") +
-  scale_color_manual(values = cols, guide = "none") +
+  geom_point(data = filter(comm_pts, commcode != "MG33314010"), aes(x = long, y = lat, fill = ctar,
+                                  size = log(count + 0.1)), color = alpha("black", 0.75),
+             shape = 21, alpha = 0.75) +
+  geom_point(data = filter(comm_pts, commcode == "MG33314010"), aes(x = long, y = lat, 
+                                  size = log(count + 0.1), color = ctar), 
+             shape = 1, stroke = 1.2) +
+  scale_fill_manual(values = catch_fills, guide = "none") +
+  scale_color_manual(values = catch_fills, guide = "none") +
   scale_size_identity("Reported bites", labels = as.character(c(100, 200, 400, 800, 1600)),
                       breaks = sizes, guide = "legend") +
   guides(size = guide_legend(override.aes = list(color = "grey50"))) +
@@ -172,7 +173,7 @@ insetB <-  ggplot() +
                         alpha = 0.5) + 
   geom_polygon(data = gg_commune_plot, aes(x = long, y = lat, group = group), 
                          fill= "#4A3B53") +
-  labs(tag = "B") +
+  labs(tag = "C") +
   theme_void()
 
 ## Bite incidence estimates
@@ -214,7 +215,7 @@ fig1C <- ggplot(bites_plot,
   xlab("Districts ordered by \n travel times (high to low)") +
   theme(legend.position = "none", axis.text.y = element_blank()) +
   coord_flip() +
-  labs(tag = "C")
+  labs(tag = "B")
 
 ## Moramanga
 moramanga %>%
@@ -250,5 +251,5 @@ figM1 <- fig1A + fig1C + {
       } |  fig1B} + plot_layout(widths = c(1, 3))} +
      fig1D + plot_layout(ncol = 2, widths = c(2, 1), heights = c(1.5, 1))
   
-ggsave("figs/M1.pdf", figM1, device = "pdf", height = 12, width = 8)
+ggsave("figs/M1.jpg", figM1, device = "jpg", height = 12, width = 8)
 
