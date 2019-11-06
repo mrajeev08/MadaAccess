@@ -78,7 +78,7 @@ system.time ({
                               clinic_catchmat = as.data.table(stacked_ttimes), 
                               max_clinics = ncol(stacked_ttimes),
                               thresh_ttimes = 0, thresh_prop = 1e-4, 
-                              dir_name = "output/scenarios/baseline_")
+                              dir_name = "output/ttimes/baseline_")
 })
 
 stopCluster(cl) ## for doParallel
@@ -87,11 +87,12 @@ base_times <- ttimes_weighted[["ttimes"]]
 base_catches <- ttimes_weighted[["catches"]]
 
 # ## Quick comparison check
-# ttimes_comp <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
-#                           coords = point_mat_base, trans_matrix_exists = TRUE,
-#                           filename_trans = "data/processed/rasters/trans_gc_masked.rds")
-# ttimes_comp <- getValues(ttimes_comp)[!is.na(getValues(friction_masked))]
-# sum(base_times - ttimes_comp, na.rm = TRUE)
+ttimes_comp <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
+                          coords = point_mat_base, trans_matrix_exists = TRUE,
+                          filename_trans = "data/processed/rasters/trans_gc_masked.rds")
+writeRaster(ttimes_comp, "output/ttimes/baseline_ttimes.tif")
+ttimes_comp <- getValues(ttimes_comp)[!is.na(getValues(friction_masked))]
+sum(base_times - ttimes_comp, na.rm = TRUE)
 
 ## Baseline dataframe
 baseline_df <- data.table(district_id = district_id, commune_id = commune_id, 
@@ -101,5 +102,6 @@ baseline_df[, prop_pop := pop/sum(pop, na.rm = TRUE)]
 baseline_df[, pop_dist := sum(pop, na.rm = TRUE), by = district_id]
 baseline_df[, pop_comm := sum(pop, na.rm = TRUE), by = commune_id]
 
-fwrite(baseline_df, "output/scenarios/baseline_grid.csv")
+fwrite(baseline_df, "output/ttimes/baseline_grid.csv")
 
+baseline_df <- fread("output/ttimes/baseline_grid.csv")

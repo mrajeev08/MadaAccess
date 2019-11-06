@@ -42,7 +42,7 @@ csbs %>%
 
 point_mat_candidates <- as.matrix(select(csbs, Y_COORD, X_COORD))
 candidate_ids <- 1:nrow(csbs) + 31 ## above the baseline 31 clinics (number by rows!)
-baseline_df <- fread("output/scenarios/baseline_grid.csv")
+baseline_df <- fread("output/ttimes/baseline_grid.csv")
 
 ## Do the candidates
 cl <- makeCluster(3)
@@ -80,5 +80,5 @@ stacked_ttimes <- stacked_ttimes[!is.na(getValues(friction_masked)), ]
 # stacked_ttimes <- stacked_ttimes[, which(change_prop > 0.0001)]
 # candidate_ids <- candidate_ids[which(change_prop > 0.0001)]
 
-fwrite(stacked_ttimes, "output/scenarios/candidate_matrix.csv")
-write.csv(candidate_ids, "output/scenarios/candidate_ids.csv")
+fwrite(stacked_ttimes, "output/ttimes/candidate_matrix.csv")
+write.csv(candidate_ids, "output/ttimes/candidate_ids.csv")

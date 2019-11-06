@@ -90,11 +90,6 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 add.armc <- function(base_df, clinic_names, clinic_catchmat, 
                      max_clinics = ncol(clinic_catchmat), thresh_ttimes, 
                      thresh_prop, dir_name, overwrite = TRUE) {
-  # clinic_names = 1:10 + 31;
-  # clinic_catchmat = cand_mat[, 1:500, with = FALSE]
-  # max_clinics = ncol(cand_mat);
-  # thresh_ttimes = 0; thresh_prop = 1e-4;
-  # name = "scen_check_";
   
   ## helper functions for add armc
   sum.lessthan <- function(x, prop_pop, base_ttimes, threshold) {
