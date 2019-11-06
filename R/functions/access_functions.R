@@ -161,12 +161,12 @@ get.catchmat <- function(point_mat, point_names, admin_names, fric, shape, pop_r
 
 add.armc <- function(base_df, clinic_names, clinic_catchmat, 
                      max_clinics = ncol(clinic_catchmat), threshold, 
-                     thresh_prop, dir_name) {
-  clinic_names = 1:10 + 31;
-  clinic_catchmat = cand_mat[, 1:500, with = FALSE]
-  max_clinics = ncol(cand_mat);
-  threshold = 0; thresh_prop = 1e-4;
-  name = "scen_check_";
+                     thresh_prop, dir_name, overwrite = TRUE) {
+  # clinic_names = 1:10 + 31;
+  # clinic_catchmat = cand_mat[, 1:500, with = FALSE]
+  # max_clinics = ncol(cand_mat);
+  # threshold = 0; thresh_prop = 1e-4;
+  # name = "scen_check_";
   
   ## helper functions for add armc
   sum.lessthan <- function(x, prop_pop, base_metric, threshold) {
@@ -189,21 +189,8 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
     print(ncol(clinic_catchmat))
     if (ncol(clinic_catchmat) > 0) {
       print(i)
-      cl <- makeCluster(3)
-      registerDoParallel(cl)
-      
-    microbenchmark::microbenchmark({
-      
-     
-      prop <- clinic_catchmat[, 
-                                   mclapply(.SD, sum.lessthan, prop_pop = base_df$prop_pop, 
-                                          base_metric = base_df$base_times, threshold = threshold),
-                                   .SDcols = 1:ncol(clinic_catchmat)] 
-      change <- clinic_catchmat[, 
-                                mclapply(.SD, prop.lessthan, prop_pop = base_df$prop_pop, 
-                                       base_metric = base_df$base_times, threshold = threshold),
-                                .SDcols = 1:ncol(clinic_catchmat)] },
-      {change_df <-
+
+      change_df <-
         foreach(vals = iter(clinic_catchmat, by = "col"),
                 .combine = multicomb) %dopar% {
                   change <- sum.lessthan(vals, prop_pop = base_df$prop_pop, 
@@ -215,7 +202,6 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
       
       sum.change <- change_df[[1]]
       sum.prop <- change_df[[2]]
-    }, times = 2)
     
       ## In case all admin units go below the threshold: stop adding
       clinic_id <- clinic_names[which.max(sum.change)]
@@ -247,8 +233,13 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
                        scenario = i, clinic_added = clinic_id, pop = pop_comm[1]), 
                 by = list(commune_id, base_catches)]
       
-      fwrite(district_df, paste0(dir_name, "district.csv"), append = TRUE)
-      fwrite(commune_df,  paste0(dir_name, "commune.csv"), append = TRUE)
+      if(overwrite == TRUE & i == 1) { ## overwrite on first one
+        fwrite(district_df, paste0(dir_name, "district.csv"))
+        fwrite(commune_df,  paste0(dir_name, "commune.csv"))
+      } else {
+        fwrite(district_df, paste0(dir_name, "district.csv"), append = TRUE)
+        fwrite(commune_df,  paste0(dir_name, "commune.csv"), append = TRUE)
+      }
       
     } else {
       break
