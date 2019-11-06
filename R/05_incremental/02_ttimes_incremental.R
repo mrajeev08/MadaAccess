@@ -1,8 +1,10 @@
 ####################################################################################################
-##' Testing catchment scripts
-##' Details: Getting travel time estimates and catchments for all clinics
-##'   Code must be run in parallel
-##'   On the Della cluster at Princeton with NN cores, it takes approximately NN minutes
+##' Incrementally adding clinics based on travel times
+##' Details: Getting travel time estimates and catchments for districts/communes as clinics are added
+##'   Code should be run in parallel with shared memory if large input cand_mat
+##'   On the Della cluster at Princeton with NN cores, it takes approximately NN minutes; 
+##'   With three cores, it takes approximately 10 hours on MacOS with 16 GB 1867 MHz DDR3 and
+##'   2.9 GHz Intel Core i5
 ##' Author: Malavika Rajeev
 ####################################################################################################
 
@@ -35,7 +37,7 @@ source("R/functions/ttime_functions.R")
 
 ## Pull in candidates
 # cand_mat <- fread("output/candidate_matrix.gz") ## locally
-cand_mat <- fread("/scratch/gpfs/mrajeev/candidate_matrix.gz")
+cand_mat <- fread("/scratch/gpfs/mrajeev/ttimes/candidate_matrix.gz")
 
 # cand_mat <- as.matrix(cand_mat)
 candidate_ids <- fread("output/ttimes/candidate_ids.csv")$x
@@ -51,7 +53,7 @@ registerDoParallel(cl)
 system.time ({
   add.armc(base_df = base_df, clinic_names = candidate_ids, clinic_catchmat = cand_mat, 
            max_clinics = ncol(cand_mat), threshold = 3*60, thresh_prop = 1e-4, 
-           dir_name = "/scratch/gpfs/mrajeev/output/incremental_")
+           dir_name = "/scratch/gpfs/mrajeev/output/ttimes/incremental_")
 })
 
 ##' WITH SINGLE NODE TO CLOSE

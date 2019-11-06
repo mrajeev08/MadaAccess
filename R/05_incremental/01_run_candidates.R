@@ -12,6 +12,9 @@
 ##' ------------------------------------------------------------------------------------------------
 Sys.time()
 rm(list = ls())
+##' Single node on cluster
+args <- commandArgs(trailingOnly = TRUE)
+cores <- as.integer(args[1])
 
 ##' Libraries
 library(rgdal)
@@ -45,7 +48,7 @@ candidate_ids <- 1:nrow(csbs) + 31 ## above the baseline 31 clinics (number by r
 baseline_df <- fread("output/ttimes/baseline_grid.csv")
 
 ## Do the candidates
-cl <- makeCluster(3)
+cl <- makeCluster(cores)
 registerDoParallel(cl)
 
 system.time ({
@@ -80,5 +83,6 @@ stacked_ttimes <- stacked_ttimes[!is.na(getValues(friction_masked)), ]
 # stacked_ttimes <- stacked_ttimes[, which(change_prop > 0.0001)]
 # candidate_ids <- candidate_ids[which(change_prop > 0.0001)]
 
-fwrite(stacked_ttimes, "output/ttimes/candidate_matrix.csv")
+# fwrite(stacked_ttimes, "output/ttimes/candidate_matrix.gz") ## locally
+fwrite(stacked_ttimes, "/scratch/gpfs/mrajeev/output/ttimes/candidate_matrix.gz") ## on cluster
 write.csv(candidate_ids, "output/ttimes/candidate_ids.csv")

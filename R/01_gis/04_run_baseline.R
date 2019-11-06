@@ -1,5 +1,6 @@
 ##################################################################################################
 ##' Getting baseline travel time estimates and catchments for 31 baseline clinics
+##' Can do this without parallelizing as well (takes 15 min with 3 cores vs. 1 hr with 1)
 ##' Author: Malavika Rajeev
 ##################################################################################################
 
@@ -31,7 +32,7 @@ friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
 ## candidate points
 ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
-point_mat_base <- as.matrix(select(ctar_metadata, Y_COORD = LONGITUDE, X_COORD = LATITUDE))
+point_mat_base <- as.matrix(dplyr::select(ctar_metadata, Y_COORD = LONGITUDE, X_COORD = LATITUDE))
 
 ## Do the baseline
 cl <- makeCluster(3)
@@ -77,7 +78,7 @@ system.time ({
   ttimes_weighted <- add.armc(base_df = base_df, clinic_names = 1:31, 
                               clinic_catchmat = as.data.table(stacked_ttimes), 
                               max_clinics = ncol(stacked_ttimes),
-                              thresh_ttimes = 0, thresh_prop = 1e-4, 
+                              thresh_ttimes = 0, thresh_prop = 0, 
                               dir_name = "output/ttimes/baseline_")
 })
 
@@ -103,5 +104,3 @@ baseline_df[, pop_dist := sum(pop, na.rm = TRUE), by = district_id]
 baseline_df[, pop_comm := sum(pop, na.rm = TRUE), by = commune_id]
 
 fwrite(baseline_df, "output/ttimes/baseline_grid.csv")
-
-baseline_df <- fread("output/ttimes/baseline_grid.csv")
