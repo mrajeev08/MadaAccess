@@ -6,7 +6,7 @@
 output/
 lit/
 .httr-oauth
-data/
+data/raw/
 sync/
 figs/
 archive/
