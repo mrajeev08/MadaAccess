@@ -1,8 +1,10 @@
 ####################################################################################################
-##' Testing catchment scripts
-##' Details: Getting travel time estimates and catchments for all clinics
-##'   Code must be run in parallel
-##'   On the Della cluster at Princeton with NN cores, it takes approximately NN minutes
+##' Getting travel times for each grid cell for each clinic
+##' Details: getting minimum travel time estimate for each clinic
+##'   Code should be run in parallel and final dataset requires a lot of memory! ~ 10 GB
+##'   Split up clinics or work with fewer clinics if there are memory limitations
+##'   With three cores, it takes approximately 120 minutes on MacOS with 16 GB 1867 MHz DDR3 and
+##'   2.9 GHz Intel Core i5
 ##' Author: Malavika Rajeev
 ####################################################################################################
 
@@ -39,7 +41,7 @@ csbs %>%
   dplyr::select(CTAR = nom_fs, X_COORD = ycoor, Y_COORD = xcoor) -> csbs
 
 point_mat_candidates <- as.matrix(select(csbs, Y_COORD, X_COORD))
-candidate_ids <- 1:nrow(csbs) + 31 ## above the baseline 
+candidate_ids <- 1:nrow(csbs) + 31 ## above the baseline 31 clinics (number by rows!)
 baseline_df <- fread("output/baseline.csv")
 
 ## Do the candidates
@@ -64,7 +66,7 @@ stacked_ttimes <- do.call("stack", stacked_ttimes)
 stacked_ttimes <- raster::as.matrix(stacked_ttimes)
 stacked_ttimes <- stacked_ttimes[!is.na(getValues(friction_masked)), ]
 
-## Filter out any that shift less than 0.01% of people over
+## Filter out any that shift less than 0.01% of people below the threshold
 prop.lessthan <- function(x, prop_pop, base_metric, threshold) {
   ## Sum of the proportion of the population changed weighted by how much changed below threshold
   sum(prop_pop[which(x < base_metric & x > threshold)], na.rm = TRUE)
