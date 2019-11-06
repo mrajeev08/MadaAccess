@@ -50,10 +50,9 @@ registerDoParallel(cl)
 system.time ({
   foreach(points = iter(point_mat_base, by = "row"),
           .packages = c("raster", "gdistance", "data.table")) %dopar% {
-            ttimes <- get.access(friction = friction_masked, shapefile = mada_districts,
+            ttimes <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
                                  coords = points, trans_matrix_exists = TRUE,
-                                 filename_trans = "data/processed/rasters/trans_gc_masked.rds",
-                                 metric = "ttimes")
+                                 filename_trans = "data/processed/rasters/trans_gc_masked.rds")
           } -> stacked_ttimes
 })
 

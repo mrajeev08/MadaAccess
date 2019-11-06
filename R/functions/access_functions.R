@@ -74,8 +74,8 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #' shapefile for each of the candidate clinics (columns, should match length of clinic_names vector) 
 #' @param prop_pop a numeric vector of the proportion of the total population in each grid cell
 #' @param max_clinics numeric, the number of clinics that you want to add (when to stop adding)
-#' @param threshold numeric, the threshold travel times, any decreases in travel times resulting from 
-#' addition of a clinic are ignored (trying to target populations with worst access)
+#' @param thres_ttimes numeric, the threshold travel times, any decreases in travel times resulting 
+#' from addition of a clinic are ignored (trying to target populations with worst access)
 #' @param thresh_prop numeric between 0-1, if a clinic is added and it shifts travel times above the 
 #' @param thresh_ttimes but only for less than @param thresh_prop, then the clinic is filtered out
 #' @param dir_name the directory name to output the resulting data frames into
@@ -88,12 +88,12 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #'     Packages: data.table, foreach
 
 add.armc <- function(base_df, clinic_names, clinic_catchmat, 
-                     max_clinics = ncol(clinic_catchmat), threshold, 
+                     max_clinics = ncol(clinic_catchmat), thresh_ttimes, 
                      thresh_prop, dir_name, overwrite = TRUE) {
   # clinic_names = 1:10 + 31;
   # clinic_catchmat = cand_mat[, 1:500, with = FALSE]
   # max_clinics = ncol(cand_mat);
-  # threshold = 0; thresh_prop = 1e-4;
+  # thresh_ttimes = 0; thresh_prop = 1e-4;
   # name = "scen_check_";
   
   ## helper functions for add armc
@@ -122,9 +122,9 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
         foreach(vals = iter(clinic_catchmat, by = "col"),
                 .combine = multicomb) %dopar% {
                   change <- sum.lessthan(vals, prop_pop = base_df$prop_pop, 
-                                         base_ttimes = base_df$base_times, threshold = threshold)
+                                         base_ttimes = base_df$base_times, threshold = thresh_ttimes)
                   prop <- prop.lessthan(vals, prop_pop = base_df$prop_pop, 
-                                        base_ttimes = base_df$base_times, threshold = threshold)
+                                        base_ttimes = base_df$base_times, threshold = thresh_ttimes)
                   out <- list(change, prop)
                 }
       

@@ -51,10 +51,9 @@ registerDoParallel(cl)
 system.time ({
   foreach(points = iter(point_mat_candidates, by = "row"),
           .packages = c("raster", "gdistance", "data.table")) %dopar% {
-            ttimes <- get.access(friction = friction_masked, shapefile = mada_districts,
+            ttimes <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
                                  coords = points, trans_matrix_exists = TRUE,
-                                 filename_trans = "data/processed/rasters/trans_gc_masked.rds",
-                                 metric = "ttimes")
+                                 filename_trans = "data/processed/rasters/trans_gc_masked.rds")
           } -> stacked_ttimes
 })
 
@@ -74,7 +73,7 @@ prop.lessthan <- function(x, prop_pop, base_metric, threshold) {
 
 change_prop <- foreach(vals = iter(stacked_ttimes, by = "col"), 
                        .combine = c) %do% {
-                         prop.lessthan(vals, prop_pop = prop_pop, base_metric = ttimes_weighted, 
+                         prop.lessthan(vals, prop_pop = prop_pop, base_metric = baseline_df$base_times, 
                                        threshold = 3*60)
                        }
 
