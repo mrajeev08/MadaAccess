@@ -159,16 +159,14 @@ get.catchmat <- function(point_mat, point_names, admin_names, fric, shape, pop_r
 #' @section Dependencies:
 #'     Packages: none
 
-add.armc <- function(base_metric, base_catches, clinic_names, clinic_catchmat, prop_pop, 
+add.armc <- function(base_df, clinic_names, clinic_catchmat, 
                      max_clinics = ncol(clinic_catchmat), threshold, 
-                     thresh_prop) {
-  # base_metric = rep(1e6, nrow(stacked_ttimes));
-  # base_catches = rep(NA, nrow(stacked_ttimes));
+                     thresh_prop, dir_name) {
   # clinic_names = 1:31;
-  # clinic_catchmat = stacked_ttimes;
-  # prop_pop = prop_pop; 
+  # clinic_catchmat = as.data.table(stacked_ttimes);
   # max_clinics = ncol(stacked_ttimes);
   # threshold = 0; thresh_prop = 1e-4;
+  # name = "baseline_";
   
   ## helper functions for add armc
   sum.lessthan <- function(x, prop_pop, base_metric, threshold) {
@@ -182,83 +180,67 @@ add.armc <- function(base_metric, base_catches, clinic_names, clinic_catchmat, p
     sum(prop_pop[which(x < base_metric & x > threshold)], na.rm = TRUE)
   }
   
-  metric_mat <- matrix(NA, nrow = nrow(clinic_catchmat), ncol = max_clinics)
-  catch_mat <- matrix(NA, nrow = nrow(clinic_catchmat), ncol = max_clinics)
-
-  colnames(metric_mat) <- 1:max_clinics
+  multicomb <- function(x, ...) {  
+    mapply(rbind, x, ..., SIMPLIFY = FALSE)
+  }
   
   ## Add clinics incrementally
-  for (i in 1:(max_clinics - 1)) {
-    if (!is.null(dim(clinic_catchmat))) { 
-      if (ncol(clinic_catchmat) > 0) {
-        print(i)
-        change_df <- foreach(vals = iter(clinic_catchmat, by = "col"), 
-                             .combine = rbind) %dopar% {
-                               change <- sum.lessthan(vals, prop_pop = prop_pop, base_metric = base_metric, 
-                                                      threshold = threshold)
-                               prop <- prop.lessthan(vals, prop_pop = prop_pop, base_metric = base_metric, 
-                                                     threshold = threshold)
-                               out <- c(change, prop)
-                             }
-        
-        sum.change <- change_df[, 1]
-        sum.prop <- change_df[, 2]
-        
-        ## In case all admin units go below the threshold: stop adding
-        colnames(metric_mat)[i] <- as.character(clinic_names[which.max(sum.change)])
-        new_metric <- clinic_catchmat[, which.max(sum.change)]
-        base_catches[which(new_metric < base_metric)] <- as.character(clinic_names[which.max(sum.change)])
-        
-        base_metric[which(new_metric < base_metric)] <- new_metric[which(new_metric < base_metric)]
-        
-        clinic_names <- clinic_names[-c(which.max(sum.change), which(sum.change == 0), 
-                                        which(sum.prop < thresh_prop))]
-        clinic_catchmat <- clinic_catchmat[, -c(which.max(sum.change), which(sum.change == 0),
-                                                which(sum.prop < thresh_prop))]
-        
-        metric_mat[, i] <- base_metric
-        catch_mat[, i] <- base_catches
-      } else {
-        break
-      }
-    }
-  }
-  
-  ## Last clinic
-  ## There's one left basically (if zero left then dimensions will not be null)
-  if(is.null(dim(clinic_catchmat))) {
-    ## Do catches 1st so that it is less than
-    base_catches[which(clinic_catchmat < base_metric)] <- as.character(clinic_names)
-    base_metric[which(clinic_catchmat < base_metric)] <- clinic_catchmat[which(clinic_catchmat < base_metric)]
-    metric_mat[, ncol(metric_mat)] <- base_metric
-    catch_mat[, ncol(metric_mat)] <- base_catches
-    colnames(metric_mat)[ncol(metric_mat)] <- as.character(clinic_names)
-    i <- i + 1
-  }
-  
-  ## If there's more than one candidate left then do this again
-  if (!is.null(dim(clinic_catchmat))) {
+  for (i in 1:max_clinics) {
+    print(ncol(clinic_catchmat))
     if (ncol(clinic_catchmat) > 0) {
-      ## If still not at max clinics and there's more than one column left
-      sum.change <- foreach(vals = iter(clinic_catchmat, by = "col"), .combine = c) %dopar% {
-        sum.lessthan(vals, prop_pop = prop_pop, base_metric = base_metric, 
-                     threshold = threshold)
-      }
+      print(i)
+      change_df <-
+        foreach(vals = iter(clinic_catchmat, by = "col"),
+                .combine = multicomb) %dopar% {
+                  change <- sum.lessthan(vals, prop_pop = base_df$prop_pop, 
+                                         base_metric = base_df$base_times, threshold = threshold)
+                  prop <- prop.lessthan(vals, prop_pop = base_df$prop_pop, 
+                                        base_metric = base_df$base_times, threshold = threshold)
+                  out <- list(change, prop)
+                }
       
-      colnames(metric_mat)[ncol(metric_mat)] <- as.character(clinic_names[which.max(sum.change)])
-      new_metric <- clinic_catchmat[, which.max(sum.change)]
-      base_metric[which(new_metric < base_metric)] <- new_metric[which(new_metric < base_metric)]
-      base_catches[which(new_metric < base_metric)] <- as.character(clinic_names[which.max(sum.change)])
-      i <- i + 1
+      sum.change <- change_df[[1]]
+      sum.prop <- change_df[[2]]
+      
+      ## In case all admin units go below the threshold: stop adding
+      clinic_id <- clinic_names[which.max(sum.change)]
+      new <- clinic_catchmat[[which.max(sum.change)]]
+      new <- ifelse(new == Inf, NA, new)
+      base_df[, new_metric := new]
+      
+      ## If ttimes improved then, new metric replaces the baseline and catchment
+      base_df[, c('base_times', 'base_catches') := .(fifelse(new_metric < base_times, new_metric,
+                                                          base_times), 
+                                                  fifelse(new_metric < base_times, clinic_id,
+                                                          base_catches))]
+
+      ## Take out the max ones and any below ttime + pop thresholds
+      clinic_names <- clinic_names[-c(which.max(sum.change), which(sum.change == 0),
+                                      which(sum.prop < thresh_prop))]
+      clinic_catchmat[, unique(c(which.max(sum.change), which(sum.change == 0), 
+                                 which(sum.prop < thresh_prop))) := NULL]
+      
+      ## create district and commune dataframes
+      district_df <-
+        base_df[, list(weighted_times = sum(base_times * pop, na.rm = TRUE)/pop_dist, 
+                       prop_pop_catch = sum(pop, na.rm = TRUE)/pop_dist,
+                       scenario = i, clinic_added = clinic_id), 
+                by = list(district_id, base_catches)]
+      commune_df <-
+        base_df[, list(weighted_times = sum(base_times * pop, na.rm = TRUE)/pop_comm,
+                       prop_pop_catch = sum(pop, na.rm = TRUE)/pop_comm,
+                       scenario = i, clinic_added = clinic_id), 
+                by = list(commune_id, base_catches)]
+      
+      fwrite(district_df, paste0(dir_name, "district.csv"), append = TRUE)
+      fwrite(commune_df,  paste0(dir_name, "commune.csv"), append = TRUE)
+      
+    } else {
+      break
     }
   }
   
-  if(i < max_clinics) {
-    metric_mat <- metric_mat[, -c(i:ncol(metric_mat))]
-    catch_mat <- catch_mat[, -c(i:ncol(catch_mat))]
-  }
- 
-  return(list(metric_mat = metric_mat, catch_mat = catch_mat))
-  
+  ## Return the last catch and ttimes vals
+  return(list(ttimes = base_df$base_times, catches = base_df$base_catches))
 }
 
