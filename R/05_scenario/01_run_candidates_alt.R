@@ -89,7 +89,7 @@ system.time ({
                               clinic_catchmat = as.data.table(stacked_ttimes), 
                               max_clinics = ncol(stacked_ttimes),
                               threshold = 0, thresh_prop = 1e-4, 
-                              dir_name = "output/baseline_")
+                              dir_name = "output/scenarios/baseline_")
 })
 
 stopCluster(cl) ## for doParallel
@@ -113,4 +113,4 @@ baseline_df[, prop_pop := pop/sum(pop, na.rm = TRUE)]
 baseline_df[, pop_dist := sum(pop, na.rm = TRUE), by = district_id]
 baseline_df[, pop_comm := sum(pop, na.rm = TRUE), by = commune_id]
 
-fwrite(baseline_df, "output/baseline.csv")
+fwrite(baseline_df, "output/scenarios/baseline.csv")
