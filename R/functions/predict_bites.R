@@ -64,10 +64,10 @@ predict.bites <- function(access, ctar_in, pop, catch, names, group_name,
   
   bites_mean <- rowMeans(bite_mat, na.rm = TRUE)
   bites_sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
-  bites_05quant <- apply(bite_mat, 1, quantile, prob = 0.05, na.rm = TRUE)
-  bites_95quant <- apply(bite_mat, 1, quantile, prob = 0.95, na.rm = TRUE)
+  bites_lower05 <- bites_mean - 1.96*bites_sd
+  bites_upper95 <-bites_mean + 1.96*bites_sd
   
-  return(data.frame(names, group_name, bites_mean, bites_sd, bites_05quant, bites_95quant,
+  return(data.frame(names, group_name, bites_mean, bites_sd, bites_lower05, bites_upper95,
                     covar_name, data_source, scale, pop_predict, ctar_bump, summed, intercept, 
                     access, ctar_in, pop, catch))
 
@@ -163,24 +163,29 @@ predict.deaths <- function(access, ctar_in, pop, catch, names, group_name,
   }
   
   bites_mean <- rowMeans(bite_mat, na.rm = TRUE)
-  bites_lower05 <- apply(bite_mat, 1, quantile, prob = 0.05, na.rm = TRUE)
-  bites_upper95 <-apply(bite_mat, 1, quantile, prob = 0.95, na.rm = TRUE)
+  bites_sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
+  bites_lower05 <- bites_mean - 1.96*bites_sd
+  bites_upper95 <-bites_mean + 1.96*bites_sd
 
   deaths_mean <- rowMeans(death_mat, na.rm = TRUE)
-  deaths_lower05 <- apply(death_mat, 1, quantile, prob = 0.05, na.rm = TRUE)
-  deaths_upper95 <-apply(death_mat, 1, quantile, prob = 0.95, na.rm = TRUE)
-
+  deaths_sd <- apply(death_mat, 1, sd, na.rm = TRUE)
+  deaths_lower05 <- deaths_mean - 1.96*deaths_sd
+  deaths_upper95 <-deaths_mean + 1.96*deaths_sd
+  
   averted_mean <- rowMeans(averted_mat, na.rm = TRUE)
-  averted_lower05 <- apply(averted_mat, 1, quantile, prob = 0.05, na.rm = TRUE)
-  averted_upper95 <-apply(averted_mat, 1, quantile, prob = 0.95, na.rm = TRUE)
-
+  averted_sd <- apply(averted_mat, 1, sd, na.rm = TRUE)
+  averted_lower05 <- averted_mean - 1.96*averted_sd
+  averted_upper95 <-averted_mean + 1.96*averted_sd
+  
   p_rabid_mean <- rowMeans(p_rabid_mat, na.rm = TRUE)
-  p_rabid_lower05 <- apply(p_rabid_mat, 1, quantile, prob = 0.05, na.rm = TRUE)
-  p_rabid_upper95 <-apply(p_rabid_mat, 1, quantile, prob = 0.95, na.rm = TRUE)
+  p_rabid_sd <- apply(p_rabid_mat, 1, sd, na.rm = TRUE)
+  p_rabid_lower05 <- p_rabid_mean - 1.96*p_rabid_sd
+  p_rabid_upper95 <-p_rabid_mean + 1.96*p_rabid_sd
   
   reporting_mean <- rowMeans(reporting_mat, na.rm = TRUE)
-  reporting_lower05 <- apply(reporting_mat, 1, quantile, prob = 0.05, na.rm = TRUE)
-  reporting_upper95 <-apply(reporting_mat, 1, quantile, prob = 0.95, na.rm = TRUE)
+  reporting_sd <- apply(reporting_mat, 1, sd, na.rm = TRUE)
+  reporting_lower05 <- reporting_mean - 1.96*reporting_sd
+  reporting_upper95 <-reporting_mean + 1.96*reporting_sd
   
   return(data.frame(names, group_name, bites_mean, bites_upper95, bites_lower05, 
                     deaths_mean, deaths_upper95, deaths_lower05, averted_mean,
@@ -189,6 +194,5 @@ predict.deaths <- function(access, ctar_in, pop, catch, names, group_name,
                     reporting_mean, reporting_upper95, reporting_lower05,
                     covar_name, data_source, scale, pop_predict, ctar_bump, summed, intercept, 
                     access, ctar_in, pop, catch, scenario))
-  
 }
 
