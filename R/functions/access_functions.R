@@ -1,22 +1,20 @@
 ####################################################################################################
-##' Access functions 
-##' Details: Various functions for getting travel times, minimum distance, catchments, etc. 
+##' Functions for getting travel times 
+##' Details: Various functions for getting travel times and catchments, etc. 
 ##' Author: Malavika Rajeev 
 ####################################################################################################
 
 
-##' 1. Getting access metrics at raster level
+##' 1. Getting ttimes metrics at raster level
 ##' ------------------------------------------------------------------------------------------------
 #' Get minimum travel times or distance
-#' \code{get.access} calculates the minimum travel times/distance for an input raster to 
+#' \code{get.ttimes} calculates the minimum travel times/distance for an input raster to 
 #' an input set of 
 #' GPS points. 
 #' This function uses the friction surface from the Malaria Atlas Project. Script adapted
-#' from https://map.ox.ac.uk/research-project/accessibility_to_cities/. Uses least-cost algorithms
+#' from https://map.ox.ac.uk/research-project/ttimesibility_to_cities/. Uses least-cost algorithms
 #' from the gdistance package.
-#' @param friction raster, the friction surface downloaded from MAP website. If metric = "distance"
-#' then all non-NA values in the friction surface are set to 1 (for 1 x 1 km raster)
-#' @param metric character, either "ttimes" or "distance"
+#' @param friction raster, the friction surface downloaded from MAP website
 #' @param shapefile polygon shapefile, to mask the friction surface to
 #' @param coords matrix of two columns of x(longitude) and y (latitude) points to 
 #'   input to calculate the least-cost distance (here travel times)
@@ -25,139 +23,69 @@
 #' @param filename_trans character, the path to which the transition matrix should either be 
 #'   read from or written to
 #' @return raster at same resolution as the input friction surface and cropped to the shapefile with 
-#'   the minimum access metric estimate as the values
+#'   the minimum ttimes metric estimate as the values
 #' @section Dependencies:
 #'  Packages: gdistance, raster, rgdal, sp, geosphere
 
-get.access <- function(friction, shapefile, coords, trans_matrix_exists = TRUE, 
-                             filename_trans, metric = "ttimes"){
+get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE, 
+                             filename_trans){
   
   ## crop friction surface to shapefile
   friction <- crop(friction, shapefile)
   
-  if (metric == "distance") {
-    fric_coords <- coordinates(friction)[-which(is.na(values(friction))), ]
-    access <- friction
-    access[!is.na(access)] <- apply(distm(fric_coords, coords), 1, min)/1000
-  }
+  ## Fetch the number of points
+  n_points <- nrow(coords)
   
-  if(metric == "ttimes") {
-    ## Fetch the number of points
-    n_points <- nrow(coords)
-    
-    ## Make the graph and the geocorrected version of the graph (or read in the latter).
-    if (trans_matrix_exists == TRUE) {
-      # Read in the transition matrix object if it has been pre-computed
-      trans_gc <- readRDS(filename_trans)
-    } else {
-      # Make and geocorrect the transition matrix (i.e., the graph)
-      trans <- transition(friction, function(x) 1/mean(x), 8) # RAM intensive, can be very slow for large areas
-      #saveRDS(Trans, filename.nonGCtrans)
-      trans_gc <- geoCorrection(trans)
-      saveRDS(trans_gc, filename_trans)
-    }
-    
-    ## Run the accumulated cost algorithm to make the final output map. 
-    ## This can be quite slow (potentially hours).
-    access <- accCost(trans_gc, coords)
+  ## Make the graph and the geocorrected version of the graph (or read in the latter).
+  if (trans_matrix_exists == TRUE) {
+    # Read in the transition matrix object if it has been pre-computed
+    trans_gc <- readRDS(filename_trans)
+  } else {
+    # Make and geocorrect the transition matrix (i.e., the graph)
+    trans <- transition(friction, function(x) 1/mean(x), 8) # RAM intensive, 
+    # can be very slow for large areas
+    trans_gc <- geoCorrection(trans)
+    saveRDS(trans_gc, filename_trans)
   }
+    
+  ## Run the accumulated cost algorithm to make the final output map. 
+  ## This can be quite slow depending on the area
+  ttimes <- accCost(trans_gc, coords)
   
   ## Return the resulting raster
-  return(access)
+  return(ttimes)
 }
 
-
-##' 2. Getting access metric for each point to each admin unit 
+##' 2. Getting ranked clinics and district/commune covariates
 ##' ------------------------------------------------------------------------------------------------
-#' Get access matrix for admin units x GPS points
-#' \code{get.catchmat} uses \code{get.access} and \code{raster::extract} to calculate minimum
-#' access metric (either distance or travel times) for each admin unit to each point.
-#' Using the foreach package to parallelize. In order to speed up, the transition matrix must already
-#' have been created.
-#' @param point_mat two-column matrix with x (longitude) and y (latitude)
-#' @param point_names names of clinics corresponding to each point in point_mat, foreach loop keeps the output
-#' in order so these are passed as colnames to the output matrix
-#' @param admin_names names of admin units corresponding to shapefile, foreach loop keeps the output
-#' in order so these are passed as rownames to the output matrix
-#' @param fric raster friction surface to pass to \code{get.access}; either "masked" or "unmasked", 
-#' to get ttimes for coastal admin unit/islands used unmasked (allows for travel by sea basically, 
-#' see https://www.nature.com/articles/nature25181 
-#' for more details on how they treat travel times over water).
-#' @param shape polygon shapefile to pass to \code{get.access} and extract travel times to
-#' @param pop_rast raster of population size at same resolution and extent as friction surface
-#' @param pop_pol vector of population sizes associated with the shapefile polygons 
-#' @param trans_mat character, name of file name of transition matrix, this must already exist!
-#' @param weighted boolean, whether to weight by population in grid cells
-#' @param met character, either "ttimes" or "distance"
-#' @return Returns a matrix of access estimates for each of the admin units in the
-#' shapefile to each of the gps points 
-#' @section Dependencies:
-#'     Packages: gdistance, raster, foreach, rgdal, sp
-#'     Functions: get.access
-
-get.catchmat <- function(point_mat, point_names, admin_names, fric, shape, pop_rast, 
-                         pop_pol, trans_mat = "data/processed/rasters/trans_gc_masked.rds", 
-                         weighted = TRUE, 
-                         met = "ttimes"){
-  
-  ## getting catchments
-  catchmat <- foreach(coords = iter(point_mat,"row"),
-                       .packages = c('raster', 'rgdal', 'sp', 'gdistance', 'geosphere'),
-                       .errorhandling = 'stop',
-                       .export = 'get.access',
-                       .combine = "cbind"
-  ) %dopar% {
-    print(coords)
-    print(Sys.time())
-    point_mat_sub <- as.matrix(coords)
-
-    access_pt <- get.access(friction = fric, shapefile = shape, 
-                                       coords = point_mat_sub, 
-                                       trans_matrix_exists = TRUE, 
-                                       filename_trans = trans_mat, 
-                                       metric = met)
-    
-    if (weighted == TRUE){
-      ## add 1e-6 to 0 access
-      access_pt[access_pt == 0] <- 1e-6
-      weighted_access <- access_pt*pop_rast
-      names(weighted_access) <- "w_access"
-      out <- raster::extract(weighted_access, shape, fun = sum, 
-                             na.rm = TRUE, df = TRUE, sp = TRUE, small = TRUE)
-      out$access <- out$w_access/pop_pol
-    } else {
-      names(access_pt) <- "access"
-      out <- raster::extract(access_pt, shape, fun = mean, 
-                             na.rm = TRUE, df = TRUE, sp = TRUE, small = TRUE)
-    }
-    out$access 
-  }
-  
-  colnames(catchmat) <- point_names
-  rownames(catchmat) <- admin_names
-  
-  return(catchmat)
-}
-
-##' 3. Getting ranked clinics to add from list of potential clinics
-##' ------------------------------------------------------------------------------------------------
-#' Getting ranked ARMC to add from list of potential ARMC
-#' Using catchment matrix generated from get.catchmat to rank which order clinics should be added based
-#' on how adding them changes the admin level estimates of access
-#' @param base_metric numeric vector of the base estimates of access (length should equal the number of rows
-#'  in @param clinic_catchmat)
+#' Rank clinics and summarize travel times and catchments at admin level
+#' \code{add.armc} gets ranked ARMC and associated travel times and catchments at the district and
+#' commune levels using catchment matrix of travel times at each grid cell (rows) for each clinic
+#' (columns) to rank which order clinics should be added based on how adding them shifts the 
+#' distribution of travel times at the population level.
+#' @param base_df a data.table with the following rows for each grid cell:
+#'  base_times (the baseline travel times), prop_pop (the proportion of the population), 
+#'  base_catches (the baseline clinic catchment id), pop_dist (the total population in the district
+#'  in which the grid cell falls), pop_dist (the total population in the commune in which the grid 
+#'  cell falls), commune_id (the commune id (corresponds to row number in commune shapefile)), 
+#'  district_id (corresponds to row number in district shapefile);
 #' @param clinic_names character vector of the names of the candidate ARMC to be added
-#' @param clinic_catchmat a matrix of access estimates for each of the admin units (rows) in the
-#' shapefile for each of the candidate clinics (columns, should match the clinic_names vector) TO DO
-#' change so that uses rownames from this instead?
-#' @param prop_pop a numeric vector of the proportion of the total population in each admin unit
-#' @param max_clinics numeric, the number of clinics that you want to add total
-#' @param threshold numeric, the threshold distance or travel times for which you're trying to improve
-#' access
-#' @return A matrix with the minimum access metrics for each admin unit as each clinic is added.
-#' Column names correspond to which clinic was added.
+#' @param clinic_catchmat a matrix of ttimes estimates for each of the grid cells (rows) in the
+#' shapefile for each of the candidate clinics (columns, should match length of clinic_names vector) 
+#' @param prop_pop a numeric vector of the proportion of the total population in each grid cell
+#' @param max_clinics numeric, the number of clinics that you want to add (when to stop adding)
+#' @param threshold numeric, the threshold travel times, any decreases in travel times resulting from 
+#' addition of a clinic are ignored (trying to target populations with worst access)
+#' @param thresh_prop numeric between 0-1, if a clinic is added and it shifts travel times above the 
+#' @param thresh_ttimes but only for less than @param thresh_prop, then the clinic is filtered out
+#' @param dir_name the directory name to output the resulting data frames into
+#' @param overwrite boolean, if TRUE then overwrites data at first step and then appends; if FALSE
+#' then appends all to existing files 
+#' @return the final travel times and catchments at the grid cell level 
+#' @details The results, aggregated to the district and commune levels, are written to a file at each 
+#' step to limit memory used.
 #' @section Dependencies:
-#'     Packages: none
+#'     Packages: data.table, foreach
 
 add.armc <- function(base_df, clinic_names, clinic_catchmat, 
                      max_clinics = ncol(clinic_catchmat), threshold, 
@@ -169,15 +97,15 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
   # name = "scen_check_";
   
   ## helper functions for add armc
-  sum.lessthan <- function(x, prop_pop, base_metric, threshold) {
+  sum.lessthan <- function(x, prop_pop, base_ttimes, threshold) {
     ## Sum of the proportion of the population changed weighted by how much changed below threshold
-    mets <- prop_pop*(base_metric - x)
-    sum(mets[which(x < base_metric & x > threshold)], na.rm = TRUE)
+    mets <- prop_pop*(base_ttimes - x)
+    sum(mets[which(x < base_ttimes & x > threshold)], na.rm = TRUE)
   }
   
-  prop.lessthan <- function(x, prop_pop, base_metric, threshold) {
+  prop.lessthan <- function(x, prop_pop, base_ttimes, threshold) {
     ## Sum of the proportion of the population changed weighted by how much changed below threshold
-    sum(prop_pop[which(x < base_metric & x > threshold)], na.rm = TRUE)
+    sum(prop_pop[which(x < base_ttimes & x > threshold)], na.rm = TRUE)
   }
   
   multicomb <- function(x, ...) {  
@@ -194,9 +122,9 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
         foreach(vals = iter(clinic_catchmat, by = "col"),
                 .combine = multicomb) %dopar% {
                   change <- sum.lessthan(vals, prop_pop = base_df$prop_pop, 
-                                         base_metric = base_df$base_times, threshold = threshold)
+                                         base_ttimes = base_df$base_times, threshold = threshold)
                   prop <- prop.lessthan(vals, prop_pop = base_df$prop_pop, 
-                                        base_metric = base_df$base_times, threshold = threshold)
+                                        base_ttimes = base_df$base_times, threshold = threshold)
                   out <- list(change, prop)
                 }
       
@@ -207,12 +135,12 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
       clinic_id <- clinic_names[which.max(sum.change)]
       new <- clinic_catchmat[[which.max(sum.change)]]
       new <- ifelse(new == Inf, NA, new)
-      base_df[, new_metric := new]
+      base_df[, new_ttimes := new]
       
-      ## If ttimes improved then, new metric replaces the baseline and catchment
-      base_df[, c('base_times', 'base_catches') := .(fifelse(new_metric < base_times, new_metric,
+      ## If ttimes improved then, new ttimes replaces the baseline and catchment
+      base_df[, c('base_times', 'base_catches') := .(fifelse(new_ttimes < base_times, new_ttimes,
                                                           base_times), 
-                                                  fifelse(new_metric < base_times, clinic_id,
+                                                  fifelse(new_ttimes < base_times, clinic_id,
                                                           base_catches))]
 
       ## Take out the max ones and any below ttime + pop thresholds
