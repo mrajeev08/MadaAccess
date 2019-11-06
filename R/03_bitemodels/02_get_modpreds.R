@@ -27,8 +27,6 @@ preds_mada <-
   foreach(i = iter(model_means, by = "row"), j = icount(), .combine = "rbind") %do% {
     
     print(j/nrow(model_means)*100)
-    # i <- as.data.frame(model_means[2, ])
-    
     if(i$data_source == "Moramanga") {
         bite_df <- covar_df <- morabites_by_ttimes
     } else {
@@ -50,7 +48,7 @@ preds_mada <-
     predict.bites(access = covar_df$covar, ctar_in = covar_df$ctar_in_district, 
                   pop = covar_df$pop, catch = covar_df$catch, names = covar_df$names, 
                   group_name = covar_df$group_name, beta_access = i$beta_access, 
-                  beta_ctar = i$beta_ctar, beta_0 = i$beta_0, beta_pop = i$beta_pop, 
+                  beta_ctar = 0, beta_0 = i$beta_0, beta_pop = i$beta_pop, 
                   sigma_0 = i$sigma_0, 
                   known_alphas = known_alphas, 
                   covar_name = i$covar_name, pop_predict = i$pop_predict, intercept = i$intercept,
@@ -84,8 +82,7 @@ outfit_mora <-
           .combine = "rbind") %do% {
     
     print(j/nrow(mada_means)*100)
-    # i <- as.data.frame(mada_means[2, ])
-            
+
     bite_df <- covar_df <- morabites_by_ttimes
     covar_df$covar <- covar_df$covar/60
     
@@ -98,7 +95,7 @@ outfit_mora <-
     check <- predict.bites(access = covar_df$covar, ctar_in = covar_df$ctar_in_district, 
                   pop = covar_df$pop, catch = covar_df$catch, names = covar_df$names, 
                   group_name = covar_df$group_name, beta_access = i$beta_access, 
-                  beta_ctar = i$beta_ctar, beta_0 = i$beta_0, beta_pop = i$beta_pop, 
+                  beta_ctar = 0, beta_0 = i$beta_0, beta_pop = i$beta_pop, 
                   sigma_0 = i$sigma_0, 
                   known_alphas = known_alphas, 
                   covar_name = i$covar_name, pop_predict = i$pop_predict, intercept = i$intercept,
@@ -110,7 +107,7 @@ outfit_mora <-
     check$avg_bites <- bite_df$avg_bites
     check
   }
-write.csv(outfit_mora, "output/preds/outoffit_mora.csv", row.names = FALSE)
+write.csv(outfit_mora, "output/preds/outfit_mora.csv", row.names = FALSE)
 
 
 ##' Use Moramanga model to predict district and commune model
@@ -143,7 +140,7 @@ outfit_mada <-
     check <- predict.bites(access = covar_df$covar, ctar_in = covar_df$ctar_in_district, 
                            pop = covar_df$pop, catch = covar_df$catch, names = covar_df$names, 
                            group_name = covar_df$group_name, beta_access = i$beta_access, 
-                           beta_ctar = i$beta_ctar, beta_0 = i$beta_0, beta_pop = i$beta_pop, 
+                           beta_ctar = 0, beta_0 = i$beta_0, beta_pop = i$beta_pop, 
                            sigma_0 = i$sigma_0, 
                            known_alphas = known_alphas, 
                            covar_name = i$covar_name, pop_predict = i$pop_predict, intercept = i$intercept,
@@ -160,4 +157,4 @@ outfit_mada %>%
            summed, intercept) %>% 
   summarize_at(vars(starts_with("bites")), sum, na.rm = TRUE) %>%
   left_join(observed) -> outfit_grouped
-write.csv(outfit_grouped, "output/preds/outoffit_grouped_mada.csv", row.names = FALSE)
+write.csv(outfit_grouped, "output/preds/outfit_grouped_mada.csv", row.names = FALSE)
