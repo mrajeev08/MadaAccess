@@ -128,16 +128,17 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
     
       ## In case all admin units go below the threshold: stop adding
       clinic_id <- clinic_names[which.max(sum.change)]
-      new <- clinic_catchmat[[which.max(sum.change)]]
-      new <- ifelse(new == Inf, NA, new)
-      base_df[, new_ttimes := new]
+      base_df[, new_ttimes := clinic_catchmat[[which.max(sum.change)]]]
       
       ## If ttimes improved then, new ttimes replaces the baseline and catchment
       base_df[, c('base_times', 'base_catches') := .(fifelse(new_ttimes < base_times, new_ttimes,
                                                           base_times), 
                                                   fifelse(new_ttimes < base_times, clinic_id,
                                                           base_catches))]
-
+      
+      ## So as to not use Inf in summarizing by district/commune
+      base_df[, raw_times := ifelse(is.infinite(base_times), NA, base_times)]
+      
       ## Take out the max ones and any below ttime + pop thresholds
       clinic_names <- clinic_names[-c(which.max(sum.change), which(sum.change == 0),
                                       which(sum.prop < thresh_prop))]
@@ -146,15 +147,18 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
       
       ## create district and commune dataframes
       district_df <-
-        base_df[, .(weighted_times = sum(base_times * pop, na.rm = TRUE)/pop_dist[1], 
+        base_df[, .(weighted_times = sum(raw_times * pop, na.rm = TRUE), 
                        prop_pop_catch = sum(pop, na.rm = TRUE)/pop_dist[1],
                        scenario = i, clinic_added = clinic_id, pop = pop_dist[1]), 
                 by = .(district_id, base_catches)]
+      district_df[, weighted_times := sum(weighted_times, na.rm = TRUE)/pop, by = district_id]
+      
       commune_df <-
-        base_df[, list(weighted_times = sum(base_times * pop, na.rm = TRUE)/pop_comm[1],
+        base_df[, .(weighted_times = sum(raw_times * pop, na.rm = TRUE),
                        prop_pop_catch = sum(pop, na.rm = TRUE)/pop_comm[1],
                        scenario = i, clinic_added = clinic_id, pop = pop_comm[1]), 
-                by = list(commune_id, base_catches)]
+                by = .(commune_id, base_catches)]
+      commune_df[, weighted_times := sum(weighted_times, na.rm = TRUE)/pop, by = commune_id]
       
       if(overwrite == TRUE & i == 1) { ## overwrite on first one
         fwrite(district_df, paste0(dir_name, "district.csv"))
