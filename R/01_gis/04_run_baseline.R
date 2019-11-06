@@ -1,10 +1,7 @@
-####################################################################################################
-##' Testing catchment scripts
-##' Details: Getting travel time estimates and catchments for all clinics
-##'   Code must be run in parallel
-##'   On the Della cluster at Princeton with NN cores, it takes approximately NN minutes
+##################################################################################################
+##' Getting baseline travel time estimates and catchments for 31 baseline clinics
 ##' Author: Malavika Rajeev
-####################################################################################################
+##################################################################################################
 
 ##' Set up
 ##' ------------------------------------------------------------------------------------------------
@@ -70,8 +67,8 @@ base_df <- data.table(district_id, commune_id, prop_pop,
                       pop = getValues(pop1x1)[!is.na(getValues(friction_masked))],
                       base_times = rep(1e6, nrow(stacked_ttimes)), 
                       base_catches = rep(0, nrow(stacked_ttimes)))
-base_df[, prop_pop_dist := pop/sum(pop, na.rm = TRUE), by = district_id]
-base_df[, prop_pop_comm := pop/sum(pop, na.rm = TRUE), by = commune_id]
+base_df[, pop_dist := sum(pop, na.rm = TRUE), by = district_id]
+base_df[, pop_comm := sum(pop, na.rm = TRUE), by = commune_id]
 
 cl <- makeCluster(3)
 registerDoParallel(cl)
@@ -80,7 +77,7 @@ system.time ({
   ttimes_weighted <- add.armc(base_df = base_df, clinic_names = 1:31, 
                               clinic_catchmat = as.data.table(stacked_ttimes), 
                               max_clinics = ncol(stacked_ttimes),
-                              threshold = 0, thresh_prop = 1e-4, 
+                              thresh_ttimes = 0, thresh_prop = 1e-4, 
                               dir_name = "output/scenarios/baseline_")
 })
 
@@ -92,8 +89,7 @@ base_catches <- ttimes_weighted[["catches"]]
 # ## Quick comparison check
 # ttimes_comp <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
 #                           coords = point_mat_base, trans_matrix_exists = TRUE,
-#                           filename_trans = "data/processed/rasters/trans_gc_masked.rds",
-#                           metric = "ttimes")
+#                           filename_trans = "data/processed/rasters/trans_gc_masked.rds")
 # ttimes_comp <- getValues(ttimes_comp)[!is.na(getValues(friction_masked))]
 # sum(base_times - ttimes_comp, na.rm = TRUE)
 
@@ -106,3 +102,4 @@ baseline_df[, pop_dist := sum(pop, na.rm = TRUE), by = district_id]
 baseline_df[, pop_comm := sum(pop, na.rm = TRUE), by = commune_id]
 
 fwrite(baseline_df, "output/scenarios/baseline_grid.csv")
+
