@@ -2,9 +2,9 @@
 ##' Incrementally adding clinics based on travel times
 ##' Details: Getting travel time estimates and catchments for districts/communes as clinics are added
 ##'   Code should be run in parallel with shared memory if large input cand_mat
-##'   On the Della cluster at Princeton with NN cores, it takes approximately NN minutes; 
-##'   With three cores, it takes approximately 10 hours on MacOS with 16 GB 1867 MHz DDR3 and
-##'   2.9 GHz Intel Core i5
+##'   On the Della cluster at Princeton with 18 cores, it takes approximately 1 hr 10 minutes; 
+##'   On MacOS with 16 GB 1867 MHz DDR3 and 2.9 GHz Intel Core i5 with three cores, 
+##'   it takes approximately 10 hours
 ##' Author: Malavika Rajeev
 ####################################################################################################
 
@@ -15,14 +15,6 @@ rm(list = ls())
 args <- commandArgs(trailingOnly = TRUE)
 cores <- as.integer(args[1])
 # cores <- 3
-
-# ##' Init MPI Backend
-# Sys.time()
-# rm(list = ls())
-# library(doMPI)
-# cl <- startMPIcluster()
-# clusterSize(cl) # this just tells you how many you've got
-# registerDoMPI(cl)
 
 ##' Libraries
 library(foreach)
@@ -37,7 +29,7 @@ source("R/functions/ttime_functions.R")
 
 ## Pull in candidates
 # cand_mat <- fread("output/ttimes/candidate_matrix.gz") ## locally
-cand_mat <- fread("/scratch/gpfs/mrajeev/output/ttimes/candidate_matrix.gz")
+cand_mat <- fread("/scratch/gpfs/mrajeev/output/ttimes/candidate_matrix.gz") ## this is a huge file!
 
 # cand_mat <- as.matrix(cand_mat)
 candidate_ids <- fread("output/ttimes/candidate_ids.csv")$x
@@ -60,9 +52,3 @@ system.time ({
 stopCluster(cl)
 print("Done :)")
 Sys.time()
-
-# ##' Close out cluster
-# closeCluster(cl)
-# mpi.quit()
-# print("Done :)")
-# Sys.time()
