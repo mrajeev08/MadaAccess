@@ -16,7 +16,7 @@ library(tidyverse)
 library(glue)
 
 ## Predicted burden
-preds_burden <- read.csv("output/preds/baseline_burden.csv")
+preds_burden <- read.csv("output/burden/baseline_burden.csv")
 
 ## Grouped to district
 preds_burden %>%
@@ -39,27 +39,27 @@ comm_to_plot$model <- "Commune"
 burden_to_plot <- bind_rows(comm_to_plot, dist_to_plot)
 
 M4.A <- ggplot() +
+  geom_hline(aes(yintercept = sum(comm_to_plot$deaths_mean)/sum(comm_to_plot$pop)*1e5), linetype = 1, 
+             color = "#004b49", alpha = 0.75, size = 1.2) +
+  geom_hline(aes(yintercept = sum(dist_to_plot$deaths_mean)/sum(dist_to_plot$pop)*1e5), linetype = 1, 
+             color = "#cc7722", alpha = 0.75, size = 1.2) +
   geom_point(data = burden_to_plot, 
              aes(x = reorder_within(group_name, access, covar_name), y = deaths_mean/pop*1e5, 
                  fill = access, shape = model, alpha = model,
-                 size = model, color = model)) +
-  scale_fill_viridis_c(option = "viridis", 
-                      name = "Travel times \n (hrs)")  +
+                 size = model, color = model, stroke = 1.1)) +
+  scale_fill_viridis_c(option = "viridis", direction = 1,
+                      name = "Travel times \n (hrs)", limits=c(0, 15), oob = scales::squish)  +
   scale_shape_manual(values = c(22, 23), name = "Model scale") +
-  scale_alpha_manual(values = c(0.75, 1), name = "Model scale") +
-  scale_size_manual(values = c(1.5, 2), name = "Model scale") +
-  scale_color_manual(values = c("grey50", "black"), name = "Model scale") +
+  scale_alpha_manual(values = c(0.85, 1), name = "Model scale") +
+  scale_size_manual(values = c(2.5, 3.5), name = "Model scale") +
+  scale_color_manual(values = c("darkgrey", "black"), name = "Model scale") +
   labs(x = "Districts (ordered by \n increasing travel times)", 
        y = "Predicted incidence of \n deaths per 100k", tag = "A") +
-  geom_hline(aes(yintercept = sum(comm_to_plot$deaths_mean)/sum(comm_to_plot$pop)*1e5), linetype = 2, 
-             color = "#004b49", alpha = 0.75) +
-  geom_hline(aes(yintercept = sum(dist_to_plot$deaths_mean)/sum(dist_to_plot$pop)*1e5), linetype = 2, 
-             color = "#cc7722", alpha = 0.75) +
   theme(axis.text.y = element_blank(), panel.grid.minor = element_blank(), 
         panel.grid.major.x = element_blank(), text = element_text(size=20)) +
-  coord_flip()
+  coord_flip(clip = "off")
 
-gg_commune <- fortify(mada_communes, region = "ADM3_PCODE")
+gg_commune <- fortify(mada_communes, region = "commcode")
 gg_commune %>% 
   left_join(comm_to_plot, by = c("id" = "names")) -> gg_commune_plot
 gg_district <- fortify(mada_districts, region = "distcode")
@@ -90,7 +90,7 @@ M4.C <- ggplot() +
   theme_void(base_size = 20)
 
 
-figM4 <- (M4.A | ((M4.B / M4.C) + plot_layout(nrow = 2))) + plot_layout(widths = c(1, 1.5))
+figM4 <- (M4.A | ((M4.B / M4.C) + plot_layout(nrow = 2))) + plot_layout(widths = c(1, 2))
 ggsave("figs/M4.jpeg", figM4, device = "jpeg", height = 14, width = 12)
 
 ## National deaths
