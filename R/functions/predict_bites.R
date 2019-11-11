@@ -6,7 +6,7 @@
 
 ##' Predict deaths
 ##' ------------------------------------------------------------------------------------------------
-predict.all <- function(ttimes, pop, catch, names, group_name,
+predict.all <- function(ttimes, pop, catch, names, 
                           beta_ttimes, beta_0, beta_pop, sigma_0, known_alphas, 
                           pop_predict = "addPop", intercept = "random",
                           data_source = "national", scale = "Commune",
@@ -22,16 +22,15 @@ predict.all <- function(ttimes, pop, catch, names, group_name,
   # ttimes = district_df$weighted_times/60;
   # pop = district_df$pop; catch = district_df$catch_numeric;
   # names = district_df$district_id;
-  # group_name = district_df$district_id;
-  # beta_ttimes = model_means$beta_access[model_means$scale == "District"]; 
-  # beta_0 = model_means$beta_0[model_means$scale == "District"]; beta_pop = 0; 
-  # sigma_0 = model_means$sigma_0[model_means$scale == "District"]; 
+  # beta_ttimes = model_means$beta_access[model_means$scale == "District"];
+  # beta_0 = model_means$beta_0[model_means$scale == "District"]; beta_pop = 0;
+  # sigma_0 = model_means$sigma_0[model_means$scale == "District"];
   # known_alphas = NA; pop_predict = "flatPop"; intercept = "random";
   # data_source = "National"; scale = "District";
-  # trans = 1e5; known_catch = FALSE; 
+  # trans = 1e5; known_catch = FALSE;
   # p_rab_min = 0.2; p_rab_max = 0.6; rho_max = 0.98;
-  # max_HDR = 25; min_HDR = 5; 
-  # dog_rabies_inc = 0.01; human_exp_rate = 0.39; 
+  # max_HDR = 25; min_HDR = 5;
+  # dog_rabies_inc = 0.01; human_exp_rate = 0.39;
   # prob_death = 0.16; nsims = 1000; scenario = district_df$scenario;
   
   foreach(i = 1:nsims, .combine = cbind) %dopar% {
@@ -78,17 +77,14 @@ predict.all <- function(ttimes, pop, catch, names, group_name,
     
   } -> bite_mat
   
-  if(length(output) == 1 & output == "bites") {
-    foreach(vals = iter(bite_mat, by = "row"), .combine = 'rbind') %dopar% {
-      ests <- get.boots.dt(as.vector(vals), names = c("bites_mean", "bites_upper", "bites_lower"))
-    } -> summarized
-    
-    bites_dt <- data.table(names, group_name, summarized, data_source, scale, pop_predict,
-                           ttimes, pop, catch, scenario)
-    out_bites <- list(bites_dt = bites_dt)
-  }
+  foreach(vals = iter(bite_mat, by = "row"), .combine = 'rbind') %dopar% {
+    ests <- get.boots.dt(as.vector(vals), names = c("bites_mean", "bites_upper", "bites_lower"))
+  } -> summarized
   
-  if("deaths" %in% output) {
+  out_bites <- list(bites_dt = data.table(names, summarized, data_source, scale, pop_predict,
+                                          ttimes, pop, catch, scenario))
+
+  if("deaths" %in% outputs) {
     all_mats <- foreach(bites = iter(bite_mat, by = "col"), .combine = multicomb) %do% {
       ## Run preds
       hdr <- runif(length(bites), min = min_HDR, max = max_HDR)
@@ -112,7 +108,7 @@ predict.all <- function(ttimes, pop, catch, names, group_name,
       } -> summarized
     } -> summary_admin
     
-    admin_df <- data.table(names, group_name, summary_admin, data_source, scale, pop_predict,
+    admin_dt <- data.table(names,summary_admin, data_source, scale, pop_predict,
                            ttimes, pop, catch, scenario)
     
     natl_mats <- all_mats[c("deaths", "averted")]
@@ -136,15 +132,17 @@ predict.all <- function(ttimes, pop, catch, names, group_name,
     } -> natl_medians
     
     natl_df <- Reduce(merge, c(natl_means, natl_medians))
-    out_deaths <- list(admin_df = admin_df, natl_df = natl_df)
+    out_deaths <- list(admin_dt = admin_dt, natl_df = natl_df)
   } else {
     out_deaths <- NULL
   }
   
-  if("vials" %in% output) {
+  if("vials" %in% outputs) {
     catch_dt <- data.table(bite_mat, scenario, catch)
-    catch_dt <- catch_df[, lapply(.SD, sum, na.rm = TRUE), by = c("scenario", "catch")]
-    catch_mat <- as.matrix(catch_df[, .("scenario", "catch") := NULL])
+    catch_dt <- catch_dt[, lapply(.SD, sum, na.rm = TRUE), by = c("scenario", "catch")]
+    catches <- catch_dt$catch
+    scenarios <- catch_dt$scenarios
+    catch_mat <- as.matrix(catch_dt[, c("scenario", "catch") := NULL])
     
     foreach(bycatch = iter(catch_mat, by = "col"), .combine = cbind) %dopar% {
       sapply(bycatch, get.vials)
@@ -153,79 +151,89 @@ predict.all <- function(ttimes, pop, catch, names, group_name,
     labels <- paste0("vials", "_", c("mean", "upper", "lower"))
     
     foreach(vals = iter(vial_mat, by = "row"), .combine = 'rbind') %dopar% {
-      ests <- get.boots.dt(as.vector(vals), names = labels)
+      ests <- get.boots.dt(as.vector(vals), names = c("vials_mean", 
+                                                      "vials_upper", "vials_lower"))
     } -> vials_df
     
-    out_vials <- list(data.table(catch, scenario, vials_df))
+    ## Also get estimates of bites by catchment
+    foreach(vals = iter(catch_mat, by = "row"), .combine = 'rbind') %dopar% {
+      ests <- get.boots.dt(as.vector(vals), names = c("bites_mean", 
+                                                     "bites_upper", "bites_lower"))
+    } -> bites_df
+    
+    out_vials <- list(vials = data.table(catch = catches, scenario = scenarios, vials_df,
+                                         bites_df))
   }
   
   return(c(out_bites, out_deaths, out_vials))
 }
 
-##' Function for getting bites from model inputs (returns a vector)
-##' ------------------------------------------------------------------------------------------------
-predict.bites <- function(ttimes, pop, catch, names, group_name,
+## Function for getting bites from model inputs (return a matrix)
+predict.bites <- function(ttimes, pop, catch, names,
                            beta_ttimes, beta_0, beta_pop, sigma_0, known_alphas, 
                            pop_predict = "addPop", intercept = "random",
-                           trans = 1e5, known_catch = TRUE) {
+                           trans = 1e5, known_catch = TRUE, nsims = 1000, 
+                           scenario = 0) {
   
   # district_df <- district_df[scenario < 2]
   # ## Testing
   # ttimes = district_df$weighted_times/60;
   # pop = district_df$pop; catch = district_df$catch_numeric;
   # names = district_df$district_id;
-  # group_name = district_df$district_id;
   # beta_ttimes = model_means$beta_access[model_means$scale == "District"]; 
   # beta_0 = model_means$beta_0[model_means$scale == "District"]; beta_pop = 0; 
   # sigma_0 = model_means$sigma_0[model_means$scale == "District"]; 
   # known_alphas = NA; pop_predict = "flatPop"; intercept = "random";
   # trans = 1e5; known_catch = FALSE; nsims = 1000; scenario = district_df$scenario;
   
-  if(intercept == "random") {
-    ## draw catchment level effects
-    alpha <- rnorm(max(catch, na.rm = TRUE), mean = beta_0, sd = sigma_0)
-    alpha <- alpha[catch]
-    
-    ## get alpha so that if known_catch is TRUE it pulls from estimates
-    ## known alphas have to be the same length as the data (potentially change this part!)
-    if(known_catch == TRUE) {
-      alpha <- ifelse(is.na(known_alphas) | known_alphas == 0, alpha, known_alphas)
-    } 
-    
-    if (pop_predict == "flatPop") {
-      exp_bites <- exp(alpha + beta_ttimes*ttimes)*pop
+  foreach(i = 1:nsims, .combine = cbind) %dopar% {
+    if(intercept == "random") {
+      ## draw catchment level effects
+      alpha <- rnorm(max(catch, na.rm = TRUE), mean = beta_0, sd = sigma_0)
+      alpha <- alpha[catch]
+      
+      ## get alpha so that if known_catch is TRUE it pulls from estimates
+      ## known alphas have to be the same length as the data (potentially change this part!)
+      if(known_catch == TRUE) {
+        alpha <- ifelse(is.na(known_alphas) | known_alphas == 0, alpha, known_alphas)
+      } 
+      
+      if (pop_predict == "flatPop") {
+        exp_bites <- exp(alpha + beta_ttimes*ttimes)*pop
+      }
+      
+      if(pop_predict == "addPop") {
+        exp_bites <- exp(alpha + beta_ttimes*ttimes + beta_pop*pop/trans) 
+      }
+      
+      if(pop_predict == "onlyPop") {
+        exp_bites <- exp(alpha + beta_pop*pop/trans)
+      }
     }
     
-    if(pop_predict == "addPop") {
-      exp_bites <- exp(alpha + beta_ttimes*ttimes + beta_pop*pop/trans) 
+    if(intercept == "fixed") {
+      if (pop_predict == "flatPop") {
+        exp_bites <- exp(beta_0 + beta_ttimes*ttimes)*pop
+      }
+      
+      if(pop_predict == "addPop") {
+        exp_bites <- exp(beta_0 + beta_ttimes*ttimes + beta_pop*pop/trans) 
+      }
+      
+      if(pop_predict == "onlyPop") {
+        exp_bites <- exp(beta_0 + beta_pop*pop/trans)
+      }
+      exp_bites
     }
     
-    if(pop_predict == "onlyPop") {
-      exp_bites <- exp(alpha + beta_pop*pop/trans)
-    }
-  }
+    bites <- rpois(length(exp_bites), exp_bites)
+    
+  } -> bite_mat
   
-  if(intercept == "fixed") {
-    if (pop_predict == "flatPop") {
-      exp_bites <- exp(beta_0 + beta_ttimes*ttimes)*pop
-    }
-    
-    if(pop_predict == "addPop") {
-      exp_bites <- exp(beta_0 + beta_ttimes*ttimes + beta_pop*pop/trans) 
-    }
-    
-    if(pop_predict == "onlyPop") {
-      exp_bites <- exp(beta_0 + beta_pop*pop/trans)
-    }
-    exp_bites
-  }
-  
-  bites <- rpois(length(exp_bites), exp_bites)
-  
-  return(bites)
+  return(bite_mat)
 }
 
-## Function for getting deaths from input bites (returns a list with key outputs)
+## Function for getting deaths from input bites (return a matrix)
 predict.deaths <- function(bite_mat, p_rab_min = 0.2, p_rab_max = 0.6, rho_max = 0.9,
                            max_HDR = 25, min_HDR = 5, dog_rabies_inc = 0.01, human_exp_rate = 0.39, 
                            prob_death = 0.16) {
@@ -237,8 +245,7 @@ predict.deaths <- function(bite_mat, p_rab_min = 0.2, p_rab_max = 0.6, rho_max =
   # dog_rabies_inc = 0.01; human_exp_rate = 0.39; 
   # prob_death = 0.16;
   
-  ## Doing it by row (so per location to limit memory usage) (maybe even higher up, i.e. @ bite_mat)
-  foreach(bites = iter(bite_mat, by = "row"), .combine = 'rbind') %do% {
+  all_mats <- foreach(bites = iter(bite_mat, by = "col"), .combine = multicomb) %do% {
     ## Run preds
     hdr <- runif(length(bites), min = min_HDR, max = max_HDR)
     rabid_exps <- rpois(length(bites), human_exp_rate*dog_rabies_inc*pop/hdr)
@@ -250,17 +257,44 @@ predict.deaths <- function(bite_mat, p_rab_min = 0.2, p_rab_max = 0.6, rho_max =
     deaths <- rbinom(length(bites), rabid_exps - reported_rabid, prob_death)
     averted <- rbinom(length(bites), reported_rabid, prob_death)
     
-    all_vals <- list(bites = bites, deaths = deaths, averted = averted, p_rabid = p_rabid_t,
-                     reporting = reported_rabid/rabid_exps)
-    
-    foreach(i = 1:length(all_vals), .combine = 'cbind') %dopar% {
-        vals <- all_vals[[i]]
-        labels <- paste0(names(all_vals)[i], "_", c("mean", "upper", "lower"))
-        ests <- get.boots.dt(as.vector(vals), names = labels)
-    } -> summarized
-  } -> summary_dt
+    list(deaths = deaths, averted = averted, p_rabid = p_rabid_t, reporting = reported_rabid/rabid_exps)
+  }
   
-  return(summary_dt)
+  foreach(i = 1:length(all_mats), .combine = 'cbind') %dopar% {
+    mat <- all_mats[[i]]
+    labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
+    foreach(vals = iter(mat, by = "row"), .combine = 'rbind') %dopar% {
+      ests <- get.boots.dt(as.vector(vals), names = labels)
+    } -> summarized
+  } -> summary_admin
+  
+  admin_dt <- data.table(names,summary_admin, data_source, scale, pop_predict,
+                         ttimes, pop, catch, scenario)
+  
+  natl_mats <- all_mats[c("deaths", "averted")]
+  
+  ## Get means
+  foreach(i = 1:length(natl_mats)) %dopar% {
+    natl <- data.table(natl_mats[[i]], scenario)
+    labels <- paste0(names(natl_mats)[i], "_", c("mean", "mean_upper", "mean_lower"))
+    natl <- natl[, lapply(.SD, sum, na.rm = TRUE), by = scenario]
+    natl <- melt(natl, id = "scenario")
+    natl<- natl[, get.boots.list(value, func = boots_mean, names = labels), by = scenario]
+  } -> natl_means
+  
+  ## Get natl_medians
+  foreach(i = 1:length(natl_mats)) %dopar% {
+    natl <- data.table(natl_mats[[i]], scenario)
+    labels <- paste0(names(natl_mats)[i], "_", c("median", "median_upper", "median_lower"))
+    natl <- natl[, lapply(.SD, sum, na.rm = TRUE), by = scenario]
+    natl <- melt(natl, id = "scenario")
+    natl<- natl[, get.boots.list(value, func = boots_median, names = labels), by = scenario]
+  } -> natl_medians
+  
+  natl_df <- Reduce(merge, c(natl_means, natl_medians))
+  out_deaths <- list(admin_dt = admin_dt, natl_df = natl_df)
+  
+  return(out_deaths)
 }
 
 ##' Function for getting vials from input bites
@@ -273,19 +307,26 @@ get.vials <- function(x) {
 }
 
 sim.throughput <- function(bite_mat, scenario, catch) {
-  
   catch_dt <- data.table(bite_mat, scenario, catch)
-  catch_dt <- catch_df[, lapply(.SD, sum, na.rm = TRUE), by = c("scenario", "catch")]
-  catch_mat <- as.matrix(catch_df[, .("scenario", "catch") := NULL])
+  catch_dt <- catch_dt[, lapply(.SD, sum, na.rm = TRUE), by = c("scenario", "catch")]
+  catches <- catch_dt$catch
+  scenarios <- catch_dt$scenarios
+  catch_mat <- as.matrix(catch_dt[, .("scenario", "catch") := NULL])
   
-  labels <- paste0("vials", "_", c("mean", "upper", "lower"))
+  foreach(vals = iter(vial_mat, by = "row"), .combine = 'rbind') %dopar% {
+    ests <- get.boots.dt(as.vector(vals), names = c("vials_mean", 
+                                                    "vials_upper", "vials_lower"))
+  } -> vials_dt
   
-  foreach(bycatch = iter(catch_mat, by = "row"), .combine = 'rbind') %dopar% {
-    vials <- sapply(bycatch, get.vials)
-    ests <- get.boots.dt(vials, names = labels)
-  } -> vial_dt
+  ## Also get estimates of bites by catchment
+  foreach(vals = iter(catch_mat, by = "row"), .combine = 'rbind') %dopar% {
+    ests <- get.boots.dt(as.vector(vals), names = c("bites_mean", 
+                                                    "bites_upper", "bites_lower"))
+  } -> bites_dt
   
-  return(data.table(catch, scenario, vial_dt))
+  out_vials <- list(vials = data.table(catch = catches, scenario = scenarios, vials_dt,
+                                       bites_dt))
+  return(out_vials)
 }
 
 
@@ -295,11 +336,13 @@ sim.throughput <- function(bite_mat, scenario, catch) {
 boots_mean <- function(data, indices) {mean(data[indices], na.rm = TRUE)}
 boots_median <- function(data, indices) {median(data[indices], na.rm = TRUE)}
 
-get.boots.dt <- function(vector, type_CI = "basic", names = names,
+get.boots.dt <- function(vector, type_CI = "basic", names,
                          func = boots_mean, nsims = 1000) {
   samples <- boot(vector, func, R = nsims)
   ests <- boot.ci(samples, type = type_CI)
-  return(data.table(point_est = ests$t0, upper = ests[[4]][5], lower = ests[[4]][4]))
+  out <- data.table(point_est = ests$t0, upper = ests[[4]][5], lower = ests[[4]][4])
+  names(out) <- names
+  return(out)
 }
 
 get.boots.list <- function(vector, type_CI = "basic", names,
