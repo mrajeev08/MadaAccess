@@ -36,17 +36,14 @@ district_df[, catch_numeric := as.numeric(as.factor(base_catches)), by = scenari
 commune_df[, catch_numeric := as.numeric(as.factor(base_catches)), by = scenario]
 
 ## Burden for district model
-predict.deaths(access = district_df$weighted_times/60, ctar_in = 0, 
+predict.all(ttimes = district_df$weighted_times/60, 
                pop = district_df$pop, catch = district_df$catch_numeric, 
                names = district_df$district_id, 
-               group_name = district_df$district_id, 
-               beta_access = model_means$beta_access[model_means$scale == "District"], 
-               beta_ctar = 0, 
+               beta_ttimes = model_means$beta_access[model_means$scale == "District"], 
                beta_0 = model_means$beta_0[model_means$scale == "District"], beta_pop = 0, 
                sigma_0 = model_means$sigma_0[model_means$scale == "District"], 
-               known_alphas = NA, 
-               covar_name = "ttimes", pop_predict = "flatPop", intercept = "random",
-               summed = FALSE, ctar_bump = FALSE, data_source = "National", 
+               known_alphas = NA, pop_predict = "flatPop", intercept = "random",
+               data_source = "National", 
                scale = "District",
                trans = 1e5, known_catch = FALSE, 
                p_rab_min = 0.2, p_rab_max = 0.6, rho_max = 0.98,
