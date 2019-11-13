@@ -16,7 +16,7 @@ predict.all <- function(ttimes, pop, catch, names,
                         dog_rabies_inc = 0.01, human_exp_rate = 0.39, 
                         prob_death = 0.16, nsims = 1000,
                         outputs = c("bites", "deaths", "vials"), 
-                        scenario = 0) {
+                        scenario = 0, seed = 123) {
   
   # check <- comm_run[1:100, ]
   # # Testing
@@ -39,6 +39,7 @@ predict.all <- function(ttimes, pop, catch, names,
   # registerDoRNG(456) ## Reproducible within the loops?
   
   registerDoRNG(seed)
+  
   bite_mat <- predict.bites(ttimes, pop, catch, names, beta_ttimes, beta_0, beta_pop, sigma_0, 
                             known_alphas, pop_predict, intercept, trans, known_catch, 
                             nsims)
@@ -144,14 +145,9 @@ predict.deaths <- function(bite_mat, pop, names,
                            max_HDR = 25, min_HDR = 5, dog_rabies_inc = 0.01, human_exp_rate = 0.39, 
                            prob_death = 0.16) {
   
-  # district_df <- district_df[scenario < 2]
-  # ## Testing
-  # p_rab_min = 0.2; p_rab_max = 0.6; rho_max = 0.98;
-  # max_HDR = 25; min_HDR = 5; 
-  # dog_rabies_inc = 0.01; human_exp_rate = 0.39; 
-  # prob_death = 0.16;
-  
-  all_mats <- foreach(bites = iter(bite_mat, by = "col"), .combine = multicomb) %dopar% {
+  all_mats <- foreach(bites = iter(bite_mat, by = "row"), .combine = multicomb,
+                      .export = c('get.boots.dt', 'boots_mean'), 
+                      .packages = c('boot', 'data.table', 'iterators')) %dopar% {
     ## Run preds
     hdr <- runif(length(bites), min = min_HDR, max = max_HDR)
     rabid_exps <- rpois(length(bites), human_exp_rate*dog_rabies_inc*pop/hdr)
@@ -162,20 +158,11 @@ predict.deaths <- function(bite_mat, pop, names,
     deaths <- rbinom(length(bites), rabid_exps - reported_rabid, prob_death)
     averted <- rbinom(length(bites), reported_rabid, prob_death)
     
-    list(deaths = deaths, averted = averted, p_rabid = reported_rabid/bites, 
+    check <- list(deaths = deaths, averted = averted, p_rabid = reported_rabid/as.vector(bites), 
          reporting = reported_rabid/rabid_exps)
+    out <- lapply(check, get.boots.dt, names = c("mean", "upper", "lower"))
   }
-  
-  foreach(i = 1:length(all_mats), .combine = 'cbind',
-          .export = c('get.boots.dt', 'boots_mean'), 
-          .packages = c('boot', 'data.table', 'iterators')) %dopar% {
-    mat <- all_mats[[i]]
-    labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
-    foreach(vals = iter(mat, by = "row"), .combine = 'rbind') %dopar% {
-      ests <- get.boots.dt(as.vector(vals), names = labels)
-    } -> summarized
-  } -> summary_admin
-  
+  summary_admin <- do.call(cbind, all_mats)
   deaths_dt <- data.table(names, summary_admin)
   return(deaths_dt)
 }
@@ -197,28 +184,19 @@ sim.throughput <- function(bite_mat, catch, scenario) {
   catch_mat <- as.matrix(catch_dt[, c("catch", "scenario") := NULL])
   
   ## Simulate vials
-  foreach(bycatch = iter(catch_mat, by = "col"), .combine = cbind, .export = 'get.vials') %dopar% {
-    sapply(bycatch, get.vials)
-  } -> vial_mat
-  
-  ## Summarize vials
-  foreach(vals = iter(vial_mat, by = "row"), .combine = 'rbind',
-          .export = c('get.boots.dt', 'boots_mean'), 
+  foreach(bycatch = iter(catch_mat, by = "row"), .combine = rbind, 
+          .export = c('get.boots.dt', 'boots_mean', 'get.vials'), 
           .packages = c('boot', 'data.table', 'iterators')) %dopar% {
-    
-    ests <- get.boots.dt(as.vector(vals), names = c("vials_mean", 
-                                                    "vials_upper", "vials_lower"))
+      vials <- sapply(bycatch, get.vials)
+      vial_ests <- get.boots.dt(as.vector(vials), names = c("vials_mean", 
+                                                      "vials_upper", "vials_lower"))
+      bite_ests <- get.boots.dt(as.vector(bycatch), names = c("bites_mean", 
+                                                           "bites_upper", "bites_lower"))
+      out <- cbind(vial_ests, bite_ests)
+      
   } -> vials_dt
-  
-  ## Also get estimates of bites by catchment
-  foreach(vals = iter(catch_mat, by = "row"), .combine = 'rbind',
-          .export = c('get.boots.dt', 'boots_mean'), 
-          .packages = c('boot', 'data.table', 'iterators')) %dopar% {
-    ests <- get.boots.dt(as.vector(vals), names = c("bites_mean", 
-                                                    "bites_upper", "bites_lower"))
-  } -> bites_dt
-  
-  vials_dt <- data.table(catch = catches, scenario = scenarios, vials_dt, bites_dt)
+
+  vials_dt <- data.table(catch = catches, scenario = scenarios, vials_dt)
   return(vials_dt)
 }
 
@@ -248,5 +226,5 @@ get.boots.list <- function(vector, type_CI = "basic", names,
 }
 
 multicomb <- function(x, ...) {
-  mapply(cbind, x, ..., SIMPLIFY = FALSE)
+  mapply(rbind, x, ..., SIMPLIFY = FALSE)
 }
