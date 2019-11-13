@@ -18,11 +18,11 @@ predict.all <- function(ttimes, pop, catch, names,
                         outputs = c("bites", "deaths", "vials"), 
                         scenario = 0) {
   
-  # district_df <- district_df[scenario < 2]
-  ## Testing
+  # check <- comm_run[1:100, ]
+  # # Testing
   # ttimes = check$weighted_times/60;
-  # pop = check$pop; catch = check$catch_numeric;
-  # names = check$district_id;
+  # pop = check$pop; catch = check$base_catches;
+  # names = check$commune_id;
   # beta_ttimes = model_means$beta_access[model_means$scale == "District"];
   # beta_0 = model_means$beta_0[model_means$scale == "District"]; beta_pop = 0;
   # sigma_0 = model_means$sigma_0[model_means$scale == "District"];
@@ -32,32 +32,48 @@ predict.all <- function(ttimes, pop, catch, names,
   # p_rab_min = 0.2; p_rab_max = 0.6; rho_max = 0.98;
   # max_HDR = 25; min_HDR = 5;
   # dog_rabies_inc = 0.01; human_exp_rate = 0.39;
-  # prob_death = 0.16; nsims = 1000;
+  # prob_death = 0.16; nsims = 10; scenario = check$scenario;
+  # outputs = c("bites", "deaths", "vials")
+  # cl <- makeCluster(cores)
+  # registerDoParallel(cl)
+  # registerDoRNG(456) ## Reproducible within the loops?
   
+  registerDoRNG(seed)
   bite_mat <- predict.bites(ttimes, pop, catch, names, beta_ttimes, beta_0, beta_pop, sigma_0, 
                             known_alphas, pop_predict, intercept, trans, known_catch, 
                             nsims)
-  
-  foreach(vals = iter(bite_mat, by = "row"), .combine = 'rbind') %dopar% {
+  print("bites done")
+  foreach(vals = iter(bite_mat, by = "row"), .combine = 'rbind',
+          .export = c('get.boots.dt', 'boots_mean'), 
+          .packages = c('boot', 'data.table', 'iterators')) %dopar% {
     ests <- get.boots.dt(as.vector(vals), names = c("bites_mean", "bites_upper", "bites_lower"))
   } -> summarized
   
   bites_dt <- data.table(names, summarized, data_source, scale, pop_predict, intercept,
                                           ttimes, pop, catch, scenario)
-
+  print("bites summarized")
+  
   if("deaths" %in% outputs) {
     deaths_dt <- predict.deaths(bite_mat, pop, names, p_rab_min, p_rab_max, rho_max,
                                max_HDR, min_HDR, dog_rabies_inc, human_exp_rate, 
                                prob_death)
+    print("deaths done")
+    
     deaths_dt <- data.table(names, deaths_dt, data_source, scale, pop_predict, intercept,
                             ttimes, pop, catch, scenario)
+    print("deaths summarized")
+    
   } else {
     deaths_dt <- NULL
   }
   
   if("vials" %in% outputs) {
-    vials_dt <- sim.throughput(bite_mat, catch)
-    vials_dt <- data.table(vials_dt, data_source, scale, pop_predict, intercept, scenario)
+    vials_dt <- sim.throughput(bite_mat, catch, scenario)
+    print("vials done")
+    
+    vials_dt <- data.table(vials_dt, data_source, scale, pop_predict, intercept)
+    print("vials summarized")
+    
   } else {
     vials_dt <- NULL
   }
@@ -72,22 +88,14 @@ predict.bites <- function(ttimes, pop, catch, names,
                            pop_predict = "addPop", intercept = "random",
                            trans = 1e5, known_catch = TRUE, nsims = 1000) {
   
-  # district_df <- district_df[scenario < 2]
-  # ## Testing
-  # ttimes = district_df$weighted_times/60;
-  # pop = district_df$pop; catch = district_df$catch_numeric;
-  # names = district_df$district_id;
-  # beta_ttimes = model_means$beta_access[model_means$scale == "District"]; 
-  # beta_0 = model_means$beta_0[model_means$scale == "District"]; beta_pop = 0; 
-  # sigma_0 = model_means$sigma_0[model_means$scale == "District"]; 
-  # known_alphas = NA; pop_predict = "flatPop"; intercept = "random";
-  # trans = 1e5; known_catch = FALSE; nsims = 1000;
-  
   foreach(i = 1:nsims, .combine = cbind) %dopar% {
     if(intercept == "random") {
       ## draw catchment level effects
-      alpha <- rnorm(max(catch, na.rm = TRUE), mean = beta_0, sd = sigma_0)
-      alpha <- alpha[catch]
+      ## first make catchment a factor and then drop levels and convert to numeric
+      catch_val <- as.numeric(droplevels(as.factor(catch)))
+      
+      alpha <- rnorm(max(catch_val, na.rm = TRUE), mean = beta_0, sd = sigma_0)
+      alpha <- alpha[catch_val]
       
       ## get alpha so that if known_catch is TRUE it pulls from estimates
       ## known alphas have to be the same length as the data (potentially change this part!)
@@ -143,24 +151,24 @@ predict.deaths <- function(bite_mat, pop, names,
   # dog_rabies_inc = 0.01; human_exp_rate = 0.39; 
   # prob_death = 0.16;
   
-  all_mats <- foreach(bites = iter(bite_mat, by = "col"), .combine = multicomb) %do% {
+  all_mats <- foreach(bites = iter(bite_mat, by = "col"), .combine = multicomb) %dopar% {
     ## Run preds
     hdr <- runif(length(bites), min = min_HDR, max = max_HDR)
     rabid_exps <- rpois(length(bites), human_exp_rate*dog_rabies_inc*pop/hdr)
     p_rabid <- runif(length(bites), min = p_rab_min, max = p_rab_max)
-    p_rabid_t <- ifelse(bites == 0 & rabid_exps == 0, 0,
-                        ifelse(bites*p_rabid/rabid_exps > rho_max, 
-                               (rho_max*rabid_exps)/bites, p_rabid))
-    reported_rabid <- round(bites*p_rabid_t)
-    reported_rabid <- ifelse(reported_rabid > rabid_exps, rabid_exps, reported_rabid)
+    reported_rabid <- rbinom(length(bites), bites, p_rabid)
+    max_reported <- floor(rabid_exps*rho_max) ## so that reporting is not always one
+    reported_rabid <- ifelse(reported_rabid > max_reported, max_reported, reported_rabid)
     deaths <- rbinom(length(bites), rabid_exps - reported_rabid, prob_death)
     averted <- rbinom(length(bites), reported_rabid, prob_death)
     
-    list(deaths = deaths, averted = averted, p_rabid = p_rabid_t, 
+    list(deaths = deaths, averted = averted, p_rabid = reported_rabid/bites, 
          reporting = reported_rabid/rabid_exps)
   }
   
-  foreach(i = 1:length(all_mats), .combine = 'cbind') %dopar% {
+  foreach(i = 1:length(all_mats), .combine = 'cbind',
+          .export = c('get.boots.dt', 'boots_mean'), 
+          .packages = c('boot', 'data.table', 'iterators')) %dopar% {
     mat <- all_mats[[i]]
     labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
     foreach(vals = iter(mat, by = "row"), .combine = 'rbind') %dopar% {
@@ -181,31 +189,36 @@ get.vials <- function(x) {
   return(vials)
 }
 
-sim.throughput <- function(bite_mat, catch) {
-  catch_dt <- data.table(bite_mat, catch)
-  catch_dt <- catch_dt[, lapply(.SD, sum, na.rm = TRUE), by = catch]
+sim.throughput <- function(bite_mat, catch, scenario) {
+  catch_dt <- data.table(bite_mat, catch, scenario)
+  catch_dt <- catch_dt[, lapply(.SD, sum, na.rm = TRUE), by = c("catch", "scenario")]
   catches <- catch_dt$catch
-  catch_mat <- as.matrix(catch_dt[, catch := NULL])
+  scenarios <- catch_dt$scenario
+  catch_mat <- as.matrix(catch_dt[, c("catch", "scenario") := NULL])
   
   ## Simulate vials
-  foreach(bycatch = iter(catch_mat, by = "col"), .combine = cbind) %dopar% {
+  foreach(bycatch = iter(catch_mat, by = "col"), .combine = cbind, .export = 'get.vials') %dopar% {
     sapply(bycatch, get.vials)
   } -> vial_mat
   
   ## Summarize vials
-  foreach(vals = iter(vial_mat, by = "row"), .combine = 'rbind') %dopar% {
+  foreach(vals = iter(vial_mat, by = "row"), .combine = 'rbind',
+          .export = c('get.boots.dt', 'boots_mean'), 
+          .packages = c('boot', 'data.table', 'iterators')) %dopar% {
     
     ests <- get.boots.dt(as.vector(vals), names = c("vials_mean", 
                                                     "vials_upper", "vials_lower"))
   } -> vials_dt
   
   ## Also get estimates of bites by catchment
-  foreach(vals = iter(catch_mat, by = "row"), .combine = 'rbind') %dopar% {
+  foreach(vals = iter(catch_mat, by = "row"), .combine = 'rbind',
+          .export = c('get.boots.dt', 'boots_mean'), 
+          .packages = c('boot', 'data.table', 'iterators')) %dopar% {
     ests <- get.boots.dt(as.vector(vals), names = c("bites_mean", 
                                                     "bites_upper", "bites_lower"))
   } -> bites_dt
   
-  vials_dt <- data.table(catch = catches, vials_dt, bites_dt)
+  vials_dt <- data.table(catch = catches, scenario = scenarios, vials_dt, bites_dt)
   return(vials_dt)
 }
 
