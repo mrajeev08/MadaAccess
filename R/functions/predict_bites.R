@@ -16,62 +16,63 @@ predict.all <- function(ttimes, pop, catch, names,
                         dog_rabies_inc = 0.01, human_exp_rate = 0.39, 
                         prob_death = 0.16, nsims = 1000,
                         outputs = c("bites", "deaths", "vials"), 
-                        scenario = 0, seed = 123) {
+                        scenario = 0, seed = 123, max_scenario = 473) {
   
-  # check <- comm_run[1:100, ]
-  # # Testing
-  # ttimes = check$weighted_times/60;
-  # pop = check$pop; catch = check$base_catches;
-  # names = check$commune_id;
-  # beta_ttimes = model_means$beta_access[model_means$scale == "District"];
-  # beta_0 = model_means$beta_0[model_means$scale == "District"]; beta_pop = 0;
-  # sigma_0 = model_means$sigma_0[model_means$scale == "District"];
-  # known_alphas = NA; pop_predict = "flatPop"; intercept = "random";
-  # data_source = "National"; scale = "District";
-  # trans = 1e5; known_catch = FALSE;
-  # p_rab_min = 0.2; p_rab_max = 0.6; rho_max = 0.98;
-  # max_HDR = 25; min_HDR = 5;
-  # dog_rabies_inc = 0.01; human_exp_rate = 0.39;
-  # prob_death = 0.16; nsims = 10; scenario = check$scenario;
-  # outputs = c("bites", "deaths", "vials")
-  # cl <- makeCluster(cores)
-  # registerDoParallel(cl)
-  # registerDoRNG(456) ## Reproducible within the loops?
+  check <- comm_run
+  # Testing
+  ttimes = check$weighted_times/60;
+  pop = check$pop; catch = check$base_catches;
+  names = check$commune_id;
+  beta_ttimes = model_means$beta_access[model_means$scale == "District"];
+  beta_0 = model_means$beta_0[model_means$scale == "District"]; beta_pop = 0;
+  sigma_0 = model_means$sigma_0[model_means$scale == "District"];
+  known_alphas = NA; pop_predict = "flatPop"; intercept = "random";
+  data_source = "National"; scale = "District";
+  trans = 1e5; known_catch = FALSE;
+  p_rab_min = 0.2; p_rab_max = 0.6; rho_max = 0.98;
+  max_HDR = 25; min_HDR = 5;
+  dog_rabies_inc = 0.01; human_exp_rate = 0.39;
+  prob_death = 0.16; nsims = 10; scenario = check$scenario;
+  outputs = c("bites", "deaths", "vials")
+  cl <- makeCluster(cores)
+  registerDoParallel(cl)
+  registerDoRNG(456) ## Reproducible within the loops?
   
   registerDoRNG(seed)
   
   bite_mat <- predict.bites(ttimes, pop, catch, names, beta_ttimes, beta_0, beta_pop, sigma_0, 
                             known_alphas, pop_predict, intercept, trans, known_catch, 
                             nsims)
+  
   print("bites done")
-  foreach(vals = iter(bite_mat, by = "row"), .combine = 'rbind',
-          .export = c('get.boots.dt', 'boots_mean'), 
-          .packages = c('boot', 'data.table', 'iterators')) %dopar% {
-    ests <- get.boots.dt(as.vector(vals), names = c("bites_mean", "bites_upper", "bites_lower"))
-  } -> summarized
-  
-  bites_dt <- data.table(names, summarized, data_source, scale, pop_predict, intercept,
-                                          ttimes, pop, catch, scenario)
-  print("bites summarized")
-  
+
   if("deaths" %in% outputs) {
-    deaths_dt <- predict.deaths(bite_mat, pop, names, p_rab_min, p_rab_max, rho_max,
+    death_mats <- predict.deaths(bite_mat, pop, names, p_rab_min, p_rab_max, rho_max,
                                max_HDR, min_HDR, dog_rabies_inc, human_exp_rate, 
                                prob_death)
     print("deaths done")
-    
-    deaths_dt <- data.table(names, deaths_dt, data_source, scale, pop_predict, intercept,
-                            ttimes, pop, catch, scenario)
-    print("deaths summarized")
-    
   } else {
-    deaths_dt <- NULL
+    death_mats <- NULL
   }
   
-  if("vials" %in% outputs) {
-    vials_dt <- sim.throughput(bite_mat, catch, scenario)
-    print("vials done")
+  all_mats <- c(list(bites = bite_mat), death_mats)
+  
+  foreach(i = 1:length(all_mats), .combine = 'cbind', 
+          .export = c('get.boots.dt', 'boots_mean'),
+          .packages = c('data.table', 'boot', 'iterators')) %dopar% {
+    mat <- all_mats[[i]]
+    labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
     
+    foreach(vals = iter(mat, by = "row"), .combine = 'rbind') %dopar% {
+      ests <- get.boots.dt(as.vector(vals), names = labels)
+    } -> summarized
+  } -> summary_admin
+  
+  
+  if("vials" %in% outputs) {
+    vials_dt <- sim.throughput(bite_mat, catch, scenario, names, max_scenario) 
+
+    print("vials done")
     vials_dt <- data.table(vials_dt, data_source, scale, pop_predict, intercept)
     print("vials summarized")
     
@@ -144,10 +145,11 @@ predict.deaths <- function(bite_mat, pop, names,
                            p_rab_min = 0.2, p_rab_max = 0.6, rho_max = 0.9,
                            max_HDR = 25, min_HDR = 5, dog_rabies_inc = 0.01, human_exp_rate = 0.39, 
                            prob_death = 0.16) {
+  multicomb <- function(x, ...) {
+    mapply(cbind, x, ..., SIMPLIFY = FALSE)
+  }
   
-  all_mats <- foreach(bites = iter(bite_mat, by = "row"), .combine = multicomb,
-                      .export = c('get.boots.dt', 'boots_mean'), 
-                      .packages = c('boot', 'data.table', 'iterators')) %dopar% {
+  all_mats <- foreach(bites = iter(bite_mat, by = "col"), .combine = multicomb) %dopar% {
     ## Run preds
     hdr <- runif(length(bites), min = min_HDR, max = max_HDR)
     rabid_exps <- rpois(length(bites), human_exp_rate*dog_rabies_inc*pop/hdr)
@@ -160,11 +162,9 @@ predict.deaths <- function(bite_mat, pop, names,
     
     check <- list(deaths = deaths, averted = averted, p_rabid = reported_rabid/as.vector(bites), 
          reporting = reported_rabid/rabid_exps)
-    out <- lapply(check, get.boots.dt, names = c("mean", "upper", "lower"))
   }
-  summary_admin <- do.call(cbind, all_mats)
-  deaths_dt <- data.table(names, summary_admin)
-  return(deaths_dt)
+  
+  return(all_mats)
 }
 
 ##' Function for getting vials from input bites
@@ -176,14 +176,22 @@ get.vials <- function(x) {
   return(vials)
 }
 
-sim.throughput <- function(bite_mat, catch, scenario) {
-  catch_dt <- data.table(bite_mat, catch, scenario)
+sim.throughput <- function(bite_mat, catch, scenario, names, max_scenario) {
+  
+  catch_dt <- data.table(bite_mat, catch, scenario, names)
+  catch_dt %>%
+    complete(scenario = 0:max_scenario, names) %>%
+    group_by(names) %>%
+    arrange(scenario) %>%
+    fill(3:ncol(catch_dt), .direction = "down") -> catch_dt
+  catch_dt <- as.data.table(catch_dt)[, names := NULL]
   catch_dt <- catch_dt[, lapply(.SD, sum, na.rm = TRUE), by = c("catch", "scenario")]
+  catch_dt <- unique(catch_dt, by = 3:ncol(catch_dt))
   catches <- catch_dt$catch
-  scenarios <- catch_dt$scenario
+  scenario <- catch_dt$scenario
   catch_mat <- as.matrix(catch_dt[, c("catch", "scenario") := NULL])
   
-  ## Simulate vials
+  ## Simulate vials at admin level
   foreach(bycatch = iter(catch_mat, by = "row"), .combine = rbind, 
           .export = c('get.boots.dt', 'boots_mean', 'get.vials'), 
           .packages = c('boot', 'data.table', 'iterators')) %dopar% {
