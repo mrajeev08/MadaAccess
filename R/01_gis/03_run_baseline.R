@@ -64,36 +64,10 @@ commune_id <- getValues(rasterize(mada_communes,
 prop_pop <- getValues(pop1x1)/sum(getValues(pop1x1), na.rm = TRUE)
 prop_pop <- prop_pop[!is.na(getValues(friction_masked))] ## Filter out masked cells
 
-base_df <- data.table(district_id, commune_id, prop_pop, 
-                      pop = getValues(pop1x1)[!is.na(getValues(friction_masked))],
-                      base_times = rep(Inf, nrow(stacked_ttimes)), 
-                      base_catches = rep(0, nrow(stacked_ttimes)))
-base_df[, pop_dist := sum(pop, na.rm = TRUE), by = district_id]
-base_df[, pop_comm := sum(pop, na.rm = TRUE), by = commune_id]
-
-cl <- makeCluster(3)
-registerDoParallel(cl)
-
-system.time ({
-  ttimes_weighted <- add.armc(base_df = base_df, clinic_names = 1:31, 
-                              clinic_catchmat = as.data.table(stacked_ttimes), 
-                              max_clinics = ncol(stacked_ttimes),
-                              thresh_ttimes = 0, thresh_prop = 0, 
-                              dir_name = "output/ttimes/baseline_")
-})
-
-stopCluster(cl) ## for doParallel
-
-base_times <- ttimes_weighted[["ttimes"]]
-base_catches <- ttimes_weighted[["catches"]]
-
-# ## Quick comparison check
-ttimes_comp <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
-                          coords = point_mat_base, trans_matrix_exists = TRUE,
-                          filename_trans = "data/processed/rasters/trans_gc_masked.rds")
-writeRaster(ttimes_comp, "output/ttimes/baseline_ttimes.tif")
-ttimes_comp <- getValues(ttimes_comp)[!is.na(getValues(friction_masked))]
-sum(base_times - ttimes_comp, na.rm = TRUE)
+## Max at grid level to get district/comm dataframes
+base_catches <- apply(stacked_ttimes, 1, which.min)
+base_times <- apply(stacked_ttimes, 1, min, na.rm = TRUE)
+base_times[is.infinite(base_times)] <- NA
 
 ## Baseline dataframe
 baseline_df <- data.table(district_id = district_id, commune_id = commune_id, 
@@ -104,3 +78,29 @@ baseline_df[, pop_dist := sum(pop, na.rm = TRUE), by = district_id]
 baseline_df[, pop_comm := sum(pop, na.rm = TRUE), by = commune_id]
 
 fwrite(baseline_df, "output/ttimes/baseline_grid.csv")
+
+## use district and commune ids and aggregate accordingly
+district_df <-
+  baseline_df[, .(weighted_times = sum(base_times * pop, na.rm = TRUE), 
+              prop_pop_catch = sum(pop, na.rm = TRUE)/pop_dist[1], pop = pop_dist[1],
+              scenario = 0), 
+          by = .(district_id, base_catches)]
+district_df[, weighted_times := sum(weighted_times, na.rm = TRUE)/pop, by = district_id]
+
+fwrite(district_df, "output/ttimes/baseline_district.csv")
+
+commune_df <-
+  baseline_df[, .(weighted_times = sum(base_times * pop, na.rm = TRUE),
+              prop_pop_catch = sum(pop, na.rm = TRUE)/pop_comm[1], pop = pop_comm[1],
+              scenario = 0), 
+          by = .(commune_id, base_catches)]
+commune_df[, weighted_times := sum(weighted_times, na.rm = TRUE)/pop, by = commune_id]
+fwrite(commune_df, "output/ttimes/baseline_commune.csv")
+
+# ## Quick comparison check
+ttimes_comp <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
+                          coords = point_mat_base, trans_matrix_exists = TRUE,
+                          filename_trans = "data/processed/rasters/trans_gc_masked.rds")
+writeRaster(ttimes_comp, "output/ttimes/baseline_ttimes.tif")
+ttimes_comp <- getValues(ttimes_comp)[!is.na(getValues(friction_masked))]
+sum(base_times - ttimes_comp, na.rm = TRUE) # FIX
