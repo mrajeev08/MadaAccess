@@ -18,25 +18,25 @@ predict.all <- function(ttimes, pop, catch, names,
                         outputs = c("bites", "deaths", "vials"), 
                         scenario = 0, seed = 123, max_scenario = 473) {
   
-  check <- comm_run
-  # Testing
-  ttimes = check$weighted_times/60;
-  pop = check$pop; catch = check$base_catches;
-  names = check$commune_id;
-  beta_ttimes = model_means$beta_access[model_means$scale == "District"];
-  beta_0 = model_means$beta_0[model_means$scale == "District"]; beta_pop = 0;
-  sigma_0 = model_means$sigma_0[model_means$scale == "District"];
-  known_alphas = NA; pop_predict = "flatPop"; intercept = "random";
-  data_source = "National"; scale = "District";
-  trans = 1e5; known_catch = FALSE;
-  p_rab_min = 0.2; p_rab_max = 0.6; rho_max = 0.98;
-  max_HDR = 25; min_HDR = 5;
-  dog_rabies_inc = 0.01; human_exp_rate = 0.39;
-  prob_death = 0.16; nsims = 10; scenario = check$scenario;
-  outputs = c("bites", "deaths", "vials")
-  cl <- makeCluster(cores)
-  registerDoParallel(cl)
-  registerDoRNG(456) ## Reproducible within the loops?
+  # check <- comm_run
+  # # Testing
+  # ttimes = check$weighted_times/60;
+  # pop = check$pop; catch = check$base_catches;
+  # names = check$commune_id;
+  # beta_ttimes = model_means$beta_access[model_means$scale == "District"];
+  # beta_0 = model_means$beta_0[model_means$scale == "District"]; beta_pop = 0;
+  # sigma_0 = model_means$sigma_0[model_means$scale == "District"];
+  # known_alphas = NA; pop_predict = "flatPop"; intercept = "random";
+  # data_source = "National"; scale = "District";
+  # trans = 1e5; known_catch = FALSE;
+  # p_rab_min = 0.2; p_rab_max = 0.6; rho_max = 0.98;
+  # max_HDR = 25; min_HDR = 5;
+  # dog_rabies_inc = 0.01; human_exp_rate = 0.39;
+  # prob_death = 0.16; nsims = 10; scenario = check$scenario; max_scenario = 472;
+  # outputs = c("bites", "deaths", "vials")
+  # cl <- makeCluster(cores)
+  # registerDoParallel(cl)
+  # registerDoRNG(456) ## Reproducible within the loops?
   
   registerDoRNG(seed)
   
@@ -66,21 +66,24 @@ predict.all <- function(ttimes, pop, catch, names,
     foreach(vals = iter(mat, by = "row"), .combine = 'rbind') %dopar% {
       ests <- get.boots.dt(as.vector(vals), names = labels)
     } -> summarized
-  } -> summary_admin
+  } -> admin_dt
   
+  admin_dt <- data.table(names, admin_dt, data_source, scale, pop_predict, intercept,
+                         ttimes, pop, catch, scenario)
+  
+  print("summary done")
   
   if("vials" %in% outputs) {
-    vials_dt <- sim.throughput(bite_mat, catch, scenario, names, max_scenario) 
-
-    print("vials done")
-    vials_dt <- data.table(vials_dt, data_source, scale, pop_predict, intercept)
-    print("vials summarized")
+    catch_dt <- sim.throughput(bite_mat, catch, scenario, names, max_scenario) 
     
+    print("vials done")
+    catch_dt <- data.table(catch_dt, data_source, scale, pop_predict, intercept)
+
   } else {
-    vials_dt <- NULL
+    catch_dt <- NULL
   }
   
-  return(list(bites_dt = bites_dt, deaths_dt = deaths_dt, vials_dt = vials_dt))
+  return(list(catch_dt = catch_dt, admin_dt = admin_dt))
 }
 
 ##' Function for getting bites from model inputs (return a matrix)
@@ -145,9 +148,6 @@ predict.deaths <- function(bite_mat, pop, names,
                            p_rab_min = 0.2, p_rab_max = 0.6, rho_max = 0.9,
                            max_HDR = 25, min_HDR = 5, dog_rabies_inc = 0.01, human_exp_rate = 0.39, 
                            prob_death = 0.16) {
-  multicomb <- function(x, ...) {
-    mapply(cbind, x, ..., SIMPLIFY = FALSE)
-  }
   
   all_mats <- foreach(bites = iter(bite_mat, by = "col"), .combine = multicomb) %dopar% {
     ## Run preds
@@ -188,20 +188,20 @@ sim.throughput <- function(bite_mat, catch, scenario, names, max_scenario) {
   catch_dt <- catch_dt[, lapply(.SD, sum, na.rm = TRUE), by = c("catch", "scenario")]
   catch_dt <- unique(catch_dt, by = 3:ncol(catch_dt))
   catches <- catch_dt$catch
-  scenario <- catch_dt$scenario
+  scenarios <- catch_dt$scenario
   catch_mat <- as.matrix(catch_dt[, c("catch", "scenario") := NULL])
   
   ## Simulate vials at admin level
   foreach(bycatch = iter(catch_mat, by = "row"), .combine = rbind, 
           .export = c('get.boots.dt', 'boots_mean', 'get.vials'), 
           .packages = c('boot', 'data.table', 'iterators')) %dopar% {
-      vials <- sapply(bycatch, get.vials)
-      vial_ests <- get.boots.dt(as.vector(vials), names = c("vials_mean", 
-                                                      "vials_upper", "vials_lower"))
-      bite_ests <- get.boots.dt(as.vector(bycatch), names = c("bites_mean", 
-                                                           "bites_upper", "bites_lower"))
-      out <- cbind(vial_ests, bite_ests)
-      
+            vials <- sapply(bycatch, get.vials)
+            vial_ests <- get.boots.dt(as.vector(vials), names = c("vials_mean", 
+                                                                  "vials_upper", "vials_lower"))
+            bite_ests <- get.boots.dt(as.vector(bycatch), names = c("bites_mean", 
+                                                                    "bites_upper", "bites_lower"))
+            out <- cbind(vial_ests, bite_ests)
+            
   } -> vials_dt
 
   vials_dt <- data.table(catch = catches, scenario = scenarios, vials_dt)
@@ -217,22 +217,22 @@ boots_median <- function(data, indices) {median(data[indices], na.rm = TRUE)}
 
 get.boots.dt <- function(vector, type_CI = "basic", names,
                          func = boots_mean, nsims = 1000) {
-  samples <- boot(vector, func, R = nsims)
-  ests <- boot.ci(samples, type = type_CI)
-  out <- data.table(point_est = ests$t0, upper = ests[[4]][5], lower = ests[[4]][4])
-  names(out) <- names
-  return(out)
-}
+  check <- unique(vector)
+  
+  if(length(vector[is.na(vector)]) == length(vector) |
+     (length(check[!is.na(check)]) == 1 & sum(check[!is.na(check)]) > 0)){
+    out <- data.table(point_est = NA, upper = NA, lower = NA)
+    names(out) <- names
+  } else {
+    samples <- boot(vector, func, R = nsims)
+    ests <- boot.ci(samples, type = type_CI)
+    out <- data.table(point_est = ests$t0, upper = ests[[4]][5], lower = ests[[4]][4])
+    names(out) <- names
+  }
 
-get.boots.list <- function(vector, type_CI = "basic", names,
-                           func = boots_mean, nsims = 1000) {
-  samples <- boot(vector, func, R = nsims)
-  ests <- boot.ci(samples, type = type_CI)
-  out <- list(ests$t0, ests[[4]][5], ests[[4]][4])
-  names(out) <- names
   return(out)
 }
 
 multicomb <- function(x, ...) {
-  mapply(rbind, x, ..., SIMPLIFY = FALSE)
+  mapply(cbind, x, ..., SIMPLIFY = FALSE)
 }
