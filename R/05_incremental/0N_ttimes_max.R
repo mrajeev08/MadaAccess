@@ -54,21 +54,23 @@ max_times <- apply(cand_mat, 1, min, na.rm = TRUE)
 
 ## Get df with district and commune ids and aggregate accordingly
 base_df <- fread("output/ttimes/baseline_grid.csv")
-base_df[, c("max_times", "max_catches") := .(ifelse(is.infinite(max_times), NA, max_times),
+base_df[, c("base_times", "base_catches") := .(ifelse(is.infinite(max_times), NA, max_times),
                                              ifelse(is.infinite(max_times), NA, max_catches))]
+fwrite(base_df, "output/ttimes/max_grid.csv")
+
 district_df <-
-  base_df[, .(weighted_times = sum(max_times * pop, na.rm = TRUE), 
+  base_df[, .(weighted_times = sum(base_times * pop, na.rm = TRUE), 
               prop_pop_catch = sum(pop, na.rm = TRUE)/pop_dist[1], pop = pop_dist[1],
               scenario = "max"), 
-          by = .(district_id, max_catches)]
+          by = .(district_id, base_catches)]
 district_df[, weighted_times := sum(weighted_times, na.rm = TRUE)/pop, by = district_id]
 fwrite(district_df, "output/ttimes/max_district.csv")
 
 commune_df <-
-  base_df[, .(weighted_times = sum(max_times * pop, na.rm = TRUE),
+  base_df[, .(weighted_times = sum(base_times * pop, na.rm = TRUE),
               prop_pop_catch = sum(pop, na.rm = TRUE)/pop_comm[1], pop = pop_comm[1],
               scenario = "max"), 
-          by = .(commune_id, max_catches)]
+          by = .(commune_id, base_catches)]
 commune_df[, weighted_times := sum(weighted_times, na.rm = TRUE)/pop, by = commune_id]
 fwrite(commune_df, "output/ttimes/max_commune.csv")
 
