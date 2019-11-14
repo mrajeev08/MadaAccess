@@ -45,7 +45,7 @@ library(tidyverse)
 model_ests <- read.csv("output/mods/bitemod_results.csv")
 model_ests %>%
   dplyr::select(params, Mean, covar_name, pop_predict, intercept, ctar_bump, summed, data_source,
-                scale) %>%
+         scale) %>%
   tidyr::spread(key = params, value = Mean, fill = 0) %>%
   dplyr::filter(pop_predict == "flatPop", data_source == "National", intercept == "random") -> model_means
 
@@ -55,14 +55,14 @@ model_ests %>%
 ## Commune
 params <- model_means[model_means$scale == "Commune", ]
 predict.all(ttimes = comm_run$weighted_times/60, pop = comm_run$pop, catch = comm_run$base_catches, 
-            names = comm_run$commune_id, beta_ttimes = params$beta_access, beta_0 = params$beta_0, 
-            beta_pop = 0, sigma_0 = params$sigma_0, known_alphas = NA, 
-            pop_predict = params$pop_predict, intercept = params$intercept, 
-            data_source = params$data_source, scale = params$scale, trans = 1e5, known_catch = FALSE, 
-            p_rab_min = 0.2, p_rab_max = 0.6, rho_max = 0.98, max_HDR = 25, min_HDR = 5, 
-            dog_rabies_inc = 0.01, human_exp_rate = 0.39, prob_death = 0.16, nsims = 1000,
-            outputs = c("bites", "deaths", "vials"), scenario = comm_run$scenario,
-            seed = 678, max_scenario = 472) -> all_preds_comm
+                names = comm_run$commune_id, beta_ttimes = params$beta_access, beta_0 = params$beta_0, 
+                beta_pop = 0, sigma_0 = params$sigma_0, known_alphas = NA, 
+                pop_predict = params$pop_predict, intercept = params$intercept, 
+                data_source = params$data_source, scale = params$scale, trans = 1e5, known_catch = FALSE, 
+                p_rab_min = 0.2, p_rab_max = 0.6, rho_max = 0.98, max_HDR = 25, min_HDR = 5, 
+                dog_rabies_inc = 0.01, human_exp_rate = 0.39, prob_death = 0.16, nsims = 1000,
+                outputs = c("bites", "deaths", "vials"), scenario = comm_run$scenario,
+                seed = 678, max_scenario = 472) -> all_preds_comm
 print("commune done")
 
 ## District
