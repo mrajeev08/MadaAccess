@@ -11,6 +11,7 @@ library(dplyr)
 library(raster)
 library(rgdal)
 library(data.table)
+source("R/functions/utils.R")
 
 ##' Shapefiles
 mada_districts <- readOGR("data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
@@ -85,3 +86,5 @@ writeOGR(mada_communes, dsn = "data/processed/shapefiles", layer = "mada_commune
 writeOGR(mada_districts, dsn = "data/processed/shapefiles", layer = "mada_districts", 
          driver = "ESRI Shapefile", overwrite_layer = TRUE)
 
+##' Saving session info
+out.session(path = "R/01_gis/04_make_shapefiles.R", filename = "sessionInfo.csv")

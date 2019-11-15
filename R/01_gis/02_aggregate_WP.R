@@ -2,7 +2,7 @@
 ##' Step 2: Aggregating world pop estimates
 ##' Details: resampling world pop estimates to the same extent and resolution as the friction surface
 ##'   Recommended that code be run in parallel to limit compute time
-##'   On the Della cluster at Princeton with 38 cores, it takes approximately 20 minutes
+##'   On the Della cluster at Princeton with 38 cores, it takes approximately 6 minutes
 ##' Author: Malavika Rajeev
 ####################################################################################################
 
@@ -20,6 +20,7 @@ registerDoMPI(cl)
 library(rgdal) # for shapefiles (also comes with sp)
 library(raster) # for rasters and resampling
 library(foreach) # for parallelizing
+source("R/functions/utils.R")
 
 ##' Load in GIS files 
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
@@ -56,6 +57,9 @@ writeRaster(pop1x1, "data/processed/rasters/worldpop2015adj_mada_1x1km.tif", ove
 
 ##' quick check sum of population should be ~ 23e6
 sum(getValues(pop1x1), na.rm = TRUE)
+
+##' Saving session info
+out.session(path = "R/01_gis/02_aggregate_WP.R", filename = "sessionInfo.csv")
 
 ##' Close out cluster
 closeCluster(cl)

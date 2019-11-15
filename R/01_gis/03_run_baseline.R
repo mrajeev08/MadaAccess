@@ -1,8 +1,7 @@
 ##################################################################################################
 ##' Step 3: Getting baseline travel time estimates
-##' Details: Getting baseline travel time estimates and catchments for grid cells and 
-##' admin units with the 31 existing clinics
-##' Can do this without parallelizing as well (takes 15 min with 3 cores vs. 1 hr with 1)
+##' Details: Getting baseline travel time estimates and catchments for grid cells and also summarizing
+##' to admin units with the 31 existing clinics
 ##' Author: Malavika Rajeev
 ##################################################################################################
 
@@ -22,6 +21,7 @@ library(doParallel)
 library(data.table)
 
 ##' Source
+source("R/functions/utils.R")
 source("R/functions/ttime_functions.R")
 
 ##' Load in GIS files
@@ -107,3 +107,6 @@ ttimes_comp <- get.ttimes(friction = friction_masked, shapefile = mada_districts
 writeRaster(ttimes_comp, "output/ttimes/baseline_ttimes.tif") ##' write out for plotting
 ttimes_comp <- getValues(ttimes_comp)[!is.na(getValues(friction_masked))]
 sum(base_times - ttimes_comp, na.rm = TRUE) # should ~ 0
+
+##' Saving session info
+out.session(path = "R/01_gis/03_run_baseline.R", filename = "sessionInfo.csv")

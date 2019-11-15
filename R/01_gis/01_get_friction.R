@@ -11,6 +11,7 @@ library(malariaAtlas) # for friction surface
 library(raster) # for reading in rasters
 library(rgdal) # for reading in shapefiles
 library(gdistance) # for making transition object
+source("R/functions/utils.R")
 
 ##' Shapefile for masking to (from OCHA)
 mada_districts <- readOGR("data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
@@ -27,3 +28,6 @@ writeRaster(friction_masked, "data/processed/rasters/friction_mada_masked.tif", 
 trans <- transition(friction_masked, function(x) 1/mean(x), 8) # RAM intensive, can be very slow for large areas
 trans_gc <- geoCorrection(trans)
 saveRDS(trans_gc, "data/processed/rasters/trans_gc_masked.rds")
+
+##' Saving session info
+out.session(path = "R/01_gis/01_get_friction.R", filename = "sessionInfo.csv")
