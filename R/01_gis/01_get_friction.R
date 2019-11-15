@@ -1,18 +1,18 @@
 ####################################################################################################
-##' Generating GIS files Step 1
-##' Details: Getting masked and unmasked friction layers to input into travel time estimates 
-##' Need to do this outside of the cluster because problem with connecting to external server
+##' Step 1: Generating GIS files
+##' Details: Getting masked friction surface as input for travel time estimates 
+##' Also creating transition layer for gdistance functions
 ##' Author: Malavika Rajeev 
 ####################################################################################################
 
-##' Libraries and packages
+##' Packages
 rm(list=ls())
 library(malariaAtlas) # for friction surface
-library(raster)
-library(rgdal)
-library(gdistance)
+library(raster) # for reading in rasters
+library(rgdal) # for reading in shapefiles
+library(gdistance) # for making transition object
 
-##' Shapefile for masking
+##' Shapefile for masking to (from OCHA)
 mada_districts <- readOGR("data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
 
 ##' Masked friction surface
