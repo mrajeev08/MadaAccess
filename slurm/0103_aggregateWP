@@ -11,4 +11,4 @@
 
 export OMPI_MCA_btl="tcp,self,sm"
 module load openmpi/gcc/2.0.2
-srun Rscript ./R/01_gis/03_aggregate_WP.R
+srun Rscript ./R/01_gis/02_aggregate_WP.R
