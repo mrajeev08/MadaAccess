@@ -32,11 +32,12 @@ match.admin <- function(data_names, data_nest, match_names, match_nest, match_me
   # match_method = "osa"
   # 
   # ## For nested = TRUE
-  # # data_names = as.character(peripheral$commune)
-  # # data_nest = as.character(peripheral$distcode)
-  # # match_names = as.character(mada_communes$ADM3_EN)
-  # # match_nest = as.character(mada_communes$distcode)
-  # # nested = TRUE
+  # data_names = as.character(peripheral$commune)
+  # data_nest = as.character(peripheral$distcode)
+  # match_names = as.character(mada_communes$commune)
+  # match_nest = as.character(mada_communes$distcode)
+  # nested = TRUE
+  # match_method = "osa"
   # 
   # ## Test for nested = FALSE
   # data_names = as.character(IPM$fiv)
@@ -90,7 +91,11 @@ match.admin <- function(data_names, data_nest, match_names, match_nest, match_me
                               partial_best = matches, min_partial = 0))
       }
       
-      match_df <- bind_rows(match_df, df)
+      if(length(tomatch) == 0) {
+        next
+      } else {
+        match_df <- bind_rows(match_df, df) ## bind rows here
+      }
     }
   } else {
     
