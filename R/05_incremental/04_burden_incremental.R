@@ -81,16 +81,7 @@ catch_comm %>%
   fill(3:ncol(catch_comm), .direction = "down") -> catch_comm
 catch_comm <- as.data.table(catch_comm)[, names := NULL]
 catch_comm <- catch_comm[, lapply(.SD, sum, na.rm = TRUE), by = c("catch", "scenario")]
-
-## Bites    
 catch_mat <- as.matrix(catch_comm[, -c("catch", "scenario"), with = FALSE])
-mean <- rowMeans(catch_mat, na.rm = TRUE) ## mean for each row = admin unit
-sd <- apply(catch_mat, 1, sd, na.rm = TRUE)
-upper <- mean + 1.96*sd/sqrt(ncol(catch_mat))
-lower <- mean - 1.96*sd/sqrt(ncol(catch_mat))
-bites_comm <- data.table(bites_mean = mean, bites_upper = upper, bites_lower = lower,
-                         catch = catch_comm$catch, scenario = catch_comm$scenario, 
-                         scale = "Commune")
 
 ## Vials
 catch_comm[, check := rowSums(catch_mat)]
@@ -152,16 +143,7 @@ catch_dist %>%
   fill(3:ncol(catch_dist), .direction = "down") -> catch_dist
 catch_dist <- as.data.table(catch_dist)[, names := NULL]
 catch_dist <- catch_dist[, lapply(.SD, sum, na.rm = TRUE), by = c("catch", "scenario")]
-
-## Bites    
 catch_mat <- as.matrix(catch_dist[, -c("catch", "scenario"), with = FALSE])
-mean <- rowMeans(catch_mat, na.rm = TRUE) ## mean for each row = admin unit
-sd <- apply(catch_mat, 1, sd, na.rm = TRUE)
-upper <- mean + 1.96*sd/sqrt(ncol(catch_mat))
-lower <- mean - 1.96*sd/sqrt(ncol(catch_mat))
-bites_dist <- data.table(bites_mean = mean, bites_upper = upper, bites_lower = lower,
-                          catch = catch_dist$catch, scenario = catch_dist$scenario, 
-                          scale = "District")
 
 ## Vials
 catch_dist[, check := rowSums(catch_mat)]
@@ -183,7 +165,5 @@ vials_dist <- data.table(vials_mean = mean, vials_upper = upper, vials_lower = l
 ##' ------------------------------------------------------------------------------------------------
 vials_bycatch_incremental <- rbind(vials_dist, vials_comm)
 fwrite(vials_bycatch_incremental, "output/preds/partial/vials_bycatch_partial.csv")
-bites_bycatch_incremental <- rbind(bites_dist, bites_comm)
-fwrite(bites_bycatch_incremental, "output/preds/partial/bites_bycatch_partial.csv")
 results_incremental <- rbind(admin_dist, admin_comm)
 fwrite(results_incremental, "output/preds/partial/burden_partial.csv")
