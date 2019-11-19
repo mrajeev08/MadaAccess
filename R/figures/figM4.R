@@ -1,12 +1,10 @@
 ####################################################################################################
-##' Run predictions from all candidate models
-##' Details: Models include travel times and distance as access metrics, in addition to population 
+##' Baseline burden predictions
+##' Details: Predictions of baseline burden at admin level
 ##' Author: Malavika Rajeev 
 ####################################################################################################
 ## source bite ests
-source("R/02_bitedata/03_estimate_biteinc.R") # either source this or output bite data
-# probs want to output bite data in order to pull into other things
-source("R/functions/predict_bites.R")
+rm(list = ls())
 source("R/functions/utils.R")
 
 ## libraries
@@ -14,39 +12,46 @@ library(foreach)
 library(iterators)
 library(tidyverse)
 library(glue)
+library(data.table)
+library(rgdal)
+library(patchwork)
 
 ## Predicted burden
-preds_burden <- read.csv("output/burden/baseline_burden.csv")
+burden_preds <- fread("output/preds/complete/burden_filled.csv")
+burden_preds <- burden_preds[scenario == 0]
+mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
+mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
+ctar_metadata <- fread("data/raw/ctar_metadata.csv")
 
 ## Grouped to district
-preds_burden %>%
-  group_by(group_name, data_source, covar_name, scale, pop_predict, ctar_bump, 
-           summed, intercept) %>% 
-  summarize_at(vars(bites_mean:averted_lower05, pop), sum, na.rm = TRUE) -> grouped_deaths
+burden_preds$distcode <- mada_communes$distcode[burden_preds$names]
+burden_preds$commcode <- mada_communes$commcode[burden_preds$names]
 
-preds_burden %>%
-  group_by(group_name, data_source, covar_name, scale, pop_predict, ctar_bump, 
-           summed, intercept) %>% 
-  summarize_at(vars(starts_with("p_rabid"), starts_with("reporting"), starts_with("access")), mean, na.rm = TRUE) %>%
-  left_join(grouped_deaths) -> grouped_deaths
+burden_preds %>%
+  filter(scale == "District") %>%
+  group_by(distcode) %>% 
+  summarize_at(vars(bites_mean:averted_lower, pop), sum, na.rm = TRUE) -> district_deaths
+burden_preds %>%
+  filter(scale == "District") %>%
+  group_by(distcode) %>% 
+  summarize_at(vars(starts_with("p_rabid"), starts_with("reporting"), starts_with("ttimes")), 
+               mean, na.rm = TRUE) %>%
+  left_join(district_deaths) %>%
+  mutate(scale = "District") -> district_deaths
+burden_to_plot <- bind_rows(burden_preds[scale == "Commune"], district_deaths)
 
-dist_to_plot <- filter(grouped_deaths, intercept == "random", pop_predict == "flatPop", 
-                  scale == "District")
-dist_to_plot$model <- "District"
-comm_to_plot <- filter(preds_burden, intercept == "random", pop_predict == "flatPop", 
-                       scale == "Commune")
-comm_to_plot$model <- "Commune"
-burden_to_plot <- bind_rows(comm_to_plot, dist_to_plot)
+burden_preds %>%
+  group_by(scale) %>%
+  summarize(natl_inc = sum(deaths_mean, na.rm = TRUE)/sum(pop, na.rm = TRUE)*1e5) -> natl_inc
+  
 
 M4.A <- ggplot() +
-  geom_hline(aes(yintercept = sum(comm_to_plot$deaths_mean)/sum(comm_to_plot$pop)*1e5), linetype = 1, 
-             color = "#004b49", alpha = 0.75, size = 1.2) +
-  geom_hline(aes(yintercept = sum(dist_to_plot$deaths_mean)/sum(dist_to_plot$pop)*1e5), linetype = 1, 
-             color = "#cc7722", alpha = 0.75, size = 1.2) +
+  geom_hline(data = natl_inc, aes(yintercept = natl_burden$natl_inc, color = scale), linetype = 1, 
+             alpha = 0.75, size = 1.2) +
   geom_point(data = burden_to_plot, 
-             aes(x = reorder_within(group_name, access, covar_name), y = deaths_mean/pop*1e5, 
-                 fill = access, shape = model, alpha = model,
-                 size = model, color = model, stroke = 1.1)) +
+             aes(x = reorder(distcode, ttimes), y = deaths_mean/pop*1e5, 
+                 fill = ttimes, shape = scale, alpha = scale,
+                 size = scale, color = scale, stroke = 1.1)) +
   scale_fill_viridis_c(option = "viridis", direction = 1,
                       name = "Travel times \n (hrs)", limits=c(0, 15), oob = scales::squish)  +
   scale_shape_manual(values = c(22, 23), name = "Model scale") +
@@ -59,34 +64,38 @@ M4.A <- ggplot() +
         panel.grid.major.x = element_blank(), text = element_text(size=20)) +
   coord_flip(clip = "off")
 
+
 gg_commune <- fortify(mada_communes, region = "commcode")
 gg_commune %>% 
-  left_join(comm_to_plot, by = c("id" = "names")) -> gg_commune_plot
+  left_join(burden_preds[scale == "Commune"], by = c("id" = "commcode")) -> gg_commune_plot
+
 gg_district <- fortify(mada_districts, region = "distcode")
 gg_district %>% 
-  left_join(dist_to_plot, by = c("id" = "group_name")) -> gg_district_plot
+  left_join(district_deaths, by = c("id" = "distcode")) -> gg_district_plot
 
 M4.B <- ggplot() +
   geom_polygon(data = gg_commune_plot,
-               aes(x = long, y = lat, group = group, fill = deaths_mean/pop*1e5), 
+               aes(x = long, y = lat, group = group, fill = reporting_mean), 
                color = "white", size = 0.1) +
   geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "grey50",
              shape = 4, size = 2, stroke = 1.5) +
   labs(tag = "B") +
-  scale_fill_viridis_c(option = "magma", direction = -1, 
-                      name = "Predicted incidence \n of deaths per 100k") +
+  scale_fill_viridis_c(breaks = c(0, 0.25, 0.5, 0.75, 1), limits=c(0, 1),
+                       option = "magma", direction = 1, 
+                      name = "Predicted reporting") +
   theme_void(base_size = 20)
 
 
 M4.C <- ggplot() +
   geom_polygon(data = gg_district_plot,
-               aes(x = long, y = lat, group = group, fill = deaths_mean/pop*1e5), 
+               aes(x = long, y = lat, group = group, fill = reporting_mean), 
                color = "white", size = 0.1) +
   geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "grey50",
              shape = 4, size = 2, stroke = 1.5) +
   labs(tag = "C") +
-  scale_fill_viridis_c(option = "magma", direction = -1, 
-                       name = "Predicted incidence \n of deaths per 100k") +
+  scale_fill_viridis_c(breaks = c(0, 0.25, 0.5, 0.75, 1), limits=c(0, 1),
+                       option = "magma", direction = 1, 
+                       name = "Predicted reporting") +
   theme_void(base_size = 20)
 
 
@@ -94,10 +103,9 @@ figM4 <- (M4.A | ((M4.B / M4.C) + plot_layout(nrow = 2))) + plot_layout(widths =
 ggsave("figs/M4.jpeg", figM4, device = "jpeg", height = 14, width = 12)
 
 ## National deaths
-preds_burden %>%
-  group_by(data_source, covar_name, scale, pop_predict, ctar_bump, 
-           summed, intercept) %>% 
-  summarize_at(vars(bites_mean:averted_lower05, pop), sum, na.rm = TRUE) -> preds_national
-filter(preds_national, data_source == "National", pop_predict == "flatPop", 
-       intercept == "random") -> check
+burden_preds %>%
+  group_by(scale) %>%
+  summarize(deaths_mean = sum(deaths_mean, na.rm = TRUE),
+            deaths_upper = sum(deaths_upper, na.rm = TRUE), 
+            deaths_lower = sum(deaths_lower, na.rm = TRUE)) -> natl_burden
 
