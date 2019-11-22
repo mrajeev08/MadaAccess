@@ -43,8 +43,10 @@ ref_against <- function(x, base_ref) {
 } 
 
 library(geosphere)
+library(rgeos)
 new_cells <- calculate_grid(shape = mada_districts, grid_type = "hexagonal", seed = 1)
-shape_pts <- coordinates(mada_districts)
+# shape_pts <- coordinates(mada_districts)
+shape_pts <- gCentroid(mada_districts, byid = TRUE)
 cell_pts <- new_cells[[1]]
 
 dist_mat <- distm(shape_pts, cell_pts)
@@ -57,6 +59,7 @@ match_df <- data.table(distcode = rownames(dist_mat), hex_id, base_ref)
 match_df <- match_df[, .SD[base_ref == min(base_ref)], by = hex_id]
 match_df <- match_df[merge_df, on = "hex_id"] ## NAs for ones with no matches or multiple matches
 match_df$base_ref[is.na(match_df$base_ref)] <- Inf
+setorder(match_df, hex_id)
 dist_mat_now <- dist_mat[!(rownames(dist_mat) %in% match_df$distcode), ] # Only rows without a unique match
 print(nrow(dist_mat_now))
 
