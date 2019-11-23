@@ -18,11 +18,23 @@ library(geosphere)
 library(rgeos)
 library(spdep)
 library(tidyverse)
+library(sf)
 source("R/functions/utils.R")
 
 ##' Load in GIS files 
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
+
+check <- mada_communes[mada_communes$distcode == levels(mada_communes$distcode)[1], ]
+check_1 <- calculate_grid(shape = check, grid_type = "hexagonal", seed = 4)
+check_1 <- check_1[[2]]
+check_1_area <- check_1@polygons[[1]]@area
+
+check <- mada_communes[mada_communes$distcode == levels(mada_communes$distcode)[2], ]
+check_2 <- calculate_grid(shape = check, grid_type = "hexagonal", seed = 4)
+check_2 <- check_2[[2]]
+check_2_area <- check_2@polygons[[1]]@area
+
 
 ##' Communes manually assigned
 communes_hex <- readOGR("data/processed/shapefiles/mada_communes_hex.shp")
@@ -32,7 +44,7 @@ ncomms %>%
   left_join(check) -> check
 check %>% mutate(diff = ncomms - ncomms_man) -> check
 
-## For each 
+## For each district (assign communes within by directionality from centroid)
 
 ## Commune
 ## Check the potentials, here seed 3 looks the best
@@ -59,6 +71,9 @@ dist_comms <- as.data.table(dist_comms)
 adj_mat <- poly2nb(comm_cells[[2]], row.names = 1:1579)
 adj_mat <- nb2mat(adj_mat, style = "B", zero.policy = TRUE)
 colnames(adj_mat) <- rownames(adj_mat)
+
+## Doesnt't really work, need to assign edges 1st
+## Set order to assigning for districts
 
 ## If you want to start over start here
 adj_pairs <- melt(data.table(cell_id = rownames(adj_mat), adj_mat), id.vars = "cell_id")
