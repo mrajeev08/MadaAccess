@@ -102,14 +102,24 @@ patient_ts %>%
   
 ## Do average of 3 doses per patient at days 0, 3, 7
 ## Get completion of subsequent doses by clinic
-get.vials <- function(x) {
+get.vials.3 <- function(x) {
   day0 <- round(runif(x, min = 1, max = 365))
   days <- data.table(days = c(day0, day0 + 3, day0 + 7))
   return(sum(days[, .(.N), by = days][, ceiling(N/2)]))
 }
 
-mean.vials <- function(patients, n){ 
-  mean(replicate(n, get.vials(patients)))
+get.vials.4 <- function(x) {
+  day0 <- round(runif(x, min = 1, max = 365))
+  days <- data.table(days = c(day0, day0 + 3, day0 + 7, day0 + 28))
+  return(sum(days[, .(.N), by = days][, ceiling(N/2)]))
+}
+
+mean.vials.3 <- function(patients, n){ 
+  mean(replicate(n, get.vials.3(patients)))
+}
+
+mean.vials.4 <- function(patients, n){ 
+  mean(replicate(n, get.vials.4(patients)))
 }
 
 ctar_bites %>%
@@ -117,13 +127,25 @@ ctar_bites %>%
   mutate_at(vars(starts_with("include")), 
             ~case_when(is.na(.) ~ 0, 
                       !is.na(.) ~ .)) %>%
-  mutate_at(vars(starts_with("include")), ~unlist(lapply(., mean.vials, n = 100))) %>%
-  group_by(id_ctar) -> vial_ests
+  mutate_at(vars(starts_with("include")), ~unlist(lapply(., mean.vials.3, n = 100))) %>%
+  group_by(id_ctar) %>%
+  mutate(vials = 3) -> vial_ests_3
+
+ctar_bites %>%
+  ungroup() %>%
+  mutate_at(vars(starts_with("include")), 
+            ~case_when(is.na(.) ~ 0, 
+                       !is.na(.) ~ .)) %>%
+  mutate_at(vars(starts_with("include")), ~unlist(lapply(., mean.vials.4, n = 100))) %>%
+  group_by(id_ctar) %>%
+  mutate(vials = 4) -> vial_ests_4
+
+vial_ests <- bind_rows(vial_ests_3, vial_ests_4)
 
 vial_ests %>%
   filter(year != 2017) %>%
   select(-year) %>%
-  group_by(id_ctar, ctar) %>%
+  group_by(id_ctar, ctar, vials) %>%
   summarize_all(sum) %>%
   pivot_longer(cols = starts_with("include")) -> vials_summed
   
@@ -137,17 +159,21 @@ ctar_metadata %>%
                              name == "include_10" ~ 10, 
                              name == "include_15" ~ 15,
                              name == "include_30" ~ 30, 
-                             name == "include_all" ~ Inf)) -> vial_comp
+                             name == "include_all" ~ Inf)) %>%
+  pivot_wider(names_from = "vials", names_prefix = "mean", values_from = "value") -> vial_comp
 
-ggplot(data = vial_comp, aes(x = vials_observed, y = value, color = factor(cut_off))) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1, color = "grey", size = 1.1, linetype = 2) +
-  scale_color_brewer(type = "seq", palette = "Blues") +
+
+ggplot(data = vial_comp, aes(x = ctar, fill = factor(cut_off), group = interaction(ctar, cut_off))) +
+  geom_boxplot(aes(ymin = mean3 - vials_observed, lower = mean3 - vials_observed, middle = 0, 
+                   upper = mean4 - vials_observed, ymax = mean4 - vials_observed),
+               stat = "identity") + 
+  scale_fill_brewer(type = "seq", palette = "Blues") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.minor = element_blank()) +
   xlab("Observed") +
-  ylab("Estimated")
+  ylab("Estimated") +
+  coord_flip()
 
-ggplot(data = vial_comp, aes(x= (value - vials_observed)/vials_observed, size = vials_observed, 
+ggplot(data = vial_comp, aes(x = (value - vials_observed)/vials_observed, size = vials_observed, 
                              y = ctar, color = factor(cut_off))) +
   geom_point() +
   geom_vline(xintercept = 0, color = "grey", size = 1.1) +
@@ -158,9 +184,9 @@ ggplot(data = vial_comp, aes(x= (value - vials_observed)/vials_observed, size = 
 
 vial_comp %>%
   group_by(cut_off, ctar) %>%
-  mutate(se_squared = sum((value - vials_observed)^2)) -> check
+  mutate(se_squared_3 = sum((mean4 - vials_observed)^2)) -> check
 
-ggplot(data = check, aes(x = factor(cut_off), y = se_squared)) +
+ggplot(data = check, aes(x = factor(cut_off), y = se_squared_3)) +
   geom_boxplot(outlier.shape = NA) +
   ggbeeswarm::geom_beeswarm(color = "black", alpha = 0.5)
 
@@ -197,44 +223,31 @@ figS1.2A <- ggplot(data = contacts, aes(x = ctar, y = no_patients, color = as.fa
   coord_flip() +
   labs(tag = "A")
 
-##' Testing with Moramanga and IPM data (known contacts)
-##' First filter to IPM and Moramanga
-national %>%
-  filter(source == "IPM") %>%
-  filter(year(date_reported) > 2013, year(date_reported) < 2018, !is.na(distcode), !is.na(id_ctar)) %>%
-  mutate(date_reported = ymd(date_reported)) %>%
-  group_by(date_reported, id_ctar) %>%
-  summarise(no_patients = n(), 
-            known_contacts = sum(known_cat1)) %>%
-  ungroup() %>%
-  complete(date_reported = seq(min(date_reported), max(date_reported), by = "day"), id_ctar, 
-           fill = list(no_patients = 0)) -> ipm_data
+##' Testing with Moramanga
 moramanga %>%
   mutate(date_reported = ymd(date_reported)) %>%
   filter(date_reported >= "2016-10-01", date_reported <= "2019-06-01") %>%
-  group_by(date_reported, id_ctar) %>%
+  group_by(date_reported) %>%
   summarise(no_patients = n(), 
             known_contacts = sum(known_cat1)) %>%
   ungroup() %>%
-  complete(date_reported = seq(min(date_reported), max(date_reported), by = "day"), id_ctar, 
+  complete(date_reported = seq(min(date_reported), max(date_reported), by = "day"), 
            fill = list(no_patients = 0, known_contacts = 0)) %>%
-  bind_rows(ipm_data) %>%
-  group_by(id_ctar) %>%
   arrange(date_reported, .by_group = TRUE) %>%
   mutate(mean_throughput = mean(no_patients),
-         sd_throughput = sd(no_patients)) -> contacts
+         sd_throughput = sd(no_patients)) -> contacts_mora
 
 est_contacts <- function(x, mean_throughput, cut_off, sd_throughput) {
   ifelse(x >= mean_throughput + cut_off*sd_throughput, 1, 0)
 }
 
-map_dfc(seq(1, 10, by = 0.25), function(x) ifelse(contacts$no_patients >= 
-                                                    contacts$mean_throughput + 
-                                                    contacts$sd_throughput*x, 1, 0)) %>%
+map_dfc(seq(1, 10, by = 0.25), function(x) ifelse(contacts_mora$no_patients >= 
+                                                    contacts_mora$mean_throughput + 
+                                                    contacts_mora$sd_throughput*x, 1, 0)) %>%
   setNames(seq(1, 10, by = 0.25)) %>%
-  bind_cols(contacts, .) %>%
+  bind_cols(contacts_mora, .) %>%
   pivot_longer(`1`:`10`, names_to = "sd", values_to = "excluded") %>%
-  group_by(sd, id_ctar) %>%
+  group_by(sd) %>%
   mutate(total_known = sum(known_contacts), 
          total_bites = sum(no_patients - known_contacts)) %>%
   filter(excluded == 1) %>%
@@ -243,22 +256,18 @@ map_dfc(seq(1, 10, by = 0.25), function(x) ifelse(contacts$no_patients >=
   pivot_longer(contacts:bites, names_to = "prop", 
                values_to = "excluded") -> contacts_cutoff
 
-
 ##' Plot
-S1.2B <- ggplot(contacts_cutoff, aes(x = as.numeric(sd), y = excluded, color = prop, 
-                                     linetype = factor(id_ctar), 
-                                     group = interaction(prop, id_ctar))) +
+figS1.2B <- ggplot(contacts_cutoff, aes(x = as.numeric(sd), y = excluded, color = prop)) +
   geom_line() +
   scale_color_manual(name = "Type of patient", values = c("blue", "red"), 
                      labels = c("Cat II/II", "Cat I")) + 
-  scale_linetype_manual(name = "Data source", values = c(1, 2),
-                     labels = c("5" = "IPM", "8" = "Moramanga")) + 
   xlab("Number of standard \n deviations above the mean") +
   ylab("Proportion excluded") +
   labs(tag = "B")
 
 ##' Also make the point that contacts have different ttime distribution than reported bites (so
 ##' more for getting the impact of travel times right)
-figS2.1 <- A / B
-## figS2.1
-ggsave("figs/S2.1.jpeg", figS2.1, device = "jpeg", height = 7, width = 7)
+figS1.2 <- figS1.2A | figS1.2B
+
+## figS1.2
+ggsave("figs/S1.2.jpeg", figS1.2, device = "jpeg", height = 7, width = 9)
