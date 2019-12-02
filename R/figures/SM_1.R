@@ -101,6 +101,7 @@ patient_ts %>%
   mutate_at(vars(starts_with("include")), f, num = quote(no_patients)) -> ctar_bites
   
 ## Do average of 3 doses per patient at days 0, 3, 7
+## Get completion of subsequent doses by clinic
 get.vials <- function(x) {
   day0 <- round(runif(x, min = 1, max = 365))
   days <- data.table(days = c(day0, day0 + 3, day0 + 7))
@@ -188,7 +189,7 @@ national %>%
 
 
 ##' FigS1.2A
-A <- ggplot(data = contacts, aes(x = ctar, y = no_patients, color = as.factor(estimated_cat1))) +
+figS1.2A <- ggplot(data = contacts, aes(x = ctar, y = no_patients, color = as.factor(estimated_cat1))) +
   scale_color_manual(name = "Exclude", values = c("navy", "red"), labels = c("No", "Yes")) +
   ylab("Number of patients per day") +
   xlab("ARMC") +
@@ -199,17 +200,59 @@ A <- ggplot(data = contacts, aes(x = ctar, y = no_patients, color = as.factor(es
 ##' Testing with Moramanga and IPM data (known contacts)
 ##' First filter to IPM and Moramanga
 national %>%
-  filter(ctar == "IPM") %>%
-  
-##' Then get throughput and mean and sd
-##' Then get dates to include by (1, 2, 3, 4, 5, 10)
-##' Merge back with individual patient data
+  filter(source == "IPM") %>%
+  filter(year(date_reported) > 2013, year(date_reported) < 2018, !is.na(distcode), !is.na(id_ctar)) %>%
+  mutate(date_reported = ymd(date_reported)) %>%
+  group_by(date_reported, id_ctar) %>%
+  summarise(no_patients = n(), 
+            known_contacts = sum(known_cat1)) %>%
+  ungroup() %>%
+  complete(date_reported = seq(min(date_reported), max(date_reported), by = "day"), id_ctar, 
+           fill = list(no_patients = 0)) -> ipm_data
+moramanga %>%
+  mutate(date_reported = ymd(date_reported)) %>%
+  filter(date_reported >= "2016-10-01", date_reported <= "2019-06-01") %>%
+  group_by(date_reported, id_ctar) %>%
+  summarise(no_patients = n(), 
+            known_contacts = sum(known_cat1)) %>%
+  ungroup() %>%
+  complete(date_reported = seq(min(date_reported), max(date_reported), by = "day"), id_ctar, 
+           fill = list(no_patients = 0, known_contacts = 0)) %>%
+  bind_rows(ipm_data) %>%
+  group_by(id_ctar) %>%
+  arrange(date_reported, .by_group = TRUE) %>%
+  mutate(mean_throughput = mean(no_patients),
+         sd_throughput = sd(no_patients)) -> contacts
+
+est_contacts <- function(x, mean_throughput, cut_off, sd_throughput) {
+  ifelse(x >= mean_throughput + cut_off*sd_throughput, 1, 0)
+}
+
+map_dfc(seq(1, 10, by = 0.25), function(x) ifelse(contacts$no_patients >= 
+                                                    contacts$mean_throughput + 
+                                                    contacts$sd_throughput*x, 1, 0)) %>%
+  setNames(seq(1, 10, by = 0.25)) %>%
+  bind_cols(contacts, .) %>%
+  pivot_longer(`1`:`10`, names_to = "sd", values_to = "excluded") %>%
+  group_by(sd, id_ctar) %>%
+  mutate(total_known = sum(known_contacts), 
+         total_bites = sum(no_patients - known_contacts)) %>%
+  filter(excluded == 1) %>%
+  summarize(contacts= sum(known_contacts)/total_known[1], 
+            bites = sum(no_patients - known_contacts)/total_bites[1]) %>%
+  pivot_longer(contacts:bites, names_to = "prop", 
+               values_to = "excluded") -> contacts_cutoff
+
+
 ##' Plot
-B <- ggplot(check, aes(x = sd, y = prop_contacts, color = prop_bites)) +
-  geom_line() +
+S1.2B <- ggplot(contacts_cutoff, aes(x = as.numeric(sd), y = excluded, color = prop, 
+                                     linetype = factor(id_ctar), 
+                                     group = interaction(prop, id_ctar))) +
   geom_line() +
   scale_color_manual(name = "Type of patient", values = c("blue", "red"), 
-                     labels = c("Bites/scratches", "Low-risk contacts")) + 
+                     labels = c("Cat II/II", "Cat I")) + 
+  scale_linetype_manual(name = "Data source", values = c(1, 2),
+                     labels = c("5" = "IPM", "8" = "Moramanga")) + 
   xlab("Number of standard \n deviations above the mean") +
   ylab("Proportion excluded") +
   labs(tag = "B")
