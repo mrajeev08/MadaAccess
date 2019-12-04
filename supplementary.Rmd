@@ -1,0 +1,43 @@
+---
+title: "Supplementary Materials"
+author: ""
+date: 
+output:
+  html_document: default
+  pdf_document:
+    includes:
+      in_header: format/mystyle.sty
+  word_document:
+    reference_docx: format/word_styles_reference_01.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## S1. Estimating travel times to the nearest ARMC 
+
+```{r ttimes}
+```
+
+## S2. Correcting data for underreporting and excluding Category I exposures
+
+### Underreporting of forms
+Figure S1.1 correcting
+```{r reporting}
+```
+Figure S1.2 vial ests
+
+### Cat I exposures
+Figure S1.3 contacts
+```{r cat I}
+```
+Figure S1.4 ttime differences
+
+## S3. Candidate models of bite incidence
+
+## S4. Sensitivity of these models to reporting/contact cut_offs
+
+## S5. Incrementally adding clinics (where they were added, shifts in ttimes + catchment pops, shifts in burden/reporting etc. --answer q here: why are there still abt 100 deaths)
+
+## S6. Sensitivity of burden estimates to parameter assumptions (baseline + incremental)
