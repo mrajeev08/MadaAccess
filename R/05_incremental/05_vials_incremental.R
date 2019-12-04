@@ -8,7 +8,15 @@
 ##' ------------------------------------------------------------------------------------------------
 rm(list = ls())
 
+##' Init MPI Backend
+Sys.time()
+library(doMPI)
+cl <- startMPIcluster()
+clusterSize(cl) # this just tells you how many you've got
+registerDoMPI(cl)
+
 ##' Libraries and scripts
+library(doParallel)
 library(data.table)
 library(magrittr)
 library(foreach)
@@ -16,65 +24,70 @@ library(doRNG)
 library(iterators)
 library(tidyverse)
 source("R/functions/predict_bites.R")
+source("R/functions/utils.R")
 select <- dplyr::select
 
 ## Commune
 ##' For simulating vials and doing scenario analysis
 catch_comm <- fread("output/preds/partial/bites_bycatch_comm.csv")
-
-## Filter to only the catchments that have changed
-catch_comm[, check := rowSums(catch_mat)]
-setorder(catch_comm, catch, scenario)
-catch_comm[, diff := (check - shift(check, 1)), by = catch]
-catch_comm <- catch_comm[diff != 0 | scenario %in% c(0, 1648)]
 catch_mat <- as.matrix(catch_comm[, -c("catch", "scenario", "check", "diff"), with = FALSE])
 
-## Getting vials
+# ## Parallelize
+# cores <- 3
+# cl <- makeCluster(cores)
+# registerDoParallel(cl)
+
 ## Simulate vials at admin level
 foreach(bycatch = iter(catch_mat, by = "row"), .combine = rbind, .export = 'get.vials', 
         .packages = 'data.table') %dopar% {
           vials <- unlist(sapply(bycatch, get.vials))
           mean <- mean(vials, na.rm = TRUE)
           sd <- sd(vials, na.rm = TRUE)
-          upper <- mean + 1.96*sd/sqrt(ncol(vials))
-          lower <- mean - 1.96*sd/sqrt(ncol(vials))
+          upper <- mean + 1.96*sd/sqrt(length(vials))
+          lower <- mean - 1.96*sd/sqrt(length(vials))
           out <- data.table(vials_mean = mean, vials_upper = upper, vials_lower = lower)
  } -> vials_comm
+
+# stopCluster(cl)
 
 vials_comm <- data.table(catch = catch_comm$catch, scenario = catch_comm$scenario,
                          scale = "Commune", vials_comm)
 
-
-vials <- apply(catch_mat, c(1, 2), get.vials)
-mean <- rowMeans(vials, na.rm = TRUE) ## mean for each row = admin unit
-sd <- apply(vials, 1, sd, na.rm = TRUE)
-upper <- mean + 1.96*sd/sqrt(ncol(vials))
-lower <- mean - 1.96*sd/sqrt(ncol(vials))
-vials_comm <- data.table(vials_mean = mean, vials_upper = upper, vials_lower = lower,
-                         catch = catch_comm$catch, scenario = catch_comm$scenario, 
-                         scale = "Commune")
-
 ## District
 catch_dist <- fread("output/preds/partial/bites_bycatch_dist.csv")
-catch_mat <- as.matrix(catch_dist[, -c("catch", "scenario"), with = FALSE])
-
-## Filter to only the catchments that have changed
-catch_dist[, check := rowSums(catch_mat)]
-setorder(catch_dist, catch, scenario)
-catch_dist[, diff := (check - shift(check, 1)), by = catch]
-catch_dist <- catch_dist[diff != 0 | scenario %in% c(0, 1648)]
 catch_mat <- as.matrix(catch_dist[, -c("catch", "scenario", "check", "diff"), with = FALSE])
 
-vials <- apply(catch_mat, c(1, 2), get.vials)
-mean <- rowMeans(vials, na.rm = TRUE) ## mean for each row = admin unit
-sd <- apply(vials, 1, sd, na.rm = TRUE)
-upper <- mean + 1.96*sd/sqrt(ncol(vials))
-lower <- mean - 1.96*sd/sqrt(ncol(vials))
-vials_dist <- data.table(vials_mean = mean, vials_upper = upper, vials_lower = lower,
-                         catch = catch_dist$catch, scenario = catch_dist$scenario, 
-                         scale = "District")
+# ## Parallelize
+# cores <- 3
+# cl <- makeCluster(cores)
+# registerDoParallel(cl)
+
+## Simulate vials at admin level
+foreach(bycatch = iter(catch_mat, by = "row"), .combine = rbind, .export = 'get.vials', 
+        .packages = 'data.table') %dopar% {
+          vials <- unlist(sapply(bycatch, get.vials))
+          mean <- mean(vials, na.rm = TRUE)
+          sd <- sd(vials, na.rm = TRUE)
+          upper <- mean + 1.96*sd/sqrt(length(vials))
+          lower <- mean - 1.96*sd/sqrt(length(vials))
+          out <- data.table(vials_mean = mean, vials_upper = upper, vials_lower = lower)
+        } -> vials_dist
+
+# stopCluster(cl)
+
+vials_dist <- data.table(catch = catch_dist$catch, scenario = catch_dist$scenario,
+                         scale = "District", vials_dist)
 
 ##' Output results 
 ##' ------------------------------------------------------------------------------------------------
 vials_bycatch_incremental <- rbind(vials_dist, vials_comm)
 fwrite(vials_bycatch_incremental, "output/preds/partial/vials_bycatch_partial.csv")
+
+##' Saving session info
+out.session(path = "R/05_vials_incremental.R", filename = "sessionInfo.csv")
+
+##' Close out cluster
+closeCluster(cl)
+mpi.quit()
+print("Done :)")
+Sys.time()
