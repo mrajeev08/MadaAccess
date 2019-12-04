@@ -7,8 +7,7 @@ if (summed == TRUE) {
     sigma_0 ~ dunif(0, 100) # SD hyperparameter for random intercepts
     tau_0 <- pow(sigma_0, -2)
     beta_0 ~ dnorm(0, 10^-6)
-    beta_ctar ~ dnorm(0, 10^-6)
-    beta_access ~ dnorm(0, 10^-6) 
+    beta_ttimes ~ dnorm(0, 10^-6) 
 
     for (i in 1:ncatches) {
         alpha[i] ~ dnorm(beta_0, tau_0) # Random intercepts
@@ -16,7 +15,7 @@ if (summed == TRUE) {
  
     # Likelihood
     for (i in 1:ncovars) {
-      exp_bites[i] <- exp(alpha[catch[i]] + beta_access*access[i] + beta_ctar*ctar_in[i])*pop[i]
+      exp_bites[i] <- exp(alpha[catch[i]] + beta_ttimes*ttimes[i])*pop[i]
     }
     
     for(k in 1:nlocs) {
@@ -27,7 +26,7 @@ if (summed == TRUE) {
   }"
   
   ## data
-  data <- list(bites = round(bites), access = access, ctar_in = ctar_in, pop = pop,
+  data <- list(bites = round(bites), ttimes = ttimes, pop = pop,
                catch = catch, ncatches = ncatches, 
                ncovars = ncovars, nlocs = nlocs, start = start, end = end)
   
@@ -40,8 +39,7 @@ if(summed == FALSE) {
     beta_0 ~ dnorm(0, 10^-6) # Mean hyperparameter for random intercepts
     sigma_0 ~ dunif(0, 100) # SD hyperparameter for random intercepts
     tau_0 <- 1/(sigma_0*sigma_0)
-    beta_ctar ~ dnorm(0, 10^-6)
-    beta_access ~ dnorm(0, 10^-6) 
+    beta_ttimes ~ dnorm(0, 10^-6) 
     
     for (i in 1:ncatches) {
         alpha[i] ~ dnorm(beta_0, tau_0) # Random intercepts
@@ -49,33 +47,32 @@ if(summed == FALSE) {
 
     # Likelihood
     for (i in 1:nlocs) {
-        exp_bites[i] <- exp(alpha[catch[i]] + beta_access*access[i] + beta_ctar*ctar_in[i])*pop[i] 
+        exp_bites[i] <- exp(alpha[catch[i]] + beta_ttimes*ttimes[i])*pop[i] 
         bites[i] ~ dpois(exp_bites[i]) # The actual (random) responses
     }
   }"
   
   ## data
-  data <- list(bites = round(bites), access = access, ctar_in = ctar_in, pop = pop,
+  data <- list(bites = round(bites), ttimes = ttimes, pop = pop,
                catch = catch, ncatches = ncatches, nlocs = nlocs)
 }
 
 ## params
-params <- c("alpha", "beta_0", "beta_access", "beta_ctar", "sigma_0")
+params <- c("alpha", "beta_0", "beta_ttimes", "sigma_0")
 ## inits
 inits <- list(alpha = rnorm(ncatches, 0, 1e-6),
               beta_0 = rnorm(1, 0, 1e-6), 
-              beta_access = rnorm(1, 0, 1e-6),
-              beta_ctar = rnorm(1, 0, 1e-6),
+              beta_ttimes = rnorm(1, 0, 1e-6),
               sigma_0 = rlnorm(1))
 
 ## Other options
 if(pop_predict =="addPop") {
   ## edit model text accordingly
-  model <- gsub("beta_access ~ dnorm(0, 10^-6)",
-                "beta_access ~ dnorm(0, 10^-6)\n    beta_pop ~ dnorm(0, 10^-6)", 
+  model <- gsub("beta_ttimes ~ dnorm(0, 10^-6)",
+                "beta_ttimes ~ dnorm(0, 10^-6)\n    beta_pop ~ dnorm(0, 10^-6)", 
                 model, fixed = TRUE)   # add extra params + priors
-  model <- gsub("exp(alpha[catch[i]] + beta_access*access[i] + beta_ctar*ctar_in[i])*pop[i]",
-                "exp(alpha[catch[i]] + beta_access*access[i] + beta_ctar*ctar_in[i] + beta_pop*pop[i]/trans)", 
+  model <- gsub("exp(alpha[catch[i]] + beta_ttimes*ttimes[i])*pop[i]",
+                "exp(alpha[catch[i]] + beta_ttimes*ttimes[i] + beta_pop*pop[i]/trans)", 
                 model, fixed = TRUE)    # change formula for exp_bites
   ## data add in trans
   data <- c(data, trans = trans)
@@ -87,30 +84,17 @@ if(pop_predict =="addPop") {
 
 if(pop_predict =="onlyPop") {
   ## edit model text accordingly
-  model <- gsub("beta_access ~ dnorm(0, 10^-6)",
+  model <- gsub("beta_ttimes ~ dnorm(0, 10^-6)",
                 "beta_pop ~ dnorm(0, 10^-6)", model, fixed = TRUE)   # remove extra params + priors
-  model <- gsub("exp(alpha[catch[i]] + beta_access*access[i] + beta_ctar*ctar_in[i])*pop[i]",
-                "exp(alpha[catch[i]] + beta_pop*pop[i]/trans + beta_ctar*ctar_in[i])",
+  model <- gsub("exp(alpha[catch[i]] + beta_ttimes*ttimes[i])*pop[i]",
+                "exp(alpha[catch[i]] + beta_pop*pop[i]/trans)",
                 model, fixed = TRUE)   # change formula for exp_bites
   ## data add in trans
   data <- c(data, trans = trans)
   params <- c(params, "beta_pop")
   
-  ## remove access from every bit
-  data[["access"]] <- NULL
-  inits[["beta_access"]] <- NULL
-  params <- params[params != "beta_access"]
-}
-
-if(ctar_bump == FALSE) {
-  ## edit model text accordingly
-  model <- gsub("beta_ctar ~ dnorm(0, 10^-6)",
-                "", model, fixed = TRUE)   # remove extra params + priors
-  model <- gsub("+ beta_ctar*ctar_in[i]",
-                "", model, fixed = TRUE)   # change formula for exp_bites
-  ## remove ctar from every bit
-  data[["ctar_in"]] <- NULL
-  inits[["beta_ctar"]] <- NULL
-  params <- params[params != "beta_ctar"]
-  
+  ## remove ttimes from every bit
+  data[["ttimes"]] <- NULL
+  inits[["beta_ttimes"]] <- NULL
+  params <- params[params != "beta_ttimes"]
 }
