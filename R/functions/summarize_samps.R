@@ -42,3 +42,47 @@ get.samps <- function(parent_dir = "output/samps/",
   
   return(all_samps)
 }
+
+## Function to summarize results in output directory (or in other directories accordingly)
+get.samps.se <- function(parent_dir = "output/samps/", 
+                      files = list.files("output/samps", recursive = TRUE)) {
+  ## testing
+  # parent_dir <- "output/mods/samps/National_se/"
+  # files <- list.files("output/mods/samps/National_se", recursive = TRUE)
+
+  ## Response var structure
+  pop_predict <- case_when(grepl("flatPop", files, fixed = TRUE) ~ "flatPop",
+                           grepl("addPop", files, fixed = TRUE) ~ "addPop",
+                           grepl("onlyPop", files, fixed = TRUE) ~ "onlyPop")
+  
+  ## Location 
+  intercept <- case_when(grepl("fixed", files, fixed = TRUE) ~ "fixed",
+                         grepl("random", files, fixed = TRUE) ~ "random")
+  
+  ## Scale 
+  scale <- case_when(grepl("Commune", files, fixed = TRUE) ~ "Commune",
+                     grepl("District", files, fixed = TRUE) ~ "District")
+  ## Structure 
+  data_source <- case_when(grepl("Moramanga", files, fixed = TRUE) ~ "Moramanga",
+                           grepl("National", files, fixed = TRUE) ~ "National")
+  ## Contact cutoff
+  contact_cutoff <- str_split(files, "_", simplify = TRUE)[, 2]
+  ## Reporting cutoff
+  rep_cutoff <- str_split(files, "_", simplify = TRUE)[, 3]
+  
+  ## file data table
+  file_dt <- as.data.frame(list(filenames = files, pop_predict = pop_predict, scale = scale,
+                                intercept = intercept, data_source = data_source, 
+                                rep_cutoff = rep_cutoff, contact_cutoff = contact_cutoff))
+
+  ## Pull in samples
+  all_samps <- foreach(i = 1:nrow(file_dt)) %do% {
+    samples <- readRDS(paste0(parent_dir, file_dt$filenames[i]))
+    samples <- as.data.frame(do.call(rbind, samples[[1]]))
+    samples <- data.frame(samples, file_dt[i, -1], row.names = NULL)
+  }
+  
+  all_samps <- bind_rows(all_samps)
+  
+  return(all_samps)
+}
