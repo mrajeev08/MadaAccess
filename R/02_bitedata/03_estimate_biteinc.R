@@ -128,7 +128,7 @@ mada_communes$ctch_dist <- mada_districts$catchment[match(mada_communes$distcode
                                                                  mada_districts$distcode)]
 mada_communes@data %>%
   filter(exclude_dist == 0) %>%
-  mutate(catch = as.numeric(droplevels(catchment)),
+  mutate(catch = as.numeric(droplevels(ctch_dist)),
          group = as.numeric(droplevels(distcode))) %>%
   arrange(group) -> comm_covars
 district_bites$end <- cumsum(rle(comm_covars$group)$lengths)
@@ -157,7 +157,7 @@ mora_bites$catch <- district_bites$catch[district_bites$catchment == "Moramanga"
 ## Write out bite data and covariate data
 fwrite(district_bites, "output/bites/district_bites.csv")
 fwrite(comm_covars, "output/bites/comm_covars.csv")
-fwrite(mora_bites, "output/mora_bites.csv")
+fwrite(mora_bites, "output/bites/mora_bites.csv")
 
 ##' Session Info
 out.session(path = "R/02_bitedata/03_estimate_biteinc.R", filename = "sessionInfo.csv")
