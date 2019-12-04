@@ -14,44 +14,41 @@ library(rgdal) # for shapefiles (also comes with sp)
 library(raster) # for rasters and resampling
 library(geogrid)
 library(data.table)
-library(geosphere)
-library(rgeos)
-library(spdep)
-library(tidyverse)
-library(sf)
 source("R/functions/utils.R")
 
 ##' Load in GIS files 
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
+friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
+ctar_metadata <- fread("data/raw/ctar_metadata.csv")
 
-test_pol <- mada_communes[mada_communes$distcode == levels(mada_communes$distcode)[1], ]
-test_points <- SpatialPoints(coordinates(test_pol), proj4string = crs(test_pol))
-check <- test_points[1, ]
-cands <- test_points[-1, ]
-bears <- bearing(check, cands)
-buff <- buffer(check, width = 2500)
-pts_within <- cands[buff, ]
-bears_within <- bears[!is.na(over(cands, buff))]
+## Getting ctar district and commune
+ctar_metadata$ctar_dist <- mada_districts$distcode[match(ctar_metadata$District, 
+                                                         mada_districts$district)]
+pts <- SpatialPoints(cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE), 
+                     proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+ctar_metadata$ctar_comm <- over(pts, mada_communes)$commcode
+mada_districts$ctar_in_dist <- ifelse(mada_districts$distcode %in% ctar_metadata$ctar_dist, 1, 0)
+mada_communes$ctar_in_comm <- ifelse(mada_communes$commcode %in% ctar_metadata$ctar_comm, 1, 0)
 
-get.angle <- function(origin, dest) {
-  atan2(sin(dest[, 1] - origin[, 1]), cos(origin[, 2]*sin(dest[, 2]) - 
-                                                 sin(origin[, 1])*cos(dest[, 2])*cos(dest[, 1] - origin[, 1])))
-}
+## Hexagonal maps
+## Check the potentials, here seed 1 looks the best
+# for (i in 1:6) {
+#   new_cells <- calculate_grid(shape = mada_districts, grid_type = "hexagonal", seed = i)
+#   plot(new_cells, main = paste("Seed", i, sep = " "))
+# }
+new_cells <- calculate_grid(shape = mada_districts, grid_type = "hexagonal", seed = 1)
+district_hex <- assign_polygons(mada_districts, new_cells)
+writeOGR(district_hex, dsn = "data/processed/shapefiles", layer = "mada_districts_hex", 
+         driver = "ESRI Shapefile", overwrite_layer = TRUE)
 
-angle <- get.angle(check@coords, pts_within@coords)
-
-R = 6371e3 # earth's radius in meters
-phi_1 # lat in radians
-lamda_1 # long in radians
-d # distance in meters
-brng # bearing in degrees (clockwise from North)
-
-# Trig functions take arguments in radians, so latitude, longitude, and bearings in degrees (either decimal or degrees/minutes/seconds) need to be converted to radians, rad = π*deg/180. When converting radians back to degrees (deg = 180*rad/π), West is negative if using signed decimal degrees.
-
-var φ2 = Math.asin( Math.sin(φ1)*Math.cos(d/R) +
-                      Math.cos(φ1)*Math.sin(d/R)*Math.cos(brng) )
-var λ2 = λ1 + Math.atan2(Math.sin(brng)*Math.sin(d/R)*Math.cos(φ1)
-                         Math.cos(d/R)-Math.sin(φ1)*Math.sin(φ2))
-
-## transform radians back to degrees
+## Commune
+## Check the potentials, here seed 3 looks the best
+# for (i in 1:6) {
+#   new_cells <- calculate_grid(shape = mada_communes, grid_type = "hexagonal", seed = i)
+#   plot(new_cells, main = paste("Seed", i, sep = " "))
+# }
+new_cells <- calculate_grid(shape = mada_communes, grid_type = "hexagonal", seed = 5)
+commune_hex <- assign_polygons(mada_communes, new_cells)
+writeOGR(commune_hex, dsn = "data/processed/shapefiles", layer = "mada_communes_hex", 
+         driver = "ESRI Shapefile", overwrite_layer = TRUE)
