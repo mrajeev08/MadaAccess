@@ -69,11 +69,9 @@ admin_comm <- data.table(names = comm_run$commune_id,
                          ttimes = comm_run$weighted_times/60, pop = comm_run$pop, 
                          catch = comm_run$base_catches, scenario = comm_run$scenario, 
                          scale = "Commune", admin_comm)
-
-  
 ##' For simulating vials and doing scenario analysis
 catch_comm <- data.table(bite_mat, catch = comm_run$base_catches, scenario = comm_run$scenario, 
-                       names = comm_run$commune_id)
+                         names = comm_run$commune_id)
 catch_comm %>%
   complete(scenario = 0:472, names) %>%
   group_by(names) %>%
@@ -83,21 +81,11 @@ catch_comm <- as.data.table(catch_comm)[, names := NULL]
 catch_comm <- catch_comm[, lapply(.SD, sum, na.rm = TRUE), by = c("catch", "scenario")]
 catch_mat <- as.matrix(catch_comm[, -c("catch", "scenario"), with = FALSE])
 
-## Vials
+## Filter to only the catchments that have changed
 catch_comm[, check := rowSums(catch_mat)]
 setorder(catch_comm, catch, scenario)
-catch_comm[, diff := check - shift(check, 1), by = c("catch", "scenario")]
+catch_comm[, diff := (check - shift(check, 1)), by = catch]
 catch_comm <- catch_comm[diff != 0 | scenario %in% c(0, 1648)]
-catch_mat <- as.matrix(catch_comm[, -c("catch", "scenario", "check", "diff"), with = FALSE])
-
-vials <- apply(catch_mat, c(1, 2), get.vials)
-mean <- rowMeans(vials, na.rm = TRUE) ## mean for each row = admin unit
-sd <- apply(vials, 1, sd, na.rm = TRUE)
-upper <- mean + 1.96*sd/sqrt(ncol(vials))
-lower <- mean - 1.96*sd/sqrt(ncol(vials))
-vials_comm <- data.table(vials_mean = mean, vials_upper = upper, vials_lower = lower,
-                          catch = catch_comm$catch, scenario = catch_comm$scenario, 
-                          scale = "Commune")
 
 ##' District preds 
 ##' ------------------------------------------------------------------------------------------------
@@ -145,25 +133,15 @@ catch_dist <- as.data.table(catch_dist)[, names := NULL]
 catch_dist <- catch_dist[, lapply(.SD, sum, na.rm = TRUE), by = c("catch", "scenario")]
 catch_mat <- as.matrix(catch_dist[, -c("catch", "scenario"), with = FALSE])
 
-## Vials
+## Filter to only the catchments that have changed
 catch_dist[, check := rowSums(catch_mat)]
 setorder(catch_dist, catch, scenario)
-catch_dist[, diff := check - shift(check, 1), by = c("catch", "scenario")]
+catch_dist[, diff := (check - shift(check, 1)), by = catch]
 catch_dist <- catch_dist[diff != 0 | scenario %in% c(0, 1648)]
-catch_mat <- as.matrix(catch_dist[, -c("catch", "scenario", "check", "diff"), with = FALSE])
-
-vials <- apply(catch_mat, c(1, 2), get.vials)
-mean <- rowMeans(vials, na.rm = TRUE) ## mean for each row = admin unit
-sd <- apply(vials, 1, sd, na.rm = TRUE)
-upper <- mean + 1.96*sd/sqrt(ncol(vials))
-lower <- mean - 1.96*sd/sqrt(ncol(vials))
-vials_dist <- data.table(vials_mean = mean, vials_upper = upper, vials_lower = lower,
-                          catch = catch_dist$catch, scenario = catch_dist$scenario, 
-                          scale = "District")
 
 ##' Output results 
 ##' ------------------------------------------------------------------------------------------------
-vials_bycatch_incremental <- rbind(vials_dist, vials_comm)
-fwrite(vials_bycatch_incremental, "output/preds/partial/vials_bycatch_partial.csv")
 results_incremental <- rbind(admin_dist, admin_comm)
 fwrite(results_incremental, "output/preds/partial/burden_partial.csv")
+fwrite(catch_dist, "output/preds/partial/bites_bycatch_dist.csv")
+fwrite(catch_comm, "output/preds/partial/bites_bycatch_comm.csv")
