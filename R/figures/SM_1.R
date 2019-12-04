@@ -92,6 +92,14 @@ ggsave("figs/S1.1.jpeg", figS1.1, device = "jpeg", width = 7, height = 7)
 
 ##' Estimates of vials from reporting 
 ##' ------------------------------------------------------------------------------------------------
+##' Estimating completion by clinic
+##' Read in raw bite data
+peripheral <- read.csv("data/raw/bitedata/peripheral/SaisieRage_DATA_2018-09-21_1755.csv")
+load("data/raw/bitedata/ipm/ipm.rda")
+moramanga <- read.csv("data/raw/bitedata/moramanga/CTAR_%28V3%29_20190918150219.csv")
+
+
+## Getting bites at the ctar level
 f <- function(num, denom) num/denom
 patient_ts %>%
   mutate(year = year(date_reported)) %>%
@@ -159,36 +167,34 @@ ctar_metadata %>%
                              name == "include_10" ~ 10, 
                              name == "include_15" ~ 15,
                              name == "include_30" ~ 30, 
-                             name == "include_all" ~ Inf)) %>%
+                             name == "include_all" ~ Inf)) -> vial_ests
+vial_ests %>%
   pivot_wider(names_from = "vials", names_prefix = "mean", values_from = "value") -> vial_comp
 
-
-ggplot(data = vial_comp, aes(x = ctar, fill = factor(cut_off), group = interaction(ctar, cut_off))) +
-  geom_boxplot(aes(ymin = mean3 - vials_observed, lower = mean3 - vials_observed, middle = 0, 
-                   upper = mean4 - vials_observed, ymax = mean4 - vials_observed),
+ggplot(data = vial_comp, aes(x = ctar, fill = factor(cut_off), 
+                             color = ifelse(is.infinite(cut_off), "A", "B"), 
+                             group = interaction(ctar, cut_off))) +
+  geom_boxplot(aes(ymin = (mean3)/vials_observed, 
+                   lower = (mean3)/vials_observed, middle = 1, 
+                   upper = (mean4)/vials_observed,
+                   ymax = (mean4)/vials_observed),
                stat = "identity") + 
-  scale_fill_brewer(type = "seq", palette = "Blues") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.minor = element_blank()) +
-  xlab("Observed") +
-  ylab("Estimated") +
-  coord_flip()
-
-ggplot(data = vial_comp, aes(x = (value - vials_observed)/vials_observed, size = vials_observed, 
-                             y = ctar, color = factor(cut_off))) +
-  geom_point() +
-  geom_vline(xintercept = 0, color = "grey", size = 1.1) +
-  scale_color_brewer(type = "seq", palette = "Blues") +
+  geom_hline(yintercept = 1, color = "grey", size = 1.2) +
+  scale_fill_brewer(type = "seq", palette = "Blues", direction = -1) +
+  scale_color_manual(values = c("grey", "black"), guide = "none") +
+  scale_y_continuous(limits = c(-1, 5), oob = scales::squish) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.minor = element_blank()) +
   xlab("ARMC") +
-  ylab("Vial estimates")
+  ylab("Estimated/Observed") +
+  coord_flip()
 
-vial_comp %>%
-  group_by(cut_off, ctar) %>%
-  mutate(se_squared_3 = sum((mean4 - vials_observed)^2)) -> check
+vial_ests %>%
+  group_by(cut_off, ctar, vials) %>%
+  mutate(se_squared_3 = sum((value - vials_observed)^2)) -> check
 
-ggplot(data = check, aes(x = factor(cut_off), y = se_squared_3)) +
+ggplot(data = check, aes(x = factor(cut_off), y = se_squared_3, color = factor(vials))) +
   geom_boxplot(outlier.shape = NA) +
-  ggbeeswarm::geom_beeswarm(color = "black", alpha = 0.5)
+  ggbeeswarm::geom_beeswarm(alpha = 0.5) 
 
 ##' Contacts 
 ##' ------------------------------------------------------------------------------------------------
@@ -265,9 +271,14 @@ figS1.2B <- ggplot(contacts_cutoff, aes(x = as.numeric(sd), y = excluded, color 
   ylab("Proportion excluded") +
   labs(tag = "B")
 
-##' Also make the point that contacts have different ttime distribution than reported bites (so
-##' more for getting the impact of travel times right)
 figS1.2 <- figS1.2A | figS1.2B
 
 ## figS1.2
 ggsave("figs/S1.2.jpeg", figS1.2, device = "jpeg", height = 7, width = 9)
+
+##' Also make the point that contacts have different ttime distribution than reported bites (so
+##' more for getting the impact of travel times right)
+mora_bites <- fread("data/processed/bitedata/moramanga.csv")
+mora_bites$ttimes <- mada_communes$ttimes_wtd[match(mora_bites$commcode, mada_communes$commcode)]
+ggplot(data = filter(mora_bites, type != "transfer"), aes(x = factor(known_cat1), y = ttimes/60)) +
+  geom_violin()
