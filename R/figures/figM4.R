@@ -46,7 +46,7 @@ burden_preds %>%
   
 
 M4.A <- ggplot() +
-  geom_hline(data = natl_inc, aes(yintercept = natl_burden$natl_inc, color = scale), linetype = 1, 
+  geom_hline(data = natl_inc, aes(yintercept = natl_inc, color = scale), linetype = 1, 
              alpha = 0.75, size = 1.2) +
   geom_point(data = burden_to_plot, 
              aes(x = reorder(distcode, ttimes), y = deaths_mean/pop*1e5, 
@@ -75,27 +75,25 @@ gg_district %>%
 
 M4.B <- ggplot() +
   geom_polygon(data = gg_commune_plot,
-               aes(x = long, y = lat, group = group, fill = reporting_mean), 
+               aes(x = long, y = lat, group = group, fill = deaths_mean/pop*1e5), 
                color = "white", size = 0.1) +
   geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "grey50",
              shape = 4, size = 2, stroke = 1.5) +
   labs(tag = "B") +
-  scale_fill_viridis_c(breaks = c(0, 0.25, 0.5, 0.75, 1), limits=c(0, 1),
-                       option = "magma", direction = 1, 
-                      name = "Predicted reporting") +
+  scale_fill_viridis_c(option = "magma", direction = -1, 
+                      name = "Predicted incidence \n of deaths per 100k") +
   theme_void(base_size = 20)
 
 
 M4.C <- ggplot() +
   geom_polygon(data = gg_district_plot,
-               aes(x = long, y = lat, group = group, fill = reporting_mean), 
+               aes(x = long, y = lat, group = group, fill = deaths_mean/pop*1e5), 
                color = "white", size = 0.1) +
   geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "grey50",
              shape = 4, size = 2, stroke = 1.5) +
   labs(tag = "C") +
-  scale_fill_viridis_c(breaks = c(0, 0.25, 0.5, 0.75, 1), limits=c(0, 1),
-                       option = "magma", direction = 1, 
-                       name = "Predicted reporting") +
+  scale_fill_viridis_c(option = "magma", direction = -1, 
+                       name = "Predicted incidence \n of deaths per 100k") +
   theme_void(base_size = 20)
 
 
@@ -105,7 +103,5 @@ ggsave("figs/M4.jpeg", figM4, device = "jpeg", height = 14, width = 12)
 ## National deaths
 burden_preds %>%
   group_by(scale) %>%
-  summarize(deaths_mean = sum(deaths_mean, na.rm = TRUE),
-            deaths_upper = sum(deaths_upper, na.rm = TRUE), 
-            deaths_lower = sum(deaths_lower, na.rm = TRUE)) -> natl_burden
-
+  summarize_at(vars(pop:averted_lower), sum, na.rm = TRUE) -> natl_burden
+write.csv(natl_burden, "output/preds/natl_burden.csv")
