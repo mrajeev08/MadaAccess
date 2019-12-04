@@ -4,18 +4,43 @@
 ##' Author: Malavika Rajeev 
 ####################################################################################################
 
-# bite_mat_dist <- predict.bites(comm_run$weighted_times/60, comm_run$pop, comm_run$base_catches, 
-#                                comm_run$commune_id,
-#                                params$beta_access, params$beta_0, beta_pop = 0, params$sigma_0, 
-#                                known_alphas = NA, 
-#                                pop_predict = "flatPop", intercept = "random",
-#                                trans = 1e5, known_catch = FALSE, nsims = 1000)
-# 
-# bites <- data.table(bite_mat_dist, catch = comm_run$base_catches, 
-#                     scenario = comm_run$scenario, commune_id = comm_run$commune_id)
-# 
-# bites %>%
-#   complete(scenario = 0:472, commune_id) %>%
-#   group_by(commune_id) %>%
-#   arrange(scenario) %>%
-#   fill(3:ncol(bites), .direction = "down") -> bites_filled
+##' Set up 
+##' ------------------------------------------------------------------------------------------------
+rm(list = ls())
+library(tidyverse)
+library(data.table)
+admin_preds_part <- fread("output/preds/partial/burden_partial.csv")
+vials_preds_part <- fread("output/preds/partial/vials_bycatch_partial.csv")
+
+## Fill down with predictions
+admin_preds_part %>%
+  complete(scenario = 0:472, names, scale) %>%
+  group_by(names, scale) %>%
+  arrange(scenario) %>%
+  fill(4:ncol(admin_preds_part), .direction = "down") -> admin_filled
+
+## This should be true!
+nrow(admin_filled) == 1579*474*2
+fwrite(admin_filled, "output/preds/complete/burden_filled.csv")
+
+## Fix max scenario so that it is 473
+commune_master <- fread("output/ttimes/master_commune.csv")
+commune_master %>%
+  select(catch = base_catches, scenario) %>%
+  group_by(catch, scenario) %>%
+  summarize(count = n()) -> match_df
+match_df$scale <- "Commune"
+match_df_dist <- match_df
+match_df_dist$scale <- "District"
+match_df <- bind_rows(match_df, match_df_dist)
+
+## Fill down with predictions
+catch_filled <- left_join(match_df, vials_preds_part)
+catch_filled %>%
+  group_by(catch, scale) %>%
+  arrange(scenario) %>%
+  fill(starts_with("vials"), .direction = "down") -> catch_filled
+fwrite(catch_filled, "output/preds/complete/vials_filled.csv")
+
+
+
