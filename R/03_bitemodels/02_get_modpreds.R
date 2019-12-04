@@ -4,40 +4,50 @@
 ##' Author: Malavika Rajeev 
 ####################################################################################################
 ## source bite ests
-source("R/02_bitedata/03_estimate_biteinc.R") # either source this or output bite data
-# probs want to output bite data in order to pull into other things
+rm(list = ls())
 source("R/functions/predict_bites.R")
+source("R/functions/utils.R")
+
+## source bite ests
+district_bites <- fread("output/bites/district_bites.csv")
+comm_covars <- fread("output/bites/comm_covars.csv")
+mora_bites <- fread("output/bites/mora_bites.csv")
 
 ## libraries
 library(foreach)
 library(iterators)
 library(tidyverse)
 library(glue)
-
+select <- dplyr::select
 ## Estimates
-model_ests <- read.csv("output/bitemod_results.csv")
+model_ests <- read.csv("output/mods/estimates.csv")
 model_ests %>%
-  select(params, Mean, covar_name, pop_predict, intercept, ctar_bump, summed, data_source,
+  select(params, Mean, pop_predict, intercept, summed, data_source,
          scale) %>%
   spread(key = params, value = Mean, fill = 0) -> model_means
 
 ##' Observed vs. Predicted for all models
 ##' ------------------------------------------------------------------------------------------------
 preds_mada <- 
-  foreach(i = iter(model_means, by = "row"), j = icount(), .combine = "rbind") %do% {
+  foreach(i = iter(model_means, by = "row"), 
+          j = icount(), .combine = "rbind") %do% {
     
     print(j/nrow(model_means)*100)
     if(i$data_source == "Moramanga") {
-        bite_df <- covar_df <- morabites_by_ttimes
+      covar_df <- mora_bites
+      covar_df$names <- mora_bites$commcode
     } else {
-      bite_df <- covar_df <- bites_by_ttimes
-      if(i$scale == "Commune") {
-        covar_df <- commcovars_by_ttimes
+      if(i$scale == "District") {
+        covar_df <- district_bites
+        covar_df$names <- district_bites$distcode
+      } else {
+        covar_df <- comm_covars
+        covar_df$names <- comm_covars$commcode
       }
     }
     
     ## Also transform covar
-    covar_df$covar <- covar_df$covar/60
+    covar_df$ttimes <- covar_df$ttimes_wtd/60
     
     if(i$intercept == "random") {
       known_alphas <-  as.numeric(i[, match(glue("alpha[{covar_df$catch}]"), colnames(i))])
@@ -45,31 +55,37 @@ preds_mada <-
       known_alphas <- rep(NA, nrow(covar_df))
     }
     
-    predict.bites(access = covar_df$covar, ctar_in = covar_df$ctar_in_district, 
-                  pop = covar_df$pop, catch = covar_df$catch, names = covar_df$names, 
-                  group_name = covar_df$group_name, beta_access = i$beta_access, 
-                  beta_ctar = 0, beta_0 = i$beta_0, beta_pop = i$beta_pop, 
-                  sigma_0 = i$sigma_0, 
-                  known_alphas = known_alphas, 
-                  covar_name = i$covar_name, pop_predict = i$pop_predict, intercept = i$intercept,
-                  summed = i$summed, ctar_bump = i$ctar_bump, data_source = i$data_source, 
-                  scale = i$scale,
-                  trans = 1e5, nsims = 1000, known_catch = TRUE)
-  }
-
-observed_mada <- bind_rows(bites_by_ttimes, bites_by_distwtd, bites_by_distcent)
-observed_mada$data_source <- "National"
-observed_mora <- bind_rows(morabites_by_ttimes, morabites_by_distwtd, morabites_by_distcent)
-observed_mora$data_source <- "Moramanga"
-observed <- bind_rows(observed_mada, observed_mora)
+    bite_mat <- predict.bites(ttimes = covar_df$ttimes, pop = covar_df$pop, 
+                              catch = covar_df$pop, names = covar_df$distcode,
+                              beta_ttimes = i$beta_ttimes, beta_0 = i$beta_0, 
+                              beta_pop = i$beta_pop, sigma_0 = i$sigma_0, 
+                              known_alphas = known_alphas, pop_predict = i$pop_predict, 
+                              intercept = i$intercept, trans = 1e5, known_catch = TRUE, 
+                              nsims = 1000)
+    mean <- rowMeans(bite_mat, na.rm = TRUE) ## mean for each row = admin unit
+    sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
+    data.table(names = covar_df$names, group_names = covar_df$distcode,
+               ttimes = covar_df$ttimes, pop = covar_df$pop, 
+               catch = covar_df$catch, mean_bites = mean, sd_bites = sd, 
+               pop_predict = i$pop_predict, intercept = i$intercept, scale = i$scale, 
+               data_source = i$data_source)
+          }
 
 preds_mada %>%
-  group_by(group_name, data_source, covar_name, data_source, scale, pop_predict, ctar_bump, 
-           summed, intercept) %>% 
-  summarize_at(vars(starts_with("bites")), sum) %>%
-  left_join(observed) -> preds_grouped
-write.csv(preds_grouped, "output/preds/fitted_grouped_all.csv", row.names = FALSE)
-write.csv(preds_mada, "output/preds/fitted_ungrouped_all.csv", row.names = FALSE)
+  filter(data_source != "Moramanga") %>%
+  group_by(group_names, data_source, scale, pop_predict, intercept) %>% 
+  summarize_at(vars(contains("bites")), sum) %>%
+  left_join(district_bites, by = c("group_names" = "distcode")) -> preds_mada_grouped
+            
+preds_mada %>%
+  filter(data_source == "Moramanga") %>%
+  select(names, group_names, data_source, scale, pop_predict, intercept, mean_bites, 
+         sd_bites) %>%
+  left_join(mora_bites,
+            by = c("names" = "commcode")) -> preds_mora_grouped
+preds_grouped <- bind_rows(preds_mora_grouped, preds_mada_grouped)
+write.csv(preds_grouped, "output/mods/preds/fitted_grouped_all.csv", row.names = FALSE)
+write.csv(preds_mada, "output/mods/preds/fitted_ungrouped_all.csv", row.names = FALSE)
 
 ##' Out of fit 
 ##' ------------------------------------------------------------------------------------------------
@@ -83,31 +99,29 @@ outfit_mora <-
     
     print(j/nrow(mada_means)*100)
 
-    bite_df <- covar_df <- morabites_by_ttimes
-    covar_df$covar <- covar_df$covar/60
-    
     if(i$intercept == "random") {
-      known_alphas <-  as.numeric(i[, match(glue("alpha[{covar_df$catch}]"), colnames(i))])
+      known_alphas <-  as.numeric(i[, match(glue("alpha[{mora_bites$catch}]"), colnames(i))])
     } else {
-      known_alphas <- rep(NA, nrow(covar_df))
+      known_alphas <- rep(NA, nrow(mora_bites))
     }
     
-    check <- predict.bites(access = covar_df$covar, ctar_in = covar_df$ctar_in_district, 
-                  pop = covar_df$pop, catch = covar_df$catch, names = covar_df$names, 
-                  group_name = covar_df$group_name, beta_access = i$beta_access, 
-                  beta_ctar = 0, beta_0 = i$beta_0, beta_pop = i$beta_pop, 
-                  sigma_0 = i$sigma_0, 
-                  known_alphas = known_alphas, 
-                  covar_name = i$covar_name, pop_predict = i$pop_predict, intercept = i$intercept,
-                  summed = i$summed, ctar_bump = i$ctar_bump, data_source = i$data_source, 
-                  scale = i$scale,
-                  trans = 1e5, nsims = 1000, known_catch = TRUE)
-    
-    check$type <- "Mora_outfit"
-    check$avg_bites <- bite_df$avg_bites
-    check
+    bite_mat <- predict.bites(ttimes = mora_bites$ttimes_wtd/60, pop = mora_bites$pop, 
+                              catch = mora_bites$catch, names = mora_bites$commcode,
+                              beta_ttimes = i$beta_ttimes, beta_0 = i$beta_0, 
+                              beta_pop = i$beta_pop, sigma_0 = i$sigma_0, 
+                              known_alphas = known_alphas, pop_predict = i$pop_predict, 
+                              intercept = i$intercept, trans = 1e5, known_catch = TRUE, 
+                              nsims = 1000)
+    mean <- rowMeans(bite_mat, na.rm = TRUE) ## mean for each row = admin unit
+    sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
+    data.table(names = mora_bites$commcode, 
+               ttimes = mora_bites$ttimes_wtd/60, pop = mora_bites$pop, 
+               catch = mora_bites$catch, mean_bites = mean, sd_bites = sd, 
+               pop_predict = i$pop_predict, intercept = i$intercept, scale = i$scale, 
+               data_source = i$data_source, type = "mora_outfit", observed = mora_bites$avg_bites)
   }
-write.csv(outfit_mora, "output/preds/outfit_mora.csv", row.names = FALSE)
+
+write.csv(outfit_mora, "output/mods/preds/outfit_mora.csv", row.names = FALSE)
 
 
 ##' Use Moramanga model to predict district and commune model
@@ -122,14 +136,14 @@ outfit_mada <-
     
     print(j/nrow(mora_means)*100)
     # i <- as.data.frame(mora_means[2, ])
- 
     
-    
-    bite_df <- covar_df <- bites_by_ttimes
-    if(scale[k] == "Commune") {
-      covar_df <- commcovars_by_ttimes
+    if(scale[k] == "District") {
+      covar_df <- district_bites
+      covar_df$names <- district_bites$distcode
+    } else {
+      covar_df <- comm_covars
+      covar_df$names <- comm_covars$commcode
     }
-    covar_df$covar <- covar_df$covar/60
     
     if(i$intercept == "random") {
       known_alphas <-  as.numeric(i[, match(glue("alpha[{covar_df$catch}]"), colnames(i))])
@@ -137,24 +151,28 @@ outfit_mada <-
       known_alphas <- rep(NA, nrow(covar_df))
     }
     
-    check <- predict.bites(access = covar_df$covar, ctar_in = covar_df$ctar_in_district, 
-                           pop = covar_df$pop, catch = covar_df$catch, names = covar_df$names, 
-                           group_name = covar_df$group_name, beta_access = i$beta_access, 
-                           beta_ctar = 0, beta_0 = i$beta_0, beta_pop = i$beta_pop, 
-                           sigma_0 = i$sigma_0, 
-                           known_alphas = known_alphas, 
-                           covar_name = i$covar_name, pop_predict = i$pop_predict, intercept = i$intercept,
-                           summed = i$summed, ctar_bump = i$ctar_bump, data_source = "National", 
-                           scale = scale[k],
-                           trans = 1e5, nsims = 1000, known_catch = TRUE)
-    check$type <- "Mada_outoffit"
-    check
+    bite_mat <- predict.bites(ttimes = covar_df$ttimes_wtd/60, pop = covar_df$pop, 
+                              catch = covar_df$catch, names = covar_df$names,
+                              beta_ttimes = i$beta_ttimes, beta_0 = i$beta_0, 
+                              beta_pop = i$beta_pop, sigma_0 = i$sigma_0, 
+                              known_alphas = known_alphas, pop_predict = i$pop_predict, 
+                              intercept = i$intercept, trans = 1e5, known_catch = TRUE, 
+                              nsims = 1000)
+    mean <- rowMeans(bite_mat, na.rm = TRUE) ## mean for each row = admin unit
+    sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
+    data.table(names = covar_df$names, group_names = covar_df$distcode,
+               ttimes = covar_df$ttimes_wtd/60, pop = covar_df$pop, 
+               catch = covar_df$catch, mean_bites = mean, sd_bites = sd, 
+               pop_predict = i$pop_predict, intercept = i$intercept, scale = scale[k], 
+               data_source = "National", type = "mada_outfit")
   }
 
-## Additional option for fitted vs. random catchment effect
+## Left join with observed
 outfit_mada %>%
-  group_by(group_name, data_source, covar_name, data_source, scale, pop_predict, ctar_bump, 
-           summed, intercept) %>% 
-  summarize_at(vars(starts_with("bites")), sum, na.rm = TRUE) %>%
-  left_join(observed) -> outfit_grouped
-write.csv(outfit_grouped, "output/preds/outfit_grouped_mada.csv", row.names = FALSE)
+  group_by(group_names, data_source, scale, pop_predict, intercept) %>% 
+  summarize_at(vars(contains("bites")), sum, na.rm = TRUE) %>%
+  left_join(district_bites, by = c("group_names" = "distcode")) -> outfit_grouped
+write.csv(outfit_grouped, "output/mods/preds/outfit_grouped_mada.csv", row.names = FALSE)
+
+##' Session Info
+out.session(path = "R/03_bitemodels/02_get_modpreds.R", filename = "sessionInfo.csv")
