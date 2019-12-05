@@ -11,12 +11,10 @@ population originally at an N resolution. We then extracted the mean of
 travel times weighted by the population in that grid cell for each
 district or commune to get administrative level estimates of travel
 times to the nearest ARMC. Figure S1 shows the raster inputs as well as
-the resulting estimates of travel times at the admin level.
+the resulting estimates of travel times at the admin level. Another
+(Hampson et al. 2009)
 
-![Figure S1.1. A) Travel time estimates at an approximately 1x1 km scale
-B) Population per 1x1 km grid cell. Mean travel times weighted by
-population size extracted for each C) District and D)
-Commune.](../figs/S1.1.jpeg)
+![Figure S1.1. A) Travel time estimates at an approximately 1x1 km scale B) Population per 1x1 km grid cell. Mean travel times weighted by population size extracted for each C) District and D) Commune.](../figs/S1.1.jpeg)
 
 ## S2. Correcting data for underreporting and excluding Category I exposures
 
@@ -44,6 +42,14 @@ differences
 ## References
 
 <div id="refs" class="references">
+
+<div id="ref-hampsonTransmissionDynamicsProspects2009">
+
+Hampson, Katie, Jonathan Dushoff, Sarah Cleaveland, Daniel T Haydon,
+Magai Kaare, Craig Packer, and Andy Dobson. 2009. “Transmission Dynamics
+and Prospects for the Elimination of Canine Rabies.” *PLOS Biol*.
+
+</div>
 
 <div id="ref-weissGlobalMapTravel2018">
 
