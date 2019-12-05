@@ -11,8 +11,8 @@ an N resolution. We then extracted the mean of travel times weighted by
 the population in that grid cell for each district or commune to get
 administrative level estimates of travel times to the nearest ARMC.
 Figure S1 shows the raster inputs as well as the resulting estimates of
-travel times at the admin
-level.
+travel times at the admin level. ![Caption for the
+picture.](figs/S1.1.jpeg)
 
 ``` r
 library(here)
