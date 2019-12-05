@@ -13,10 +13,10 @@ district or commune to get administrative level estimates of travel
 times to the nearest ARMC. Figure S1 shows the raster inputs as well as
 the resulting estimates of travel times at the admin level.
 
-!["Figure S1.1. A) Travel time estimates at an approximately 1x1 km scale
+![Figure S1.1. A) Travel time estimates at an approximately 1x1 km scale
 B) Population per 1x1 km grid cell. Mean travel times weighted by
 population size extracted for each C) District and D)
-Commune."](../figs/S1.1.jpeg)
+Commune.](../figs/S1.1.jpeg)
 
 ## S2. Correcting data for underreporting and excluding Category I exposures
 
