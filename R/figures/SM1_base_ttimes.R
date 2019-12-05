@@ -1,6 +1,6 @@
 ####################################################################################################
-##' SM 1. Baseline travel times  
-##' Details: Showing input raster layers and output travel times at admin level  
+##' SM 1. GIS Inputs and Output
+##' Details: Showing input raster layers and output travel times at admin level (district and commune)
 ##' Author: Malavika Rajeev 
 ####################################################################################################
 
@@ -21,7 +21,7 @@ ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 
-##' Plot baseline travel times
+##' Input rasters
 base_times <- raster("output/ttimes/baseline_ttimes.tif")
 pop <- raster("data/processed/rasters/worldpop2015adj_mada_1x1km.tif")
 
