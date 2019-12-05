@@ -3,13 +3,14 @@ title: "Supplementary Materials"
 author: ""
 date: 
 output:
-  github_document: 
-  html_document: default
+  word_document:
+    reference_docx: format/word_styles_reference_01.docx
+  html_document:
+  github_document:
   pdf_document:
     includes:
       in_header: format/mystyle.sty
-  word_document:
-    reference_docx: format/word_styles_reference_01.docx
+bibliography: ["../manuscript/references.bib"]
 ---
 
 ```{r setup, include=FALSE}
@@ -19,24 +20,22 @@ opts_chunk$set(echo = FALSE)
 ```
 
 ## S1. Estimating travel times to the nearest ARMC 
-We used two raster inputs: 1) the travel time estimates generated using the friction surface from the Malaria Atlas Project (REF) at an ~1 km^2 scale and the locations of existing ARMC and 2) the population estimates which we resampled from the World Pop raster of population originally at an N resolution. We then extracted the mean of travel times weighted by the population in that grid cell for each district or commune to get administrative level estimates of travel times to the nearest ARMC. Figure S1 shows the raster inputs as well as the resulting estimates of travel times at the admin level.  
+To estimate travel times to the nearest clinic at the scale of administrative units, we used two raster inputs: 1) the travel time estimates generated using the friction surface from the Malaria Atlas Project [@weissGlobalMapTravel2018] at an ~1 km^2 scale and the locations of existing ARMC and 2) the population estimates which we resampled from the World Pop ([worldpop.org](https://www.worldpop.org)) raster of population originally at an ~100m^2 resolution. We extracted the mean of travel times (Fig S1.1A) weighted by the population in that grid cell (Fig S1.1B) for each district or commune. Figure S1.1 shows the raster inputs as well as the resulting estimates of travel times at the district (Fig S1.1D) and commune (Fig S1.1D) level.
 
-```{r fig S1.1, fig.width=10, fig.height=10, fig.fullwidth=TRUE, fig.cap=cap}
-library(here)
-include_graphics(here("figs/S1.1.jpeg"))
-cap <-"checking!"
-
+```{r fig S1.1, fig.fullwidth=TRUE}
+include_graphics("../figs/S1.1.jpeg")
 ```
+_**Figure S1.1. A)** Travel time estimates at an approximately 1x1 km scale **B)** Population per 1x1 km grid cell. Mean travel times weighted by population size extracted for each **C)** District and **D)** Commune._
 
 ## S2. Correcting data for underreporting and excluding Category I exposures
 
-### Underreporting of forms
+### Estimating underreporting of forms
 Figure S1.1 correcting
 ```{r reporting}
 ```
 Figure S1.2 vial ests
 
-### Cat I exposures
+### Excluding Category I exposures
 Figure S1.3 contacts
 ```{r cat I}
 ```
@@ -49,3 +48,5 @@ Figure S1.4 ttime differences
 ## S5. Incrementally adding clinics (where they were added, shifts in ttimes + catchment pops, shifts in burden/reporting etc. --answer q here: why are there still abt 100 deaths)
 
 ## S6. Sensitivity of burden estimates to parameter assumptions (baseline + incremental)
+
+## References
