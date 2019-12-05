@@ -41,10 +41,13 @@ names(ttime_cols) <- ttime_labs
 
 figS1.A <- gplot(base_times) + 
   geom_raster(aes(fill = cut(value/60, breaks = ttime_breaks, labels = ttime_labs))) + 
-  scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)") +
-  geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "darkgrey", shape = 4,
+  scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
+                    drop = FALSE) +
+  geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "darkgrey", 
+             shape = 4,
              stroke = 2) +
   theme_void() +
+  theme(text = element_text(size = 14)) +
   labs(tag = "A")
 
 figS1.B <- gplot(pop) + 
@@ -52,26 +55,31 @@ figS1.B <- gplot(pop) +
   scale_fill_distiller(type = "seq", palette = "GnBu", direction = 1, na.value = "white",
                    name = expression("Log(population) \n per 1km"^2)) +
   theme_void() +
+  theme(text = element_text(size = 14)) +
   labs(tag = "B")
 
 figS1.C <- ggplot() +
   geom_polygon(data = gg_districts, aes(x = long, y = lat, group = group, 
                                         fill = cut(ttimes_wtd/60, breaks = ttime_breaks, 
                                                    labels = ttime_labs))) + 
-  scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)") +
+  scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
+                    drop = FALSE) +
   geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "darkgrey", shape = 4,
              stroke = 2) +
   theme_void() +
+  theme(text = element_text(size = 14)) +
   labs(tag = "C")
 
 figS1.D <- ggplot() +
   geom_polygon(data = gg_communes, aes(x = long, y = lat, group = group, 
                                        fill = cut(ttimes_wtd/60, breaks = ttime_breaks,
                                                   labels = ttime_labs))) + 
-  scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)") +
+  scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
+                    drop = FALSE) +
   geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "darkgrey", shape = 4,
              stroke = 2) +
   theme_void() +
+  theme(text = element_text(size = 14)) +
   labs(tag = "D")
 
 figS1.1 <- (figS1.A | figS1.B) / (figS1.C | figS1.D)

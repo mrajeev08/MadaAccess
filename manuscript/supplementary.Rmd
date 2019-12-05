@@ -12,31 +12,34 @@ output:
     reference_docx: format/word_styles_reference_01.docx
 ---
 
-
+```{r setup, include=FALSE}
+library(knitr)
+library(bookdown)
+opts_chunk$set(echo = FALSE)
+```
 
 ## S1. Estimating travel times to the nearest ARMC 
 We used two raster inputs: 1) the travel time estimates generated using the friction surface from the Malaria Atlas Project (REF) at an ~1 km^2 scale and the locations of existing ARMC and 2) the population estimates which we resampled from the World Pop raster of population originally at an N resolution. We then extracted the mean of travel times weighted by the population in that grid cell for each district or commune to get administrative level estimates of travel times to the nearest ARMC. Figure S1.1 shows the raster inputs as well as the resulting estimates of travel times at the admin level.  
 
+```{r fig S1.1, fig.width=10, fig.height=10, fig.fullwidth=TRUE, fig.cap=cap}
+library(here)
+include_graphics(here("figs/S1.1.jpeg"))
+cap <-"checking!"
 
 ```
-## here() starts at /Users/mrajeev/Documents/Projects/MadaAccess
-```
-
-<div class="figure">
-<img src="/Users/mrajeev/Documents/Projects/MadaAccess/figs/S1.1.jpeg" alt="checking!" width="3000" />
-<p class="caption">checking!</p>
-</div>
 
 ## S2. Correcting data for underreporting and excluding Category I exposures
 
 ### Underreporting of forms
 Figure S1.1 correcting
-
+```{r reporting}
+```
 Figure S1.2 vial ests
 
 ### Cat I exposures
 Figure S1.3 contacts
-
+```{r cat I}
+```
 Figure S1.4 ttime differences
 
 ## S3. Candidate models of bite incidence
