@@ -1,4 +1,4 @@
-####################################################################################################
+###################################################################################################
 ##' Making hexagonal 
 ##' Details: ran on cluster to save time on computer
 ##' Author: Malavika Rajeev
@@ -49,6 +49,48 @@ writeOGR(district_hex, dsn = "data/processed/shapefiles", layer = "mada_district
 #   plot(new_cells, main = paste("Seed", i, sep = " "))
 # }
 new_cells <- calculate_grid(shape = mada_communes, grid_type = "hexagonal", seed = 5)
-commune_hex <- assign_polygons(mada_communes, new_cells)
-writeOGR(commune_hex, dsn = "data/processed/shapefiles", layer = "mada_communes_hex", 
+
+## Graph matching (try it and see, with first 5 matched?)
+library(igraph)
+library(spdep)
+hex_shp <- new_cells[[2]]
+hex_adj <- poly2nb(hex_shp)
+hex_adj <- nb2mat(hex_adj, style = "B")
+pol_adj <- poly2nb(mada_communes, row.names = mada_communes$commcode)
+pol_adj <- nb2mat(pol_adj, style = "B", zero.policy = TRUE)
+
+## Seeding Tana as known polygons
+# seed <- matrix(0, nrow = 6, ncol = ncol(hex_adj))
+# seed[1, 966] <- 1
+# seed[2, 967] <- 1
+# seed[3, 968] <- 1
+# seed[4, 995] <- 1
+# seed[5, 996] <- 1
+# seed[6, 997] <- 1
+
+hex_adj <- rbind(hex_adj[c(966:968, 995:997), ], hex_adj[-c(966:968, 995:997), ])
+hex_adj <- cbind(hex_adj[, c(966:968, 995:997)], hex_adj[, -c(966:968, 995:997)])
+rownames(hex_adj) <- colnames(hex_adj) <- c(c(966:968, 995:997), 
+                                            (1:nrow(hex_adj))[-c(966:968, 995:997)])
+
+## Graph matching
+check <- match_vertices(hex_adj, pol_adj, m = 6, start = diag(rep(1, nrow(hex_adj) - 6)), 
+                        iteration = 200)
+matches <- check[[1]]
+matches <- cbind(rownames(hex_adj)[matches[, 1]], rownames(pol_adj)[matches[, 2]])
+matched <- cbind(c(966:968, 995:997), rownames(pol_adj)[1:6])
+matches <- rbind(matched, matches)
+matches <- data.frame(matches)
+hex_shp$hex_id <- 1:length(hex_shp)
+
+mada_communes@data %>%
+  left_join(matches, by = c("commcode" = "X2")) %>%
+  mutate(hex_id = as.numeric(as.character(X1))) %>%
+  right_join(hex_shp@data) -> hex_shp@data
+
+writeOGR(hex_shp, dsn = "data/processed/shapefiles", layer = "graphed", 
          driver = "ESRI Shapefile", overwrite_layer = TRUE)
+
+## Use centroids and bearings to assign communes by district for the pick_one_dist file (also double
+## check right number of communes per district!)
+
