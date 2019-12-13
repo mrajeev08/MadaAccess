@@ -15,6 +15,7 @@ library(raster) # for rasters and resampling
 library(geogrid)
 library(data.table)
 source("R/functions/utils.R")
+select <- dplyr::select
 
 ##' Load in GIS files 
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
@@ -50,47 +51,91 @@ writeOGR(district_hex, dsn = "data/processed/shapefiles", layer = "mada_district
 # }
 new_cells <- calculate_grid(shape = mada_communes, grid_type = "hexagonal", seed = 5)
 
-## Graph matching (try it and see, with first 5 matched?)
-library(igraph)
-library(spdep)
-hex_shp <- new_cells[[2]]
-hex_adj <- poly2nb(hex_shp)
-hex_adj <- nb2mat(hex_adj, style = "B")
-pol_adj <- poly2nb(mada_communes, row.names = mada_communes$commcode)
-pol_adj <- nb2mat(pol_adj, style = "B", zero.policy = TRUE)
-
-## Seeding Tana as known polygons
-# seed <- matrix(0, nrow = 6, ncol = ncol(hex_adj))
-# seed[1, 966] <- 1
-# seed[2, 967] <- 1
-# seed[3, 968] <- 1
-# seed[4, 995] <- 1
-# seed[5, 996] <- 1
-# seed[6, 997] <- 1
-
-hex_adj <- rbind(hex_adj[c(966:968, 995:997), ], hex_adj[-c(966:968, 995:997), ])
-hex_adj <- cbind(hex_adj[, c(966:968, 995:997)], hex_adj[, -c(966:968, 995:997)])
-rownames(hex_adj) <- colnames(hex_adj) <- c(c(966:968, 995:997), 
-                                            (1:nrow(hex_adj))[-c(966:968, 995:997)])
-
-## Graph matching
-check <- match_vertices(hex_adj, pol_adj, m = 6, start = diag(rep(1, nrow(hex_adj) - 6)), 
-                        iteration = 200)
-matches <- check[[1]]
-matches <- cbind(rownames(hex_adj)[matches[, 1]], rownames(pol_adj)[matches[, 2]])
-matched <- cbind(c(966:968, 995:997), rownames(pol_adj)[1:6])
-matches <- rbind(matched, matches)
-matches <- data.frame(matches)
-hex_shp$hex_id <- 1:length(hex_shp)
-
+## cartogram of districts
 mada_communes@data %>%
-  left_join(matches, by = c("commcode" = "X2")) %>%
-  mutate(hex_id = as.numeric(as.character(X1))) %>%
-  right_join(hex_shp@data) -> hex_shp@data
+  group_by(distcode) %>%
+  summarize(ncommunes = n()) %>%
+  right_join(mada_districts@data) %>%
+  as.data.frame(.) -> mada_districts@data
+dist_cart <- cartogram::cartogram_cont(mada_districts, weight = "ncommunes", itermax = 10)
 
-writeOGR(hex_shp, dsn = "data/processed/shapefiles", layer = "graphed", 
-         driver = "ESRI Shapefile", overwrite_layer = TRUE)
+comm_hex <- calculate_grid(shape = dist_cart, grid_type = "hexagonal", 
+                           npts = length(mada_communes), seed = 5, verbose = TRUE)
+comm_to_assign <- comm_hex[[2]]
+hexes <- over(comm_to_assign, dist_cart)
+hexes$hex_id <- 1:nrow(hexes)
+hexes %>%
+  group_by(distcode) %>%
+  mutate(hex_comms = n()) -> hexes
 
-## Use centroids and bearings to assign communes by district for the pick_one_dist file (also double
-## check right number of communes per district!)
+library(spdep)
+hex_adj <- poly2nb(comm_to_assign)
+hex_adj <- data.frame(hex_id = rep(1:length(hex_adj), lapply(hex_adj, length)), 
+                     adj_id = simplify(hex_adj))
 
+## Take ones with more than necessary and then assign them to adjacent pols (no matter what)
+## Do this iteratively until you reach a plateau where you're switching back and forthish
+hexes <- over(comm_to_assign, dist_cart)
+hexes$hex_id <- 1:nrow(hexes)
+hexes %>%
+  group_by(distcode) %>%
+  mutate(hex_comms = n()) -> hexes
+last <- 1000 ## placeholder for first loop step
+counter <- 0
+repeat{
+  hex_adj %>%
+    left_join(select(hexes, hex_id, hex_distcode = distcode, hex_comms, 
+                     true_comms_hex = ncommunes)) %>%
+    left_join(select(hexes, hex_id, adj_distcode = distcode, adj_comms = hex_comms, 
+                     true_comms_adj = ncommunes), 
+              by = c("adj_id" = "hex_id")) %>%
+    mutate(hex_diff =  hex_comms - true_comms_hex,
+           adj_diff = adj_comms - true_comms_adj,
+           unique_id = interaction(hex_id, adj_id)) -> hex_df
+  
+  distcodes <- unique(hex_df$adj_distcode)
+  all_changed <- data.frame(hex_id = NA, hex_diff = NA, hex_distcode = NA, group_id = NA)
+  
+  for(i in 1:length(distcodes)) {
+    to_assign <- filter(hex_df, hex_distcode != adj_distcode & hex_diff > 0 & adj_diff < 0, 
+                        hex_distcode == distcodes[i])
+    if(nrow(to_assign) > 0) {
+      to_add <- to_assign$hex_diff[1]
+      to_assign %>% 
+        select(hex_id, adj_id, hex_diff, adj_diff, adj_distcode) %>%
+        distinct(.) %>%
+        group_by(adj_distcode) %>%
+        mutate(group_id = 1:n()) %>%
+        filter(group_id <= abs(adj_diff)) -> cands
+      to_add <- ifelse(nrow(cands) < to_add, nrow(cands), to_add)
+      cands <- cands[1:to_add, ]
+      cands %>%
+        mutate(hex_distcode = as.character(adj_distcode)) -> cands
+      hex_df <- filter(hex_df, !(as.character(hex_id) %in% as.character(cands$hex_id))) # filter out those already assigned
+      all_changed <- bind_rows(cands, all_changed)
+    } else
+      next
+  }
+  
+  newcode <- all_changed$hex_distcode[match(hexes$hex_id, all_changed$hex_id)]
+  hexes$distcode <- coalesce(newcode, as.character(hexes$distcode)) 
+  hexes %>%
+    group_by(distcode) %>%
+    mutate(hex_comms = n()) -> hexes
+  hexes$diff <- hexes$hex_comms - hexes$ncommunes
+  hist(hexes$diff)
+  
+  if((nrow(all_changed) - 1) > last) {
+    break
+  } else {
+    last <- (nrow(all_changed) - 1)
+    counter <- counter + 1
+  }
+  print(last)
+  print(counter)
+}
+
+## No more options, so for any that have more than n polygons assign those to adjacent districts and
+## do this iteratively until difference between actual and total sums to zero!
+counter <- 0
+ 
