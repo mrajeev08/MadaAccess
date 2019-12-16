@@ -57,16 +57,46 @@ mada_communes@data %>%
   summarize(ncommunes = n()) %>%
   right_join(mada_districts@data) %>%
   as.data.frame(.) -> mada_districts@data
-dist_cart <- cartogram::cartogram_cont(mada_districts, weight = "ncommunes", itermax = 10)
+mada_districts$weight <- mada_districts$ncommunes*1000
+dist_cart <- cartogram::cartogram_cont(mada_districts, weight = "weight", itermax = 10)
+mada_communes$weight <- 1000
+comm_cart <- cartogram::cartogram_cont(mada_communes, weight = "weight", itermax = 4)
 
 comm_hex <- calculate_grid(shape = dist_cart, grid_type = "hexagonal", 
-                           npts = length(mada_communes), seed = 5, verbose = TRUE)
-comm_to_assign <- comm_hex[[2]]
-hexes <- over(comm_to_assign, dist_cart)
-hexes$hex_id <- 1:nrow(hexes)
-hexes %>%
-  group_by(distcode) %>%
-  mutate(hex_comms = n()) -> hexes
+                           npts = length(mada_communes), seed = 3, verbose = TRUE)
+library(foreach)
+foreach(i = 1:length(levels(dist_cart$distcode)), .combine = bind) %do% {
+  dist_shp <- dist_cart[dist_cart$distcode == levels(dist_cart$distcode)[i], ]
+  print(paste("district #", i, "with", dist_shp$ncommunes, "communes"))
+  if(dist_shp$ncommunes > 1) {
+    dist_hex <- calculate_grid(shape = dist_shp, grid_type = "regular",
+                               npts = dist_shp$ncommunes, verbose = FALSE)
+    dist_pts <- dist_hex[[1]]
+  } else {
+    dist_pts <- rgeos::gCentroid(dist_shp)
+  }
+  dist_pts$distcode <- rep(levels(dist_cart$distcode)[i], length(dist_pts))
+  dist_pts
+} -> pts_to_match
+
+library(clue)
+hex_pts <- comm_hex[[1]]
+hex_shp <- comm_hex[[2]]
+distmatrix <- sp::spDists(hex_pts, pts_to_match, longlat = FALSE)
+# apply hungarian algorithm
+sol <- clue::solve_LSAP(distmatrix)
+hex_shp$distcode <- pts_to_match$distcode[sol[seq_along(sol)]]
+writeOGR(hex_shp,  dsn = "data/processed/shapefiles", layer = "hex_check", 
+         driver = "ESRI Shapefile", overwrite_layer = TRUE)
+hex_pts <- data.frame(long = hex_pts@coords[, 1], lat = hex_pts@coords[, 2])
+hex_pts$id <- 1:nrow(hex_pts)
+hex_pts$name <- hex_shp$distcode
+hex_pts %>%
+  arrange(long) %>%
+  mutate(q = as.numeric(factor(long))-1) %>%
+  arrange(lat) %>%
+  mutate(r = as.numeric(factor(lat))-1) -> hex_csv 
+write.csv(hex_csv, "hex.csv", row.names = FALSE)  
 
 library(spdep)
 hex_adj <- poly2nb(comm_to_assign)
@@ -139,3 +169,95 @@ repeat{
 ## do this iteratively until difference between actual and total sums to zero!
 counter <- 0
  
+dist_shp <- mada_communes[mada_communes$distcode == levels(mada_districts$distcode)[1], ]
+
+dist_hex <- calculate_grid(shape = dist_shp, grid_type = "regular", verbose = TRUE)
+plot(dist_hex, add = TRUE)
+
+
+check <- raster(dist_hex[[2]])
+res(check) <- 500
+r <- rasterize(dist_hex[[2]], check)
+
+## Last option is to assign coastal polygons and then to move inwards based on adjacency (in a clockwise way for example)
+## Probably need to seed start one and then move around
+
+## Then manually fix based on adjacency
+
+## Trying other continous cartograms (rectmap & Rcartogram)
+mada_communes <- mada_communes[!(mada_communes$district %in% c("Sainte Marie", "Nosy-Be")), ]
+coords <- rgeos::gCentroid(mada_communes, byid = TRUE)
+commareas <- area(mada_communes)/1e6
+mada <- data.frame(x = coords@coords[, "x"], 
+                  y = coords@coords[, "y"], 
+                  # make the rectangles overlapping by correcting 
+                  # lines of longitude distance.
+                  dx = sqrt(commareas) / 2 
+                  / (0.8 * 60 * cos(coords@coords[, "y"] * pi / 180)), 
+                  dy = sqrt(commareas) / 2 / (0.8 * 60), 
+                  z = 1,
+                  name = mada_communes$commcode)
+madarec <- recmap(mada)
+plot(madarec)
+
+# define a fitness function
+recmap.fitness <- function(idxOrder, Map, ...){
+  Cartogram <- recmap(Map[idxOrder, ])
+  # a map region could not be placed; 
+  # accept only feasible solutions!
+  if (sum(Cartogram$topology.error == 100) > 0){return (0)}
+  1 / sum(Cartogram$z / (sqrt(sum(Cartogram$z^2))) 
+          * Cartogram$relpos.error)
+}
+
+
+recmapGA <- ga(type = "permutation", 
+               fitness = recmap.fitness, 
+               Map = madarec,
+               monitor = gaMonitor,
+               min = 1, max = nrow(madarec) , 
+               popSize = 4 * nrow(madarec), 
+               maxiter = 10,
+               run = 100, 
+               parallel=TRUE,
+               pmutation = 0.25)
+
+## Not run: 
+
+## use Genetic Algorithms (GA >=3.0.0) as metaheuristic
+
+M <- US.Map
+
+recmapGA <- ga(type = "permutation", 
+               fitness = recmap.fitness, 
+               Map = M,
+               monitor = gaMonitor,
+               min = 1, max = nrow(M) , 
+               popSize = 4 * nrow(M), 
+               maxiter = 10,
+               run = 100, 
+               parallel=TRUE,
+               pmutation = 0.25)
+
+library(voronoi)
+check <- voronoiShapefile(lon = coords@coords[, "x"], lat = coords@coords[, "y"], shp = mada_communes)
+check$weight <- 100/log(area(check)/1e6)
+comm_cart <- cartogram::cartogram_cont(check, weight = "weight", itermax = 7)
+mada_communes$id <- 1:length(mada_communes)
+library(dplyr)
+comm_cart@data %>%
+  left_join(mada_communes@data, by = c("id" = "id")) -> comm_cart@data
+writeOGR(comm_cart, dsn = "data/processed/shapefiles", layer = "comm_cart", 
+         driver = "ESRI Shapefile", overwrite_layer = TRUE)
+
+
+voro_pts <- rgeos::gCentroid(comm_cart, byid = TRUE)
+comm_hex <- calculate_grid(shape = comm_cart, grid_type = "hexagonal", seed = 3, verbose = TRUE)
+distmatrix <- sp::spDists(comm_hex[[1]], voro_pts, longlat = FALSE)
+# apply hungarian algorithm
+sol <- clue::solve_LSAP(distmatrix)
+hex_shp <- comm_hex[[2]]
+hex_shp$distcode <- comm_cart$distcode[sol[seq_along(sol)]]
+writeOGR(hex_shp, dsn = "data/processed/shapefiles", layer = "comm_hex", 
+         driver = "ESRI Shapefile", overwrite_layer = TRUE)
+
