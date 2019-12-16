@@ -11,6 +11,7 @@ library(data.table)
 library(rgdal)
 library(lubridate)
 library(patchwork)
+library(cowplot)
 select <- dplyr::select
 source("R/functions/utils.R")
 source("R/functions/data_functions.R")
@@ -61,18 +62,45 @@ names(catch_cols) <- ctar_metadata$CTAR
 ## Figure S1.1A
 throughput$ctar <- ctar_metadata$CTAR[match(throughput$id_ctar, ctar_metadata$id_ctar)]
 throughput$no_patients <- ifelse(throughput$include_15 == 0, NA, throughput$no_patients)
-figS1.1A <- ggplot(data = throughput, aes(x = date_reported, y = reorder(ctar, include_15))) + 
-  geom_tile(aes(fill = no_patients)) +
-  scale_fill_gradientn(colours = c("white", "purple", "black"), values = c(0, 0.1, 1),
-                       na.value = alpha("lightgrey", 0.25), name = "Number of \n patients") +
+
+##' Colors
+# throughput %>%
+#   mutate(no_patients = ifelse(is.na(no_patients), -1e5, no_patients)) -> throughput
+throughput_cols <- c("0" = "white", "< 10" = '#edf8fb', "< 20" = '#b3cde3',
+                     "< 40" = '#8c96c6', "< 80" = '#8856a7', "< 100" = '#810f7c')
+throughput_brks <- c(-0.1, 0.1, 10, 20, 40, 80, 100)
+
+figS2.1A <- ggplot(data = throughput, aes(x = date_reported, y = reorder(ctar, include_15))) + 
+  geom_tile(aes(fill = ifelse(include_15 == 0, NA, ctar),
+                  alpha = cut(no_patients, breaks = throughput_brks, labels = names(throughput_cols)))) +
+  scale_fill_manual(values = catch_cols, guide = "none") +
+  scale_alpha_manual(values = seq(0.5, 1, length.out = 7),
+                    labels = names(throughput_cols), name = "Number of \n patients") +
   xlim(ymd("2014-01-01"), ymd("2017-12-31")) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   xlab("Year") +
   ylab("ARMC") +
   labs(tag = "A")
 
+figS2.1A_side <- ggplot(data = reporting, aes(x = reorder(ctar, include_15), y = include_15, 
+                                              color = ctar)) +
+  geom_boxplot() +
+  geom_point(alpha = 0.5, aes(shape = factor(year))) +
+  labs(y = "Estimated reporting", x = "") +
+  coord_flip() +
+  scale_color_manual(values = catch_cols, guide = "none") +
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) 
+
+(figS2.1A / figS2.1A_side)
+
+figS2.1A_side <- ggplot(data = reporting, aes(y = reorder(ctar, include_15), x = year, fill = ctar, 
+                             alpha = include_15)) +
+  geom_tile() +
+  scale_fill_manual(values = catch_cols, guide = "none")
+  
+
 ## Figure S1.1B
-figS1.1B <- ggplot(data = reporting, aes(x = reorder(ctar, include_15), color = ctar, group = interaction(ctar, year))) +
+figS2.1B <- ggplot(data = reporting, aes(x = reorder(ctar, include_15), color = ctar, group = interaction(ctar, year))) +
   geom_boxplot(aes(ymin = include_30, lower = include_15, middle = include_15, upper = include_15, 
                    ymax = include_5),
                stat = "identity") +
@@ -85,10 +113,10 @@ figS1.1B <- ggplot(data = reporting, aes(x = reorder(ctar, include_15), color = 
   labs(tag = "B") 
 
 
-figS1.1 <- figS1.1A / figS1.1B
+figS2.1 <- figS2.1A / figS2.1B
 
-## figS1.1
-ggsave("figs/S1.1.jpeg", figS1.1, device = "jpeg", width = 7, height = 7)
+## figS2.1
+ggsave("figs/S1.1.jpeg", figS2.1, device = "jpeg", width = 7, height = 7)
 
 ##' Estimates of vials from reporting 
 ##' ------------------------------------------------------------------------------------------------
@@ -171,26 +199,29 @@ ctar_metadata %>%
 vial_ests %>%
   pivot_wider(names_from = "vials", names_prefix = "mean", values_from = "value") -> vial_comp
 
-ggplot(data = vial_comp, aes(x = ctar, fill = factor(cut_off), 
-                             color = ifelse(is.infinite(cut_off), "A", "B"), 
-                             group = interaction(ctar, cut_off))) +
-  geom_boxplot(aes(ymin = (mean3)/vials_observed, 
-                   lower = (mean3)/vials_observed, middle = 1, 
-                   upper = (mean4)/vials_observed,
-                   ymax = (mean4)/vials_observed),
-               stat = "identity") + 
-  geom_hline(yintercept = 1, color = "grey", size = 1.2) +
-  scale_fill_brewer(type = "seq", palette = "Blues", direction = -1) +
-  scale_color_manual(values = c("grey", "black"), guide = "none") +
-  scale_y_continuous(limits = c(-1, 5), oob = scales::squish) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.minor = element_blank()) +
-  xlab("ARMC") +
-  ylab("Estimated/Observed") +
+ggplot(data = filter(vial_comp, cut_off == 15 | cut_off == Inf), aes(x = log(vials_observed), 
+                                                                     color = factor(cut_off))) +
+  geom_point(aes(y = (log(mean3) + log(mean4))/2)) +
+  geom_linerange(aes(ymin = log(mean3), ymax = log(mean4))) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +
+  scale_color_discrete(name = "Cut-off") +
+  expand_limits(x = 2.5, y = 2.5) +
+  theme_half_open() +
+  labs(y = "Log(Estimated vials)", x = "Log(Observed vials)")
+
+ggplot(data = filter(vial_comp, cut_off == 15 | cut_off == Inf), 
+       aes(x = ctar, color = factor(cut_off))) +
+  geom_linerange(aes(ymin = mean3/vials_observed, ymax = mean4/vials_observed)) +
+  geom_hline(yintercept = 1, linetype = 2, color = "grey") +
   coord_flip()
+  scale_color_discrete(name = "Cut-off") +
+  expand_limits(x = 2.5, y = 2.5) +
+  theme_half_open() +
+  labs(y = "Log(Estimated vials)", x = "Log(Observed vials)")
 
 vial_ests %>%
   group_by(cut_off, ctar, vials) %>%
-  mutate(se_squared_3 = sum((value - vials_observed)^2)) -> check
+  mutate(se_squared_3 = sqrt(abs(value - vials_observed))) -> check
 
 ggplot(data = check, aes(x = factor(cut_off), y = se_squared_3, color = factor(vials))) +
   geom_boxplot(outlier.shape = NA) +
@@ -220,8 +251,8 @@ national %>%
   filter(total > 10) -> contacts
 
 
-##' FigS1.2A
-figS1.2A <- ggplot(data = contacts, aes(x = ctar, y = no_patients, color = as.factor(estimated_cat1))) +
+##' figS2.2A
+figS2.2A <- ggplot(data = contacts, aes(x = ctar, y = no_patients, color = as.factor(estimated_cat1))) +
   scale_color_manual(name = "Exclude", values = c("navy", "red"), labels = c("No", "Yes")) +
   ylab("Number of patients per day") +
   xlab("ARMC") +
@@ -263,7 +294,7 @@ map_dfc(seq(1, 10, by = 0.25), function(x) ifelse(contacts_mora$no_patients >=
                values_to = "excluded") -> contacts_cutoff
 
 ##' Plot
-figS1.2B <- ggplot(contacts_cutoff, aes(x = as.numeric(sd), y = excluded, color = prop)) +
+figS2.2B <- ggplot(contacts_cutoff, aes(x = as.numeric(sd), y = excluded, color = prop)) +
   geom_line() +
   scale_color_manual(name = "Type of patient", values = c("blue", "red"), 
                      labels = c("Cat II/II", "Cat I")) + 
@@ -271,10 +302,10 @@ figS1.2B <- ggplot(contacts_cutoff, aes(x = as.numeric(sd), y = excluded, color 
   ylab("Proportion excluded") +
   labs(tag = "B")
 
-figS1.2 <- figS1.2A | figS1.2B
+figS2.2 <- figS2.2A | figS2.2B
 
-## figS1.2
-ggsave("figs/S1.2.jpeg", figS1.2, device = "jpeg", height = 7, width = 9)
+## figS2.2
+ggsave("figs/S1.2.jpeg", figS2.2, device = "jpeg", height = 7, width = 9)
 
 ##' Also make the point that contacts have different ttime distribution than reported bites (so
 ##' more for getting the impact of travel times right)
