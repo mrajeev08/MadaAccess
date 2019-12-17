@@ -49,6 +49,33 @@ commune_master %>%
   group_by(clinic_added) %>%
   summarize(when_added = min(scenario)) %>%
   left_join(csbs, by = c("clinic_added" = "candidate_id")) -> when_added
+
+pts <- SpatialPoints(cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE), 
+                     proj4string = 
+                       CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+ctar_metadata$commcode <- over(pts, mada_communes)$commcode
+ctar_metadata$distcode <- over(pts, mada_districts)$distcode
+
+ctar_metadata %>%
+  select(CTAR, lat = LATITUDE, long = LONGITUDE, commcode, distcode) %>%
+  mutate(clinic_added = 1:31, when_added = 0) %>%
+  bind_rows(when_added) -> all_added
+
+all_added %>%
+  select(when_added, distcode, clinic_added) %>%
+  complete(distcode, when_added = 0:max(when_added)) %>%
+  mutate(added = ifelse(is.na(clinic_added), 0, 1)) %>%
+  group_by(distcode) %>%
+  arrange(when_added) %>%
+  mutate(check = cumsum(added), lagged = lag(check, order_by = when_added),
+         diff = check - lagged) %>%
+  filter(diff > 0) -> check
+
+ggplot(data = check, aes(x = when_added, y = lagged)) +
+  geom_col()
+
+  
+
 when_added %>%
   group_by(commcode) %>%
   summarize(when_added = min(when_added)) -> when_comm
@@ -92,8 +119,20 @@ SN.1B <- ggplot() +
 SN.1 <- SN.1A | SN.1B
 ggsave("figs/SN1.jpeg", SN.1, height = 10, width = 12)
 
+## Shift in travel times
 ## ggridges to show shifts in distribution of max catchments
-SN2.A <- ggplot() +
+S5.2A <- ggplot() +
+  geom_density_ridges(data = scenario_to_plot[scenario %in% c(1, 100, 200, 300, 472,
+                                                              max(scenario_to_plot$scenario))], 
+                      aes(x = weighted_times/60, y = as.factor(scenario), fill = scale), 
+                      alpha = 0.5, color = NA) +
+  scale_fill_manual(values = model_cols, name = "Scale") +
+  scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max")) +
+  labs(y = "Number of clinics added", x = "Travel times (hrs)",
+       tag = "A")
+
+## ggridges to show shifts in distribution of max catchments
+S5.2B <- ggplot() +
   geom_density_ridges(data = scenario_to_plot[scenario %in% c(1, 100, 200, 300, 472, 
                                                               max(scenario_to_plot$scenario))], 
                       aes(x = prop_pop_catch, y = as.factor(scenario), fill = scale), 
@@ -102,21 +141,10 @@ SN2.A <- ggplot() +
   scale_fill_manual(values = model_cols, name = "Scale") +
   scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max")) +
   labs(y = "Number of clinics added", x = "Maximum proportion \n of population in clinic catchment",
-       tag = "A")
-
-## Shift in travel times
-## ggridges to show shifts in distribution of max catchments
-SN2.B <- ggplot() +
-  geom_density_ridges(data = scenario_to_plot[scenario %in% c(1, 100, 200, 300, 472,
-                                                              max(scenario_to_plot$scenario))], 
-                      aes(x = weighted_times/60, y = as.factor(scenario), fill = scale), 
-                      alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, name = "Scale") +
-  scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max")) +
-  labs(y = "Number of clinics added", x = "Travel times (hrs)",
        tag = "B")
-SN.2<- SN2.A | SN2.B
-ggsave("figs/SN2.jpeg", SN.2, height = 10, width = 10)
+
+S5.2 <- S5.2A | S5.2B
+ggsave("figs/S5.2.jpeg", S5.2, height = 10, width = 10)
 
 ## Shift in incidence of deaths
 admin_preds <- fread("output/preds/complete/burden_filled.csv")
