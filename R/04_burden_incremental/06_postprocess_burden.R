@@ -9,6 +9,7 @@
 rm(list = ls())
 library(tidyverse)
 library(data.table)
+select <- dplyr::select
 admin_preds_part <- fread("output/preds/partial/burden_partial.csv")
 vials_preds_part <- fread("output/preds/partial/vials_bycatch_partial.csv")
 
