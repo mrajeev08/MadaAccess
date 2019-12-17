@@ -61,8 +61,6 @@ min_comm <- data.table(scaling = "flat", sfactor = 0, intercept = incidence_min,
 ## Districts
 pop <- mada_districts$pop
 pop <- pop[order(pop, decreasing = FALSE)]
-incidence_max <- 0.01*0.39/7
-incidence_min <- 0.01*0.39/35
 pos_scale <- seq(incidence_min, incidence_max, length.out = length(pop))
 neg_scale <- seq(incidence_max, incidence_min, length.out = length(pop))
 pos <- lm(pos_scale ~ pop) ## use these and constrain
@@ -78,7 +76,7 @@ min_dist <- data.table(scaling = "flat", sfactor = 0, intercept = incidence_min,
 
 scaling_df <- rbind(neg_comm, pos_comm, neg_dist, pos_dist)
 flat_df <- rbind(max_comm, max_dist, min_comm, min_dist)
-
+pop_plot <- seq(0, 1e6, by = 1000)
 constrained_inc <- function(slope, intercept, pop, max, min){
   inc <- slope*pop + intercept
   inc[inc >= max] <- max
@@ -86,29 +84,13 @@ constrained_inc <- function(slope, intercept, pop, max, min){
   return(inc)
 }
 
-##' Colors
-scale_levs <- c("Commune", "District")
-model_cols <- wesanderson::wes_palettes$Rushmore1[c(3, 4)]
-names(model_cols) <- scale_levs 
-pop_plot <- seq(0, 1e6, by = 1000)
-
 foreach(vals = iter(scaling_df, by = "row"), .combine = rbind) %do% {
   preds <- constrained_inc(vals$sfactor, vals$intercept, pop_plot, incidence_max,
                            incidence_min)*1e5
   data.table(vals, preds, pop_plot)
 } -> predicted_inc
 
-figS5.1 <- ggplot(data = predicted_inc, aes(x = log(pop_plot), y = preds, 
-                              color = scale, 
-                              group = interaction(scale, scaling))) +
-  geom_line() +
-  geom_hline(yintercept = c(incidence_max*1e5, incidence_min*1e5), linetype = 2, color = "grey") +
-  scale_color_manual(values = model_cols) +
-  ylab("Rabies exposures per \n 100k persons") +
-  xlab("Human population size (log)") +
-  facet_wrap(~scaling)
-ggsave("figs/S5.1.jpeg", figS5.1, device = "jpeg", height = 7, width = 10)
-
+write.csv(predicted_inc, "output/sensitivity/scaling.csv", row.names = FALSE)
 incidence_df <- rbind(flat_df, scaling_df)
 
 ##' Commune predictions 
