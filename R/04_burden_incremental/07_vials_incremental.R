@@ -40,12 +40,21 @@ catch_mat <- as.matrix(catch_comm[, -c("catch", "scenario", "check", "diff"), wi
 ## Simulate vials at admin level
 foreach(bycatch = iter(catch_mat, by = "row"), .combine = rbind, .export = 'get.vials', 
         .packages = 'data.table') %dopar% {
-          vials <- unlist(sapply(bycatch, get.vials))
-          mean <- mean(vials, na.rm = TRUE)
-          sd <- sd(vials, na.rm = TRUE)
-          upper <- mean + 1.96*sd/sqrt(length(vials))
-          lower <- mean - 1.96*sd/sqrt(length(vials))
-          out <- data.table(vials_mean = mean, vials_upper = upper, vials_lower = lower)
+          vial_preds <- sapply(bycatch, get.vials)
+          vials <- unlist(vial_preds["vials", ])
+          throughput <- unlist(vial_preds["throughput", ])
+          vials_mean <- mean(vials, na.rm = TRUE)
+          vials_sd <- sd(vials, na.rm = TRUE)
+          vials_upper <- vials_mean + 1.96*vials_sd/sqrt(length(vials))
+          vials_lower <- vials_mean - 1.96*vials_sd/sqrt(length(vials))
+          
+          throughput_mean <- mean(throughput, na.rm = TRUE)
+          throughput_sd <- sd(throughput, na.rm = TRUE)
+          throughput_upper <- throughput_mean + 1.96*throughput_sd/sqrt(length(throughput))
+          throughput_lower <- throughput_mean - 1.96*throughput_sd/sqrt(length(throughput))
+          
+          out <- data.table(vials_mean, vials_upper, vials_lower, 
+                            throughput_mean, throughput_sd, throughput_upper, throughput_lower)
  } -> vials_comm
 
 # stopCluster(cl)
@@ -65,12 +74,21 @@ catch_mat <- as.matrix(catch_dist[, -c("catch", "scenario", "check", "diff"), wi
 ## Simulate vials at admin level
 foreach(bycatch = iter(catch_mat, by = "row"), .combine = rbind, .export = 'get.vials', 
         .packages = 'data.table') %dopar% {
-          vials <- unlist(sapply(bycatch, get.vials))
-          mean <- mean(vials, na.rm = TRUE)
-          sd <- sd(vials, na.rm = TRUE)
-          upper <- mean + 1.96*sd/sqrt(length(vials))
-          lower <- mean - 1.96*sd/sqrt(length(vials))
-          out <- data.table(vials_mean = mean, vials_upper = upper, vials_lower = lower)
+          vial_preds <- sapply(bycatch, get.vials)
+          vials <- unlist(vial_preds["vials", ])
+          throughput <- unlist(vial_preds["throughput", ])
+          vials_mean <- mean(vials, na.rm = TRUE)
+          vials_sd <- sd(vials, na.rm = TRUE)
+          vials_upper <- vials_mean + 1.96*vials_sd/sqrt(length(vials))
+          vials_lower <- vials_mean - 1.96*vials_sd/sqrt(length(vials))
+          
+          throughput_mean <- mean(throughput, na.rm = TRUE)
+          throughput_sd <- sd(throughput, na.rm = TRUE)
+          throughput_upper <- throughput_mean + 1.96*throughput_sd/sqrt(length(throughput))
+          throughput_lower <- throughput_mean - 1.96*throughput_sd/sqrt(length(throughput))
+          
+          out <- data.table(vials_mean, vials_upper, vials_lower, 
+                            throughput_mean, throughput_sd, throughput_upper, throughput_lower)
         } -> vials_dist
 
 # stopCluster(cl)

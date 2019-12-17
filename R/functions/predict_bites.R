@@ -129,7 +129,8 @@ get.burden.fixed <- function(bite_mat, pop, hdr = 25, incidence = 0.01,
 get.vials <- function(x) {
   day0 <- round(runif(x, min = 1, max = 365))
   days <- data.table(days = c(day0, day0 + 3, day0 + 7))
-  return(sum(days[, .(.N), by = days][, ceiling(N/2)]))
+  return(list(vials = sum(days[, .(.N), by = days][, ceiling(N/2)]), 
+              throughput = mean(days[, .(.N), by = days]$N)))
 }
 
 ##' Helper Functions 
