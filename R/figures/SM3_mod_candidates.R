@@ -22,14 +22,6 @@ model_ests <- read.csv("output/mods/estimates.csv")
 model_ests %>%
   select(params, Mean, pop_predict, intercept, data_source, scale) %>%
   spread(key = params, value = Mean, fill = 0) -> model_means
-model_ests %>%
-  group_by(data_source, scale, pop_predict, intercept) %>%
-  summarize(dic = mean(dic)) -> dic_ests
-dic_ests %>%
-  group_by(data_source) %>%
-  arrange(dic, .by_group = TRUE) -> dic_ranks
-knitr::kable(dic_ranks)
-write.csv(dic_ranks, "output/mods/model_dic_ranks.csv")
 
 ## convergence plots
 model_ests %>%
@@ -42,11 +34,11 @@ convergence <- bind_rows(mpsrf, psrf)
 
 scale_levs <- c("Moramanga.Commune", "National.Commune", "National.District")
 scale_labs <- c("Moramanga", "Commune", "District")
-model_cols <- wes_palettes$Rushmore1[c(5, 3, 4)]
+model_cols <- c("#d95f02", "#1b9e77", "#7570b3")
 names(scale_labs) <- scale_levs 
 names(model_cols) <- scale_levs
 
-S4.1 <- ggplot(convergence, aes(x = type, y = val, color = interaction(data_source, scale))) + 
+S3.1 <- ggplot(convergence, aes(x = type, y = val, color = interaction(data_source, scale))) + 
   geom_boxplot() +
   scale_color_manual(values = model_cols, name = "Scale", 
                      labels = scale_labs) +
@@ -56,12 +48,12 @@ S4.1 <- ggplot(convergence, aes(x = type, y = val, color = interaction(data_sour
   scale_x_discrete(labels= c("psrf_upper" = "Indiviudal covariate", "mpsrf" = "Multivariate")) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size = 20)) +
   labs(x = "Type", y = "Scale reduction factor")
-ggsave("figs/S4.1.jpeg", S4.1, device = "jpeg", height = 10, width = 8)
+ggsave("figs/S3.1.pdf", S3.1, device = "pdf", height = 10, width = 8)
 
 ## Fitted predictions
-preds_grouped <- read.csv("output/mods/preds/fitted_grouped_all.csv")
+preds_grouped <- read.csv("output/preds/bites/fitted_grouped_all.csv")
 preds_grouped$mod_intercept <- preds_grouped$intercept
-S4.2 <- ggplot(data = filter(preds_grouped), 
+S3.2 <- ggplot(data = filter(preds_grouped), 
        aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
            color = interaction(data_source, scale))) +
   geom_point(alpha = 0.5, size = 2) +
@@ -72,12 +64,12 @@ S4.2 <- ggplot(data = filter(preds_grouped),
   xlab("log(Observed bites)") +
   ylab("log(Predicted bites)") +
   theme(text = element_text(size = 20))
-ggsave("figs/S4.2.jpeg", S4.2, device = "jpeg", height = 10, width = 8)
+ggsave("figs/S3.2.pdf", S3.2, device = "pdf", height = 10, width = 8)
 
 ## Out of fit predictions: using District and commune models to predict Moramanga data
-outfit_mora <- read.csv("output/mods/preds/outfit_mora.csv")
+outfit_mora <- read.csv("output/preds/bites/outfit_mora.csv")
 outfit_mora$mod_intercept <- outfit_mora$intercept
-S4.3A <- ggplot(data = outfit_mora, 
+S3.3A <- ggplot(data = outfit_mora, 
        aes(x = log(observed + 0.1), y = log(mean_bites + 0.1), 
            color = interaction(data_source, scale))) +
   geom_point(alpha = 0.5, size = 2) +  
@@ -91,9 +83,9 @@ S4.3A <- ggplot(data = outfit_mora,
 
 ## Out of fit predictions: using Moramanga estimates to predict district data 
 ## for both commune and district mods
-outfit_mada <- read.csv("output/mods/preds/outfit_grouped_mada.csv")
+outfit_mada <- read.csv("output/preds/bites/outfit_grouped_mada.csv")
 outfit_mada$mod_intercept <- outfit_mada$intercept
-S4.3B <- ggplot(data = outfit_mada, 
+S3.3B <- ggplot(data = outfit_mada, 
        aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
            color = interaction(data_source, scale))) +
   geom_point(alpha = 0.5, size = 2) +
@@ -105,22 +97,6 @@ S4.3B <- ggplot(data = outfit_mada,
        tag = "B") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size = 20))
 
-S4.3 <- (S4.3A | S4.3B) + plot_layout(widths = c(2, 1))
+S3.3 <- (S3.3A | S3.3B) + plot_layout(widths = c(2, 1))
 
-ggsave("figs/S4.3.jpeg", S4.3, device = "jpeg", height = 8, width = 12)
-
-## Figures extra
-## Param estimates
-samps <- get.samps(parent_dir = "output/samps/", 
-                   files = list.files("output/samps", recursive = TRUE))
-ggplot(data = filter(samps, pop_predict == "flatPop"), 
-       aes(x = interaction(data_source, scale), y = beta_access, fill = intercept)) +
-  geom_violin() +
-  scale_fill_manual(values = c("turquoise4", "slateblue4"))
-
-ggplot(data = filter(samps, pop_predict == "flatPop"), 
-       aes(x = interaction(data_source, scale), y = beta_0, fill = intercept)) +
-  geom_violin() +
-  scale_fill_manual(values = c("turquoise4", "slateblue4"))
-
-## Do the neffective sizes!
+ggsave("figs/S3.3.pdf", S3.3, device = "pdf", height = 8, width = 12)
