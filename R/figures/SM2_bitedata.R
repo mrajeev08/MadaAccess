@@ -18,7 +18,6 @@ source("R/functions/data_functions.R")
 
 ## Read in data
 national <- fread("data/processed/bitedata/national.csv")
-moramanga <- fread("data/processed/bitedata/moramanga.csv")
 ctar_metadata <- fread("data/raw/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
@@ -75,48 +74,24 @@ figS2.1A <- ggplot(data = throughput, aes(x = date_reported, y = reorder(ctar, i
                   alpha = cut(no_patients, breaks = throughput_brks, labels = names(throughput_cols)))) +
   scale_fill_manual(values = catch_cols, guide = "none") +
   scale_alpha_manual(values = seq(0.5, 1, length.out = 7),
-                    labels = names(throughput_cols), name = "Number of \n patients") +
+                    labels = names(throughput_cols), name = "Number of \n patients",
+                    na.translate = FALSE, guide = "none") +
   xlim(ymd("2014-01-01"), ymd("2017-12-31")) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
   xlab("Year") +
   ylab("ARMC") +
   labs(tag = "A")
 
-figS2.1A_side <- ggplot(data = reporting, aes(x = reorder(ctar, include_15), y = include_15, 
+figS2.1B <- ggplot(data = reporting, aes(x = reorder(ctar, include_15), y = include_15, 
                                               color = ctar)) +
   geom_boxplot() +
-  geom_point(alpha = 0.5, aes(shape = factor(year))) +
+  geom_point(alpha = 0.5) +
   labs(y = "Estimated reporting", x = "") +
+  geom_hline(yintercept = 0.25, linetype = 2, color = "grey") +
   coord_flip() +
   scale_color_manual(values = catch_cols, guide = "none") +
-  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) 
-
-(figS2.1A / figS2.1A_side)
-
-figS2.1A_side <- ggplot(data = reporting, aes(y = reorder(ctar, include_15), x = year, fill = ctar, 
-                             alpha = include_15)) +
-  geom_tile() +
-  scale_fill_manual(values = catch_cols, guide = "none")
-  
-
-## Figure S1.1B
-figS2.1B <- ggplot(data = reporting, aes(x = reorder(ctar, include_15), color = ctar, group = interaction(ctar, year))) +
-  geom_boxplot(aes(ymin = include_30, lower = include_15, middle = include_15, upper = include_15, 
-                   ymax = include_5),
-               stat = "identity") +
-  geom_hline(yintercept = 0.25, color = "darkgrey", alpha = 0.5) +
-  scale_color_manual(values = catch_cols, guide = "none") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.minor = element_blank()) +
-  xlab("ARMC") +
-  ylab("Proportion of days included") +
-  coord_flip() +
-  labs(tag = "B") 
-
-
-figS2.1 <- figS2.1A / figS2.1B
-
-## figS2.1
-ggsave("figs/S1.1.jpeg", figS2.1, device = "jpeg", width = 7, height = 7)
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), 
+        axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 ##' Estimates of vials from reporting 
 ##' ------------------------------------------------------------------------------------------------
@@ -126,15 +101,14 @@ peripheral <- read.csv("data/raw/bitedata/peripheral/SaisieRage_DATA_2018-09-21_
 load("data/raw/bitedata/ipm/ipm.rda")
 moramanga <- read.csv("data/raw/bitedata/moramanga/CTAR_%28V3%29_20190918150219.csv")
 
-
 ## Getting bites at the ctar level
-f <- function(num, denom) num/denom
+prop.f <- function(num, denom) num/denom
 patient_ts %>%
   mutate(year = year(date_reported)) %>%
   group_by(year, id_ctar) %>% 
   summarize(no_patients = sum(no_patients)) %>%
   left_join(reporting) %>%
-  mutate_at(vars(starts_with("include")), f, num = quote(no_patients)) -> ctar_bites
+  mutate_at(vars(starts_with("include")), prop.f, num = quote(no_patients)) -> ctar_bites
   
 ## Do average of 3 doses per patient at days 0, 3, 7
 ## Get completion of subsequent doses by clinic
@@ -199,37 +173,33 @@ ctar_metadata %>%
 vial_ests %>%
   pivot_wider(names_from = "vials", names_prefix = "mean", values_from = "value") -> vial_comp
 
-ggplot(data = filter(vial_comp, cut_off == 15 | cut_off == Inf), aes(x = log(vials_observed), 
-                                                                     color = factor(cut_off))) +
-  geom_point(aes(y = (log(mean3) + log(mean4))/2)) +
-  geom_linerange(aes(ymin = log(mean3), ymax = log(mean4))) +
-  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +
-  scale_color_discrete(name = "Cut-off") +
-  expand_limits(x = 2.5, y = 2.5) +
-  theme_half_open() +
-  labs(y = "Log(Estimated vials)", x = "Log(Observed vials)")
+reporting %>%
+  group_by(ctar) %>%
+  summarize(reporting = mean(include_15, na.rm = TRUE)) %>%
+  right_join(filter(vial_comp, cut_off == 15 | cut_off == Inf)) -> vials_to_plot
 
-ggplot(data = filter(vial_comp, cut_off == 15 | cut_off == Inf), 
-       aes(x = ctar, color = factor(cut_off))) +
-  geom_linerange(aes(ymin = mean3/vials_observed, ymax = mean4/vials_observed)) +
-  geom_hline(yintercept = 1, linetype = 2, color = "grey") +
-  coord_flip()
-  scale_color_discrete(name = "Cut-off") +
-  expand_limits(x = 2.5, y = 2.5) +
-  theme_half_open() +
-  labs(y = "Log(Estimated vials)", x = "Log(Observed vials)")
+figS2.1C <- ggplot(data = vials_to_plot, aes(x = reorder(ctar, reporting), shape = factor(cut_off), 
+                                             color = ctar)) +
+  geom_point(aes(y = ((log(mean3) + log(mean4))/2) - log(vials_observed)), size = 2) +
+  geom_linerange(aes(ymin = log(mean3) - log(vials_observed), ymax = log(mean4) - log(vials_observed))) +
+  geom_hline(yintercept = 0, linetype = 2, color = "grey") +
+  scale_shape_manual(values = c(2, 1), name = "Correction for \n underreporting", 
+                     labels = c("15" = "15 day cut-off", "Inf" = "none")) +
+  labs(y = "Difference between \n log(estimated) and log(observed) vials", x = "", tag = "B") +
+  coord_flip() +
+  scale_color_manual(values = catch_cols, guide = "none")
 
-vial_ests %>%
-  group_by(cut_off, ctar, vials) %>%
-  mutate(se_squared_3 = sqrt(abs(value - vials_observed))) -> check
+figS2.1 <- 
+  {(figS2.1A | figS2.1B) + plot_layout(ncol = 2, widths = c(2.5, 1))} / 
+  {(figS2.1C + plot_spacer()) + plot_layout(ncol = 2, widths = c(3, 1))} 
+ggsave("figs/S2.1.jpeg", figS2.1, device = "jpeg", height = 6, width = 8.75)
 
-ggplot(data = check, aes(x = factor(cut_off), y = se_squared_3, color = factor(vials))) +
-  geom_boxplot(outlier.shape = NA) +
-  ggbeeswarm::geom_beeswarm(alpha = 0.5) 
 
 ##' Contacts 
 ##' ------------------------------------------------------------------------------------------------
 ##' Figure S1.2A example of cut-offs
+moramanga <- fread("data/processed/bitedata/moramanga.csv")
+
 national %>%
   filter(year(date_reported) > 2013, year(date_reported) < 2018, !is.na(distcode), !is.na(id_ctar)) %>%
   mutate(date_reported = ymd(date_reported)) %>%
@@ -305,7 +275,7 @@ figS2.2B <- ggplot(contacts_cutoff, aes(x = as.numeric(sd), y = excluded, color 
 figS2.2 <- figS2.2A | figS2.2B
 
 ## figS2.2
-ggsave("figs/S1.2.jpeg", figS2.2, device = "jpeg", height = 7, width = 9)
+ggsave("figs/S2.2.jpeg", figS2.2, device = "jpeg", height = 7, width = 9)
 
 ##' Also make the point that contacts have different ttime distribution than reported bites (so
 ##' more for getting the impact of travel times right)
@@ -313,3 +283,17 @@ mora_bites <- fread("data/processed/bitedata/moramanga.csv")
 mora_bites$ttimes <- mada_communes$ttimes_wtd[match(mora_bites$commcode, mada_communes$commcode)]
 ggplot(data = filter(mora_bites, type != "transfer"), aes(x = factor(known_cat1), y = ttimes/60)) +
   geom_violin()
+
+
+## Figure S1.1B
+figS4.1B <- ggplot(data = reporting, aes(x = reorder(ctar, include_15), color = ctar, group = interaction(ctar, year))) +
+  geom_boxplot(aes(ymin = include_30, lower = include_15, middle = include_15, upper = include_15, 
+                   ymax = include_5),
+               stat = "identity") +
+  geom_hline(yintercept = 0.25, color = "darkgrey", alpha = 0.5) +
+  scale_color_manual(values = catch_cols, guide = "none") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.minor = element_blank()) +
+  xlab("ARMC") +
+  ylab("Proportion of days included") +
+  coord_flip() +
+  labs(tag = "B") 
