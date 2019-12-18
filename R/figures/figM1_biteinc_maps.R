@@ -13,6 +13,8 @@ library(ggforce)
 library(rgdal)
 library(data.table)
 library(lubridate)
+library(cowplot)
+select <- dplyr::select
 
 ## Read in raw data (not processed)
 national <- read.csv("data/processed/bitedata/national.csv")
@@ -21,6 +23,7 @@ ctar_metadata <- fread("data/raw/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 source("R/functions/bezier.R")
+source("R/functions/data_functions.R")
 
 ##' N. Matching up metadata
 ##' ------------------------------------------------------------------------------------------------
@@ -36,13 +39,14 @@ no_data <- c("Fianarantsoa", "Ambatomainty", "Ambovombe Androy", "Tsiroanomandid
              "Antsiranana", "Marolambo", "Nosy be", "Sainte Marie", "Vangaindrano")
 ctar_metadata$exclude <- 0
 ctar_metadata$exclude[ctar_metadata$CTAR %in% no_data] <- 1
-ctar_metadata$color <- c("#FCC56F","#FFDBE5", "#7A4900", "#CBCDD2", "#0000A6", "#EFF2F1",
-                         "#99d8c9", "#B79762", "#004D43", "#8FB0FF", "white", "#FD9C54", "#8362B5",
+ctar_metadata$color <- c("#FCC56F","#FFDBE5", "#7A4900", "#CBCDD2", "#006b3c", "#EFF2F1",
+                         "#99d8c9", "#B79762", "#004D43", "#8FB0FF", "#997D87", "#FD9C54", "#8362B5",
                          "#578FB0","#5A0007", "#809693", "#D16100", "#1B4400", "#4FC601", "#3B5DFF", 
                          "#4A3B53", "#FF2F80","#61615A", "#BA0900", "#6B7900", "#00C2A0", "#FFAA92",
                          "#FF90C9", "#B903AA", "#FEFFE6", "#E9E9D2")
+
 ctar_metadata$fill <- ctar_metadata$color
-ctar_metadata$color[ctar_metadata$CTAR %in% no_data] <- "black"
+ctar_metadata$color[ctar_metadata$CTAR %in% no_data] <- "grey50"
 
 catch_cols <- ctar_metadata$color
 names(catch_cols) <- ctar_metadata$CTAR
@@ -65,7 +69,8 @@ national %>%
   group_by(id_ctar) %>%
   summarize(count = n()) %>%
   left_join(select(ctar_metadata, ctar = CTAR, distcode, id_ctar, color, fill)) %>%
-  left_join(select(mada_districts@data, distcode, long, lat)) -> ctar_pts
+  left_join(select(mada_districts@data, distcode, long, lat)) %>%
+  filter(!is.na(id_ctar)) -> ctar_pts
 
 ##' Get the # of bites reported to each CTAR from each district 
 national %>%
@@ -74,7 +79,8 @@ national %>%
   left_join(select(mada_districts@data, to_long = long, to_lat = lat, distcode)) %>%
   left_join(select(ctar_metadata, id_ctar, ctar = CTAR, color, fill, ctar_distcode = distcode)) %>%
   left_join(select(mada_districts@data, from_long = long, from_lat = lat, 
-                    ctar_distcode = distcode))-> ctar_todist_lines
+                    ctar_distcode = distcode)) %>%
+  filter(!is.na(id_ctar)) -> ctar_todist_lines
 
 ## Fortified polygons for plotting
 mada_districts$color <- ctar_metadata$color[match(mada_districts$catchment, ctar_metadata$CTAR)]
@@ -82,70 +88,6 @@ gg_district <- fortify(mada_districts, region = "distcode")
 gg_district %>% 
   left_join(select(mada_districts@data, distcode, color, ctar = catchment), 
             by = c("id" = "distcode")) -> gg_district
-
-##' Plot option 1: lines with width scaled by size
-sizes <- log(c(100, 200, 400, 800, 1600) + 0.1)
-opt1 <- ggplot() +
-  geom_polygon(data = gg_district, 
-               aes(x = long, y = lat, group = group, fill = ctar), color = "white", alpha = 0.5) +
-  geom_segment(data = filter(ctar_todist_lines, color != "black"), 
-               aes(x = from_long, y = from_lat, xend = to_long, yend = to_lat, 
-                   color = ctar, size = log(count + 0.1)/2), alpha = 0.5, 
-               show.legend = FALSE) +
-  geom_point(data = dist_pts, aes(x = long, y = lat, color = ctar,
-                                  size = log(count + 0.1)),
-             shape = 16, alpha = 0.75) +
-  geom_point(data = ctar_pts, aes(x = long, y = lat, 
-                                  size = log(count + 0.1), color = ctar), 
-             shape = 1) +
-  scale_fill_manual(values = catch_cols, guide = "none") +
-  scale_color_manual(values = catch_fills, guide = "none") +
-  scale_size_identity("Reported bites", labels = as.character(c(100, 200, 400, 800, 1600)),
-                      breaks = sizes, guide = "legend") +
-  guides(size = guide_legend(override.aes = list(color = "grey50"))) +
-  labs(tag = "A") +
-  theme_void()
-
-ggsave("figs/opt1.jpg", opt1, device = "jpg", height = 12, width = 8)
-
-ctar_todist_lines %>%
-  ungroup() %>%
-  mutate(end_lat_plus = to_lat + log(count + 1)*0.02, 
-         end_long_plus = to_long + log(count + 1)*0.02,
-         end_lat_minus = to_lat - log(count + 1)*0.02, 
-         end_long_minus = to_long - log(count + 1)*0.02,
-         group_id = paste0(distcode, id_ctar)) %>%
-  select(group_id, contains("lat"), contains("long"), 
-         -to_lat, -to_long, color, ctar) -> ctar_todist_pols
-
-ctar_todist_pols <- bind_rows(select(ctar_todist_pols, lat = end_lat_plus, long = end_long_plus,
-                                     group = group_id, color, ctar),
-                              select(ctar_todist_pols, lat = end_lat_minus, long = end_long_minus,
-                                     group = group_id, color, ctar),
-                              select(ctar_todist_pols, lat = from_lat, long = from_long, 
-                                     group = group_id, color, ctar))
-
-sizes <- log(c(100, 200, 400, 800, 1600) + 0.1)
-opt2 <- ggplot() +
-  geom_polygon(data = gg_district, 
-               aes(x = long, y = lat, group = group, fill = ctar), color = "white", alpha = 0.5) +
-  geom_polygon(data = filter(ctar_todist_pols, color != "black"), aes(x = long, y = lat, group = group,
-                                     fill = ctar), color = NA, alpha = 0.5, 
-               show.legend = FALSE) +
-  geom_point(data = dist_pts, aes(x = long, y = lat, fill = ctar,
-                                       size = log(count + 0.1)), color = alpha("black", 0.75),
-             shape = 21, alpha = 0.75) +
-  geom_point(data = ctar_pts, aes(x = long, y = lat, 
-                                     size = log(count + 0.1), color = ctar), 
-             shape = 1, stroke = 1.2) +
-  scale_fill_manual(values = catch_cols, guide = "none") +
-  scale_color_manual(values = catch_fills, guide = "none") +
-  scale_size_identity("Reported bites", labels = as.character(c(100, 200, 400, 800, 1600)),
-                      breaks = sizes, guide = "legend") +
-  guides(size = guide_legend(override.aes = list(color = "grey50"))) +
-  labs(tag = "A") +
-  theme_void()
-ggsave("figs/opt2.jpg", opt2, device = "jpg", height = 12, width = 8)
 
 ##' Opt 3: Bezier curves
 control_pts <- get.bezier.pts(origin = data.frame(x = ctar_todist_lines$from_long, 
@@ -171,27 +113,46 @@ ctar_todist_bez %>%
   group_by(distcode, ctar) %>%
   arrange(index) -> ctar_todist_bez
 
-opt3 <- ggplot() +
+pt_sizes <- log(c(100, 200, 400, 800, 1600, 10000) + 0.1)
+
+ctar_metadata %>%
+  left_join(select(mada_districts@data, long, lat, distcode)) -> ctar_all
+
+fig1A_map <- ggplot() +
   geom_polygon(data = gg_district, 
                aes(x = long, y = lat, group = group, fill = ctar), 
                color = "white", alpha = 0.5) +
-  geom_bezier2(data = filter(ctar_todist_bez, color != "black" & ctar != "IPM"), 
+  geom_bezier2(data = filter(ctar_todist_bez, count > 4), 
                aes(x = long, y = lat, group = interaction(distcode, ctar), 
-                   color = ctar, size = log(count + 0.1)/2), alpha = 0.75) +
-  geom_point(data = dist_pts, aes(x = long, y = lat, fill = ctar,
-                                  size = log(count + 0.1)), color = alpha("black", 0.75),
-             shape = 21, alpha = 0.9) +
+                   color = ctar, size = log(count + 0.1)/3), alpha = 0.75) +
   geom_point(data = ctar_pts, aes(x = long, y = lat, 
-                                  size = log(count + 0.1), color = ctar), 
-             shape = 1, stroke = 1.2) +
-  scale_fill_manual(values = catch_cols, guide = "none") +
+                                  size = log(count + 0.1), fill = ctar), 
+             shape = 21, color = "black", stroke = 1.2) +
+  geom_point(data = dist_pts, aes(x = long, y = lat, fill = ctar,
+                                  size = log(count + 0.1)*0.75),
+             shape = 21, color = "white", alpha = 0.75) +
+  geom_point(data = filter(ctar_all, exclude == 1), aes(x = long, y = lat), 
+             shape = 1, stroke = 1, color = "black") +
   scale_color_manual(values = catch_fills, guide = "none") +
-  scale_size_identity("Reported bites", labels = as.character(c(100, 200, 400, 800, 1600)),
-                      breaks = sizes, guide = "legend") +
-  guides(size = guide_legend(override.aes = list(color = "grey50"))) +
+  scale_fill_manual(values = catch_cols, guide = "none") +
+  scale_size_identity("Reported bites", labels = as.character(c(100, 200, 400, 800, 1600, 10000)),
+                      breaks = pt_sizes, guide = "legend") +
+  guides(size = guide_legend(override.aes = list(linetype = 0))) +
   labs(tag = "A") +
-  theme_void()
-ggsave("figs/opt3.jpg", opt3, device = "jpg", height = 12, width = 8)
+  theme_void(base_size = 14)
+
+line_leg <- data.frame(brks = c(100, 200, 400, 800, 1600, 10000), 
+                       size = log(c(100, 200, 400, 800, 1600, 10000) + 0.1)/3)
+leg_plot <- ggplot(line_leg, aes(x = brks, y = brks, size = size)) + 
+  geom_line() + 
+  scale_size_identity("", guide = "legend",
+                      labels = as.character(line_leg$brks), breaks = line_leg$size) +
+  guides(size = guide_legend(override.aes = list(linetype = 1, color = "black", alpha = 0.75))) +
+  theme_void(base_size = 14)
+
+leg <- get_legend(leg_plot)
+
+fig1A <- plot_grid(fig1A_map, leg, rel_widths = c(3, .4))
 
 ##' 3. Mapping raw data: Moramanga at commune level
 ##' ------------------------------------------------------------------------------------------------
@@ -206,22 +167,6 @@ moramanga %>%
 comm_pts$from_long <- ctar_metadata$LONGITUDE[ctar_metadata$CTAR == "Moramanga"]
 comm_pts$from_lat <- ctar_metadata$LATITUDE[ctar_metadata$CTAR == "Moramanga"]
 
-comm_pts %>%
-  ungroup() %>%
-  mutate(end_lat_plus = lat + log(count + 1)*0.05, 
-         end_long_plus = long + log(count + 1)*0.05,
-         end_lat_minus = lat - log(count + 1)*0.05, 
-         end_long_minus = long - log(count + 1)*0.05,
-         group_id = commcode) %>%
-  select(group_id, contains("lat"), contains("long"), -lat, -long, color, ctar) -> ctar_tocomm_pols
-
-ctar_tocomm_pols <- bind_rows(select(ctar_tocomm_pols, lat = end_lat_plus, long = end_long_plus,
-                                     group = group_id, color, ctar),
-                              select(ctar_tocomm_pols, lat = end_lat_minus, long = end_long_minus, 
-                                     group = group_id, color, ctar),
-                              select(ctar_tocomm_pols, lat = from_lat, long = from_long, 
-                                     group = group_id, color, ctar))
-
 mada_communes$color <- ctar_metadata$color[match(mada_communes$catchment, ctar_metadata$CTAR)]
 gg_commune <- fortify(mada_communes, region = "commcode")
 gg_commune %>% 
@@ -230,37 +175,7 @@ gg_commune %>%
   left_join(select(comm_pts, commcode, count), by = c("id" = "commcode")) %>%
   filter(ctar == "Moramanga") -> gg_commune_plot
 
-##' TO DO: add inset with districts included in catchment outlined 
-##' (or other way of showing what this refers to)
-fig1B <- ggplot() +
-  geom_polygon(data = gg_commune_plot, 
-               aes(x = long, y = lat, group = group), fill = "#4A3B53", 
-               color = "white", alpha = 0.5) +
-  geom_polygon(data = ctar_tocomm_pols, aes(x = long, y = lat, group = group,
-                                     fill = ctar), color = NA, alpha = 0.5, 
-               show.legend = FALSE) +
-  geom_point(data = filter(comm_pts, commcode != "MG33314010"), aes(x = long, y = lat, fill = ctar,
-                                  size = log(count + 0.1)), color = alpha("black", 0.75),
-             shape = 21, alpha = 0.75) +
-  geom_point(data = filter(comm_pts, commcode == "MG33314010"), aes(x = long, y = lat, 
-                                  size = log(count + 0.1), color = ctar), 
-             shape = 1, stroke = 1.2) +
-  scale_fill_manual(values = catch_fills, guide = "none") +
-  scale_color_manual(values = catch_fills, guide = "none") +
-  scale_size_identity("Reported bites", labels = as.character(c(100, 200, 400, 800, 1600)),
-                      breaks = sizes, guide = "legend") +
-  guides(size = guide_legend(override.aes = list(color = "grey50"))) +
-  theme_void()
-
-insetB <-  ggplot() + 
-  geom_polygon(data = gg_district, 
-                        aes(x = long, y = lat, group = group), color = "grey50", 
-                        alpha = 0.5) + 
-  geom_polygon(data = gg_commune_plot, aes(x = long, y = lat, group = group), 
-                         fill= "#4A3B53") +
-  labs(tag = "C") +
-  theme_void()
-
+##' Bezier curves
 control_pts <- get.bezier.pts(origin = data.frame(x = comm_pts$long, 
                                                     y = comm_pts$lat),
                           destination = data.frame(x = comm_pts$from_long, y = comm_pts$from_lat), 
@@ -280,35 +195,80 @@ bez_pts <- bind_rows(pts_1, pts_3, pts_2)
 bez_pts %>%
   group_by(commcode) %>%
   arrange(index) -> bez_pts
-
-ggplot() +
+ 
+fig1B <- ggplot() +
   geom_polygon(data = gg_commune_plot, 
                aes(x = long, y = lat, group = group), fill = "#4A3B53", 
                color = "white", alpha = 0.5) +
-  geom_bezier2(data = bez_pts, aes(x = long, y = lat, group = commcode, size = log(count + 0.1)),
-               color = "#4A3B53", alpha = 0.5) +
-  geom_point(data = filter(comm_pts, commcode != "MG33314010"), 
-             aes(x = long, y = lat, fill = ctar, size = log(count + 0.1)),
-             color = alpha("black", 0.01),
-             shape = 21, alpha = 0.75) +
+  geom_bezier2(data = bez_pts, 
+               aes(x = long, y = lat, group = commcode, 
+                   size = log(count + 0.1)/3), color = "#4A3B53", alpha = 0.75) +
   geom_point(data = filter(comm_pts, commcode == "MG33314010"), 
-             aes(x = long, y = lat, size = log(count + 0.1), color = ctar), 
-             shape = 1, stroke = 1.2) +
+             aes(x = long, y = lat, fill = ctar), 
+             shape = 21, size = log(sum(ctar_pts$count) + 0.1), color = "black", 
+             stroke = 1.2) +
+  geom_point(data = comm_pts, aes(x = long, y = lat, fill = ctar,
+                                  size = log(count + 0.1)*0.75),
+             shape = 21, color = "white", alpha = 0.75) + 
   scale_fill_manual(values = catch_fills, guide = "none") +
   scale_color_manual(values = catch_fills, guide = "none") +
-  scale_size_identity("Reported bites", labels = as.character(c(100, 200, 400, 800, 1600)),
-                      breaks = sizes, guide = "legend") +
+  scale_size_identity("Reported bites", guide = "none") +
   guides(size = guide_legend(override.aes = list(color = "grey50"))) +
+  theme_void()
+
+insetB <-  ggplot() + 
+  geom_polygon(data = gg_district, 
+               aes(x = long, y = lat, group = group), color = "grey50", 
+               alpha = 0.5) + 
+  geom_polygon(data = gg_commune_plot, aes(x = long, y = lat, group = group), 
+               fill= "#4A3B53") +
+  labs(tag = "C") +
   theme_void()
 
 ## Bite incidence estimates
 ## Mada
+national %>%
+  filter(year(date_reported) > 2013, year(date_reported) < 2018, !is.na(distcode), !is.na(id_ctar)) %>%
+  mutate(date_reported = ymd(date_reported)) %>%
+  group_by(date_reported, id_ctar) %>%
+  summarise(no_patients = n()) %>%
+  ungroup() %>%
+  complete(date_reported = seq(min(date_reported), max(date_reported), by = "day"), id_ctar, 
+           fill = list(no_patients = 0)) -> throughput
+
+##' rle.days = Helper function for getting which days to include (moved to functions from data_functions.R)
+##' and also identify potential CAT 1 by the throughput mean/sd
+throughput %>%
+  group_by(id_ctar) %>%
+  arrange(date_reported, .by_group = TRUE) %>%
+  mutate(include_day = rle.days(no_patients, threshold = 15), 
+         mean_throughput = mean(no_patients[include_day == 1]),
+         sd_throughput = sd(no_patients[include_day == 1]),
+         estimated_cat1 = ifelse(no_patients >= mean_throughput + 3*sd_throughput, 
+                                 1, 0),
+         year = year(date_reported)) -> throughput
+
+##' yearly reporting
+##' sum the total # of days included over # of days in year (365)
+throughput %>%
+  group_by(year, id_ctar) %>%
+  summarize(reporting = sum(include_day)/365) -> reporting
+
+##' Left join with throughput to get exclusion criteria
+national %>%
+  filter(year(date_reported) > 2013, year(date_reported) < 2018,
+         distcode %in% mada_districts$distcode, 
+         id_ctar %in% ctar_metadata$id_ctar[!is.na(ctar_metadata$id_ctar)],
+         type == "new") %>% 
+  mutate(date_reported = ymd(date_reported)) %>%
+  left_join(select(throughput, date_reported, id_ctar, include_day, estimated_cat1, year)) -> bites
+
 bites %>%
   ## filter known contacts and estimated ones based on throughput
-  filter(estimated_cat1 == 0, include == 1) %>% 
+  filter(estimated_cat1 == 0, include_day == 1) %>% 
   group_by(year, distcode) %>%
   summarize(bites = n()) -> bites_district
-bites_district$CTAR <- mada_districts$ctch_ttwtd[match(bites_district$distcode, 
+bites_district$CTAR <- mada_districts$catchment[match(bites_district$distcode, 
                                                        mada_districts$distcode)]
 bites_district$id_ctar<- ctar_metadata$id_ctar[match(bites_district$CTAR, ctar_metadata$CTAR)]
 bites_district %>%
@@ -316,13 +276,15 @@ bites_district %>%
   filter(reporting > 0.25) %>% ## dont include any for which less than 25% reporting
   ## correct for reporting by year and ctar reported to 
   mutate(bites = bites/reporting) -> yearly_ests
-  
-mada_districts@data %>%
-  select(group_name = distcode, district = ADM2_EN, pop, long, lat, 
-         catchment = ctch_ttwtd, covar = ttms_wtd, exclude_by_ttimes,
-         ctar_in_district) %>%
-  filter(exclude_by_ttimes == 0) %>%
-  mutate(covar_name = "ttimes", catch = as.numeric(droplevels(catchment)), 
+
+
+mada_districts$exclude <- ctar_metadata$exclude[match(mada_districts$catchment,
+                                                                ctar_metadata$CTAR)]
+mada_districts@data%>%
+  select(group_name = distcode, district, pop, long, lat, 
+         catchment, ttimes_wtd, exclude) %>%
+  filter(exclude == 0) %>%
+  mutate(catch = as.numeric(droplevels(catchment)), 
          group = as.numeric(droplevels(group_name)), 
          names = group_name) %>%
   left_join(yearly_ests, by = c("group_name" = "distcode")) %>%
@@ -332,7 +294,7 @@ district_cols <- ctar_metadata$fill
 names(district_cols) <- ctar_metadata$CTAR
 
 fig1C <- ggplot(bites_plot, 
-                aes(x = reorder(district, -covar), 
+                aes(x = reorder(district, -ttimes_wtd), 
                     y = bites/pop*1e5, color = catchment)) +
   geom_boxplot() +
   scale_color_manual(values = district_cols) + 
@@ -343,21 +305,10 @@ fig1C <- ggplot(bites_plot,
   labs(tag = "B")
 
 ## Moramanga
-moramanga %>%
-  mutate(month_date = floor_date(ymd(moramanga$date_reported), unit = "month")) %>%
-  filter(known_cat1 == 0, type == "new", month_date >= "2016-10-01", 
-         month_date <= "2019-06-01", !is.na(commcode)) %>%
-  group_by(commcode, month_date) %>%
-  summarize(bites = n()) %>%
-  ungroup() %>%
-  complete(month_date = seq(min(month_date), max(month_date), by = "month"), 
-           commcode, fill = list(bites = 0)) %>%
-  group_by(commcode) %>%
-  summarize(avg_bites = mean(bites)*12) %>% # average monthly bites x 12 to get annual avg_bites
-  complete(commcode = mada_communes$ADM3_PCODE, fill = list(avg_bites = 0)) -> mora_bites 
+mora_bites <- fread("output/bites/mora_bites.csv")
 
-fig1D <- ggplot(morabites_by_ttimes, 
-                aes(x = reorder(names, -covar), 
+fig1D <- ggplot(mora_bites, 
+                aes(x = reorder(commcode, -ttimes_wtd), 
                     y = avg_bites/pop*1e5, color = catchment)) +
   geom_boxplot() +
   scale_color_manual(values = district_cols) + 
@@ -366,6 +317,93 @@ fig1D <- ggplot(morabites_by_ttimes,
   coord_flip() +
   theme(legend.position = "none", axis.text.y = element_blank()) +
   labs(tag = "D")
+
+## Alternate plot
+mora_bites %>%
+  select(group_name = commcode, pop, catchment, ttimes_wtd, avg_bites) %>%
+  mutate(data = "Moramanga") %>%
+  bind_rows(select(bites_plot, group_name, pop, catchment, ttimes_wtd, avg_bites = bites)) %>%
+  mutate(data = ifelse(is.na(data), "National", data)) -> all_bites
+ggplot(all_bites, 
+       aes(x = reorder(group_name, -ttimes_wtd), 
+           y = avg_bites/pop*1e5, color = catchment)) +
+  geom_boxplot() +
+  scale_color_manual(values = district_cols) + 
+  ylab("Annual bites per 100k") +
+  xlab("Districts ordered by \n travel times (high to low)") +
+  theme(legend.position = "none", axis.text.y = element_blank()) +
+  coord_flip() +
+  labs(tag = "B")
+
+ggplot(all_bites, 
+       aes(x = reorder(group_name, -ttimes_wtd), 
+           y = avg_bites/pop*1e5, color = catchment)) +
+  geom_point(aes(shape = data)) +
+  scale_color_manual(values = district_cols) + 
+  ylab("Annual bites per 100k") +
+  xlab("Districts ordered by \n travel times (high to low)") +
+  theme(legend.position = "none", axis.text.y = element_blank()) +
+  coord_flip() +
+  labs(tag = "B")
+
+all_bites %>%
+  group_by(group_name, ttimes_wtd, catchment, data, pop) %>%
+  summarize(sd = sd(avg_bites), 
+            avg_bites = mean(avg_bites, na.rm = TRUE), 
+            nobs = n(),
+            upper = avg_bites + 1.96*sd/sqrt(nobs),
+            lower = avg_bites - 1.96*sd/sqrt(nobs)) -> mean_bites
+
+size_labs <- c("1" = 1.5, "2" = 2, "3" = 2.5, "4" = 3)
+
+ggplot(mean_bites, 
+       aes(x = reorder(group_name, -ttimes_wtd), 
+           y = avg_bites/pop*1e5, color = catchment)) +
+  geom_point(aes(shape = data, size = factor(nobs)), alpha = 0.75) +
+  geom_linerange(aes(ymin = lower/pop*1e5, ymax = upper/pop*1e5)) +
+  scale_size_manual(values = size_labs, labels = names(size_labs)) +
+  scale_shape_manual(values = c(16, 15)) +
+  scale_color_manual(values = district_cols, guide = "none") + 
+  ylab("Annual bites per 100k") +
+  xlab("Districts ordered by \n travel times (high to low)") +
+  theme(axis.text.y = element_blank()) +
+  coord_flip() +
+  labs(tag = "B")
+
+ggplot(mean_bites, 
+       aes(x = ttimes_wtd, 
+           y = avg_bites/pop*1e5, color = catchment)) +
+  geom_point(aes(shape = data, size = factor(nobs)), alpha = 0.75) +
+  geom_linerange(aes(ymin = lower/pop*1e5, ymax = upper/pop*1e5)) +
+  scale_size_manual(values = size_labs, labels = names(size_labs)) +
+  scale_shape_manual(values = c(16, 15)) +
+  scale_color_manual(values = district_cols, guide = "none") + 
+  ylab("Annual bites per 100k") +
+  xlab("Districts ordered by \n travel times (high to low)") +
+  labs(tag = "B")
+
+
+ggplot(all_bites, 
+       aes(x = ttimes_wtd, 
+           y = avg_bites/pop*1e5, color = catchment)) +
+  geom_point(aes(shape = data)) +
+  scale_size_manual(values = size_labs, labels = names(size_labs)) +
+  scale_color_manual(values = district_cols, guide = "none") + 
+  ylab("Annual bites per 100k") +
+  xlab("Districts ordered by \n travel times (high to low)") +
+  theme(axis.text.y = element_blank()) +
+  labs(tag = "B")
+
+ggplot(mean_bites, 
+       aes(x = ttimes_wtd, 
+           y = avg_bites/pop*1e5, color = catchment)) +
+  geom_point(aes(shape = data)) +
+  scale_color_manual(values = district_cols, guide = "none") + 
+  ylab("Annual bites per 100k") +
+  xlab("Districts ordered by \n travel times (high to low)") +
+  theme(axis.text.y = element_blank()) +
+  labs(tag = "B")
+
 
 ## Save these as objects and read back in to make final figs using patchwork
 figM1 <- fig1A + fig1C + {
