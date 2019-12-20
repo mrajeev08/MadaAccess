@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --ntasks=50
 #SBATCH --cpus-per-task=1
-#SBATCH -J  0505_vials
+#SBATCH -J  0406_vials
 #SBATCH -t 12:00:00
 # sends mail when process begins, and
 # when it ends
@@ -11,4 +11,4 @@
 
 export OMPI_MCA_btl="tcp,self,sm"
 module load openmpi/gcc/2.0.2
-srun Rscript ./R/05_incremental/05_vials_incremental.R
+srun Rscript ./R/04_burden_incremental/06_vials_incremental.R
