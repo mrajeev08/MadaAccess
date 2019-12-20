@@ -13,7 +13,7 @@ library(lubridate)
 library(raster)
 library(rasterVis)
 library(patchwork)
-library(scico)
+library(ggridges)
 select <- dplyr::select
 
 ##' Read in data
@@ -32,6 +32,9 @@ gg_communes %>%
 gg_districts <- fortify(mada_districts, region = "distcode")
 gg_districts %>%
   left_join(select(mada_districts@data, -long, -lat), by = c("id" = "distcode")) -> gg_districts
+
+##' Plotting GIS inputs/outputs 
+##' ------------------------------------------------------------------------------------------------
 
 ##' Colors
 ttime_cols <- c('#fff7f3','#fde0dd','#fcc5c0','#fa9fb5','#f768a1','#dd3497','#ae017e','#7a0177')
@@ -84,5 +87,73 @@ figS1.D <- ggplot() +
 
 figS1.1 <- (figS1.A | figS1.B) / (figS1.C | figS1.D)
 
-ggsave("figs/S1.1.jpeg", figS1.1, device = "jpeg", height = 12, width = 10)
+ggsave("figs/supplementary/S1.1.jpeg", figS1.1, device = "jpeg", height = 12, width = 10)
+
+##' Plotting proportion of within catch vs. outside catch 
+##' ------------------------------------------------------------------------------------------------
+baseline_dist <- select(mada_districts@data, pop_catch)
+baseline_dist$scale <- "Districts"
+baseline_comm <- select(mada_communes@data, pop_catch)
+baseline_comm$scale <- "Communes"
+catch_plot <- bind_rows(baseline_dist, baseline_comm)
+catch_plot$scale <- factor(catch_plot$scale)
+levels(catch_plot$scale) <- list("Districts" = "Districts", "Communes" = "Communes")
+
+scale_levs <- c("Communes", "Districts")
+model_cols <- c("#1b9e77", "#7570b3")
+names(model_cols) <- scale_levs 
+
+figS1.2A <- ggplot(data = catch_plot, aes(x = pop_catch, fill = scale)) +
+  geom_histogram(alpha = 0.75, binwidth = 0.1, color = "white", size = 1) +
+  facet_wrap(~scale, scales = "free_y") +
+  scale_fill_manual(values = model_cols, guide = "none") +
+  labs(x = "Proportion of population \n within assigned catchment", 
+       y = "# of Admin units", tag = "A") +
+  theme_half_open() +
+  theme(strip.background = element_blank())
+
+national <- fread("data/processed/bitedata/national.csv")
+national %>%
+  group_by(distcode, id_ctar) %>%
+  summarize(count = n()) %>%
+  filter(!is.na(id_ctar), distcode %in% mada_districts$distcode) -> bites_dist
+
+ctar_coords <- SpatialPoints(cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE), 
+                             proj4string = 
+                               CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+ctar_metadata$commcode <- over(ctar_coords, mada_communes)$commcode
+ctar_metadata$distcode <- over(ctar_coords, mada_districts)$distcode
+bites_dist$catch <- mada_districts$catchment[match(bites_dist$distcode, mada_districts$distcode)]
+bites_dist$actual_catch <- ctar_metadata$id_ctar[match(bites_dist$catch, ctar_metadata$CTAR)]
+
+bites_dist %>%
+  group_by(id_ctar) %>%
+  mutate(in_catch = ifelse(actual_catch == id_ctar, 1, 0)) %>%
+  summarize(total = sum(count),
+         bites_catch = sum(count[in_catch == 1], na.rm = TRUE), 
+         prop_in_catch = bites_catch/total) %>%
+  filter(total > 10) -> prop_dist
+
+moramanga <- fread("data/processed/bitedata/moramanga.csv")
+moramanga$catch <- mada_communes$catchment[match(moramanga$commcode, mada_communes$commcode)]
+moramanga$actual_catch <- ctar_metadata$id_ctar[match(moramanga$catch, ctar_metadata$CTAR)]
+
+moramanga %>%
+  mutate(in_catch = ifelse(actual_catch == id_ctar, 1, 0)) %>%
+  summarize(total = n(),
+            bites_catch = sum(in_catch, na.rm = TRUE), 
+            prop_in_catch = bites_catch/total) -> prop_mora
+
+figS1.2B <- ggplot(data = prop_dist, aes(x = prop_in_catch)) +
+  geom_histogram(breaks = c(seq(0, 1, by = 0.1)), color = "white", size = 3, fill = "grey50") +
+  geom_vline(xintercept = prop_mora$prop_in_catch, 
+             color = ctar_metadata$color[ctar_metadata$CTAR == "Moramanga"], 
+             linetype = 2) +
+  labs(x = "Proportion of bites \n from within assigned catchment", y = "Number of clinics", 
+       tag = "B") +
+  theme_half_open()
+
+## Output figure
+figS1.2 <- figS1.2A / figS1.2B
+ggsave("figs/supplementary/S1.2.jpeg", figS1.2, height = 7, width = 5)
 
