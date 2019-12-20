@@ -13,6 +13,7 @@ library(ggridges)
 library(patchwork)
 library(raster)
 library(rasterVis)
+library(cowplot)
 select <- dplyr::select
 source("R/functions/predict_bites.R")
 
@@ -99,7 +100,8 @@ S5.1A <- ggplot() +
   labs(tag = "A") +
   scale_fill_manual(values = clinic_cols, name = "When clinic added", na.value = "darkblue", 
                     na.translate = FALSE) +
-  guides(fill = "none")
+  guides(fill = "none") +
+  theme_void()
 
 S5.1B <- ggplot() +
   geom_polygon(data = gg_commune_plot,
@@ -111,10 +113,11 @@ S5.1B <- ggplot() +
   labs(tag = "B") +
   scale_fill_manual(values = clinic_cols, name = "When clinic added", na.value = "darkblue", 
                     na.translate = FALSE) +
-  scale_shape_identity(guide = "legend", name = "", labels = "Existing ARMC") 
+  scale_shape_identity(guide = "legend", name = "", labels = "Existing ARMC") +
+  theme_void()
 
 S5.1 <- S5.1A | S5.1B
-ggsave("figs/S5.1.pdf", S5.1, height = 5, width = 7)
+ggsave("figs/supplementary/S5.1.jpeg", S5.1, height = 5, width = 7)
 
 ##' Plots of how ttimes change 
 ##' ------------------------------------------------------------------------------------------------
@@ -216,7 +219,10 @@ S5.2C <- ggplot() +
   labs(tag = "C")  
 
 S5.2 <- S5.2A / S5.2B / S5.2C
-ggsave("figs/S5.2.pdf", S5.2, height = 7, width = 7)
+
+## Save as pdf otherwise too slow! 
+ggsave("figs/supplementary/S5.2.jpeg", dpi = 300, S5.2, height = 7, width = 7)
+ggsave("figs/supplementary/S5.2.pdf", S5.2, height = 7, width = 7)
 
 ##' Shifts in travel times etc with scenarios 
 ##' ------------------------------------------------------------------------------------------------
@@ -227,60 +233,71 @@ S5.3A <- ggplot() +
                                                               max(scenario_to_plot$scenario))], 
                       aes(x = weighted_times/60, y = as.factor(scenario), fill = scale), 
                       alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, name = "Scale") +
-  scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max")) +
+  scale_fill_manual(values = model_cols, guide = "none") +
+  scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max (1648)")) +
   labs(y = "Number of clinics added", x = "Travel times (hrs)",
-       tag = "A")
+       tag = "A") +
+  theme_minimal_hgrid() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 
 ## ggridges to show shifts in distribution of max catchments
 S5.3B <- ggplot() +
   geom_density_ridges(data = scenario_to_plot[scenario %in% c(0, 100, 200, 300, 472, 
                                                               max(scenario_to_plot$scenario))], 
                       aes(x = prop_pop_catch, y = as.factor(scenario), fill = scale), 
-                      alpha = 0.5, color = NA) +
+                      alpha = 0.5, color = NA, scale = 4) +
   xlim(c(0, 1)) +
   scale_fill_manual(values = model_cols, name = "Scale") +
-  scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max")) +
-  labs(y = "Number of clinics added", 
-       x = "Maximum proportion \n of population in \n a single clinic catchment",
-       tag = "B")
+  # scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max (1648)")) +
+  labs(y = "", 
+       x = "Proportion of population in \n assigned catchment",
+       tag = "B") + 
+  theme_minimal_hgrid() +
+  theme(axis.text.y = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1))
 
-S5.3<- S5.3A | S5.3B
-ggsave("figs/S5.3.pdf", S5.3, height = 5, width = 7)
+S5.3 <- S5.3A | S5.3B 
+ggsave("figs/supplementary/S5.3.jpeg", S5.3, height = 5, width = 7)
 
 ##' Shifts in predicted bites, reporting, deaths 
 ##' ------------------------------------------------------------------------------------------------
 admin_preds <- fread("output/preds/complete/burden_filled.csv")
 
 S5.4A <- ggplot() +
-  geom_density_ridges(data = admin_preds[scenario %in% c(1, 100, 200, 300, 472,
+  geom_density_ridges(data = admin_preds[scenario %in% c(0, 100, 200, 300, 472,
                                                               max(admin_preds$scenario))], 
                       aes(x = bites_mean/pop*1e5, y = as.factor(scenario), fill = scale), 
                       alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, name = "Scale") +
-  scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max")) +
-  labs(y = "Number of clinics added", x = "Reported bites per 100k", tag = "A")
+  scale_fill_manual(values = model_cols, guide = "none") +
+  scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max (1648)")) +
+  labs(y = "Number of clinics added", x = "Reported bites \n per 100k", tag = "A") +
+  theme_minimal_hgrid() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 S5.4B <- ggplot() +
-  geom_density_ridges(data = admin_preds[scenario %in% c(1, 100, 200, 300, 472,
+  geom_density_ridges(data = admin_preds[scenario %in% c(0, 100, 200, 300, 472,
                                                          max(admin_preds$scenario))], 
                       aes(x = reporting_mean, y = as.factor(scenario), fill = scale), 
                       alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, name = "Scale") +
-  scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max")) +
-  labs(y = "Number of clinics added", x = "Reporting", tag = "B")
+  scale_fill_manual(values = model_cols, guide = "none") +
+  # scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max (1648)")) +
+  labs(y = "", x = "Reporting", tag = "B") +
+  theme_minimal_hgrid() +
+  theme(axis.text.y = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1))
 
 S5.4C <- ggplot() +
-  geom_density_ridges(data = admin_preds[scenario %in% c(1, 100, 200, 300, 472,
+  geom_density_ridges(data = admin_preds[scenario %in% c(0, 100, 200, 300, 472,
                                                          max(admin_preds$scenario))], 
                       aes(x = deaths_mean/pop*1e5, y = as.factor(scenario), fill = scale), 
                       alpha = 0.5, color = NA) +
   scale_fill_manual(values = model_cols, name = "Scale") +
-  scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max")) +
-  labs(y = "Number of clinics added", x = "Deaths per 100k", tag = "C")
+  # scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max (1648)")) +
+  labs(y = "", x = "Deaths per 100k", tag = "C") +
+  theme_minimal_hgrid() +
+  theme(axis.text.y = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1))
 
 S5.4 <- S5.4A | S5.4B | S5.4C
-ggsave("figs/S5.4.pdf", S5.4, height = 5, width = 7)
+ggsave("figs/supplementary/S5.4.jpeg", S5.4, height = 5, width = 7)
 
 ##' Shifts in average daily throughput + vials needed
 ##' ------------------------------------------------------------------------------------------------
@@ -291,11 +308,13 @@ S5.5A <- ggplot() +
                                                          max(vial_preds$scenario))), 
                       aes(x = throughput_mean, y = as.factor(scenario), fill = scale), 
                       alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, name = "Scale") +
+  scale_fill_manual(values = model_cols, guide = "none") +
   scale_x_continuous(trans = "log", breaks = c(0, 1, 2, 5, 10, 20, 60)) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max")) +
-  labs(y = "Number of clinics added", x = "Average throughput (daily)")
+  labs(y = "Number of clinics added", x = "Average throughput \n (daily)") +
+  theme_minimal_hgrid() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 
 S5.5B <- ggplot() +
   geom_density_ridges(data = filter(vial_preds, scenario %in% c(1, 100, 200, 300, 472,
@@ -303,9 +322,13 @@ S5.5B <- ggplot() +
                       aes(x = vials_mean, y = as.factor(scenario), fill = scale), 
                       alpha = 0.5, color = NA) +
   scale_fill_manual(values = model_cols, name = "Scale") +
-  scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max")) +
+  # scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max")) +
   scale_x_continuous(trans = "log", breaks = c(0, 25, 100, 1000, 10000)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(y = "Number of clinics added", x = "Average vial demand (annual)")
-S5.5 <- S5.5A | S5.5B
-ggsave("figs/S5.5.pdf", S5.5, height = 5, width = 7)
+  labs(y = "", x = "Average vial demand \n (annual)") +
+  theme_minimal_hgrid() +
+  theme(axis.text.y = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+S5.5 <- S5.5A | S5.5B + plot_layout(guides = "collect")
+ggsave("figs/supplementary/S5.5.jpeg", S5.5, height = 5, width = 7)
