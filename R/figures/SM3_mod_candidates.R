@@ -48,7 +48,7 @@ S3.1 <- ggplot(convergence, aes(x = type, y = val, color = interaction(data_sour
   scale_x_discrete(labels= c("psrf_upper" = "Indiviudal covariate", "mpsrf" = "Multivariate")) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size = 20)) +
   labs(x = "Type", y = "Scale reduction factor")
-ggsave("figs/S3.1.pdf", S3.1, device = "pdf", height = 10, width = 8)
+ggsave("figs/supplementary/S3.1.jpeg", S3.1, device = "jpeg", height = 10, width = 8)
 
 ## Fitted predictions
 preds_grouped <- read.csv("output/preds/bites/fitted_grouped_all.csv")
@@ -64,7 +64,7 @@ S3.2 <- ggplot(data = filter(preds_grouped),
   xlab("log(Observed bites)") +
   ylab("log(Predicted bites)") +
   theme(text = element_text(size = 20))
-ggsave("figs/S3.2.pdf", S3.2, device = "pdf", height = 10, width = 8)
+ggsave("figs/supplementary/S3.2.jpeg", S3.2, device = "jpeg", height = 10, width = 8)
 
 ## Out of fit predictions: using District and commune models to predict Moramanga data
 outfit_mora <- read.csv("output/preds/bites/outfit_mora.csv")
@@ -99,4 +99,4 @@ S3.3B <- ggplot(data = outfit_mada,
 
 S3.3 <- (S3.3A | S3.3B) + plot_layout(widths = c(2, 1))
 
-ggsave("figs/S3.3.pdf", S3.3, device = "pdf", height = 8, width = 12)
+ggsave("figs/supplementary/S3.3.jpeg", S3.3, device = "jpeg", height = 8, width = 12)
