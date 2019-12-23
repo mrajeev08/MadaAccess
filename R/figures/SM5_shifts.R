@@ -300,42 +300,30 @@ ggsave("figs/supplementary/S5.4.jpeg", S5.4, height = 5, width = 7)
 ##' Shifts @ clinic level average daily throughput + vials needed
 ##' ------------------------------------------------------------------------------------------------
 ##' Shifts in catchment populations 
-baseline <- fread("output/ttimes/baseline_grid.csv")
-baseline %>%
-  group_by(base_catches) %>%
-  summarize(catch_pop = sum(pop, na.rm = TRUE)) %>%
-  mutate(scenario = 0) -> pop_catch_base
-max <- fread("output/ttimes/max_grid.csv")
-max %>%
-  group_by(base_catches) %>%
-  summarize(catch_pop = sum(pop, na.rm = TRUE)) %>%
-  mutate(scenario = 1648) -> pop_catch_max
-
-district_inc <- fread("output/ttimes/incremental_district.csv")
-district_inc %>%
-  mutate(prop_pop = prop_pop_catch*pop) %>%
+## Commune only because district maxes at 1 clinic per district
+master_commune <- fread("output/ttimes/master_commune.csv")
+master_commune %>%
   group_by(base_catches, scenario) %>%
-  summarize(catch_pop = sum(prop_pop, na.rm = TRUE)) %>%
-  bind_rows(pop_catch_base, pop_catch_max) -> pop_by_catch
+  summarize(catch_pop = sum(pop, na.rm = TRUE)) %>%
+  mutate(scale = "Commune") -> pop_by_catch_comm
+
 ## Filter to scenarios of interest
 S5.5A <- ggplot() +
-  geom_density_ridges(data = filter(pop_by_catch, scenario %in% c(0, 100, 200, 300, 472,
+  geom_density_ridges(data = filter(pop_by_catch_comm, scenario %in% c(0, 100, 200, 300, 472,
                                                                   max(pop_by_catch$scenario))), 
-                      aes(x = catch_pop, y = as.factor(scenario), vline_color = ..quantile..), fill = "black",
-                      alpha = 0.5, color = "NA", quantile_lines = TRUE, quantiles = 2, 
-                      rel_min_height = 0.01) +
-  scale_discrete_manual("vline_color",
-                        values = c("black", NA), 
-                        labels = c("median"), guide = "none") +
-  # scale_x_continuous(trans = "log", breaks = c(10, 1000, 1e4, 1e5, 1e6, 5e6)) +
+                      aes(x = catch_pop, y = as.factor(scenario), fill = scale),
+                      alpha = 0.5, color = "NA") +
+  scale_fill_manual(values = model_cols, guide = "none") +
+  scale_x_continuous(breaks = c(1e3, 1e4, 1e5, 1e6), trans = "log") +
   scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max (1648)")) +
   labs(y = "Number of clinics added", 
-       x = "Catchment populations", tag = "A") + 
+       x = "log(Catchment populations)", tag = "A") + 
   theme_minimal_hgrid() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+
 ## Output for pulling in stats
-write.csv(pop_by_catch, "output/stats/pop_by_catch.csv", row.names = FALSE)
+write.csv(pop_by_catch_comm, "output/stats/pop_by_catch.csv", row.names = FALSE)
 
 ## Throughput + vials
 vial_preds <- fread("output/preds/complete/vials_filled.csv")
@@ -355,7 +343,7 @@ S5.5B <- ggplot() +
 S5.5C <- ggplot() +
   geom_density_ridges(data = filter(vial_preds, scenario %in% c(0, 100, 200, 300, 472,
                                                                 max(vial_preds$scenario))), 
-                      aes(x = vials_mean, y = as.factor(scenario), fill = scale), 
+                      aes(x = vials_mean, y = as.factor(scenario), fill = factor(scale)), 
                       alpha = 0.5, color = NA) +
   scale_fill_manual(values = model_cols, name = "Scale") +
   # scale_y_discrete(labels = c("baseline", 100, 200, 300, 472, "max")) +
