@@ -19,18 +19,19 @@ incremental_se <- fread("output/sensitivity/incremental_se.csv")
 incremental_se$type <- factor(incremental_se$type)
 levels(incremental_se$type) <- 
   levels(base_se$type) <- list("Minimum incidence \n (11.1 per 100k)" = "min",
-                                     "Incidence increases \n with pop" = "+++" ,
-                                     "Incidence decreases \n with pop" = "---", 
+                                     "Incidence increases \n with pop (in range 11.1 - 55.7)" = "+++" ,
+                                     "Incidence decreases \n with pop (in range 11.1 - 55.7)" = "---", 
                                      "Maximum incidence \n (55.7 per 100k)" = "max")
 ## Figures 
+## colors 
 scale_levs <- c("Commune", "District")
-model_cols <- wesanderson::wes_palettes$Rushmore1[c(3, 4)]
+model_cols <- c("#1b9e77", "#7570b3")
 names(model_cols) <- scale_levs 
 incidence_max <- 0.01*0.39/7
 incidence_min <- 0.01*0.39/35
 pop_plot <- seq(0, 1e6, by = 1000)
-scaling_labs <- c("neg" = "Incidence decreases \n with pop", 
-                  "pos" = "Incidence increases \n with pop")
+scaling_labs <- c("neg" = "Incidence decreases \n with pop (in range 11.1 - 55.7)", 
+                  "pos" = "Incidence increases \n with pop (in range 11.1 - 55.7)")
 figS6.1 <- ggplot(data = predicted_inc, aes(x = log(pop_plot), y = preds, 
                                             color = scale, 
                                             group = interaction(scale, scaling))) +
@@ -40,7 +41,7 @@ figS6.1 <- ggplot(data = predicted_inc, aes(x = log(pop_plot), y = preds,
   ylab("Rabies exposures per \n 100k persons") +
   xlab("Human population size (log)") +
   facet_wrap(~scaling, labeller = labeller(scaling = scaling_labs))
-ggsave("figs/S6.1.jpeg", figS6.1, device = "jpeg", height = 5, width = 7)
+ggsave("figs/supplementary/S6.1.jpeg", figS6.1, device = "jpeg", height = 5, width = 7)
 
 figS6.2 <- ggplot(data = base_se, aes(x = ttimes/60, y = deaths_mean/pop*1e5, 
                            color = scale, shape = as.factor(rho_max))) +
@@ -50,7 +51,7 @@ figS6.2 <- ggplot(data = base_se, aes(x = ttimes/60, y = deaths_mean/pop*1e5,
   facet_grid(p_rabid ~ type, 
              labeller = label_bquote(rows = paste(p[rabid], " = ", .(p_rabid)))) +  
   labs(x = "Travel times (hrs)", y = "Deaths per 100k")
-ggsave("figs/S6.2.jpeg", figS6.2, device = "jpeg", height = 7, width = 10)
+ggsave("figs/supplementary/S6.2.jpeg", figS6.2, device = "jpeg", height = 7, width = 10)
 
 
 figS6.3 <- ggplot(data = filter(incremental_se, scenario != max(scenario)),
@@ -74,5 +75,5 @@ figS6.3 <- ggplot(data = filter(incremental_se, scenario != max(scenario)),
   annotate(geom = "text", x = 520, y = -0.1, label = "...") +
   theme(axis.text.x = element_text(hjust = 1, angle = 45)) +
   labs(x = "# Additional clinics", y = "Proportion reduction in burden")
-ggsave("figs/S6.3.jpeg", figS6.3, device = "jpeg", height = 7, width = 10)
+ggsave("figs/supplementary/S6.3.jpeg", figS6.3, device = "jpeg", height = 7, width = 10)
 
