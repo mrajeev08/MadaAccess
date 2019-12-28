@@ -7,32 +7,61 @@ rm(list = ls())
 
 ##' Packages
 library(data.table)
-source("R/functions/summarize_samps.R")
 
 ##' Sensitivity analyses
-model_se <- fread("output/mods/sensitivity.csv")
+model_se <- fread("output/sensitivity/model_se.csv")
+bitedata_se <- fread("output/sensitivity/bitedata_se.csv")
+preds_se <- fread("output/sensitivity/modpreds_se.csv")
 
-## Figures extra
-## Param estimates
-samps <- get.samps.se(parent_dir = "output/mods/samps/National_se/", 
-                   files = list.files("output/mods/samps/National_se", recursive = TRUE))
+##' Variation in reporting and percent excluded by cut-offs 
+##' ------------------------------------------------------------------------------------------------
 
-ggplot(data = filter(samps, pop_predict == "flatPop"), 
-       aes(x = intercept, y = beta_ttimes, fill = scale, color = scale)) +
-  geom_violin() +
-  scale_fill_manual(values = c("turquoise4", "slateblue4")) +
-  scale_color_manual(values = c("turquoise4", "slateblue4")) +
-  facet_grid(contact_cutoff ~ rep_cutoff)
 
-ggplot(data = filter(samps, pop_predict == "flatPop"), 
-       aes(x = intercept, y = beta_0, fill = scale, color = scale)) +
-  geom_violin() +
-  scale_fill_manual(values = c("turquoise4", "slateblue4")) +
-  scale_color_manual(values = c("turquoise4", "slateblue4")) +
-  facet_grid(contact_cutoff ~ rep_cutoff)
 
-## Expected relationship between travel times 
-## Predictions of bite incidence per 100k
+##' Bite data 
+##' ------------------------------------------------------------------------------------------------
+ggplot(data = bitedata_se, aes(x = ttimes_wtd/60, y = avg_bites/pop*1e5)) +
+  geom_point() +
+  facet_wrap(~ rep_cutoff + contact_cutoff)
+
+##' Colors
+scale_levs <- c("Commune", "District")
+model_cols <- c("#1b9e77", "#7570b3")
+names(model_cols) <- scale_levs 
+
+## convergence plots
+model_se %>%
+  select(contacts, reporting, scale, pop_predict, intercept, val = psrf_upper) %>%
+  mutate(type = "psrf_upper") -> psrf
+model_se %>%
+  select(contacts, reporting, scale, pop_predict, intercept, val = mpsrf) %>%
+  mutate(type = "mpsrf") -> mpsrf
+convergence <- bind_rows(mpsrf, psrf)
+
+ggplot(filter(convergence, pop_predict == "flatPop"), aes(x = type, y = val, color = scale)) + 
+  geom_boxplot() +  
+  scale_color_manual(values = c("turquoise4", "slateblue4"), name = "Scale") +
+  facet_grid(pop_predict ~ intercept, scales = "free_x", drop = TRUE) +
+  geom_hline(yintercept = 1, linetype = 2, color = "grey") +
+  scale_x_discrete(labels= c("psrf_upper" = "Indiviudal covariate", "mpsrf" = "Multivariate")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size = 20)) +
+  labs(x = "Type", y = "Scale reduction factor") +
+  facet_grid(reporting ~ contacts, scales = "free_y")
+
+##' Predictions 
+##' ------------------------------------------------------------------------------------------------
+preds_se$contact_rep <- glue("Rep cut = {preds_se$reporting} \n Contact_cut = {preds_se$contacts}")
+preds_se$pop_intercept <- glue("{preds_se$pop_predict} \n {preds_se$intercept} intercept")
+ggplot(data = preds_se, aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
+                            color = scale, shape = intercept)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(intercept = 0, slope = 1, color = "grey", linetype = 2) +
+  scale_color_manual(values = model_cols, name = "Model scale") + 
+  facet_grid(contact_rep ~ pop_intercept, scales = "free") +
+  labs(x = "log(Observed bites)", y = "log(Predicted bites)")
+
+
+## Expected relationship between travel times and bites per 100k
 model_se %>%
   select(params, Mean, pop_predict, intercept, data_source,
          scale, contacts, reporting) %>%
@@ -69,33 +98,30 @@ preds <- foreach(i = 1:nrow(model_means), .combine = "bind_rows") %do% {
                      intercept = model_means$intercept[i]))
 }
 
+preds$contact_rep <- glue("Reporting cut-off = {preds$reporting} \n Category I cut-off  = {preds$contacts}")
+preds$contact_rep <- gsub("Inf", "None", preds$contact_rep)
+ggplot(data = filter(preds, intercept == "fixed"), 
+       aes(x = ttimes, y = preds, color = scale)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill =scale),
+              color = NA, alpha = 0.25) +
+  scale_color_manual(values = model_cols, name = "Scale") +
+  scale_fill_manual(values = model_cols, name = "Scale") +
+  labs(x = "Travel times (hrs)", y = "Predicted bites per 100k", tag = "A") +
+  theme(text = element_text(size=20)) +
+  facet_wrap(~ contact_rep, scales = "free_y") +
+  theme_minimal_grid()
+
 ggplot(data = filter(preds, intercept == "random"), 
        aes(x = ttimes, y = preds, color = scale)) +
   geom_line(size = 1.2) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill =scale),
               color = NA, alpha = 0.25) +
-  scale_color_manual(values = c("turquoise4", "slateblue4"), name = "Scale") +
-  scale_fill_manual(values = c("turquoise4", "slateblue4"), name = "Scale") +
-  labs(x = "Travel times (hrs)", y = "Predicted bites per 100k", tag = "A") +
+  scale_color_manual(values = model_cols, name = "Scale") +
+  scale_fill_manual(values = model_cols, name = "Scale") +
+  labs(x = "Travel times (hrs)", y = "Predicted bites per 100k", tag = "B") +
   theme(text = element_text(size=20)) +
-  facet_grid(reporting ~ contacts, scales = "free_y")
+  facet_wrap(~ contact_rep, scales = "free_y") +
+  theme_minimal_grid()
 
-## convergence plots
-model_se %>%
-  select(contacts, reporting, scale, pop_predict, intercept, val = psrf_upper) %>%
-  mutate(type = "psrf_upper") -> psrf
-model_se %>%
-  select(contacts, reporting, scale, pop_predict, intercept, val = mpsrf) %>%
-  mutate(type = "mpsrf") -> mpsrf
-convergence <- bind_rows(mpsrf, psrf)
-
-ggplot(filter(convergence, pop_predict == "flatPop"), aes(x = type, y = val, color = scale)) + 
-  geom_boxplot() +  
-  scale_color_manual(values = c("turquoise4", "slateblue4"), name = "Scale") +
-  facet_grid(pop_predict ~ intercept, scales = "free_x", drop = TRUE) +
-  geom_hline(yintercept = 1, linetype = 2, color = "grey") +
-  scale_x_discrete(labels= c("psrf_upper" = "Indiviudal covariate", "mpsrf" = "Multivariate")) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size = 20)) +
-  labs(x = "Type", y = "Scale reduction factor") +
-  facet_grid(reporting ~ contacts, scales = "free_y")
 
