@@ -13,17 +13,6 @@ model_se <- fread("output/sensitivity/model_se.csv")
 bitedata_se <- fread("output/sensitivity/bitedata_se.csv")
 preds_se <- fread("output/sensitivity/modpreds_se.csv")
 
-##' Variation in reporting and percent excluded by cut-offs 
-##' ------------------------------------------------------------------------------------------------
-
-
-
-##' Bite data 
-##' ------------------------------------------------------------------------------------------------
-ggplot(data = bitedata_se, aes(x = ttimes_wtd/60, y = avg_bites/pop*1e5)) +
-  geom_point() +
-  facet_wrap(~ rep_cutoff + contact_cutoff)
-
 ##' Colors
 scale_levs <- c("Commune", "District")
 model_cols <- c("#1b9e77", "#7570b3")
@@ -50,6 +39,10 @@ ggplot(filter(convergence, pop_predict == "flatPop"), aes(x = type, y = val, col
 
 ##' Predictions 
 ##' ------------------------------------------------------------------------------------------------
+preds_se$contact_rep <- interaction(preds_se$reporting, preds_se$contacts)
+cutoff_labs <- c("15.3" = "Corrected for underreporting \n Cat I excluded", 
+                 "Inf.3" = "Cat I excluded only", "15.Inf" = "Corrected for underreporting \n only", 
+                 "Inf.Inf" = "None (raw data)")
 preds_se$contact_rep <- glue("Rep cut = {preds_se$reporting} \n Contact_cut = {preds_se$contacts}")
 preds_se$pop_intercept <- glue("{preds_se$pop_predict} \n {preds_se$intercept} intercept")
 ggplot(data = preds_se, aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
@@ -57,7 +50,8 @@ ggplot(data = preds_se, aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1),
   geom_point(alpha = 0.5) +
   geom_abline(intercept = 0, slope = 1, color = "grey", linetype = 2) +
   scale_color_manual(values = model_cols, name = "Model scale") + 
-  facet_grid(contact_rep ~ pop_intercept, scales = "free") +
+  facet_grid(pop_intercept ~ contact_rep, scales = "free", 
+             labeller = labeller(contact_rep = cutoff_labs)) +
   labs(x = "log(Observed bites)", y = "log(Predicted bites)")
 
 
@@ -98,30 +92,24 @@ preds <- foreach(i = 1:nrow(model_means), .combine = "bind_rows") %do% {
                      intercept = model_means$intercept[i]))
 }
 
-preds$contact_rep <- glue("Reporting cut-off = {preds$reporting} \n Category I cut-off  = {preds$contacts}")
-preds$contact_rep <- gsub("Inf", "None", preds$contact_rep)
-ggplot(data = filter(preds, intercept == "fixed"), 
-       aes(x = ttimes, y = preds, color = scale)) +
-  geom_line(size = 1.2) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill =scale),
-              color = NA, alpha = 0.25) +
-  scale_color_manual(values = model_cols, name = "Scale") +
-  scale_fill_manual(values = model_cols, name = "Scale") +
-  labs(x = "Travel times (hrs)", y = "Predicted bites per 100k", tag = "A") +
-  theme(text = element_text(size=20)) +
-  facet_wrap(~ contact_rep, scales = "free_y") +
-  theme_minimal_grid()
+preds$contact_rep <- interaction(preds$reporting, preds$contacts)
+cutoff_labs <- c("15.3" = "Corrected for underreporting \n Cat I excluded", 
+                 "Inf.3" = "Cat I excluded only", "15.Inf" = "Corrected for underreporting \n only", 
+                 "Inf.Inf" = "None (raw data)")
+bitedata_se$contact_rep <- interaction(bitedata_se$rep_cutoff, bitedata_se$contact_cutoff)
 
 ggplot(data = filter(preds, intercept == "random"), 
        aes(x = ttimes, y = preds, color = scale)) +
   geom_line(size = 1.2) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill =scale),
               color = NA, alpha = 0.25) +
+  geom_point(data = bitedata_se, aes(x = ttimes_wtd/60, y = avg_bites/pop*1e5), 
+             color = "black", shape = 1, alpha = 0.5) +
   scale_color_manual(values = model_cols, name = "Scale") +
   scale_fill_manual(values = model_cols, name = "Scale") +
-  labs(x = "Travel times (hrs)", y = "Predicted bites per 100k", tag = "B") +
+  labs(x = "Travel times (hrs)", y = "Predicted bites per 100k") +
   theme(text = element_text(size=20)) +
-  facet_wrap(~ contact_rep, scales = "free_y") +
+  facet_wrap(~ contact_rep, scales = "free_y", ncol = 1, labeller = labeller(contact_rep = cutoff_labs)) +
   theme_minimal_grid()
 
 
