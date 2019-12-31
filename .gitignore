@@ -13,3 +13,4 @@ accessPEP_cache
 accessPEP_files
 sessionInfo.csv
 figs/
+*.docx
