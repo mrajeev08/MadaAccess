@@ -226,8 +226,8 @@ line_leg_plot <- ggplot(line_leg, aes(x = brks, y = brks, size = size)) +
   scale_size_identity("", guide = "legend",
                       labels = as.character(line_leg$brks), breaks = line_leg$size) +
   guides(size = guide_legend(override.aes = list(linetype = 1, color = "black", alpha = 0.75))) +
-  theme_void()
-line_leg <- get_legend(line_leg_plot + theme(legend.box.margin = margin(12, 12, 12, 12)))
+  theme_void() 
+line_leg <- get_legend(line_leg_plot + theme(legend.box.margin = margin(12, 0, 12, 12)))
 
 pt_leg <- data.frame(brks = c(100, 200, 400, 800, 1600, 10000), 
                        size = log(c(100, 200, 400, 800, 1600, 10000) + 0.1)*0.75)
@@ -280,5 +280,5 @@ layout_B <- figM1.B_map + figM1.B_inset + plot_layout(design = layout_inset)
 figM1_top <- layout_A - layout_B + plot_layout(ncol = 1, heights = c(1.5, 1))
 figM1 <- figM1_top - figM1.C + plot_layout(nrow = 1, widths = c(1.5, 1))
 
-ggsave("figs/main/M1.tiff", figM1, dpi = 300, height = 12, width = 11)
+ggsave("figs/main/M1.tiff", figM1, dpi = 300, height = 14, width = 12)
 
