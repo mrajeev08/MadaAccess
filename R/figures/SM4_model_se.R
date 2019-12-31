@@ -18,34 +18,15 @@ scale_levs <- c("Commune", "District")
 model_cols <- c("#1b9e77", "#7570b3")
 names(model_cols) <- scale_levs 
 
-## convergence plots
-model_se %>%
-  select(contacts, reporting, scale, pop_predict, intercept, val = psrf_upper) %>%
-  mutate(type = "psrf_upper") -> psrf
-model_se %>%
-  select(contacts, reporting, scale, pop_predict, intercept, val = mpsrf) %>%
-  mutate(type = "mpsrf") -> mpsrf
-convergence <- bind_rows(mpsrf, psrf)
-
-ggplot(filter(convergence, pop_predict == "flatPop"), aes(x = type, y = val, color = scale)) + 
-  geom_boxplot() +  
-  scale_color_manual(values = c("turquoise4", "slateblue4"), name = "Scale") +
-  facet_grid(pop_predict ~ intercept, scales = "free_x", drop = TRUE) +
-  geom_hline(yintercept = 1, linetype = 2, color = "grey") +
-  scale_x_discrete(labels= c("psrf_upper" = "Indiviudal covariate", "mpsrf" = "Multivariate")) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size = 20)) +
-  labs(x = "Type", y = "Scale reduction factor") +
-  facet_grid(reporting ~ contacts, scales = "free_y")
-
-##' Predictions 
+##' Predictions to data
 ##' ------------------------------------------------------------------------------------------------
 preds_se$contact_rep <- interaction(preds_se$reporting, preds_se$contacts)
 cutoff_labs <- c("15.3" = "Corrected for underreporting \n Cat I excluded", 
                  "Inf.3" = "Cat I excluded only", "15.Inf" = "Corrected for underreporting \n only", 
                  "Inf.Inf" = "None (raw data)")
-preds_se$contact_rep <- glue("Rep cut = {preds_se$reporting} \n Contact_cut = {preds_se$contacts}")
 preds_se$pop_intercept <- glue("{preds_se$pop_predict} \n {preds_se$intercept} intercept")
-ggplot(data = preds_se, aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
+
+figS4.1 <- ggplot(data = preds_se, aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
                             color = scale, shape = intercept)) +
   geom_point(alpha = 0.5) +
   geom_abline(intercept = 0, slope = 1, color = "grey", linetype = 2) +
@@ -54,6 +35,7 @@ ggplot(data = preds_se, aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1),
              labeller = labeller(contact_rep = cutoff_labs)) +
   labs(x = "log(Observed bites)", y = "log(Predicted bites)")
 
+ggsave("figs/supplementary/S4.1.jpeg", width = 10, height = 10)
 
 ## Expected relationship between travel times and bites per 100k
 model_se %>%
@@ -98,7 +80,7 @@ cutoff_labs <- c("15.3" = "Corrected for underreporting \n Cat I excluded",
                  "Inf.Inf" = "None (raw data)")
 bitedata_se$contact_rep <- interaction(bitedata_se$rep_cutoff, bitedata_se$contact_cutoff)
 
-ggplot(data = filter(preds, intercept == "random"), 
+figS4.2 <- ggplot(data = filter(preds, intercept == "random"), 
        aes(x = ttimes, y = preds, color = scale)) +
   geom_line(size = 1.2) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill =scale),
@@ -111,5 +93,6 @@ ggplot(data = filter(preds, intercept == "random"),
   theme(text = element_text(size=20)) +
   facet_wrap(~ contact_rep, scales = "free_y", ncol = 1, labeller = labeller(contact_rep = cutoff_labs)) +
   theme_minimal_grid()
+ggsave("figs/supplementary/S4.2.jpeg", width = 7, height = 10)
 
 
