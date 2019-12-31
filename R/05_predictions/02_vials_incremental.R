@@ -23,7 +23,7 @@ library(foreach)
 library(doRNG)
 library(iterators)
 library(tidyverse)
-source("R/functions/predict_bites.R")
+source("R/functions/predict_functions.R")
 source("R/functions/utils.R")
 select <- dplyr::select
 

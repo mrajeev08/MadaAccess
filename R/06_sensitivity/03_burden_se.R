@@ -15,7 +15,7 @@ library(foreach)
 library(doRNG)
 library(iterators)
 library(tidyverse)
-source("R/functions/predict_bites.R")
+source("R/functions/predict_functions.R")
 select <- dplyr::select
 
 ## Read in data

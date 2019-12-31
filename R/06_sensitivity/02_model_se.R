@@ -16,7 +16,7 @@ select <- dplyr::select
 source("R/functions/utils.R")
 source("R/functions/data_functions.R")
 source("R/functions/estimate_pars.R")
-source("R/functions/predict_bites.R")
+source("R/functions/predict_functions.R")
 
 ## Read in data
 national <- fread("data/processed/bitedata/national.csv")

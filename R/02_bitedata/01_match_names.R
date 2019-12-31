@@ -13,7 +13,7 @@ library(dplyr)
 
 ##' source matching function
 source("R/functions/utils.R")
-source("R/functions/match.names.R")
+source("R/functions/match_names.R")
 
 ##' Read in shapefiles
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")

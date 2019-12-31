@@ -5,7 +5,7 @@
 ####################################################################################################
 ## source bite ests
 rm(list = ls())
-source("R/functions/predict_bites.R")
+source("R/functions/predict_functions.R")
 source("R/functions/utils.R")
 
 ## source bite ests
