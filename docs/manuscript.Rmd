@@ -1,7 +1,7 @@
 ---
 title: |
- and potential for expanded access to prevent human rabies deaths in Madagascar
  How accesss to care shapes disease burden: the current impact of post-exposure prophylaxis 
+ and potential for expanded access to prevent human rabies deaths in Madagascar
 author:
   - Malavika Rajeev:
       email: mrajeev@princeton.edu
