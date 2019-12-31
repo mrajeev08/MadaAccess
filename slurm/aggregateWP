@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --ntasks=39
 #SBATCH --cpus-per-task=1
-#SBATCH -J  0103_aggregateWP
+#SBATCH -J  aggregateWP
 #SBATCH -t 12:00:00
 # sends mail when process begins, and
 # when it ends

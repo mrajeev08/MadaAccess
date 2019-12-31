@@ -11,4 +11,4 @@
 
 export OMPI_MCA_btl="tcp,self,sm"
 module load openmpi/gcc/2.0.2
-srun Rscript ./R/04_burden_incremental/06_vials_incremental.R
+srun Rscript ./R/05_predictions/02_vials_incremental.R

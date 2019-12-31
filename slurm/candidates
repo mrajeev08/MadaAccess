@@ -9,4 +9,4 @@
 #SBATCH --mail-type=end
 #SBATCH --mail-user=mrajeev@princeton.edu
 
-Rscript ./R/05_incremental/01_run_candidates.R 18
+Rscript ./R/04_addclinics/01_ttimes_candidates.R 18
