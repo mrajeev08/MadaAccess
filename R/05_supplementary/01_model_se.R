@@ -10,12 +10,13 @@ library(tidyverse)
 library(data.table)
 library(rgdal)
 library(lubridate)
-library(patchwork)
 library(doParallel)
+library(glue)
 select <- dplyr::select
 source("R/functions/utils.R")
 source("R/functions/data_functions.R")
 source("R/functions/estimate_pars.R")
+source("R/functions/predict_bites.R")
 
 ## Read in data
 national <- fread("data/processed/bitedata/national.csv")
@@ -24,14 +25,20 @@ ctar_metadata <- fread("data/raw/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 
-rep_cut <- c(Inf, 15, 5) # exclude all days with zero days or none
-contact_cut <- c(1, 3, Inf) # exclude all days with greater than 1 sd above reporting vs. don't exclude contacts
-cores <- detectCores() - 1
-foreach(p = 1:length(rep_cut), .combine = "rbind") %:%
-  foreach(m = 1:length(contact_cut), .combine = "rbind") %do% {
-    
-    contact_cutoff <- contact_cut[m]
+## What we want to look at is correcting data vs. not correcting data
+rep_cut <- c(15, Inf) # exclude all periods with 15 consecutive zero days or don't exclude any
+contact_cut <- c(3, Inf) # exclude all days with greater than 3 sd above reporting vs. don't exclude contacts
+
+##' 1. bite data 
+##' ------------------------------------------------------------------------------------------------
+comb <- function(...) {
+  mapply('rbind', ..., SIMPLIFY = FALSE)
+}
+
+foreach(p = 1:length(rep_cut), .combine = comb, .multicombine = TRUE) %:%
+  foreach(m = 1:length(contact_cut), .combine = comb, .multicombine = TRUE) %do% {
     rep_cutoff <- rep_cut[p]
+    contact_cutoff <- contact_cut[m]
     
     ##' Getting daily throughput for each clinic
     national %>%
@@ -128,6 +135,28 @@ foreach(p = 1:length(rep_cut), .combine = "rbind") %:%
     district_bites$end <- cumsum(rle(comm_covars$group)$lengths)
     district_bites$start <- c(1, lag(district_bites$end)[-1] + 1)
     
+    district_bites$rep_cutoff <- comm_covars$rep_cutoff <- rep_cutoff
+    district_bites$contact_cutoff <- comm_covars$contact_cutoff <- contact_cutoff
+    
+    ## Output as list and then do multicombine
+    list(district_bites, comm_covars)
+} -> master_data
+bitedata_se <- master_data[[1]]
+commcovar_se <- master_data[[2]]
+
+write.csv(bitedata_se, "output/sensitivity/bitedata_se.csv", row.names = FALSE)
+write.csv(commcovar_se, "output/sensitivity/commcovar_se.csv", row.names = FALSE)
+
+##' Model estimates 
+##' ------------------------------------------------------------------------------------------------
+foreach(p = 1:length(rep_cut), .combine = "rbind") %:%
+  foreach(m = 1:length(contact_cut), .combine = "rbind") %do% {
+    
+    district_bites <- filter(bitedata_se, contact_cutoff == contact_cut[m], 
+                             rep_cutoff == rep_cut[p])
+    comm_covars <- filter(commcovar_se, contact_cutoff == contact_cut[m], 
+                             rep_cutoff == rep_cut[p])                         
+    
     ##' Mada data
     ## These all should have same index letter
     covars_list <- list(district_bites, comm_covars)
@@ -137,10 +166,6 @@ foreach(p = 1:length(rep_cut), .combine = "rbind") %:%
     ## The other index letters
     intercept_type <- c("random", "fixed")
     pop_predict <- c("addPop", "onlyPop", "flatPop")
-    
-    # # WITH SINGLE NODE
-    cl <- makeCluster(cores)
-    registerDoParallel(cl)
     
     mods_mada <- 
       foreach(i = 1:length(covars_list), .combine = "rbind") %:%
@@ -159,8 +184,8 @@ foreach(p = 1:length(rep_cut), .combine = "rbind") %:%
                                      ncatches = max(district_bites$catch), pop_predict =  pop_predict[k], 
                                      intercept = intercept_type[l], summed = sum_it[i], 
                                      data_source = "National_se",
-                                     scale = paste0(scale[i], "_contact", contact_cutoff, "_rep", 
-                                                    rep_cutoff), 
+                                     scale = paste0(scale[i], "_contact", contact_cut[m], "_rep", 
+                                                    rep_cut[p]), 
                                      trans = 1e5, 
                                      chains = 3, adapt = 500, iter = 10000, thinning = 1,
                                      dic = TRUE, save = TRUE)
@@ -184,10 +209,77 @@ foreach(p = 1:length(rep_cut), .combine = "rbind") %:%
                                               summed = sum_it[i], 
                                               data_source = "National_se", 
                                               scale = scale[i], dic = dic_est, 
-                                              contacts = contact_cutoff, reporting = rep_cutoff))
+                                              contacts = district_bites$contact_cutoff[1], 
+                                              reporting = district_bites$rep_cutoff[1]))
               }
-    stopCluster(cl)
     mods_mada
-  } -> master_df
+} -> master_df
 
-write.csv(master_df, "output/mods/sensitivity.csv", row.names = FALSE)
+write.csv(master_df, "output/sensitivity/model_se.csv", row.names = FALSE)
+
+##' 3. Run predictions 
+##' ------------------------------------------------------------------------------------------------
+## Estimates
+master_df %>%
+  select(params, Mean, pop_predict, intercept, data_source,
+         scale, contacts, reporting) %>%
+  spread(key = params, value = Mean, fill = 0) %>%
+  mutate(n = 82) -> model_means
+
+## Predictions
+foreach(i = iter(model_means, by = "row"), 
+          j = icount(), .combine = "rbind") %do% {
+            
+            print(j/nrow(model_means)*100)
+            
+            district_bites <- filter(bitedata_se, contact_cutoff == i$contacts, 
+                                     rep_cutoff == i$reporting)
+            comm_covars <- filter(commcovar_se, contact_cutoff == i$contacts, 
+                                  rep_cutoff == i$reporting)                      
+            
+            ## Filter to covars
+            if(i$scale == "District") {
+              covar_df <- district_bites
+              covar_df$names <- district_bites$distcode
+            } else {
+              covar_df <- comm_covars
+              covar_df$names <- comm_covars$commcode
+            }
+            
+            ## Also transform covar
+            covar_df$ttimes <- covar_df$ttimes_wtd/60
+            
+            if(i$intercept == "random") {
+              known_alphas <-  as.numeric(i[, match(glue("alpha[{covar_df$catch}]"), colnames(i))])
+            } else {
+              known_alphas <- rep(NA, nrow(covar_df))
+            }
+            
+            bite_mat <- predict.bites(ttimes = covar_df$ttimes, pop = covar_df$pop, 
+                                      catch = covar_df$pop, names = covar_df$distcode,
+                                      beta_ttimes = i$beta_ttimes, beta_0 = i$beta_0, 
+                                      beta_pop = i$beta_pop, sigma_0 = i$sigma_0, 
+                                      known_alphas = known_alphas, pop_predict = i$pop_predict, 
+                                      intercept = i$intercept, trans = 1e5, known_catch = TRUE, 
+                                      nsims = 1000)
+            mean <- rowMeans(bite_mat, na.rm = TRUE) ## mean for each row = admin unit
+            sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
+            preds_mada <- data.table(names = covar_df$names, group_names = covar_df$distcode,
+                       ttimes = covar_df$ttimes, pop = covar_df$pop, 
+                       catch = covar_df$catch, mean_bites = mean, sd_bites = sd, 
+                       pop_predict = i$pop_predict, intercept = i$intercept, scale = i$scale, 
+                       data_source = i$data_source, reporting = i$reporting, 
+                       contacts = i$contacts)
+            
+            preds_mada %>%
+              group_by(group_names, data_source, scale, pop_predict, intercept, reporting, 
+                       contacts) %>% 
+              summarize_at(vars(contains("bites")), sum) %>%
+              left_join(district_bites, by = c("group_names" = "distcode")) -> preds_mada_grouped
+} -> preds_grouped
+
+write.csv(preds_grouped, "output/sensitivity/modpreds_se.csv", row.names = FALSE)
+ 
+##' Saving session info
+out.session(path = "R/06_sensitivity/02_model_se.R", filename = "sessionInfo.csv")
+

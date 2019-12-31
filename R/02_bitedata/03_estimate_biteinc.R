@@ -148,7 +148,8 @@ moramanga %>%
   complete(month_date = seq(min(month_date), max(month_date), by = "month"), 
            commcode, fill = list(bites = 0)) %>%
   group_by(commcode) %>%
-  summarize(avg_bites = mean(bites)*12) %>% # average monthly bites x 12 to get annual avg_bites
+  summarize(avg_bites = mean(bites)*12,
+            nobs = n()) %>% # average monthly bites x 12 to get annual avg_bites
   complete(commcode = mada_communes$commcode, fill = list(avg_bites = 0)) -> mora_bites 
 
 mada_communes@data %>%
