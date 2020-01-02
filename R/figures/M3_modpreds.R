@@ -65,14 +65,18 @@ preds <- foreach(i = 1:nrow(model_means), .combine = "bind_rows") %do% {
 district_bites$source <- "National"
 mora_bites$source <- "Moramanga"
 observed <- bind_rows(district_bites, mora_bites)
+preds_grouped <- read.csv("output/preds/bites/fitted_grouped_all.csv")
+
 scale_levs <- c("Moramanga.Commune", "National.Commune", "National.District")
 scale_labs <- c("Moramanga", "Commune", "District")
-model_cols <- wesanderson::wes_palettes$Rushmore1[c(5, 3, 4)]
+model_cols <- c("#F2300F", "#0B775E", "#35274A")
 names(scale_labs) <- scale_levs 
 names(model_cols) <- scale_levs
 
-M3.A <- ggplot(data = filter(preds, intercept == "random" | data_source == "Moramanga"), 
+figM3 <- ggplot(data = filter(preds, intercept == "random" | data_source == "Moramanga"), 
        aes(x = ttimes, y = preds, color = interaction(data_source, scale))) +
+  geom_point(data = observed, aes(x = ttimes_wtd/60, y = avg_bites/pop*1e5, 
+                                  shape = source), color = "grey50", alpha = 0.5, size = 2, inherit.aes = FALSE) +
   geom_line(size = 1.2) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = interaction(data_source, scale)),
               color = NA, alpha = 0.25) +
@@ -80,24 +84,11 @@ M3.A <- ggplot(data = filter(preds, intercept == "random" | data_source == "Mora
                      labels = scale_labs) +
   scale_fill_manual(values = model_cols, name = "Scale",
                     labels = scale_labs) +
-  labs(x = "Travel times (hrs)", y = "Predicted bites per 100k", tag = "A") +
-  theme(text = element_text(size=20))
+  scale_shape_manual(values = c(16, 15), name = "Dataset") +
+  labs(x = "Travel times (hrs)", y = "Predicted bites per 100k") +
+  cowplot::theme_minimal_grid() +
+  theme(text = element_text(size = 20))
 
-## Predictions to data: M3B
-preds_grouped <- read.csv("output/preds/bites/fitted_grouped_all.csv")
-M3.B <- ggplot(data = filter(preds_grouped, 
-                             intercept == "random" | data_source == "Moramanga" & 
-                               pop_predict == "flatPop"), 
-       aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
-           color = interaction(data_source, scale))) +
-  geom_point(alpha = 0.5, size = 3) +
-  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +  
-  scale_color_manual(values = model_cols, name = "Scale", 
-                     labels = scale_labs) +
-  expand_limits(y = c(0, max(log(preds_grouped$avg_bites)))) +
-  labs(x = "Log(observed bites)", y = "Log(predicted bites)", tag = "B") +
-  theme(text = element_text(size=20))
-
-figM3 <- M3.A | M3.B 
-ggsave("figs/M3.jpeg", figM3, device = "jpeg", height = 8, width = 12)
+ggsave("figs/main/M3.tiff", figM3, dpi = 300, height = 5, width = 5)
+ggsave("figs/main/M3.jpeg", figM3, height = 8, width = 8)
 
