@@ -119,20 +119,25 @@ ctar_metadata %>%
   left_join(select(mada_districts@data, long, lat, distcode)) -> ctar_all
 ctar_todist_bez$dist_ctar <- ctar_metadata$distcode[match(ctar_todist_bez$ctar, 
                                                           ctar_metadata$CTAR)]
-
+ctar_todist_bez %>%
+  group_by(ctar) %>%
+  mutate(total_lines = n(), 
+         group = interaction(distcode, ctar)) -> ctar_todist_bez
+  
 figM1.A <- ggplot() +
   geom_polygon(data = gg_district, 
                aes(x = long, y = lat, group = group, fill = ctar), 
                color = "white", alpha = 0.5) +
   geom_bezier2(data = filter(ctar_todist_bez, count > 4, distcode != dist_ctar), 
-               aes(x = long, y = lat, group = interaction(distcode, ctar), 
-                   color = ctar, size = log(count + 0.1)/3), alpha = 0.75) +
+               aes(x = long, y = lat, group = fct_reorder(group, total_lines, .desc = TRUE), 
+                   color = ctar, size = ifelse(index == 1, 0.05, log(count + 0.1)/3*index)), 
+               alpha = 0.75) +
   geom_point(data = ctar_pts, aes(x = long, y = lat, 
                                   size = log(count + 0.1), fill = ctar), 
              shape = 21, color = "black", stroke = 1.2) +
   geom_point(data = dist_pts, aes(x = long, y = lat, fill = ctar,
                                   size = log(count + 0.1)*0.75),
-             shape = 21, color = "white", alpha = 0.75) +
+             shape = 21, color = "white", alpha = 1) +
   geom_point(data = filter(ctar_all, exclude == 1), aes(x = long, y = lat), 
              shape = 1, stroke = 1, color = "black") +
   scale_color_manual(values = catch_fills, guide = "none") +
@@ -140,9 +145,11 @@ figM1.A <- ggplot() +
   scale_size_identity("Reported bites", guide = "none") +
   guides(size = guide_legend(override.aes = list(linetype = 0))) +
   labs(tag = "A") +
-  theme_void(base_size = 14)
+  theme_minimal_hgrid() +
+  theme_map()
 
-##' 3. Mapping raw data: Moramanga at commune level
+
+##' Mapping raw data: Moramanga at commune level
 ##' ------------------------------------------------------------------------------------------------
 moramanga %>%
   mutate(date_reported = ymd(date_reported)) %>%
@@ -184,32 +191,71 @@ bez_pts %>%
   group_by(commcode) %>%
   arrange(index) -> bez_pts
  
-## Trying out mora communes plot
-mora_catch <- mada_communes[mada_communes$catchment == "Moramanga", ]
-mora_catch <- fortify(gUnaryUnion(mora_catch))
-mora_catch$ctar <- "Moramanga"
-mada_out <- fortify(gUnaryUnion(mada_districts))
+## Getting all all reporting communes
+bounds <- bbox(mada_communes[mada_communes$commcode %in% comm_pts$commcode[comm_pts$count > 4], ])
+bounds <- as(raster::extent(bounds), "SpatialPolygons")
+raster::crs(bounds) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+comms_to_plot <- fortify(mada_communes[bounds, ], region = "commcode")
+comms_to_plot %>%
+  left_join(select(mada_communes@data, -lat, -long), by = c("id" = "commcode")) %>%
+  mutate(ctar = ifelse(catchment == "Moramanga", "Moramanga", NA)) -> comms_to_plot
+mora_district <- fortify(mada_districts[mada_districts$district == "Moramanga", ])
+
+## Finally getting legend points
+ctar_from <- data.frame(y = c(1, 2, 3, 4, 5, 6), x = rep(1, 6), 
+                        size = c(100, 200, 400, 800, 1600, 10000),
+                        index = 1, type = "ctar")
+district_to <- data.frame(y = c(1, 2, 3, 4, 5, 6), x = rep(2, 6), 
+                          size = c(100, 200, 400, 800, 1600, 10000), 
+                          index = 3, type = "district")
+control_pts <- get.bezier.pts(origin = data.frame(x = ctar_from$x, 
+                                                  y = ctar_from$y),
+                              destination = data.frame(x = district_to$x, 
+                                                       y = district_to$y), 
+                              frac = 0.25, transform = function(x) sqrt(1/x)) 
+control_pts %>%
+  data.frame() %>%
+  rename(x = out_x, y = out_y) %>%
+  arrange(y) %>%
+  mutate(size = c(100, 200, 400, 800, 1600, 10000), 
+         index = 2, type = "control") %>%
+  bind_rows(bind_rows(ctar_from, district_to)) %>%
+  arrange(index) -> bez_pts
 
 figM1.B_map <- ggplot() +
-  geom_polygon(data = gg_mora_plot, 
-               aes(x = long, y = lat, group = group), fill = "#4A3B53", 
+  geom_polygon(data = comms_to_plot, 
+               aes(x = long, y = lat, group = group,
+                   fill = ctar), 
                color = "white", alpha = 0.5) +
-  geom_bezier2(data = filter(bez_pts, commcode !="MG33314010"), 
-               aes(x = long, y = lat, group = commcode, 
-                   size = log(count + 0.1)/3), color = "#4A3B53", alpha = 0.75) +
+  geom_polygon(data = mora_district, 
+               aes(x = long, y = lat, group = group), 
+               color = "#4A3B53", fill = NA) +
   geom_point(data = filter(comm_pts, commcode == "MG33314010"), 
              aes(x = long, y = lat, fill = ctar), 
              shape = 21, size = log(sum(ctar_pts$count) + 0.1), color = "black", 
              stroke = 1.2) +
+  geom_bezier2(data = filter(bez_pts, commcode !="MG33314010", count > 4), 
+               aes(x = long, y = lat, group = commcode, 
+                   size = ifelse(index == 1, 0.05, log(count + 0.1)/3*index)), 
+               color = "#4A3B53", alpha = 0.75) +
   geom_point(data = comm_pts, aes(x = long, y = lat, fill = ctar,
                                   size = log(count + 0.1)),
-             shape = 21, color = "white", alpha = 0.75) + 
-  scale_fill_manual(values = catch_fills, guide = "none") +
+             shape = 21, color = "white", alpha = 1) + 
+  scale_fill_manual(values = catch_fills, na.value = "grey50", guide = "none") +
   scale_color_manual(values = catch_fills, guide = "none") +
   scale_size_identity("Reported bites", guide = "none") +
   guides(size = guide_legend(override.aes = list(color = "grey50"))) +
   labs(tag = "B") +
-  theme_void()
+  coord_cartesian() +
+  theme_minimal_hgrid() +
+  theme_map()
+
+##' Inset of Mora catchment in Mada
+##' ------------------------------------------------------------------------------------------------
+mora_catch <- mada_communes[mada_communes$catchment == "Moramanga", ]
+mora_catch <- fortify(gUnaryUnion(mora_catch))
+mora_catch$ctar <- "Moramanga"
+mada_out <- fortify(gUnaryUnion(mada_districts))
 
 figM1.B_inset <-  ggplot() + 
   geom_polygon(data = mada_out, 
@@ -217,30 +263,35 @@ figM1.B_inset <-  ggplot() +
                alpha = 0.5) + 
   geom_polygon(data = mora_catch, aes(x = long, y = lat, group = group), 
                fill= "#4A3B53") +
-  theme_void()
+  theme_minimal_hgrid() +
+  theme_map()
 
-line_leg <- data.frame(brks = c(100, 200, 400, 800, 1600, 10000), 
-                       size = log(c(100, 200, 400, 800, 1600, 10000) + 0.1)/3)
-line_leg_plot <- ggplot(line_leg, aes(x = brks, y = brks, size = size)) + 
-  geom_line() + 
-  scale_size_identity("", guide = "legend",
-                      labels = as.character(line_leg$brks), breaks = line_leg$size) +
-  guides(size = guide_legend(override.aes = list(linetype = 1, color = "black", alpha = 0.75))) +
-  theme_void() 
-line_leg <- get_legend(line_leg_plot + theme(legend.box.margin = margin(12, 0, 12, 12)))
+##' Legends for map
+##' ------------------------------------------------------------------------------------------------
 
-pt_leg <- data.frame(brks = c(100, 200, 400, 800, 1600, 10000), 
-                       size = log(c(100, 200, 400, 800, 1600, 10000) + 0.1)*0.75)
-pt_leg_plot <- ggplot(pt_leg, aes(x = brks, y = brks, size = size)) + 
-  geom_point() + 
-  scale_size_identity("Reported bites", guide = "legend",
-                      labels = rep("", nrow(pt_leg)), breaks = pt_leg$size) +
-  guides(size = guide_legend(override.aes = list(linetype = 0, color = "black", alpha = 0.75))) +
-  theme_void()
-pt_leg <- get_legend(pt_leg_plot + theme(legend.box.margin = margin(12, 12, 12, 12)))
-  
-figM1.B <- plot_grid(figM1.B_map, line_leg, pt_leg, nrow = 1, rel_widths = c(3, 0.2, 0.2))
 
+
+map_legend <- ggplot() +
+  geom_bezier2(data = bez_pts, 
+               aes(x = x, y = y, group = size, 
+                   size = ifelse(index == 1, 0.05, log(size + 0.1)/3*index)),
+               alpha = 0.75) +
+  geom_point(data = ctar_from, aes(x, y, size = log(size + 0.1),), 
+             color = "black", stroke = 2, fill = "grey50", shape = 21) +
+  geom_point(data = district_to, aes(x, y, size = log(size + 0.1)), 
+             color = "white", fill = "grey50", shape = 21) + 
+  geom_text(data = district_to, aes(x = x, y = y, label = size),
+            hjust = 0, nudge_x = 0.1) +
+  geom_text(data = data.frame(x = c(min(ctar_from$x), min(district_to$x)), 
+                              y = rep(max(ctar_from$y + 0.5), 2),
+                              label = c("ARMC", "District")), 
+            aes(x = x, y = y, label = label), hjust = 0, angle = 45) +
+  ggtitle(label = "Reported bites") +
+  xlim(c(0, max(district_to$x) + 1)) +
+  ylim(c(0, max(district_to$y) + 1)) +
+  scale_size_identity() +
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5), plot.margin = unit(c(0, 0, 0, 0), "cm"))
 
 ## Bite incidence estimates
 district_bites <- fread("output/bites/district_bites.csv")
@@ -255,7 +306,7 @@ district_bites %>%
          upper = avg_bites + 1.96*sd_bites/(sqrt(nobs))) -> bites_plot
 mora_bites %>%
   select(group_name = commcode, pop, catchment, ttimes_wtd, avg_bites) %>%
-  mutate(dataset = "Moramanga", nobs = 1) %>%
+  mutate(dataset = "Moramanga", nobs = 2) %>%
   bind_rows(bites_plot) -> all_bites
 
 size_labs <- c("1" = 1.75, "2" = 2.25, "3" = 3, "4" = 3.75)
@@ -269,16 +320,22 @@ figM1.C <- ggplot(all_bites, aes(x = ttimes_wtd/60, color = catchment)) +
   scale_color_manual(values = catch_cols, guide = "none") + 
   ylab("Annual bites per 100k") +
   xlab("Travel times (hrs)") +
-  labs(tag = "C")
+  labs(tag = "C") +
+  theme_minimal_hgrid()
 
 ## Final figure 1 formatted for plos
-map_legends <- wrap_elements(pt_leg, line_leg)
-layout_A <- figM1.A + map_legends + plot_layout(ncol = 2, widths = c(1, 0.2))
-layout_inset <- c(area(t = 1, b = 5, l = 1, r = 5), 
-                  area(t = 1, b = 1, l = 1, r = 1))
+layout_inset <- c(patchwork::area(t = 1, b = 5, l = 1, r = 6), 
+                  patchwork::area(t = 1, b = 1, l = 1, r = 1))
 layout_B <- figM1.B_map + figM1.B_inset + plot_layout(design = layout_inset)
-figM1_top <- layout_A - layout_B + plot_layout(ncol = 1, heights = c(1.5, 1))
-figM1 <- figM1_top - figM1.C + plot_layout(nrow = 1, widths = c(1.5, 1))
+figM1_top <- figM1.A - layout_B + plot_layout(ncol = 2, widths = c(1.5, 1))
+figM1 <- (figM1_top - figM1.C) + plot_layout(ncol = 1, heights = c(2, 1))
 
-ggsave("figs/main/M1.tiff", figM1, dpi = 300, height = 14, width = 12)
+## LAST TO DO (FIX LEGEND + FIX POLYGONS ON MORA DATA (ALL COMMS WITH BITES REPORTED, FILL = ONES IN CATCHMENT))
+## AND OUTLINE OF DISTRICT?
+
+# for inline figs
+ggsave("figs/main/M1.jpeg", figM1, height = 14, width = 12)
+# for plos
+ggsave("figs/main/M1.tiff", figM1, dpi = 300, height = 14, width = 12,
+       compression = "lzw", type = "cairo")
 
