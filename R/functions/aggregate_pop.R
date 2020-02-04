@@ -14,26 +14,19 @@
 #'     find.nonNA (user defined function in this file for finding closest cell with a match to the 
 #'     friction surface)
 
-aggregate.pop <- function(friction_pixels, pop_pixels, pop_rast, chunksize = 500,
-                          nmoves = 10, ncores = cores) {
+aggregate.pop <- function(fric_pix, pop_pix, pop_rast, chunksize = 500) {
 
   ## Then parallelize by splitting pixel df and aggregating
-  friction_pixels$splitter <- floor(1:length(friction_pixels)/chunksize)
-  iters <- max(friction_pixels$splitter)
+  fric_pix$splitter <- floor(1:length(fric_pix)/chunksize)
+  iters <- max(fric_pix$splitter)
+  pop_pix$cell_id <- over(pop_pix, fric_pix)$cell_id
   
-  cl <- makeCluster(ncores)
-  registerDoParallel(cl)
-  
-  dist_pops <- foreach(i = 0:iters, .export = c("friction_pixels", "pop_pixels",
-                                                "data.table", "raster")) %dopar% {
-    friction <- friction_pixels[friction_pixels$splitter %in% i, ] # filter to subset
-    pop <- pop_pixels[pop_pixels$cell_id %in% friction$cell_id, ]
-    friction$cell_id <- 1:length(friction)
+  dist_pops <- foreach(i = 0:iters, .packages = c("raster", "sp")) %dopar% {
+    friction <- fric_pix[fric_pix$splitter %in% i, ] # filter to subset
+    pop <- pop_pix[pop_pix$cell_id %in% friction$cell_id, ]
     resampled <- aggregate(pop["pop"], friction, function(x) sum(x, na.rm = TRUE)) # aggregate
     pop1x1 <- raster(resampled["pop"]) # transform back to raster
   }
-  
-  stopCluster(cl)
   
   ## Merge all rasters from foreach loop
   pop1x1 <- do.call(raster::merge, dist_pops)
@@ -47,15 +40,13 @@ aggregate.pop <- function(friction_pixels, pop_pixels, pop_rast, chunksize = 500
 #' @return Returned
 #' @section Dependencies:
 #'     List dependencies here, i.e. packages and other functions
-pop_to_pixels <- function(friction_raster, pop_raster, nmoves = 10){
+pop_to_pixels <- function(friction_pixels, pop_raster, nmoves = 10){
   
   ## Convert to spatial pixels
-  friction_pixels <- as(friction_raster, "SpatialPixelsDataFrame") # transform to spatial pixels
-  pop_pixels <- as(pop_2015, "SpatialPixelsDataFrame") 
+  pop_pixels <- as(pop_raster, "SpatialPixelsDataFrame") 
   names(pop_pixels) <- "pop"
   
   ## Get cell id for corresponding fric surface
-  friction_pixels$cell_id <- 1:length(friction_pixels)
   pop_pixels$cell_id <- over(pop_pixels, friction_pixels)$cell_id
   
   ## First find a match for any pop that is not covered by a friction grid cell
@@ -63,18 +54,16 @@ pop_to_pixels <- function(friction_raster, pop_raster, nmoves = 10){
   opts <- pop_pixels[which(!is.na(pop_pixels$cell_id) & !is.na(pop_pixels$pop)), ]
   match_index <- find.nonNA(rast = pop_raster, match_inds = tomatch@grid.index,
                             opt_inds = opts@grid.index, nmoves = nmoves)
-  
   ind_add <- data.table(pop = tomatch$pop, match_index)
   ind_add <- ind_add[ , .(pop = sum(pop)), by = "match_index"]
-  
-  ## Add to closest matching cell
+
+  ## Move from index to closest matching 
   to_add <- ind_add$pop[match(pop_pixels@grid.index, ind_add$match_index)]
   to_add[is.na(to_add)] <- 0
   pop_pixels$pop <- pop_pixels$pop + to_add
   
   return(pop_pixels)
 }
-
 
 #' Find nearest matching cells
 #' \code{find.nonNA} takes a vector of raster indexes (the cell id) and finds the closest cell in
@@ -116,15 +105,16 @@ find.nonNA <- function(rast, match_inds, opt_inds, nmoves) {
     move <- ways_to_move[i, ]
     if(length(ind_find$matched[ind_find$matched == FALSE]) > 0){
       ind_find[, c("index_new",
-                 "matched") := list(ifelse(matched %in% FALSE, 
+                 "matched") := list(fifelse(matched %in% FALSE, 
                                            cellFromRowCol(rast, row + move$x, col + move$y),
                                            index_new),
-                                    ifelse(matched %in% FALSE,
+                                    fifelse(matched %in% FALSE,
                                            cellFromRowCol(rast, row + move$x, col + move$y) %in%
                                              opt_inds, matched))]
     } else {
       break
     }
   }
+  if(length(ind_find$matched[ind_find$matched == FALSE]) > 0) print("Warning: not all matched!")
   return(ind_find$index_new)
 }
