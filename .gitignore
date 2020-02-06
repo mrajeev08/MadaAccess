@@ -14,3 +14,5 @@ accessPEP_files
 sessionInfo.csv
 figs/
 *.docx
+docs/*temp*
+*.html
