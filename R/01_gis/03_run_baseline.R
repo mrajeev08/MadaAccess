@@ -1,5 +1,5 @@
 ##################################################################################################
-##' Step 3: Getting baseline travel time estimates
+##' Getting baseline travel time estimates
 ##' Details: Getting baseline travel time estimates and catchments for grid cells and also summarizing
 ##' to admin units with the 31 existing clinics
 ##' Author: Malavika Rajeev

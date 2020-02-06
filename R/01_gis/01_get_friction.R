@@ -1,5 +1,5 @@
 ####################################################################################################
-##' Step 1: Generating GIS files
+##' Generating GIS files
 ##' Details: Getting masked friction surface as input for travel time estimates 
 ##' Also creating transition layer for gdistance functions
 ##' Author: Malavika Rajeev 
@@ -45,19 +45,11 @@ pop_fb <- raster("data/raw/population_mdg_2018-10-01-2/population_mdg_2018-10-01
 system.time(pop_fb <- raster::aggregate(pop_fb, fact = 5, fun = sum, na.rm = TRUE))
 writeRaster(pop_fb, "data/raw/population_mdg_2018-10-01-2/fb2018_aggregated.tif", overwrite = TRUE)
 
-## Proccess health facility locations (put this into )
-library(readxl)
+##' Saving session info
+out.session(path = "R/01_gis/01_get_friction.R", filename = "sessionInfo.csv")
+
 library(dplyr)
 health_facs_all <- read_excel("data/raw/health_facs_all.xlsx")
 health_facs_all %>%
-  filter(Country == "Madagascar") -> mada_all
-table(mada_facs$`Facility type`)
-table(mada_facs$Ownership)
-mada_all %>%
-  select(region = Admin1, name = `Facility name`, type = `Facility type`, 
-         lat = Lat, long = Long, source = `LL source`) %>%
-  filter(type != "Health Post") -> mada_hfs
-check <- read.csv("data/raw/csbs.csv")
-
-##' Saving session info
-out.session(path = "R/01_gis/01_get_friction.R", filename = "sessionInfo.csv")
+  filter(Country == "Madagascar") -> health_facs_mada
+write.csv(health_facs_mada, "health_facs_mada.csv", row.names = FALSE)

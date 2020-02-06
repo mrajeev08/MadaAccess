@@ -1,5 +1,5 @@
 ####################################################################################################
-##' Step 4: Generating shapefiles with covariates
+##' Generating shapefiles with covariates
 ##' Details: Adding pop, catchment, and travel time covariates to the shapefiles
 ##' Author: Malavika Rajeev 
 ####################################################################################################
