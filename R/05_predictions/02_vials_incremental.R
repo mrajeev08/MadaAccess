@@ -6,7 +6,6 @@
 
 ##' Set up
 ##' ------------------------------------------------------------------------------------------------
-rm(list = ls())
 
 ##' Init MPI Backend
 Sys.time()
@@ -22,24 +21,21 @@ library(magrittr)
 library(foreach)
 library(doRNG)
 library(iterators)
-library(tidyverse)
+library(dplyr)
 source("R/functions/predict_functions.R")
 source("R/functions/utils.R")
 select <- dplyr::select
 
-## Commune
-##' For simulating vials and doing scenario analysis
-catch_comm <- fread("output/preds/partial/bites_bycatch_comm.csv")
-catch_mat <- as.matrix(catch_comm[, -c("catch", "scenario", "check", "diff"), with = FALSE])
+##' Vials given commune ttimes
+##' ------------------------------------------------------------------------------------------------
+bites_by_catch <- fread("output/preds/complete/bites_by_catch_comm.csv")
+bites_by_catch %>%
+  ungroup() %>%
+  select(result.1:result.1000) %>%
+  as.matrix(.) -> catch_mat
 
-# ## Parallelize
-# cores <- 3
-# cl <- makeCluster(cores)
-# registerDoParallel(cl)
-
-## Simulate vials at admin level
 foreach(bycatch = iter(catch_mat, by = "row"), .combine = rbind, .export = 'get.vials', 
-        .packages = 'data.table') %dopar% {
+        .packages = 'data.table', .options.RNG = 8887) %dorng% {
           vial_preds <- sapply(bycatch, get.vials)
           vials <- unlist(vial_preds["vials", ])
           throughput <- unlist(vial_preds["throughput", ])
@@ -55,25 +51,20 @@ foreach(bycatch = iter(catch_mat, by = "row"), .combine = rbind, .export = 'get.
           
           out <- data.table(vials_mean, vials_upper, vials_lower, 
                             throughput_mean, throughput_sd, throughput_upper, throughput_lower)
- } -> vials_comm
+        } -> vials_comm
 
-# stopCluster(cl)
+fwrite(vials_comm, "output/preds/complete/vials_comm.csv")
 
-vials_comm <- data.table(catch = catch_comm$catch, scenario = catch_comm$scenario,
-                         scale = "Commune", vials_comm)
+##' Vials given district ttimes
+##' ------------------------------------------------------------------------------------------------
+bites_by_catch <- fread("output/preds/complete/bites_by_catch_dist.csv")
+bites_by_catch %>%
+  ungroup() %>%
+  select(result.1:result.1000) %>%
+  as.matrix(.) -> catch_mat
 
-## District
-catch_dist <- fread("output/preds/partial/bites_bycatch_dist.csv")
-catch_mat <- as.matrix(catch_dist[, -c("catch", "scenario", "check", "diff"), with = FALSE])
-
-# ## Parallelize
-# cores <- 3
-# cl <- makeCluster(cores)
-# registerDoParallel(cl)
-
-## Simulate vials at admin level
 foreach(bycatch = iter(catch_mat, by = "row"), .combine = rbind, .export = 'get.vials', 
-        .packages = 'data.table') %dopar% {
+        .packages = 'data.table', .options.RNG = 8888) %dorng% {
           vial_preds <- sapply(bycatch, get.vials)
           vials <- unlist(vial_preds["vials", ])
           throughput <- unlist(vial_preds["throughput", ])
@@ -91,20 +82,13 @@ foreach(bycatch = iter(catch_mat, by = "row"), .combine = rbind, .export = 'get.
                             throughput_mean, throughput_sd, throughput_upper, throughput_lower)
         } -> vials_dist
 
-# stopCluster(cl)
-
-vials_dist <- data.table(catch = catch_dist$catch, scenario = catch_dist$scenario,
-                         scale = "District", vials_dist)
-
-##' Output results 
-##' ------------------------------------------------------------------------------------------------
-vials_bycatch_incremental <- rbind(vials_dist, vials_comm)
-fwrite(vials_bycatch_incremental, "output/preds/partial/vials_bycatch_partial.csv")
+fwrite(vials_dist, "output/preds/complete/vials_dist.csv")
 
 ##' Saving session info
-out.session(path = "R/05_vials_incremental.R", filename = "sessionInfo.csv")
+out.session(path = "R/05_predictions/02_vials_incremental.R", filename = "sessionInfo.csv")
 
 ##' Close out cluster
+##' 
 closeCluster(cl)
 mpi.quit()
 print("Done :)")

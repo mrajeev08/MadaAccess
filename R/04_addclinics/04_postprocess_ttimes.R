@@ -8,52 +8,51 @@ rm(list=ls())
 
 ##' Packages and scripts
 library(data.table)
+library(rgdal)
 
 ## Shapefiles
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 
-## Filter to a single catchment
-## District all and max
-district_df <- fread("output/ttimes/incremental_district.csv")
-district_df <- district_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
-                           by = .(district_id, scenario)]
-district_max <- fread("output/ttimes/max_district.csv")
-district_max <- district_max[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
-                           by = district_id]
-district_max[, c("scenario", "clinic_added") := .(1648, NA)]
+##' All catchments 
+##' ------------------------------------------------------------------------------------------------
+## District
 district_baseline <- fread("output/ttimes/baseline_district.csv")
-district_baseline <- district_baseline[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
-                                                       by = district_id]
-district_baseline[, clinic_added := NA]
+district_baseline$clinic_added <- district_baseline$scenario <- 0
+district_df <- fread("output/ttimes/incremental_district.csv")
+district_max <- fread("output/ttimes/max_district.csv")
+district_max$clinic_added <- district_max$scenario <- 1648
+district_allcatch <- rbind(district_baseline, district_df, district_max)
 
-## Commune all and max
-commune_df <- fread("output/ttimes/incremental_commune.csv")
-commune_df <- commune_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
-                         by = .(commune_id, scenario)]
-commune_max <- fread("output/ttimes/max_commune.csv")
-commune_max <- commune_max[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
-                           by = commune_id]
-commune_max[, c("scenario", "clinic_added") := .(1648, NA)]
+## Commune
 commune_baseline <- fread("output/ttimes/baseline_commune.csv")
-commune_baseline <- commune_baseline[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
-                                                       by = commune_id]
-commune_baseline[, clinic_added := NA]
+commune_baseline$clinic_added <- commune_baseline$scenario <- 0
+commune_df <- fread("output/ttimes/incremental_commune.csv")
+commune_max <- fread("output/ttimes/max_commune.csv")
+commune_max$clinic_added <- commune_max$scenario <- 1648
+commune_allcatch <- rbind(commune_baseline, commune_df, commune_max)
 
-## Rbind them 
-commune_master <- rbind(commune_baseline, commune_df, commune_max)
-district_master <- rbind(district_baseline, district_df, district_max)
+##' Filter to a single catchment 
+##' ------------------------------------------------------------------------------------------------
+## District max
+district_maxcatch <- district_allcatch[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
+                           by = .(district_id, scenario)]
 
 ## Match district ttimes to commune ids to get 
-mada_communes$match_id <- 1:nrow(mada_communes@data)
-commune_master$distcode <- mada_communes$distcode[match(commune_master$commune_id, mada_communes$match_id)]
-mada_districts$match_id <- 1:nrow(mada_districts@data)
-district_master$distcode <- mada_districts$distcode[match(district_master$district_id, mada_districts$match_id)]
-district_master_merge <- district_master[, 
-                                 c("distcode", "weighted_times", "scenario"), 
-                                 with = FALSE][, setnames(.SD, "weighted_times", "weighted_times_dist")]
-commune_master <- commune_master[district_master_merge, on = c("scenario", "distcode")]
+commune_allcatch$distcode <- mada_communes$distcode[commune_allcatch$commune_id]
+district_maxcatch$distcode <- mada_districts$distcode[district_maxcatch$district_id]
+district_merge <- district_maxcatch[, 
+                                         c("distcode", "weighted_times", "scenario"), 
+                                         with = FALSE][, setnames(.SD, "weighted_times", 
+                                                                  "weighted_times_dist")]
+commune_allcatch <- commune_allcatch[district_merge, on = c("scenario", "distcode")]
+
+## Commune max
+commune_maxcatch <- commune_allcatch[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
+                         by = .(commune_id, scenario)]
 
 ## Write out
-fwrite(commune_master, "output/ttimes/master_commune.csv")
-fwrite(district_master, "output/ttimes/master_district.csv")
+fwrite(commune_allcatch, "output/ttimes/commune_allcatch.csv")
+fwrite(district_allcatch, "output/ttimes/district_allcatch.csv")
+fwrite(commune_maxcatch, "output/ttimes/commune_maxcatch.csv")
+fwrite(district_maxcatch, "output/ttimes/district_maxcatch.csv")
