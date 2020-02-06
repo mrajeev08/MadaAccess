@@ -1,45 +1,10 @@
-#' Aggregate population to friction surface raster
-#' \code{aggregate.pop} takes the pop raster and aggregates it to the friction surface. Any pop grid
-#' grid cells with no matching friction surface cell get assigned to closest cell with a match. 
-#' Filters by admin id and aggregates
-#' @param friction_pixels friction surface converted to a spatial pixels data.frame
-#' @param pop_pixels population raster converted to a spatial pixels data.frame
-#' @param pop_rast the original population raster
-#' @param chunk_size how you want to split for parallelization, default = 500
-#' @param nmoves how many cells you want to look around to find where to assign pop cells that have
-#' no matching friction surface values
-#' @return Population raster resampled to the friction raster at ~ 1x1 km scale
-#' @section Dependencies:
-#'     iterators, data.table, raster, sp, foreach
-#'     find.nonNA (user defined function in this file for finding closest cell with a match to the 
-#'     friction surface)
-
-aggregate.pop <- function(fric_pix, pop_pix, pop_rast, chunksize = 500) {
-
-  ## Then parallelize by splitting pixel df and aggregating
-  fric_pix$splitter <- floor(1:length(fric_pix)/chunksize)
-  iters <- max(fric_pix$splitter)
-  pop_pix$cell_id <- over(pop_pix, fric_pix)$cell_id
-  
-  dist_pops <- foreach(i = 0:iters, .packages = c("raster", "sp")) %dopar% {
-    friction <- fric_pix[fric_pix$splitter %in% i, ] # filter to subset
-    pop <- pop_pix[pop_pix$cell_id %in% friction$cell_id, ]
-    resampled <- aggregate(pop["pop"], friction, function(x) sum(x, na.rm = TRUE)) # aggregate
-    pop1x1 <- raster(resampled["pop"]) # transform back to raster
-  }
-  
-  ## Merge all rasters from foreach loop
-  pop1x1 <- do.call(raster::merge, dist_pops)
-  return(pop1x1)
-}
-
 #' Create temporary pop pixels with matched friction ids + reallocated pops
 #' Description
 #' Details
 #' @param Paramters
 #' @return Returned
 #' @section Dependencies:
-#'     List dependencies here, i.e. packages and other functions
+#'     data.table, raster
 pop_to_pixels <- function(friction_pixels, pop_raster, nmoves = 10){
   
   ## Convert to spatial pixels

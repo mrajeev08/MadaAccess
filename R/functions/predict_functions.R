@@ -13,7 +13,7 @@ predict.bites <- function(ttimes, pop, catch, names,
   
   foreach(i = 1:nsims, .combine = cbind) %do% {
     if(intercept == "random") {
-      ## draw catchment level effects
+      ## draw catchment level effects (pull this out for foreach)
       ## first make catchment a factor and then drop levels and convert to numeric
       catch_val <- as.numeric(droplevels(as.factor(catch)))
       
@@ -130,7 +130,7 @@ get.vials <- function(x) {
   day0 <- round(runif(x, min = 1, max = 365))
   days <- data.table(days = c(day0, day0 + 3, day0 + 7))
   return(list(vials = sum(days[, .(.N), by = days][, ceiling(N/2)]), 
-              throughput = mean(days[, .(.N), by = days]$N)))
+              throughput = mean(days[, .(.N), by = days]$N, na.rm = TRUE)))
 }
 
 ##' Helper Functions 

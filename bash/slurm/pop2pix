@@ -10,4 +10,4 @@
 #SBATCH --mail-type=end
 #SBATCH --mail-user=mrajeev@princeton.edu
 
-Rscript ./R/01_gis/pop_to_pix.R
+Rscript ./R/01_gis/02_pop_to_pix.R
