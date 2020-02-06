@@ -76,19 +76,19 @@ names(model_cols) <- scale_levs
 figM3 <- ggplot(data = filter(preds, intercept == "random" | data_source == "Moramanga"), 
        aes(x = ttimes, y = preds, color = interaction(data_source, scale))) +
   geom_point(data = observed, aes(x = ttimes_wtd/60, y = avg_bites/pop*1e5, 
-                                  shape = source), color = "grey50", alpha = 0.5, size = 2, inherit.aes = FALSE) +
-  geom_line(size = 1.2) +
+                                  shape = source), color = "black", alpha = 0.5, size = 1.5,
+             stroke = 1.2, inherit.aes = FALSE) +
+  geom_line(size = 1.1) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = interaction(data_source, scale)),
               color = NA, alpha = 0.25) +
   scale_color_manual(values = model_cols, name = "Scale", 
                      labels = scale_labs) +
   scale_fill_manual(values = model_cols, name = "Scale",
                     labels = scale_labs) +
-  scale_shape_manual(values = c(16, 15), name = "Dataset") +
-  labs(x = "Travel times (hrs)", y = "Predicted bites per 100k") +
-  cowplot::theme_minimal_grid() +
-  theme(text = element_text(size = 20))
+  scale_shape_manual(values = c(1, 6), name = "Dataset") +
+  labs(x = "Travel time (hrs)", y = "Predicted bites per 100k") +
+  cowplot::theme_minimal_grid()
 
-ggsave("figs/main/M3.tiff", figM3, dpi = 300, height = 5, width = 5)
-ggsave("figs/main/M3.jpeg", figM3, height = 8, width = 8)
+ggsave("figs/main/M3.tiff", figM3, dpi = 300, height = 4, width = 6)
+ggsave("figs/main/M3.jpeg", figM3, height = 5, width = 7)
 

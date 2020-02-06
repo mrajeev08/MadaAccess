@@ -6,7 +6,6 @@
 ####################################################################################################
 ## source 
 rm(list = ls())
-source("R/functions/summarize_samps.R")
 source("R/functions/utils.R")
 
 ## libraries
@@ -15,6 +14,7 @@ library(iterators)
 library(tidyverse)
 library(glue)
 library(patchwork)
+library(cowplot)
 select <- dplyr::select
 
 ## Estimates
@@ -34,7 +34,7 @@ convergence <- bind_rows(mpsrf, psrf)
 
 scale_levs <- c("Moramanga.Commune", "National.Commune", "National.District")
 scale_labs <- c("Moramanga", "Commune", "District")
-model_cols <- c("#d95f02", "#1b9e77", "#7570b3")
+model_cols <- c("#F2300F", "#0B775E", "#35274A")
 names(scale_labs) <- scale_levs 
 names(model_cols) <- scale_levs
 
@@ -46,7 +46,10 @@ S3.1 <- ggplot(convergence, aes(x = type, y = val, color = interaction(data_sour
   facet_grid(pop_predict ~ intercept, scales = "free_x", drop = TRUE) +
   geom_hline(yintercept = 1, linetype = 2, color = "grey") +
   scale_x_discrete(labels= c("psrf_upper" = "Indiviudal covariate", "mpsrf" = "Multivariate")) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size = 20)) +
+  theme_minimal_grid() +
+  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "gray92"),
+        panel.grid = element_line(color = "white", size = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(x = "Type", y = "Scale reduction factor")
 ggsave("figs/supplementary/S3.1.jpeg", S3.1, device = "jpeg", height = 10, width = 8)
 
@@ -63,40 +66,42 @@ S3.2 <- ggplot(data = filter(preds_grouped),
   geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +
   xlab("log(Observed bites)") +
   ylab("log(Predicted bites)") +
-  theme(text = element_text(size = 20))
+  theme_minimal_grid() +
+  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "gray92"),
+        panel.grid = element_line(color = "white", size = 0.5))
+      
 ggsave("figs/supplementary/S3.2.jpeg", S3.2, device = "jpeg", height = 10, width = 8)
 
-## Out of fit predictions: using District and commune models to predict Moramanga data
+## Out of fit predictions
 outfit_mora <- read.csv("output/preds/bites/outfit_mora.csv")
-outfit_mora$mod_intercept <- outfit_mora$intercept
-S3.3A <- ggplot(data = outfit_mora, 
-       aes(x = log(observed + 0.1), y = log(mean_bites + 0.1), 
-           color = interaction(data_source, scale))) +
-  geom_point(alpha = 0.5, size = 2) +  
-  scale_color_manual(values = model_cols, name = "Scale", 
-                                                          labels = scale_labs) +
-  facet_grid(pop_predict ~ mod_intercept, scales = "free_x", drop = TRUE) +
-  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +
-  labs(x = "log(Observed bites) per 100k", y = "log(Predicted bites) per 100k", 
-       tag = "A") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size = 20))
-
-## Out of fit predictions: using Moramanga estimates to predict district data 
-## for both commune and district mods
 outfit_mada <- read.csv("output/preds/bites/outfit_grouped_mada.csv")
-outfit_mada$mod_intercept <- outfit_mada$intercept
-S3.3B <- ggplot(data = outfit_mada, 
-       aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
-           color = interaction(data_source, scale))) +
+
+## Trying nested facet labels
+outfit_mada$type <- "National"
+outfit_mora$type <- "Moramanga"
+outfit_mora$avg_bites <- outfit_mora$observed
+outfit_all <- bind_rows(outfit_mada, outfit_mora)
+outfit_all$mod_intercept <- factor(outfit_all$intercept)
+levels(outfit_all$mod_intercept) <- list("Fixed intercept" = "fixed", "Random intercept" = "random")
+
+
+type_labs <- c("National" = "underline('National data predicted \n by Moramanga models')", 
+  "Moramanga" = "underline('Moramanga data predicted by National models')")
+
+S3.3 <- ggplot(data = outfit_all, 
+                aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
+                    color = interaction(data_source, scale))) +
   geom_point(alpha = 0.5, size = 2) +
   scale_color_manual(values = model_cols, name = "Scale", 
                      labels = scale_labs) +
-  facet_grid(pop_predict ~ mod_intercept, scales = "free_x") +
+  facet_nested(pop_predict ~ type + mod_intercept, scales = "free",
+               labeller = labeller(type = as_labeller(type_labs, label_parsed))) +
   geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +
-  labs(x = "log(Observed bites) per 100k", y = "log(Predicted bites) per 100k", 
-       tag = "B") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size = 20))
-
-S3.3 <- (S3.3A | S3.3B) + plot_layout(widths = c(2, 1))
+  labs(x = "log(Observed bites) per 100k", y = "log(Predicted bites) per 100k") +
+  theme_minimal_grid() +
+  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "gray92"),
+        panel.grid = element_line(color = "white", size = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1), 
+        strip.text.x = element_text(margin = margin(t = 15)))
 
 ggsave("figs/supplementary/S3.3.jpeg", S3.3, device = "jpeg", height = 8, width = 12)

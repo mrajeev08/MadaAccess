@@ -7,6 +7,10 @@ rm(list = ls())
 
 ##' Packages
 library(data.table)
+library(tidyverse)
+library(cowplot)
+library(glue)
+library(foreach)
 
 ##' Sensitivity analyses
 model_se <- fread("output/sensitivity/model_se.csv")
@@ -15,25 +19,30 @@ preds_se <- fread("output/sensitivity/modpreds_se.csv")
 
 ##' Colors
 scale_levs <- c("Commune", "District")
-model_cols <- c("#1b9e77", "#7570b3")
+model_cols <- c("#0B775E", "#35274A")
 names(model_cols) <- scale_levs 
 
 ##' Predictions to data
 ##' ------------------------------------------------------------------------------------------------
 preds_se$contact_rep <- interaction(preds_se$reporting, preds_se$contacts)
-cutoff_labs <- c("15.3" = "Corrected for underreporting \n Cat I excluded", 
-                 "Inf.3" = "Cat I excluded only", "15.Inf" = "Corrected for underreporting \n only", 
+cutoff_labs <- c("15.3" = "Corrected for \n underreporting & Cat I \n excluded", 
+                 "Inf.3" = "Cat I excluded only", "15.Inf" = "Corrected for \n underreporting only", 
                  "Inf.Inf" = "None (raw data)")
 preds_se$pop_intercept <- glue("{preds_se$pop_predict} \n {preds_se$intercept} intercept")
 
 figS4.1 <- ggplot(data = preds_se, aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
-                            color = scale, shape = intercept)) +
+                            color = scale)) +
   geom_point(alpha = 0.5) +
   geom_abline(intercept = 0, slope = 1, color = "grey", linetype = 2) +
   scale_color_manual(values = model_cols, name = "Model scale") + 
   facet_grid(pop_intercept ~ contact_rep, scales = "free", 
              labeller = labeller(contact_rep = cutoff_labs)) +
-  labs(x = "log(Observed bites)", y = "log(Predicted bites)")
+  labs(x = "log(Observed bites)", y = "log(Predicted bites)") +
+  theme_minimal_grid() +
+  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "gray92"),
+        panel.grid = element_line(color = "white", size = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1)) 
+
 
 ggsave("figs/supplementary/S4.1.jpeg", width = 10, height = 10)
 
@@ -91,8 +100,13 @@ figS4.2 <- ggplot(data = filter(preds, intercept == "random"),
   scale_fill_manual(values = model_cols, name = "Scale") +
   labs(x = "Travel times (hrs)", y = "Predicted bites per 100k") +
   theme(text = element_text(size=20)) +
-  facet_wrap(~ contact_rep, scales = "free_y", ncol = 1, labeller = labeller(contact_rep = cutoff_labs)) +
-  theme_minimal_grid()
+  facet_wrap(~ contact_rep, scales = "free", ncol = 1, labeller = labeller(contact_rep = cutoff_labs)) +
+  theme_minimal_grid() +
+  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "gray92"),
+        panel.grid = element_line(color = "white", size = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1)) 
+  
+
 ggsave("figs/supplementary/S4.2.jpeg", width = 7, height = 10)
 
 

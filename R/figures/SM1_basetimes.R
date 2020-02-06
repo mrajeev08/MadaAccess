@@ -100,7 +100,7 @@ catch_plot$scale <- factor(catch_plot$scale)
 levels(catch_plot$scale) <- list("Districts" = "Districts", "Communes" = "Communes")
 
 scale_levs <- c("Communes", "Districts")
-model_cols <- c("#1b9e77", "#7570b3")
+model_cols <- c("#0B775E", "#35274A")
 names(model_cols) <- scale_levs 
 
 figS1.2A <- ggplot(data = catch_plot, aes(x = pop_catch, fill = scale)) +

@@ -112,6 +112,8 @@ bites_district %>%
   group_by(distcode) %>%
   summarize(avg_bites = mean(bites, na.rm = TRUE),
             sd_bites = sd(bites, na.rm = TRUE), 
+            min_bites = min(bites, na.rm = TRUE),
+            max_bites = max(bites, na.rm = TRUE),
             nobs = n()) %>%
   complete(distcode = mada_districts$distcode, fill = list(avg_bites = 0)) -> bite_ests
 

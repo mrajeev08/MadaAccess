@@ -113,8 +113,6 @@ ctar_todist_bez %>%
   group_by(distcode, ctar) %>%
   arrange(index) -> ctar_todist_bez
 
-pt_sizes <- log(c(100, 200, 400, 800, 1600, 10000) + 0.1)
-
 ctar_metadata %>%
   left_join(select(mada_districts@data, long, lat, distcode)) -> ctar_all
 ctar_todist_bez$dist_ctar <- ctar_metadata$distcode[match(ctar_todist_bez$ctar, 
@@ -130,13 +128,13 @@ figM1.A <- ggplot() +
                color = "white", alpha = 0.5) +
   geom_bezier2(data = filter(ctar_todist_bez, count > 4, distcode != dist_ctar), 
                aes(x = long, y = lat, group = fct_reorder(group, total_lines, .desc = TRUE), 
-                   color = ctar, size = ifelse(index == 1, 0.05, log(count + 0.1)/3*index)), 
-               alpha = 0.75) +
+                   color = ctar, size = ifelse(index == 1, 0.05, log(count))), n = 1000, 
+               alpha = 0.8) +
   geom_point(data = ctar_pts, aes(x = long, y = lat, 
-                                  size = log(count + 0.1), fill = ctar), 
+                                  size = log(count)*1.1, fill = ctar), 
              shape = 21, color = "black", stroke = 1.2) +
   geom_point(data = dist_pts, aes(x = long, y = lat, fill = ctar,
-                                  size = log(count + 0.1)*0.75),
+                                  size = log(count)),
              shape = 21, color = "white", alpha = 1) +
   geom_point(data = filter(ctar_all, exclude == 1), aes(x = long, y = lat), 
              shape = 1, stroke = 1, color = "black") +
@@ -145,6 +143,7 @@ figM1.A <- ggplot() +
   scale_size_identity("Reported bites", guide = "none") +
   guides(size = guide_legend(override.aes = list(linetype = 0))) +
   labs(tag = "A") +
+  coord_cartesian() +
   theme_minimal_hgrid() +
   theme_map()
 
@@ -202,25 +201,18 @@ comms_to_plot %>%
 mora_district <- fortify(mada_districts[mada_districts$district == "Moramanga", ])
 
 ## Finally getting legend points
-ctar_from <- data.frame(y = c(1, 2, 3, 4, 5, 6), x = rep(1, 6), 
+ctar_from <- data.frame(y = seq(-18.1, -19.1, length.out = 6), x = rep(49.75, 6), 
                         size = c(100, 200, 400, 800, 1600, 10000),
                         index = 1, type = "ctar")
-district_to <- data.frame(y = c(1, 2, 3, 4, 5, 6), x = rep(2, 6), 
+district_to <- data.frame(y = seq(-18.1, -19.1, length.out = 6), x = rep(50.5, 6), 
                           size = c(100, 200, 400, 800, 1600, 10000), 
                           index = 3, type = "district")
-control_pts <- get.bezier.pts(origin = data.frame(x = ctar_from$x, 
-                                                  y = ctar_from$y),
-                              destination = data.frame(x = district_to$x, 
-                                                       y = district_to$y), 
-                              frac = 0.25, transform = function(x) sqrt(1/x)) 
+control_pts <- data.frame(y = seq(-18.1, -19.1, length.out = 6) + 0.1, x = rep(50.25, 6), 
+                          size = c(100, 200, 400, 800, 1600, 10000), 
+                          index = 2, type = "control")
 control_pts %>%
-  data.frame() %>%
-  rename(x = out_x, y = out_y) %>%
-  arrange(y) %>%
-  mutate(size = c(100, 200, 400, 800, 1600, 10000), 
-         index = 2, type = "control") %>%
   bind_rows(bind_rows(ctar_from, district_to)) %>%
-  arrange(index) -> bez_pts
+  arrange(index) -> bez_pts_leg
 
 figM1.B_map <- ggplot() +
   geom_polygon(data = comms_to_plot, 
@@ -232,23 +224,39 @@ figM1.B_map <- ggplot() +
                color = "#4A3B53", fill = NA) +
   geom_point(data = filter(comm_pts, commcode == "MG33314010"), 
              aes(x = long, y = lat, fill = ctar), 
-             shape = 21, size = log(sum(ctar_pts$count) + 0.1), color = "black", 
+             shape = 21, size = log(sum(comm_pts$count, na.rm = TRUE))*1.1, color = "black", 
              stroke = 1.2) +
   geom_bezier2(data = filter(bez_pts, commcode !="MG33314010", count > 4), 
                aes(x = long, y = lat, group = commcode, 
-                   size = ifelse(index == 1, 0.05, log(count + 0.1)/3*index)), 
-               color = "#4A3B53", alpha = 0.75) +
+                   size = ifelse(index == 1, 0.05, log(count))), n = 1000,
+               color = "#4A3B53", alpha = 0.8) +
   geom_point(data = comm_pts, aes(x = long, y = lat, fill = ctar,
-                                  size = log(count + 0.1)),
+                                  size = log(count)),
              shape = 21, color = "white", alpha = 1) + 
+  geom_bezier2(data = bez_pts_leg, 
+               aes(x = x, y = y, group = size, 
+                   size = ifelse(index == 1, 0.05, log(size))), n = 1000, 
+               alpha = 0.8) +
+  geom_point(data = ctar_from, aes(x, y, size = log(size)*1.1), 
+             color = "black", stroke = 2, fill = "grey50", shape = 21) +
+  geom_point(data = district_to, aes(x, y, size = log(size + 0.1)), 
+             color = "white", fill = "grey50", shape = 21) + 
+  geom_text(data = district_to, aes(x = x, y = y, label = size),
+            hjust = 0, nudge_x = 0.1) +
+  geom_text(data = data.frame(x = c(min(ctar_from$x), min(district_to$x)), 
+                              y = rep(max(ctar_from$y + 0.1), 2),
+                              label = c("ARMC", "District")), 
+            aes(x = x, y = y, label = label), hjust = 0, angle = 45) +
+  annotate("text", y = -17.65, x = 49.7, hjust = 0, label = "Reported bites", size = 4.5) +
   scale_fill_manual(values = catch_fills, na.value = "grey50", guide = "none") +
   scale_color_manual(values = catch_fills, guide = "none") +
   scale_size_identity("Reported bites", guide = "none") +
   guides(size = guide_legend(override.aes = list(color = "grey50"))) +
   labs(tag = "B") +
-  coord_cartesian() +
+  coord_cartesian(clip = "off") +
   theme_minimal_hgrid() +
-  theme_map()
+  theme_map() +
+  theme(plot.margin = unit(c(1, 1, 1, 1), "cm"))
 
 ##' Inset of Mora catchment in Mada
 ##' ------------------------------------------------------------------------------------------------
@@ -266,44 +274,17 @@ figM1.B_inset <-  ggplot() +
   theme_minimal_hgrid() +
   theme_map()
 
-##' Legends for map
+##' Bite incidence estimates
 ##' ------------------------------------------------------------------------------------------------
-
-
-
-map_legend <- ggplot() +
-  geom_bezier2(data = bez_pts, 
-               aes(x = x, y = y, group = size, 
-                   size = ifelse(index == 1, 0.05, log(size + 0.1)/3*index)),
-               alpha = 0.75) +
-  geom_point(data = ctar_from, aes(x, y, size = log(size + 0.1),), 
-             color = "black", stroke = 2, fill = "grey50", shape = 21) +
-  geom_point(data = district_to, aes(x, y, size = log(size + 0.1)), 
-             color = "white", fill = "grey50", shape = 21) + 
-  geom_text(data = district_to, aes(x = x, y = y, label = size),
-            hjust = 0, nudge_x = 0.1) +
-  geom_text(data = data.frame(x = c(min(ctar_from$x), min(district_to$x)), 
-                              y = rep(max(ctar_from$y + 0.5), 2),
-                              label = c("ARMC", "District")), 
-            aes(x = x, y = y, label = label), hjust = 0, angle = 45) +
-  ggtitle(label = "Reported bites") +
-  xlim(c(0, max(district_to$x) + 1)) +
-  ylim(c(0, max(district_to$y) + 1)) +
-  scale_size_identity() +
-  theme_void() +
-  theme(plot.title = element_text(hjust = 0.5), plot.margin = unit(c(0, 0, 0, 0), "cm"))
-
-## Bite incidence estimates
 district_bites <- fread("output/bites/district_bites.csv")
 mora_bites <- fread("output/bites/mora_bites.csv")
 
 district_bites %>%
-  select(group_name = distcode, pop, catchment, ttimes_wtd, avg_bites, sd_bites, 
+  select(group_name = distcode, pop, catchment, ttimes_wtd, avg_bites, min_bites, max_bites, 
+         sd_bites, 
          nobs) %>%
   mutate(dataset = "National", 
-         nobs = ifelse(is.na(nobs), 1, nobs), 
-         lower = avg_bites - 1.96*sd_bites/(sqrt(nobs)), 
-         upper = avg_bites + 1.96*sd_bites/(sqrt(nobs))) -> bites_plot
+         nobs = ifelse(is.na(nobs), 1, nobs)) -> bites_plot
 mora_bites %>%
   select(group_name = commcode, pop, catchment, ttimes_wtd, avg_bites) %>%
   mutate(dataset = "Moramanga", nobs = 2) %>%
@@ -313,29 +294,27 @@ size_labs <- c("1" = 1.75, "2" = 2.25, "3" = 3, "4" = 3.75)
 
 figM1.C <- ggplot(all_bites, aes(x = ttimes_wtd/60, color = catchment)) +
   geom_point(aes(y = avg_bites/pop*1e5, shape = factor(dataset), size = factor(nobs)), alpha = 0.75) +
-  geom_linerange(aes(ymin = lower/pop*1e5, ymax = upper/pop*1e5)) +
+  geom_linerange(aes(ymin = min_bites/pop*1e5, ymax = max_bites/pop*1e5)) +
   scale_size_manual(values = size_labs, labels = names(size_labs),
-                    name = "Number of \n observations") +
-  scale_shape_manual(values = c(15, 16), name = "Dataset") +
+                    name = "Number of \nobservations:") +
+  scale_shape_manual(values = c(15, 16), name = "Dataset:") +
   scale_color_manual(values = catch_cols, guide = "none") + 
   ylab("Annual bites per 100k") +
   xlab("Travel times (hrs)") +
   labs(tag = "C") +
-  theme_minimal_hgrid()
+  theme_minimal_hgrid() +
+  theme(legend.position = "top", legend.box = "vertical")
 
 ## Final figure 1 formatted for plos
 layout_inset <- c(patchwork::area(t = 1, b = 5, l = 1, r = 6), 
                   patchwork::area(t = 1, b = 1, l = 1, r = 1))
 layout_B <- figM1.B_map + figM1.B_inset + plot_layout(design = layout_inset)
-figM1_top <- figM1.A - layout_B + plot_layout(ncol = 2, widths = c(1.5, 1))
-figM1 <- (figM1_top - figM1.C) + plot_layout(ncol = 1, heights = c(2, 1))
-
-## LAST TO DO (FIX LEGEND + FIX POLYGONS ON MORA DATA (ALL COMMS WITH BITES REPORTED, FILL = ONES IN CATCHMENT))
-## AND OUTLINE OF DISTRICT?
+figMright <- layout_B - figM1.C + plot_layout(heights = c(2, 1))
+figM1 <- (figM1.A - figMright) + plot_layout(ncol = 2, widths = c(1.5, 1))
 
 # for inline figs
-ggsave("figs/main/M1.jpeg", figM1, height = 14, width = 12)
+ggsave("figs/main/M1.jpeg", figM1, height = 10, width = 10)
 # for plos
-ggsave("figs/main/M1.tiff", figM1, dpi = 300, height = 14, width = 12,
+ggsave("figs/main/M1.tiff", figM1, dpi = 300, height = 10, width = 10,
        compression = "lzw", type = "cairo")
 

@@ -15,6 +15,7 @@ library(glue)
 library(data.table)
 library(rgdal)
 library(patchwork)
+library(cowplot)
 
 ## Predicted burden
 burden_preds <- fread("output/preds/complete/burden_filled.csv")
@@ -60,10 +61,16 @@ M4.A <- ggplot() +
   scale_color_manual(values = c("darkgrey", "black"), name = "Model scale") +
   labs(x = "Districts (ordered by \n increasing travel times)", 
        y = "Predicted incidence of \n deaths per 100k", tag = "A") +
-  theme(axis.text.y = element_blank(), panel.grid.minor = element_blank(), 
-        panel.grid.major.x = element_blank(), text = element_text(size=20)) +
+  theme_minimal_hgrid() +
+  theme(axis.text.y = element_blank()) +
   coord_flip(clip = "off")
 
+plot_ly(data = burden_to_plot, y = ~reorder(distcode, ttimes), x = ~deaths_mean/pop*1e5,
+        symbol = ~scale, symbols = c("square", "diamond"), size = ~scale,
+        sizes = c(1, 2),
+        marker = list(color = burden_to_plot$ttimes, colorscale = "Viridis",
+                      showscale = TRUE)) %>% 
+  add_markers()
 
 gg_commune <- fortify(mada_communes, region = "commcode")
 gg_commune %>% 
@@ -81,8 +88,9 @@ M4.B <- ggplot() +
              shape = 4, size = 2, stroke = 1.5) +
   labs(tag = "B") +
   scale_fill_viridis_c(option = "magma", direction = -1, 
-                      name = "Predicted incidence \n of deaths per 100k") +
-  theme_void(base_size = 20)
+                      name = "Predicted incidence \n of deaths per 100k",
+                      limits=c(0, 5)) +
+  theme_map()
 
 
 M4.C <- ggplot() +
@@ -93,15 +101,17 @@ M4.C <- ggplot() +
              shape = 4, size = 2, stroke = 1.5) +
   labs(tag = "C") +
   scale_fill_viridis_c(option = "magma", direction = -1, 
-                       name = "Predicted incidence \n of deaths per 100k") +
-  theme_void(base_size = 20)
+                       name = "Predicted incidence \n of deaths per 100k",
+                       limits = c(0, 5)) +
+  theme_map()
 
-
-figM4 <- (M4.A | ((M4.B / M4.C) + plot_layout(nrow = 2))) + plot_layout(widths = c(1, 2))
-ggsave("figs/M4.jpeg", figM4, device = "jpeg", height = 14, width = 12)
+figM4 <- (M4.A | ((M4.B / M4.C) + plot_layout(nrow = 2, guides = "collect"))) + plot_layout(widths = c(1, 2))
+ggsave("figs/main/M4.jpeg", figM4, height = 14, width = 10)
+ggsave("figs/main/M4.tiff", figM4, dpi = 300, device = "tiff", height = 12, width = 10, 
+       compression = "lzw", type = "cairo")
 
 ## National deaths
 burden_preds %>%
   group_by(scale) %>%
   summarize_at(vars(pop:averted_lower), sum, na.rm = TRUE) -> natl_burden
-write.csv(natl_burden, "output/preds/natl_burden.csv")
+write.csv(natl_burden, "output/preds/natl_burden.csv", row.names = FALSE)
