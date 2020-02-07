@@ -1,3 +1,53 @@
+#' Aggregate population to friction surface raster
+#' Takes two spatial pixels that have the admin id
+#' Filters by admin id and aggregates
+#' @param Parameters
+#' @return Returned
+#' @section Dependencies:
+#'     List dependencies here, i.e. packages and other functions
+
+aggregate.pop <- function(mada_districts, pop, friction_masked, nmoves = 100) {
+  
+  dist_pops <- foreach(i = 1:nrow(mada_districts),.packages = c('raster', 'rgdal', 'sp', "data.table"), 
+                       .errorhandling = 'remove',
+                       .export = c("mada_districts", "pop", "friction_masked")
+  ) %dopar% {
+    cat(i)
+    dist <- mada_districts[i, ] # filter to current district
+    friction_dist <- crop(friction_masked, dist) # crop to extent of district
+    friction_dist <- mask(friction_masked, dist) # mask so that NA values outside of district
+    pop_dist <- crop(pop, dist) # do the same for the pop raster
+    pop_dist <- mask(pop_dist, dist)
+    friction_pixels <- as(friction_dist, "SpatialPixelsDataFrame") # transform to spatial pixels
+    pop_pixels <- as(pop_dist, "SpatialPixelsDataFrame") 
+    names(pop_pixels) <- "pop"
+    
+    ## Get cell id for corresponding fric surface
+    friction_pixels$cell_id <- 1:length(friction_pixels)
+    pop_pixels$cell_id <- over(pop_pixels, friction_pixels)$cell_id
+    
+    ## First find a match for any pop that is not covered by a friction grid cell
+    tomatch <- pop_pixels[which(is.na(pop_pixels$cell_id) & !is.na(pop_pixels$pop)), ]
+    opts <- pop_pixels[which(!is.na(pop_pixels$cell_id) & !is.na(pop_pixels$pop)), ]
+    match_index <- find.nonNA(rast = pop_dist, match_inds = tomatch@grid.index,
+                              opt_inds = opts@grid.index, nmoves = nmoves)
+    ind_add <- data.table(pop = tomatch$pop, match_index)
+    ind_add <- ind_add[ , .(pop = sum(pop)), by = "match_index"]
+    
+    ## Move from index to closest matching 
+    to_add <- ind_add$pop[match(pop_pixels@grid.index, ind_add$match_index)]
+    to_add[is.na(to_add)] <- 0
+    pop_pixels$pop <- pop_pixels$pop + to_add
+    
+    resampled <- aggregate(pop_pixels, friction_pixels, function(x) sum(x, na.rm = TRUE)) # resample
+    pop1x1 <- raster(resampled["pop"]) # transform back to raster
+  }
+  
+  ##' then merge all districts together at the end and write to output folder
+  pop1x1_all <- do.call(raster::merge, dist_pops)
+  return(pop1x1_all)
+}
+
 #' Create temporary pop pixels with matched friction ids + reallocated pops
 #' Description
 #' Details
