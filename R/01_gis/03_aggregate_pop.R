@@ -1,6 +1,7 @@
 # ------------------------------------------------------------------------------------------------ #
 #' Aggregating pop estimates to friction surgace
 #' Getting pop to same extent and resolution as the friction surface
+#' Splitting by districts to speed up
 # ------------------------------------------------------------------------------------------------ #
 
 # Set up
@@ -13,18 +14,29 @@ friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 friction_pixels <- as(friction_masked, "SpatialPixelsDataFrame") 
 friction_pixels$cell_id <- 1:length(friction_pixels)
 
-# Aggregate pop to friction surface
-pop_fb <- readRDS("data/temp_pop/fb_2018_temp.rds")
-check <- data.table(pop = pop_fb$pop, cell_id = pop_fb$cell_id)
+# Load in World Pop data
+wp_2015 <- raster("data/processed/rasters/wp_2015_temp.tif")
+pop_2015 <- as(wp_2015, "SpatialPixelsDataFrame")
+names(pop_2015) <- "pop"
+
+# Get corresponding cell id of fric surface
+# take either area or line intersection (with minDimension = 0)
+pop_2015$cell_id <- over(pop_2015, friction_pixels, minDimension = 0)$cell_id  
+
+# Make into data table and aggregate
+check <- data.table(pop = pop_2015$pop, cell_id = pop_2015$cell_id)
 check <- check[ , .(pop = sum(pop, na.rm = TRUE)), by = "cell_id"]
 check <- check[!is.na(cell_id)]
 friction_pixels$pop <- check$pop[match(friction_pixels$cell_id, check$cell_id)]
-fb_2018_1x1 <- raster(friction_pixels["pop"]) # transform back to raster
-writeRaster(fb_2018_1x1, "data/processed/rasters/fb_2018_1x1.tif", overwrite = TRUE)
 
-fb_2018 <- raster("data/raw/population_mdg_2018-10-01-2/fb2018_aggregated.tif")
-sum(getValues(fb_2018), na.rm = TRUE) - sum(getValues(fb_2018_1x1), na.rm = TRUE)
+# transform back to raster
+wp_2015_1x1 <- raster(friction_pixels["pop"])
+writeRaster(wp_2015_1x1, "data/processed/rasters/wp_2015_1x1.tif", overwrite = TRUE)
 
-## Saving session info
+# these should be equalish!
+sum(getValues(wp_2015), na.rm = TRUE)
+sum(getValues(wp_2015_1x1), na.rm = TRUE)
+
+# Saving session info
 out.session(path = "R/01_gis/03_aggregate_pop.R", filename = "sessionInfo.csv")
 

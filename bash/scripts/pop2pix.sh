@@ -20,5 +20,5 @@ ssh -T mrajeev@della <<HERE
 HERE
 sleep 1m    # sleep again as sometimes takes a while to write output
 # rsync pull down temp
-rsync -rLvz --update --exclude 'candidate_matrix.gz' mrajeev@della.princeton.edu:~/MadaAccess/data/raw/temp_pop/ ~/Documents/Projects/MadaAccess/data/raw/temp_pop
+rsync -rLvz --update --exclude 'candidate_matrix.gz' mrajeev@della.princeton.edu:~/MadaAccess/data/processed/ ~/Documents/Projects/MadaAccess/data/processed
 

@@ -4,7 +4,7 @@
 
 ssh -T mrajeev@della <<HERE
     cd MadaAccess                                  # change to repo
-    jid=\$(sbatch bash/slurm/aggregateWP | cut -c 21-)
+    jid=\$(sbatch bash/slurm/aggPop | cut -c 21-)
     echo "Here's the job id: \$jid"
     jstat=\$(sacct -j "\$jid" -u mrajeev)
     echo "Here's the job status: \$jstat"

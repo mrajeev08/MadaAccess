@@ -2,7 +2,6 @@
 #' Process all raster files
 #' Get masked friction surface as input for travel time estimates 
 #' Create transition layer for gdistance functions
-#' Aggregate up FB 2018 pop estimates to higher resolution
 # ------------------------------------------------------------------------------------------------ #
 
 # Packages
@@ -28,11 +27,6 @@ writeRaster(friction_masked, "data/processed/rasters/friction_mada_masked.tif", 
 trans <- transition(friction_masked, function(x) 1/mean(x), 8) 
 trans_gc <- geoCorrection(trans)
 saveRDS(trans_gc, "data/processed/rasters/trans_gc_masked.rds")
-
-# aggregate up facebook pop data to make it easier to work with (this takes abt 10min!)
-pop_fb <- raster("data/raw/population_mdg_2018-10-01-2/population_mdg_2018-10-01.tif")
-system.time(pop_fb <- raster::aggregate(pop_fb, fact = 5, fun = sum, na.rm = TRUE))
-writeRaster(pop_fb, "data/raw/population_mdg_2018-10-01-2/fb2018_aggregated.tif", overwrite = TRUE)
 
 # Saving session info
 out.session(path = "R/01_gis/01_process_rasters.R", filename = "sessionInfo.csv")

@@ -6,6 +6,7 @@
 
 # Set up
 library(rgdal)
+library(rgeos)
 library(raster)
 library(gdistance)
 library(foreach)
@@ -18,9 +19,11 @@ source("R/functions/ttime_functions.R")
 source("R/functions/out.session.R")
 
 # Load in GIS files
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
-pop1x1 <- raster("data/processed/rasters/fb_2018_1x1.tif")
+mada_districts <- readOGR("data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
+mada_communes <- readOGR("data/raw/shapefiles/communes/mdg_admbnda_adm3_BNGRC_OCHA_20181031.shp")
+
+# Load in rasters
+pop1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
 # Get candidate points as matrix
@@ -48,7 +51,7 @@ stacked_ttimes <- do.call("stack", stacked_ttimes)
 stacked_ttimes <- raster::as.matrix(stacked_ttimes)
 stacked_ttimes <- stacked_ttimes[!is.na(getValues(friction_masked)), ] # to save memory filter out NAs
 
-# ids for districts and communes (extract row # of shapefiles to the raster, takes a while!)
+# ids for districts and communes (extract row # of shapefiles to the raster, takes ~ 6 min)
 district_id <- getValues(rasterize(mada_districts, 
                                   friction_masked))[!is.na(getValues(friction_masked))]
 commune_id <- getValues(rasterize(mada_communes, 
@@ -60,12 +63,19 @@ ttimes <- apply(stacked_ttimes, 1, min, na.rm = TRUE)
 ttimes[is.infinite(ttimes)] <- NA # no path (some island cells, etc.)
 
 # Baseline dataframe at grid level with ttimes + pop (from fb 2018 aggregated to friction surface)
-baseline_df <- data.table(district_id = district_id, commune_id = commune_id, 
+baseline_df <- data.table(matchcode = mada_districts$ADM2_PCODE[district_id], 
+                          commcode = mada_communes$ADM3_PCODE[commune_id], 
                           pop = getValues(pop1x1)[!is.na(getValues(friction_masked))], 
-                          ttimes, catchment)
+                          ttimes, catchment = ctar_metadata$CTAR[catchment])
+
+# Match to distcode where all Tana polygons are 1 district
+mada_districts$distcode <- substring(as.character(mada_districts$ADM2_PCODE), 1, 7) 
+baseline_df$distcode <- mada_districts$distcode[match(baseline_df$matchcode, mada_districts$ADM2_PCODE)]
+
+# sum by commune + district
 baseline_df[, prop_pop := pop/sum(pop, na.rm = TRUE)]
-baseline_df[, pop_dist := sum(pop, na.rm = TRUE), by = district_id]
-baseline_df[, pop_comm := sum(pop, na.rm = TRUE), by = commune_id]
+baseline_df[, pop_dist := sum(pop, na.rm = TRUE), by = distcode]
+baseline_df[, pop_comm := sum(pop, na.rm = TRUE), by = commcode]
 
 fwrite(baseline_df, "output/ttimes/baseline_grid.csv")
 
@@ -75,8 +85,8 @@ district_df <-
   baseline_df[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
               prop_pop_catch = sum(pop, na.rm = TRUE)/pop_dist[1], pop = pop_dist[1],
               scenario = 0), 
-          by = .(district_id, catchment)] # first by catchment to get the max catch
-district_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = district_id] # then by district
+          by = .(distcode, catchment)] # first by catchment to get the max catch
+district_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = distcode] # then by district
 fwrite(district_df, "output/ttimes/baseline_district.csv")
 
 # Commune
@@ -84,8 +94,8 @@ commune_df <-
   baseline_df[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE),
               prop_pop_catch = sum(pop, na.rm = TRUE)/pop_comm[1], pop = pop_comm[1],
               scenario = 0), 
-          by = .(commune_id, catchment)]
-commune_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = commune_id]
+          by = .(commcode, catchment)]
+commune_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = commcode]
 fwrite(commune_df, "output/ttimes/baseline_commune.csv")
 
 # Get raster of baseline travel times
@@ -93,7 +103,7 @@ fwrite(commune_df, "output/ttimes/baseline_commune.csv")
 ttimes_comp <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
                           coords = point_mat_base, trans_matrix_exists = TRUE,
                           filename_trans = "data/processed/rasters/trans_gc_masked.rds")
-writeRaster(ttimes_comp, "output/ttimes/ttimes_baseline.tif")
+writeRaster(ttimes_comp, "output/ttimes/ttimes_baseline.tif", overwrite = TRUE)
 ttimes_comp <- getValues(ttimes_comp)[!is.na(getValues(friction_masked))]
 sum(ttimes - ttimes_comp, na.rm = TRUE) # should ~ 0
 

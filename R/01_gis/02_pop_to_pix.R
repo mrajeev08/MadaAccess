@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------------------------ #
 #' Pop rasters to pixels
 #' Matching NA pops to non NA cells; this takes a long time and lots of memory!
-#' Ran it on Della @ Princeton and allocated 25 gigs of RAM; takes ~ 1 hours to run 
+#' Ran it on Della @ Princeton and allocated 25 gigs of RAM; takes ~ 2 hour to run 
 # ------------------------------------------------------------------------------------------------ #
 
 # Set-up
@@ -15,12 +15,13 @@ friction_masked <- as(raster("data/processed/rasters/friction_mada_masked.tif"),
                       "SpatialPixelsDataFrame") 
 friction_masked$cell_id <- 1:length(friction_masked)
 
-# Facebook 2018 pop estimates
-fb_2018 <- raster("data/raw/population_mdg_2018-10-01-2/fb2018_aggregated.tif")
-fb_2018_pix <- pop_to_pixels(friction_pixels = friction_masked, pop_raster = fb_2018, nmoves = 200)
-sum(getValues(fb_2018), na.rm = TRUE)
-sum(fb_2018_pix$pop, na.rm = TRUE)
-saveRDS(fb_2018_pix, "data/temp_pop/fb_2018_temp.rds")
+# WP 2015
+wp_2015 <- raster("data/raw/WorldPop/MDG_ppp_2015_adj_v2.tif")
+wp_2015_matched <- pop_to_pixels(friction_pixels = friction_masked, 
+                                 pop_raster = wp_2015, nmoves = 500)
+writeRaster(wp_2015, "data/processed/rasters/wp_2015_temp.tif")
+sum(getValues(wp_2015), na.rm = TRUE)
+sum(getValues(wp_2015_matched), na.rm = TRUE)
 
-# Out session
+# Save session info
 out.session(path = "R/01_gis/02_pop_to_pix.R", filename = "sessionInfo.csv")
