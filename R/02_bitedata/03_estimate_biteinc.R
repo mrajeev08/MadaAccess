@@ -4,7 +4,6 @@
 ##' and Moramanga data 
 ##' Author: Malavika Rajeev 
 ####################################################################################################
-rm(list = ls())
 
 ## Libraries
 library(tidyverse)
@@ -12,7 +11,9 @@ library(data.table)
 library(rgdal)
 library(lubridate)
 select <- dplyr::select
-source("R/functions/utils.R")
+
+## Source scripts
+source("R/functions/out.session.R")
 source("R/functions/data_functions.R")
 
 ## Read in data
@@ -22,7 +23,7 @@ ctar_metadata <- fread("data/raw/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 
-##' Get stats on missingness
+##' Get stats on missingness (output if possible!)
 ##' National < 0.5% (0.28%)
 nrow(national[is.na(year(date_reported))]) ## 1
 nrow(national[is.na(distcode)]) ## 95
@@ -97,7 +98,7 @@ unique(mada_districts$catchment[mada_districts$exclude_dist == 1])
 ##' Getting bite incidence estimates for all districts
 bites %>%
   ## filter known contacts and estimated ones based on throughput
-  filter(estimated_cat1 == 0, include_day == 1) %>% 
+  filter(include_day == 1) %>% 
   group_by(year, distcode) %>%
   summarize(bites = n()) -> bites_district
 bites_district$CTAR <- mada_districts$catchment[match(bites_district$distcode, 
@@ -142,7 +143,7 @@ district_bites$start <- c(1, lag(district_bites$end)[-1] + 1)
 ##' ------------------------------------------------------------------------------------------------
 moramanga %>%
   mutate(month_date = floor_date(ymd(moramanga$date_reported), unit = "month")) %>%
-  filter(known_cat1 == 0, type == "new", month_date >= "2016-10-01", 
+  filter(type == "new", month_date >= "2016-10-01", 
          month_date <= "2019-06-01", !is.na(commcode)) %>%
   group_by(commcode, month_date) %>%
   summarize(bites = n()) %>%
@@ -164,5 +165,5 @@ fwrite(district_bites, "output/bites/district_bites.csv")
 fwrite(comm_covars, "output/bites/comm_covars.csv")
 fwrite(mora_bites, "output/bites/mora_bites.csv")
 
-##' Session Info
+# Save session info
 out.session(path = "R/02_bitedata/03_estimate_biteinc.R", filename = "sessionInfo.csv")
