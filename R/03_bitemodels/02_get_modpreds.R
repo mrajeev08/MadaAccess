@@ -1,33 +1,34 @@
-####################################################################################################
-##' Run predictions from all candidate models
-##' Details: Models include travel times and distance as access metrics, in addition to population 
-##' Author: Malavika Rajeev 
-####################################################################################################
-## source bite ests
-rm(list = ls())
-source("R/functions/predict_functions.R")
-source("R/functions/utils.R")
+# ------------------------------------------------------------------------------------------------ #
+# Run predictions from all candidate models
+# Details: Models include travel times and distance as access metrics, in addition to population 
+# Author: Malavika Rajeev 
+# ------------------------------------------------------------------------------------------------ #
 
-## source bite ests
-district_bites <- fread("output/bites/district_bites.csv")
-comm_covars <- fread("output/bites/comm_covars.csv")
-mora_bites <- fread("output/bites/mora_bites.csv")
-
-## libraries
+# Set-up --------------------------------------------------------------------------------------
 library(foreach)
 library(iterators)
 library(tidyverse)
 library(glue)
 select <- dplyr::select
-## Estimates
+
+# source scripts
+source("R/functions/predict_functions.R")
+source("R/functions/out.session.R")
+
+# source bite ests
+district_bites <- fread("output/bites/district_bites.csv")
+comm_covars <- fread("output/bites/comm_covars.csv")
+mora_bites <- fread("output/bites/mora_bites.csv")
+
+
+# Estimates
 model_ests <- read.csv("output/mods/estimates.csv")
 model_ests %>%
   select(params, Mean, pop_predict, intercept, summed, data_source,
          scale) %>%
   spread(key = params, value = Mean, fill = 0) -> model_means
 
-##' Observed vs. Predicted for all models
-##' ------------------------------------------------------------------------------------------------
+# Observed vs. Predicted for all models -------------------------------------------------------
 preds_mada <- 
   foreach(i = iter(model_means, by = "row"), 
           j = icount(), .combine = "rbind") %do% {
@@ -46,7 +47,7 @@ preds_mada <-
       }
     }
     
-    ## Also transform covar
+    # Also transform covar
     covar_df$ttimes <- covar_df$ttimes_wtd/60
     
     if(i$intercept == "random") {
@@ -62,7 +63,7 @@ preds_mada <-
                               known_alphas = known_alphas, pop_predict = i$pop_predict, 
                               intercept = i$intercept, trans = 1e5, known_catch = TRUE, 
                               nsims = 1000)
-    mean <- rowMeans(bite_mat, na.rm = TRUE) ## mean for each row = admin unit
+    mean <- rowMeans(bite_mat, na.rm = TRUE) # mean for each row = admin unit
     sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
     data.table(names = covar_df$names, group_names = covar_df$distcode,
                ttimes = covar_df$ttimes, pop = covar_df$pop, 
@@ -87,9 +88,8 @@ preds_grouped <- bind_rows(preds_mora_grouped, preds_mada_grouped)
 write.csv(preds_grouped, "output/mods/preds/fitted_grouped_all.csv", row.names = FALSE)
 write.csv(preds_mada, "output/mods/preds/fitted_ungrouped_all.csv", row.names = FALSE)
 
-##' Out of fit 
-##' ------------------------------------------------------------------------------------------------
-##' Use commune and district models to predict Moramanga data
+# Out of fit ----------------------------------------------------------------------------------
+# Use commune and district models to predict Moramanga data
 model_means %>%
   filter(data_source == "National") -> mada_means
 
@@ -112,7 +112,7 @@ outfit_mora <-
                               known_alphas = known_alphas, pop_predict = i$pop_predict, 
                               intercept = i$intercept, trans = 1e5, known_catch = TRUE, 
                               nsims = 1000)
-    mean <- rowMeans(bite_mat, na.rm = TRUE) ## mean for each row = admin unit
+    mean <- rowMeans(bite_mat, na.rm = TRUE) # mean for each row = admin unit
     sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
     data.table(names = mora_bites$commcode, 
                ttimes = mora_bites$ttimes_wtd/60, pop = mora_bites$pop, 
@@ -124,8 +124,8 @@ outfit_mora <-
 write.csv(outfit_mora, "output/mods/preds/outfit_mora.csv", row.names = FALSE)
 
 
-##' Use Moramanga model to predict district and commune model
-##' 
+# Use Moramanga model to predict district and commune model
+# 
 model_means %>%
   filter(data_source == "Moramanga") -> mora_means
 scale <- c("Commune", "District")
@@ -158,7 +158,7 @@ outfit_mada <-
                               known_alphas = known_alphas, pop_predict = i$pop_predict, 
                               intercept = i$intercept, trans = 1e5, known_catch = TRUE, 
                               nsims = 1000)
-    mean <- rowMeans(bite_mat, na.rm = TRUE) ## mean for each row = admin unit
+    mean <- rowMeans(bite_mat, na.rm = TRUE) # mean for each row = admin unit
     sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
     data.table(names = covar_df$names, group_names = covar_df$distcode,
                ttimes = covar_df$ttimes_wtd/60, pop = covar_df$pop, 
@@ -167,12 +167,12 @@ outfit_mada <-
                data_source = "National", type = "mada_outfit")
   }
 
-## Left join with observed
+# Left join with observed
 outfit_mada %>%
   group_by(group_names, data_source, scale, pop_predict, intercept) %>% 
   summarize_at(vars(contains("bites")), sum, na.rm = TRUE) %>%
   left_join(district_bites, by = c("group_names" = "distcode")) -> outfit_grouped
 write.csv(outfit_grouped, "output/mods/preds/outfit_grouped_mada.csv", row.names = FALSE)
 
-##' Session Info
-out.session(path = "R/03_bitemodels/02_get_modpreds.R", filename = "sessionInfo.csv")
+# Session Info
+out.session(path = "R/03_bitemodels/02_get_modpreds.R", filename = "output/log_local.csv")

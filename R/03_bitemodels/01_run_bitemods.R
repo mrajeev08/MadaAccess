@@ -1,52 +1,57 @@
-####################################################################################################
-##' Run models of bite incidence using spatial covariates 
-##' Details: Models include travel times in addition to population 
-##' Author: Malavika Rajeev 
-####################################################################################################
-# ##' Init MPI Backend
-# Sys.time()
-# rm(list = ls())
-# library(doMPI)
-# cl <- startMPIcluster()
-# clusterSize(cl) # this just tells you how many you've got
-# registerDoMPI(cl)
+# ------------------------------------------------------------------------------------------------ #
+#' Run models of bite incidence using spatial covariates
+#' Details: Models include travel times in addition to population 
+# ------------------------------------------------------------------------------------------------ #
 
-##' SINGLE NODE
-rm(list = ls())
-library(doParallel)
-# args <- commandArgs(trailingOnly = TRUE)
-# cores <- as.integer(args[1])
-cores <- 3
+# Pull in command line arguments on how to run this script
+args <- commandArgs(trailingOnly = TRUE)
+type <- args[1]
 
-## libraries
+if(type == "local") {
+  library(doParallel)
+  cl <- makeCluster(detectCores() - 1, type = "FORK")
+  registerDoParallel(cl)
+} 
+
+if(type == "remote") {
+  # Init MPI Backend
+  Sys.time()
+  library(doMPI)
+  cl <- startMPIcluster()
+  clusterSize(cl) # this just tells you how many you've got
+  registerDoMPI(cl)
+}
+
+if(type == "serial") {
+  print("Warning: will run without parallel backend")
+}
+
+# libraries
 library(data.table)
+library(dplyr)
 library(foreach)
 library(iterators)
 library(rjags)
 
-## source bite ests
+# source bite ests
 district_bites <- fread("output/bites/district_bites.csv")
 comm_covars <- fread("output/bites/comm_covars.csv")
 mora_bites <- fread("output/bites/mora_bites.csv")
 source("R/functions/estimate_pars.R")
-source("R/functions/utils.R")
+source("R/functions/out.session.R")
 
-##' Run all models
-##' ----------------------------------------------------------------------------------------
-##' Mada data
-## These all should have same index letter
+# Run all Mada models -----------------------------------------------------------------------
+# Mada data
+# These all should have same index letter
 covars_list <- list(district_bites, comm_covars)
 scale <- c("District", "Commune")
 sum_it <- c(FALSE, TRUE)
 
-## The other index letters
+# The other index letters
 intercept_type <- c("random", "fixed")
 pop_predict <- c("addPop", "onlyPop", "flatPop")
 
-# # WITH SINGLE NODE
-cl <- makeCluster(cores)
-registerDoParallel(cl)
-
+# For each of those opts
 mods_mada <- 
   foreach(i = 1:length(covars_list), .combine = "rbind") %:%
   foreach(k = 1:length(pop_predict), .combine = "rbind") %:%
@@ -64,7 +69,7 @@ mods_mada <-
                            intercept = intercept_type[l], summed = sum_it[i], 
                            data_source = "National",
                            scale = scale[i], trans = 1e5, 
-                           chains = 3, adapt = 500, iter = 10000, thinning = 1,
+                           chains = 4, adapt = 1000, iter = 15000, thinning = 2,
                            dic = TRUE, save = TRUE)
     
     samps <- out[["samps"]]
@@ -89,14 +94,13 @@ mods_mada <-
   }
     
 
-##' Moramanga models 
-##' ------------------------------------------------------------------------------------------------
-## These all should have same index letter
+# Moramanga models -------------------------------------------------------------------------------
+# These all should have same index letter
 scale <- "Commune"
 sum_it <- FALSE
 intercept_type <- "fixed"
 
-## The other index letters
+# The other index letters
 pop_predict <- c("addPop", "onlyPop", "flatPop")
 
 mods_mora <- 
@@ -111,9 +115,9 @@ mods_mora <-
                          nlocs = nrow(mora_bites), catch = mora_bites$catch, 
                          ncatches = max(mora_bites$catch), pop_predict =  pop_predict[k], 
                          intercept = intercept_type, summed = sum_it, 
-                         data_source = "National",
+                         data_source = "Moramanga",
                          scale = scale, trans = 1e5, 
-                         chains = 3, adapt = 500, iter = 10000, thinning = 1,
+                         chains = 4, adapt = 1000, iter = 15000, thinning = 2,
                          dic = TRUE, save = TRUE)
     
     samps <- out[["samps"]]
@@ -139,12 +143,25 @@ mods_mora <-
 mods_all <- bind_rows(mods_mada, mods_mora)
 write.csv(mods_all, "output/mods/estimates.csv", row.names = FALSE)
 
-##' Session Info
-out.session(path = "R/03_bitemodels/01_run_bitemods.R", filename = "sessionInfo.csv")
+# Close out 
+file_path <- "R/03_bitemodels/01_run_bitemods.R"
 
-# ##' Close out cluster
-# closeCluster(cl)
-# mpi.quit()
-# print("Done :)")
-# Sys.time()
+if(type == "serial") {
+  print("Done serially:)")
+  fname <- "output/log_local.csv"
+} 
 
+if(type == "local") {
+  stopCluster(cl)
+  print("Done locally:)")
+  fname <- "output/log_local.csv"
+} 
+
+if (type == "remote") {
+  closeCluster(cl)
+  mpi.quit()
+  print("Done remotely:)")
+  Sys.time()
+  fname <- "output/log_cluster.csv"
+}
+out.session(path = file_path, filename = fname)
