@@ -51,10 +51,8 @@ commune_maxcatch <- commune_allcatch[, .SD[prop_pop_catch == max(prop_pop_catch,
 
 # Write files out (compressed to reduce file sizes!) ------------------------------------------
 fwrite(commune_allcatch, "output/ttimes/commune_allcatch.gz")
-fwrite(commune_allcatch, "output/ttimes/commune_allcatch.csv")
 fwrite(district_allcatch, "output/ttimes/district_allcatch.gz")
-fwrite(district_allcatch, "output/ttimes/district_allcatch.csv")
 fwrite(commune_maxcatch, "output/ttimes/commune_maxcatch.gz")
-fwrite(district_maxcatch, "output/ttimes/district_maxcatch.csv")
+fwrite(district_maxcatch, "output/ttimes/district_maxcatch.gz")
 
 out.session(path = "R/04_addclinics/04_postprocess_ttimes.R", filename = "output/log_local.csv")

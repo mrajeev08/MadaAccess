@@ -15,11 +15,11 @@ if(type == "local") {
 
 if(type == "remote") {
   # Init MPI Backend
-  Sys.time()
   library(doMPI)
   cl <- startMPIcluster()
   clusterSize(cl) # this just tells you how many you've got
   registerDoMPI(cl)
+  Sys.time()
 }
 
 if(type == "serial") {
@@ -55,8 +55,7 @@ pop_predict <- c("addPop", "onlyPop", "flatPop")
 mods_mada <- 
   foreach(i = 1:length(covars_list), .combine = "rbind") %:%
   foreach(k = 1:length(pop_predict), .combine = "rbind") %:%
-  foreach(l = 1:length(intercept_type), .combine = "rbind", 
-          .packages = 'rjags') %dopar% {
+  foreach(l = 1:length(intercept_type), .combine = "rbind") %dopar% {
     covar_df <- covars_list[[i]]
     ttimes <- covar_df$ttimes_wtd/60
     
@@ -92,7 +91,8 @@ mods_mada <-
                                   data_source = "National", 
                                   scale = scale[i], dic = dic_est))
   }
-    
+
+warnings()
 
 # Moramanga models -------------------------------------------------------------------------------
 # These all should have same index letter
@@ -140,6 +140,8 @@ mods_mora <-
                                   scale = scale, dic = dic_est))
   }
 
+warnings()
+
 mods_all <- bind_rows(mods_mada, mods_mora)
 write.csv(mods_all, "output/mods/estimates.csv", row.names = FALSE)
 
@@ -148,20 +150,21 @@ file_path <- "R/03_bitemodels/01_run_bitemods.R"
 
 if(type == "serial") {
   print("Done serially:)")
-  fname <- "output/log_local.csv"
+  out.session(path = file_path, filename = "output/log_local.csv")
 } 
 
 if(type == "local") {
   stopCluster(cl)
   print("Done locally:)")
-  fname <- "output/log_local.csv"
+  out.session(path = file_path, filename = "output/log_local.csv")
 } 
 
 if (type == "remote") {
+  out.session(path = file_path, filename = "output/log_cluster.csv")
   closeCluster(cl)
   mpi.quit()
   print("Done remotely:)")
   Sys.time()
-  fname <- "output/log_cluster.csv"
 }
-out.session(path = file_path, filename = fname)
+
+

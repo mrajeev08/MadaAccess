@@ -116,8 +116,8 @@ burden_complete %>%
   group_by(scale) %>%
   summarize(all(n_admin == 1579)) # should be true for all of them!
 
-fwrite(burden_complete, "output/preds/burden/burden_complete.gz")
+fwrite(burden_complete, "output/preds/burden.gz")
 
 ##' Saving session info
-out.session(path = "R/05_predictions/01_burden_incremental.R", filename = "output/log_local.csv")
+out.session(path = "R/05_predictions/01_burden.R", filename = "output/log_local.csv")
 
