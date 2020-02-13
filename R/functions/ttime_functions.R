@@ -1,5 +1,4 @@
-#' 1. Get travel times
-#' ------------------------------------------------------------------------------------------------
+# 1. Get travel times -----------------------------------------------------------------------------
 #' \code{get.ttimes} calculates the minimum travel times/distance for an input raster to 
 #' an input set of 
 #' GPS points. 
@@ -48,8 +47,7 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
   return(ttimes)
 }
 
-#' 2. Getting ranked clinics and district/commune covariates
-#' ------------------------------------------------------------------------------------------------
+# 2. Getting ranked clinics and district/commune covariates  ----------------------------------
 #' Rank clinics and summarize travel times and catchments at admin level
 #' \code{add.armc} gets ranked ARMC and associated travel times and catchments at the district and
 #' commune levels using catchment matrix of travel times at each grid cell (rows) for each clinic
@@ -57,11 +55,11 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #' distribution of travel times at the population level.
 #' 
 #' @param base_df a data.table with the following rows for each grid cell:
-#'  ttimes_wtd (the baseline travel times), prop_pop (the proportion of the population), 
+#'  ttimes (the baseline travel times), prop_pop (the proportion of the population), 
 #'  catchment (the baseline clinic catchment id), pop_dist (the total population in the district
 #'  in which the grid cell falls), pop_dist (the total population in the commune in which the grid 
-#'  cell falls), commune_id (the commune id (corresponds to row number in commune shapefile)), 
-#'  district_id (corresponds to row number in district shapefile);
+#'  cell falls), commcode (corresponds to commcode in shapefile)), 
+#'  distcode (corresponds to row number in distcode in shapefile);
 #' @param clinic_names character vector of the names of the candidate ARMC to be added
 #' @param clinic_catchmat a matrix of ttimes estimates for each of the grid cells (rows) in the
 #' shapefile for each of the candidate clinics (columns, should match length of clinic_names vector) 
@@ -103,7 +101,7 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
         foreach(vals = iter(clinic_catchmat, by = "col"),
                 .combine = c) %dopar% {
                   prop.lessthan(vals, prop_pop = base_df$prop_pop, 
-                                        base_ttimes = base_df$ttimes_wtd, threshold = thresh_ttimes)
+                                        base_ttimes = base_df$ttimes, threshold = thresh_ttimes)
                 }
       
       # In case all admin units go below the threshold: stop adding
@@ -111,13 +109,16 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
       base_df[, new_ttimes := clinic_catchmat[[which.max(sum.prop)]]]
       
       # If ttimes improved then, new ttimes replaces the baseline and catchment
-      base_df[, c('ttimes_wtd', 'catchment') := .(fifelse(new_ttimes < ttimes_wtd, new_ttimes,
-                                                          ttimes_wtd), 
-                                                  fifelse(new_ttimes < ttimes_wtd, clinic_id,
+      base_df[, c('ttimes', 'catchment') := .(fifelse(new_ttimes < ttimes, new_ttimes,
+                                                          ttimes), 
+                                                  fifelse(new_ttimes < ttimes, clinic_id,
                                                           catchment))]
       
       # So as to not use Inf in summarizing by district/commune
-      base_df[, raw_ttimes := ifelse(is.infinite(ttimes_wtd), NA, ttimes_wtd)]
+      base_df[, raw_ttimes := ifelse(is.infinite(ttimes), NA, ttimes)]
+      
+      # filter out ones that don't have a catchment (i.e. infinite base ttimes/island cells, etc.)
+      base_to_agg <- base_df[!is.na(catchment)]
       
       # Take out the max ones and any below ttime + pop thresholds
       clinic_names <- clinic_names[-c(which.max(sum.prop), which(sum.prop == 0),
@@ -127,25 +128,25 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
       
       # create district and commune dataframes
       district_df <-
-        base_df[, .(ttimes_wtd = sum(raw_ttimes * pop, na.rm = TRUE), 
+        base_to_agg[, .(ttimes_wtd = sum(raw_ttimes * pop, na.rm = TRUE), 
                        prop_pop_catch = sum(pop, na.rm = TRUE)/pop_dist[1],
                        scenario = i, clinic_added = clinic_id, pop = pop_dist[1]), 
-                by = .(district_id, catchment)]
-      district_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = district_id]
+                by = .(distcode, catchment)]
+      district_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = distcode]
       
       commune_df <-
-        base_df[, .(ttimes_wtd = sum(raw_ttimes * pop, na.rm = TRUE),
+        base_to_agg[, .(ttimes_wtd = sum(raw_ttimes * pop, na.rm = TRUE),
                        prop_pop_catch = sum(pop, na.rm = TRUE)/pop_comm[1],
                        scenario = i, clinic_added = clinic_id, pop = pop_comm[1]), 
-                by = .(commune_id, catchment)]
-      commune_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = commune_id]
+                by = .(commcode, catchment)]
+      commune_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = commcode]
       
-      if(overwrite == TRUE & i == 1) { # overwrite on first one
-        fwrite(district_df, paste0(dir_name, "district.csv"))
-        fwrite(commune_df,  paste0(dir_name, "commune.csv"))
+      if(overwrite == TRUE & i == 1) { # overwrite on first one & use gzip to commpress)
+        fwrite(district_df, paste0(dir_name, "district.gz"))
+        fwrite(commune_df,  paste0(dir_name, "commune.gz"))
       } else {
-        fwrite(district_df, paste0(dir_name, "district.csv"), append = TRUE)
-        fwrite(commune_df,  paste0(dir_name, "commune.csv"), append = TRUE)
+        fwrite(district_df, paste0(dir_name, "district.gz"), append = TRUE)
+        fwrite(commune_df,  paste0(dir_name, "commune.gz"), append = TRUE)
       }
       
     } else {
@@ -154,6 +155,6 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
   }
   
   # Return the last catch and ttimes vals
-  return(list(ttimes = base_df$ttimes_wtd, catches = base_df$catchment))
+  return(list(ttimes = base_df$ttimes, catches = base_df$catchment))
 }
 

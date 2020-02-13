@@ -1,54 +1,65 @@
-####################################################################################################
-##' Getting travel times for each grid cell for each clinic
-##' Details: getting minimum travel time estimate for each clinic
-##'   Code should be run in parallel and final dataset requires a lot of memory! ~ 10 GB
-##'   Split up clinics or work with fewer clinics if there are memory limitations
-##'   With three cores, it takes approximately 120 minutes on MacOS with 16 GB 1867 MHz DDR3 and
-##'   2.9 GHz Intel Core i5
-##' Author: Malavika Rajeev
-####################################################################################################
+# ------------------------------------------------------------------------------------------------ #
+#' Getting travel times for each grid cell for each clinic
+#' Code should be run in parallel and final dataset requires a lot of memory! ~ 10 GB
+#' Split up clinics or work with fewer clinics if there are memory limitations
+#'   with three cores, it takes approximately 120 minutes on MacOS with 16 GB 1867 MHz DDR3 and
+#'   2.9 GHz Intel Core i5
+# ------------------------------------------------------------------------------------------------ #
 
-##' Set up
-##' ------------------------------------------------------------------------------------------------
 Sys.time()
-rm(list = ls())
-##' Single node on cluster
+# Pull in command line arguments on how to run this script
 args <- commandArgs(trailingOnly = TRUE)
-cores <- as.integer(args[1])
+type <- args[1]
 
-##' Libraries
+if(type == "local") {
+  library(doParallel)
+  cl <- makeCluster(detectCores() - 1, type = "FORK") # so you can still do other things...
+  registerDoParallel(cl)
+} 
+
+if(type == "remote") {
+  # set up cluster on single node with do Parallel
+  library(doParallel) 
+  cl <- makeCluster(detectCores(), type = "FORK")
+  registerDoParallel(cl)
+}
+
+if(type == "serial") {
+  print("Warning: will run without parallel backend")
+}
+
+# Libraries
 library(rgdal)
 library(raster)
 library(foreach)
 library(tidyverse)
 library(gdistance)
 library(iterators)
-library(doParallel)
 library(data.table)
 
-##' Source
-source("R/functions/utils.R")
+# Source scripts
+source("R/functions/out.session.R")
 source("R/functions/ttime_functions.R")
 
-##' Load in GIS files 
+# Load in GIS files 
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
-pop1x1<- raster("data/processed/rasters/worldpop2015adj_mada_1x1km.tif")
 ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
-## candidate points
+# candidate points
+# filter out existing csbs and also write out to file!
 csbs <- read.csv("data/raw/csbs.csv", stringsAsFactors = FALSE)
 csbs %>% 
   filter(type == "CSB2", genre_fs != "Priv", type_fs != "Health Post") %>%
   dplyr::select(CTAR = nom_fs, X_COORD = ycoor, Y_COORD = xcoor) -> csbs
 
 point_mat_candidates <- as.matrix(select(csbs, Y_COORD, X_COORD))
-candidate_ids <- 1:nrow(csbs) + 31 ## above the baseline 31 clinics (number by rows!)
-baseline_df <- fread("output/ttimes/baseline_grid.csv")
+candidate_ids <- 1:nrow(csbs) + 31 ## above the baseline 31 clinics (number by row_ids!)
+baseline_df <- fread("output/ttimes/baseline_grid.gz")
 
-## Do the candidates
-cl <- makeCluster(cores)
+# ~ 6 seconds per point
+cl <- makeCluster(cores, type = "FORK")
 registerDoParallel(cl)
 
 system.time ({
@@ -60,14 +71,33 @@ system.time ({
           } -> stacked_ttimes
 })
 
-stopCluster(cl) ## for doParallel
-## 6 seconds per point
-
-## stack it
+# stack it
 stacked_ttimes <- do.call("stack", stacked_ttimes)
 stacked_ttimes <- raster::as.matrix(stacked_ttimes)
 stacked_ttimes <- stacked_ttimes[!is.na(getValues(friction_masked)), ]
 
-# fwrite(stacked_ttimes, "output/ttimes/candidate_matrix.gz") ## locally
-fwrite(stacked_ttimes, "/scratch/gpfs/mrajeev/output/ttimes/candidate_matrix.gz") ## on cluster
-write.csv(candidate_ids, "output/ttimes/candidate_ids.csv")
+# on cluster write to scratch gpfs for larger file size and zip it! 
+fwrite(stacked_ttimes, "/scratch/gpfs/mrajeev/output/ttimes/candidate_matrix.gz") 
+
+# Close out 
+file_path <- "R/04_addclinics/01_ttimes_candidates.R"
+
+if(type == "serial") {
+  print("Done serially:)")
+  fname <- "output/log_local.csv"
+} 
+
+if(type == "local") {
+  stopCluster(cl)
+  print("Done locally:)")
+  fname <- "output/log_local.csv"
+} 
+
+if (type == "remote") {
+  closeCluster(cl)
+  mpi.quit()
+  print("Done remotely:)")
+  Sys.time()
+  fname <- "output/log_cluster.csv"
+}
+out.session(path = file_path, filename = fname)

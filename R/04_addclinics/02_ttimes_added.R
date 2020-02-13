@@ -1,54 +1,78 @@
-####################################################################################################
-##' Incrementally adding clinics based on travel times
-##' Details: Getting travel time estimates and catchments for districts/communes as clinics are added
-##'   Code should be run in parallel with shared memory if large input cand_mat
-##'   On the Della cluster at Princeton with 18 cores, it takes approximately 1 hr 10 minutes; 
-##'   On MacOS with 16 GB 1867 MHz DDR3 and 2.9 GHz Intel Core i5 with three cores, 
-##'   it takes approximately 10 hours
-##' Author: Malavika Rajeev
-####################################################################################################
+# ------------------------------------------------------------------------------------------------ #
+#' Incrementally adding clinics based on travel times
+#'  Getting travel time estimates and catchments for districts/communes as clinics are added
+#'   Code should be run in parallel with shared memory if large input cand_mat
+#'   On the Della cluster at Princeton with 18 cores, it takes approximately 1 hr 10 minutes; 
+#'   On MacOS with 16 GB 1867 MHz DDR3 and 2.9 GHz Intel Core i5 with three cores, 
+#'   it takes approximately 10 hours
+# ------------------------------------------------------------------------------------------------ #
 
-##' Set up
-##' ------------------------------------------------------------------------------------------------
-##' SINGLE NODE
-rm(list = ls())
+Sys.time()
+# Pull in command line arguments on how to run this script
 args <- commandArgs(trailingOnly = TRUE)
-cores <- as.integer(args[1])
-# cores <- 3
+type <- args[1]
+cores <- args[2]
 
-##' Libraries
+if(type == "local") {
+  library(doParallel)
+  cl <- makeCluster(detectCores() - 1, type = "FORK")
+  registerDoParallel(cl)
+} 
+
+if(type == "remote") {
+  # set up cluster on single node with do Parallel
+  library(doParallel) 
+  cl <- makeCluster(cores, type = "FORK")
+  registerDoParallel(cl)
+}
+
+if(type == "serial") {
+  print("Warning: will run without parallel backend")
+}
+
+# Libraries
 library(foreach)
 library(tidyverse)
 library(iterators)
 library(data.table)
-library(doParallel)
 
-##' Source
-source("R/functions/utils.R")
+# Source
+source("R/functions/out.session.R")
 source("R/functions/ttime_functions.R")
 
-## Pull in candidates
-# cand_mat <- fread("output/ttimes/candidate_matrix.gz") ## locally
-cand_mat <- fread("/scratch/gpfs/mrajeev/output/ttimes/candidate_matrix.gz") ## this is a huge file!
-
-# cand_mat <- as.matrix(cand_mat)
-candidate_ids <- fread("output/ttimes/candidate_ids.csv")$x
+# Pull in candidates
+cand_mat <- fread("/scratch/gpfs/mrajeev/output/ttimes/candidate_matrix.gz") # this is a huge file!
+candidate_ids <- 1:nrow(cand_mat) + 31
 
 ## Baseline df
-base_df <- fread("output/ttimes/baseline_grid.csv")
+base_df <- fread("output/ttimes/baseline_grid.gz")
 
 ## Do the candidates
-## WITH SINGLE NODE
-cl <- makeCluster(cores)
-registerDoParallel(cl)
-
 system.time ({
   add.armc(base_df = base_df, clinic_names = candidate_ids, clinic_catchmat = cand_mat, 
            max_clinics = ncol(cand_mat), thresh_ttimes = 3*60, thresh_prop = 1e-4, 
-           dir_name = "/scratch/gpfs/mrajeev/output/ttimes/incremental_")
+           dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics_")
 })
 
-##' WITH SINGLE NODE TO CLOSE
-stopCluster(cl)
-print("Done :)")
-Sys.time()
+# Close out 
+file_path <- "R/04_addclinics/02_ttimes_added.R"
+
+if(type == "serial") {
+  print("Done serially:)")
+  fname <- "output/log_local.csv"
+} 
+
+if(type == "local") {
+  stopCluster(cl)
+  print("Done locally:)")
+  fname <- "output/log_local.csv"
+} 
+
+if (type == "remote") {
+  closeCluster(cl)
+  mpi.quit()
+  print("Done remotely:)")
+  Sys.time()
+  fname <- "output/log_cluster.csv"
+}
+out.session(path = file_path, filename = fname)
