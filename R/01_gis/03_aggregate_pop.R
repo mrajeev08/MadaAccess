@@ -33,10 +33,11 @@ friction_pixels$pop <- check$pop[match(friction_pixels$cell_id, check$cell_id)]
 wp_2015_1x1 <- raster(friction_pixels["pop"])
 writeRaster(wp_2015_1x1, "data/processed/rasters/wp_2015_1x1.tif", overwrite = TRUE)
 
-# these should be equalish!
-sum(getValues(wp_2015), na.rm = TRUE)
+# these should be apprx the same
+wp_2015_og <- raster("data/raw/WorldPop/MDG_ppp_2015_adj_v2.tif")
+sum(getValues(wp_2015_og), na.rm = TRUE)
 sum(getValues(wp_2015_1x1), na.rm = TRUE)
 
 # Saving session info
-out.session(path = "R/01_gis/03_aggregate_pop.R", filename = "sessionInfo.csv")
+out.session(path = "R/01_gis/03_aggregate_pop.R", filename = "output/log_local.csv")
 

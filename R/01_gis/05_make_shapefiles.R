@@ -36,14 +36,16 @@ district_df <- fread("output/ttimes/baseline_district.csv")
 # Filter so that catchment is the one which is closest for the maximum proportion of the population
 district_df <- district_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
                            by = distcode]
-district_df$id_ctar <- ctar_metadata$id_ctar[match(district_df$catchment, ctar_metadata$CTAR)]
+district_df$id_ctar <- ctar_metadata$id_ctar[district_df$catchment] # by row number
+district_df$catchment <- ctar_metadata$CTAR[district_df$catchment] # by row number
 mada_districts@data <- district_df[mada_districts@data, on = "distcode"]
 
 # Do the same for commune level
 commune_df <- fread("output/ttimes/baseline_commune.csv")
 commune_df <- commune_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
                          by = commcode]
-commune_df$id_ctar <- ctar_metadata$id_ctar[match(commune_df$catchment, ctar_metadata$CTAR)]
+commune_df$id_ctar <- ctar_metadata$id_ctar[commune_df$catchment] # by row number
+commune_df$catchment <- ctar_metadata$CTAR[commune_df$catchment] # by row number
 mada_communes@data <- commune_df[mada_communes@data, on = c("commcode" = "ADM3_PCODE")]
 
 # Get centroid longitude and latitude (for plotting) --------------------------------------------
@@ -70,4 +72,4 @@ writeOGR(mada_districts, dsn = "data/processed/shapefiles", layer = "mada_distri
          driver = "ESRI Shapefile", overwrite_layer = TRUE)
 
 # Saving session info
-out.session(path = "R/01_gis/05_make_shapefiles.R", filename = "sessionInfo.csv")
+out.session(path = "R/01_gis/05_make_shapefiles.R", filename = "output/log_local.csv")

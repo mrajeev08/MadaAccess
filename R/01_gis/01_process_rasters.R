@@ -19,7 +19,6 @@ mada_districts <- readOGR("data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_
 friction_masked <- getRaster(
     surface = "A global friction surface enumerating land-based travel speed for a nominal year 2015",
     shp = mada_districts)
-plot(friction_masked) ## test
 writeRaster(friction_masked, "data/processed/rasters/friction_mada_masked.tif", overwrite = TRUE)
 
 # Masked transition surface (geocorrected  transition matrix (i.e., the graph))
@@ -29,4 +28,4 @@ trans_gc <- geoCorrection(trans)
 saveRDS(trans_gc, "data/processed/rasters/trans_gc_masked.rds")
 
 # Saving session info
-out.session(path = "R/01_gis/01_process_rasters.R", filename = "sessionInfo.csv")
+out.session(path = "R/01_gis/01_process_rasters.R", filename = "output/log_local.csv")
