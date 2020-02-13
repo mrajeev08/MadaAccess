@@ -4,7 +4,7 @@
 
 ssh -T mrajeev@della <<HERE
     cd MadaAccess                                  # change to repo
-    jid=\$(sbatch bash/slurm/aggPop | cut -c 21-)
+    jid=\$(sbatch bash/slurm/candidates | cut -c 21-)
     echo "Here's the job id: \$jid"
     jstat=\$(sacct -j "\$jid" -u mrajeev)
     echo "Here's the job status: \$jstat"
@@ -19,6 +19,10 @@ ssh -T mrajeev@della <<HERE
     logout
 HERE
 sleep 1m    # sleep again as sometimes takes a while to write output
-bash bash/sync/pull_down_data.sh # execute rsync script locally here
 
+# rsync pull down candidates from scratch
+rsync -rLvz --update mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ ~/Documents/Projects/MadaAccess/output
+
+# also session info
+rsync -rLvz --update mrajeev@della.princeton.edu:~/MadaAccess/sessionInfo.csv ~/Documents/Projects/MadaAccess/sessionInfo.csv
 
