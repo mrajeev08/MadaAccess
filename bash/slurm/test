@@ -1,8 +1,0 @@
-#!/bin/bash
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
-#SBATCH -J  vials
-#SBATCH -t 00:10:00
-
-echo "hello world"
-sleep 1m
