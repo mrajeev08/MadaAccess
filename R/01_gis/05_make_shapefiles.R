@@ -46,7 +46,7 @@ commune_df <- commune_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRU
                          by = commcode]
 commune_df$id_ctar <- ctar_metadata$id_ctar[commune_df$catchment] # by row number
 commune_df$catchment <- ctar_metadata$CTAR[commune_df$catchment] # by row number
-mada_communes@data <- commune_df[mada_communes@data, on = c("commcode" = "ADM3_PCODE")]
+mada_communes@data <- commune_df[mada_communes@data, on = c("commcode" = "ADM3_PCODE")] # join
 
 # Get centroid longitude and latitude (for plotting) --------------------------------------------
 mada_districts$long_cent <- coordinates(mada_districts)[, 1]
@@ -57,12 +57,13 @@ mada_communes$lat_cent <-  coordinates(mada_communes)[, 2]
 # Clean up names -----------------------------------------------------------------------------------
 # NOTE: var names have to be <= 10 characters long for ESRI shapefile output
 mada_districts@data %>%
-  dplyr::select(distcode, district = ADM2_EN, pop, long_cent, lat_cent, ttimes_wtd, catchment,
+  dplyr::select(distcode, district = ADM2_EN, pop, long_cent, lat_cent, ttimes_wtd, ttimes_un,
+                catchment,
                 id_ctar, pop_catch = prop_pop_catch) -> mada_districts@data
 
 mada_communes@data %>%
   dplyr::select(distcode, district = ADM2_EN, commcode, commune = ADM3_EN, pop, 
-                long_cent, lat_cent, ttimes_wtd, catchment, id_ctar,
+                long_cent, lat_cent, ttimes_wtd, ttimes_un, catchment, id_ctar,
                 pop_catch = prop_pop_catch) -> mada_communes@data
 
 # Write out the shapefiles (overwrite) ------------------------------------------------------------

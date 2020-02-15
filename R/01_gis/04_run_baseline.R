@@ -88,19 +88,29 @@ base_to_agg <- baseline_df[!is.na(ttimes)] # filter out NAs (i.e. infinite ttime
 # District
 district_df <-
   base_to_agg[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
-              prop_pop_catch = sum(pop, na.rm = TRUE)/pop_dist[1], pop = pop_dist[1],
-              scenario = 0), 
-          by = .(distcode, catchment)] # first by catchment to get the max catch
-district_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = distcode] # then by district
+                  ttimes_un = sum(ttimes, na.rm = TRUE),
+                  ncells = .N,
+                  prop_pop_catch = sum(pop, na.rm = TRUE)/pop_dist[1], pop = pop_dist[1],
+                  scenario = 0), 
+              by = .(distcode, catchment)] # first by catchment to get the max catch
+district_df[, c("ttimes_wtd", 
+                "ttimes_un") := .(sum(ttimes_wtd, na.rm = TRUE)/pop,
+                                  sum(ttimes_un, na.rm = TRUE)/sum(ncells, na.rm = TRUE)), 
+                                  by = distcode] # then by district
 fwrite(district_df, "output/ttimes/baseline_district.csv")
 
 # Commune
 commune_df <-
-  base_to_agg[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE),
-              prop_pop_catch = sum(pop, na.rm = TRUE)/pop_comm[1], pop = pop_comm[1],
-              scenario = 0), 
-          by = .(commcode, catchment)]
-commune_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = commcode]
+  base_to_agg[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
+                  ttimes_un = sum(ttimes, na.rm = TRUE),
+                  ncells = .N,
+                  prop_pop_catch = sum(pop, na.rm = TRUE)/pop_dist[1], pop = pop_dist[1],
+                  scenario = 0), 
+              by = .(commcode, catchment)] # first by catchment to get the max catch
+commune_df[, c("ttimes_wtd", 
+                "ttimes_un") := .(sum(ttimes_wtd, na.rm = TRUE)/pop,
+                                  sum(ttimes_un, na.rm = TRUE)/sum(ncells, na.rm = TRUE)), 
+            by = commcode] # then by district
 fwrite(commune_df, "output/ttimes/baseline_commune.csv")
 
 # Get raster of baseline ttimes ---------------------------------------------------------------
