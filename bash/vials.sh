@@ -1,7 +1,7 @@
 #!/bin/bash
 ssh -T mrajeev@della <<HERE
     cd MadaAccess  # change to repo
-    jid=\$(sbatch bash/addclinics.slurm | cut -c 21-)
+    jid=\$(sbatch bash/vials.slurm | cut -c 21-)
     echo "Here's the job id: \$jid"
     jstat=\$(sacct -j "\$jid" -u mrajeev | head -n 3)
     echo "Here's the job stat: \$jstat"
@@ -21,4 +21,4 @@ ssh -T mrajeev@della <<HERE
     fi
 HERE
         sleep 1m    # sleep again as sometimes takes a while to write output
-        rsync -rLvzt mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/addclinics* ~/Documents/Projects/MadaAccess/output/ttimes/ 
+        rsync -rLvzt mrajeev@della.princeton.edu:~/MadaAccess/output/preds/vials.gz ~/Documents/Projects/MadaAccess/output/preds/ 

@@ -7,28 +7,12 @@
 #'   it takes approximately 10 hours
 # ------------------------------------------------------------------------------------------------ #
 
-# Pull in command line arguments on how to run this script
-args <- commandArgs(trailingOnly = TRUE)
-type <- args[1]
-cores <- args[2]
-
-if(type == "local") {
-  library(doParallel)
-  cl <- makeCluster(detectCores() - 1, type = "FORK")
-  registerDoParallel(cl)
-} 
-
-if(type == "remote") {
-  # set up cluster on single node with do Parallel
-  library(doParallel) 
-  cl <- makeCluster(cores)
-  registerDoParallel(cl)
-  Sys.time()
-}
-
-if(type == "serial") {
-  print("Warning: will run without parallel backend")
-}
+# set up cluster on single node with do Parallel
+library(doParallel) 
+cl <- makeCluster(20)
+registerDoParallel(cl)
+getDoParWorkers()
+Sys.time()
 
 # Libraries
 library(foreach)
@@ -57,21 +41,7 @@ system.time ({
 # Close out 
 file_path <- "R/04_addclinics/02_ttimes_added.R"
 
-if(type == "serial") {
-  print("Done serially:)")
-  out.session(path = file_path, filename = "output/log_local.csv")
-} 
-
-if(type == "local") {
-  stopCluster(cl)
-  print("Done locally:)")
-  out.session(path = file_path, filename = "output/log_local.csv")
-} 
-
-if (type == "remote") {
-  out.session(path = file_path, filename = "output/log_cluster.csv")
-  closeCluster(cl)
-  mpi.quit()
-  print("Done remotely:)")
-  Sys.time()
-}
+out.session(path = file_path, filename = "output/log_cluster.csv")
+print("Done remotely:)")
+stopCluster(cl)
+Sys.time()

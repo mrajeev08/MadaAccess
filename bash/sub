@@ -68,8 +68,10 @@ cat("\n")
 if ( args$multinode ) {
     cat("export OMPI_MCA_btl='tcp,self,sm'\n")
     cat("module load openmpi/gcc/2.0.2\n")
+    cat(paste("srun Rscript ", scriptPath, "\n", sep = ""))
+} else {
+    cat(paste("Rscript ", scriptPath, "\n", sep = ""))
 }
-cat(paste("srun Rscript ", scriptPath, "\n", sep = ""))
 sink()
 
 sink(paste("bash/", jobName, ".sh", sep = ""))
@@ -101,3 +103,6 @@ system2("rsync", args = "-rLvzt --update --exclude '*.git' --exclude '.Rproj*' -
 # bash job.sh (running locally!)
 system2("bash", args = paste("bash/", jobName, ".sh", sep = ""))
 
+# beepme pls!
+suppressPackageStartupMessages(library("beepr"))
+beep()

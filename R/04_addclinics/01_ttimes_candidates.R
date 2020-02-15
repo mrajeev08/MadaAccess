@@ -9,7 +9,7 @@
 # Pull in command line arguments on how to run this script
 args <- commandArgs(trailingOnly = TRUE)
 type <- args[1]
-cores <- args[2]
+cores <- as.numeric(args[2])
 
 if(type == "local") {
   library(doParallel)

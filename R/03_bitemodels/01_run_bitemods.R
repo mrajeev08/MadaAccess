@@ -3,28 +3,12 @@
 #' Details: Models include travel times in addition to population 
 # ------------------------------------------------------------------------------------------------ #
 
-# Pull in command line arguments on how to run this script
-args <- commandArgs(trailingOnly = TRUE)
-type <- args[1]
-
-if(type == "local") {
-  library(doParallel)
-  cl <- makeCluster(detectCores() - 1, type = "FORK")
-  registerDoParallel(cl)
-} 
-
-if(type == "remote") {
-  # Init MPI Backend
-  library(doMPI)
-  cl <- startMPIcluster()
-  clusterSize(cl) # this just tells you how many you've got
-  registerDoMPI(cl)
-  Sys.time()
-}
-
-if(type == "serial") {
-  print("Warning: will run without parallel backend")
-}
+# Init MPI Backend
+library(doMPI)
+cl <- startMPIcluster()
+clusterSize(cl) # this just tells you how many you've got
+registerDoMPI(cl)
+Sys.time()
 
 # libraries
 library(data.table)
@@ -55,7 +39,7 @@ pop_predict <- c("addPop", "onlyPop", "flatPop")
 mods_mada <- 
   foreach(i = 1:length(covars_list), .combine = "rbind") %:%
   foreach(k = 1:length(pop_predict), .combine = "rbind") %:%
-  foreach(l = 1:length(intercept_type), .combine = "rbind") %dopar% {
+  foreach(l = 1:length(intercept_type), .combine = "rbind", .packages = "rjags") %dopar% {
     covar_df <- covars_list[[i]]
     ttimes <- covar_df$ttimes_wtd/60
     
@@ -104,7 +88,8 @@ intercept_type <- "fixed"
 pop_predict <- c("addPop", "onlyPop", "flatPop")
 
 mods_mora <- 
-  foreach(k = 1:length(pop_predict), .combine = "rbind") %dopar% {
+  foreach(k = 1:length(pop_predict), .combine = "rbind", 
+          .packages = "rjags") %dopar% {
     
     ttimes <- mora_bites$ttimes_wtd/60
     
@@ -147,24 +132,11 @@ write.csv(mods_all, "output/mods/estimates.csv", row.names = FALSE)
 
 # Close out 
 file_path <- "R/03_bitemodels/01_run_bitemods.R"
+out.session(path = file_path, filename = "output/log_cluster.csv")
+closeCluster(cl)
+mpi.quit()
+print("Done remotely:)")
+Sys.time()
 
-if(type == "serial") {
-  print("Done serially:)")
-  out.session(path = file_path, filename = "output/log_local.csv")
-} 
-
-if(type == "local") {
-  stopCluster(cl)
-  print("Done locally:)")
-  out.session(path = file_path, filename = "output/log_local.csv")
-} 
-
-if (type == "remote") {
-  out.session(path = file_path, filename = "output/log_cluster.csv")
-  closeCluster(cl)
-  mpi.quit()
-  print("Done remotely:)")
-  Sys.time()
-}
 
 

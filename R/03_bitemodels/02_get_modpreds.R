@@ -6,6 +6,7 @@
 
 # Set-up --------------------------------------------------------------------------------------
 library(foreach)
+library(data.table)
 library(iterators)
 library(tidyverse)
 library(glue)
@@ -85,8 +86,8 @@ preds_mada %>%
   left_join(mora_bites,
             by = c("names" = "commcode")) -> preds_mora_grouped
 preds_grouped <- bind_rows(preds_mora_grouped, preds_mada_grouped)
-write.csv(preds_grouped, "output/mods/preds/fitted_grouped_all.csv", row.names = FALSE)
-write.csv(preds_mada, "output/mods/preds/fitted_ungrouped_all.csv", row.names = FALSE)
+write.csv(preds_grouped, "output/preds/bites/fitted_grouped_all.csv", row.names = FALSE)
+write.csv(preds_mada, "output/preds/bites/fitted_ungrouped_all.csv", row.names = FALSE)
 
 # Out of fit ----------------------------------------------------------------------------------
 # Use commune and district models to predict Moramanga data
@@ -121,11 +122,10 @@ outfit_mora <-
                data_source = i$data_source, type = "mora_outfit", observed = mora_bites$avg_bites)
   }
 
-write.csv(outfit_mora, "output/mods/preds/outfit_mora.csv", row.names = FALSE)
+write.csv(outfit_mora, "output/preds/bites/outfit_mora.csv", row.names = FALSE)
 
 
 # Use Moramanga model to predict district and commune model
-# 
 model_means %>%
   filter(data_source == "Moramanga") -> mora_means
 scale <- c("Commune", "District")
@@ -172,7 +172,7 @@ outfit_mada %>%
   group_by(group_names, data_source, scale, pop_predict, intercept) %>% 
   summarize_at(vars(contains("bites")), sum, na.rm = TRUE) %>%
   left_join(district_bites, by = c("group_names" = "distcode")) -> outfit_grouped
-write.csv(outfit_grouped, "output/mods/preds/outfit_grouped_mada.csv", row.names = FALSE)
+write.csv(outfit_grouped, "output/preds/bites/outfit_grouped_mada.csv", row.names = FALSE)
 
 # Session Info
 out.session(path = "R/03_bitemodels/02_get_modpreds.R", filename = "output/log_local.csv")

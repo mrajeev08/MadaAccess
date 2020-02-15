@@ -3,28 +3,12 @@
 #' Details: Pulling in district and commune estimates of travel times as clinics are added 
 # ------------------------------------------------------------------------------------------------ #
 
-# Pull in command line arguments on how to run this script
-args <- commandArgs(trailingOnly = TRUE)
-type <- args[1]
-
-if(type == "local") {
-  library(doParallel)
-  cl <- makeCluster(detectCores() - 1, type = "FORK")
-  registerDoParallel(cl)
-} 
-
-if(type == "remote") {
-  # Init MPI Backend
-  library(doMPI)
-  cl <- startMPIcluster()
-  clusterSize(cl) # this just tells you how many you've got
-  registerDoMPI(cl)
-  Sys.time()
-}
-
-if(type == "serial") {
-  print("Warning: will run without parallel backend")
-}
+# Init MPI Backend
+library(doMPI)
+cl <- startMPIcluster()
+clusterSize(cl) # this just tells you how many you've got
+registerDoMPI(cl)
+Sys.time()
 
 # Libraries and scripts
 library(doParallel)
@@ -63,151 +47,157 @@ model_ests %>%
 # Vials given commune ttimes -----------------------------------------------------------------
 params <- model_means[model_means$scale == "Commune", ]
 
-# make first foreach loop serial
-foreach(i = 1:length(scenario_loop), .combine = rbind) %do% {
-  # read in max and all catch
-  comm <- fread(cmd = paste("grep -w ", scenario_loop[i], " output/ttimes/commune_maxcatch.csv", 
-                      sep = ""), col.names = colnames)
-  comm_all <- fread(cmd = paste("grep -w ", scenario_loop[i], " output/ttimes/commune_maxcatch.csv", 
-                          sep = ""), col.names = colnames)
-  
-  bite_mat <- predict.bites(ttimes = comm$ttimes_wtd/60, pop = comm$pop, 
-                            catch = comm$catchment, names = comm$commcode, 
-                            beta_ttimes = params$beta_ttimes, beta_0 = params$beta_0, 
-                            beta_pop = 0, sigma_0 = params$sigma_0, known_alphas = NA, 
-                            pop_predict = params$pop_predict, intercept = params$intercept, 
-                            trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc")
-  
-  bites <- data.table(commcode = comm$commcode, scenario = comm$scenario,
-                      bite_mat)
-  check <- comm_all[bites, on = c("commcode", "scenario")]
-  check <- mutate_at(check, vars(result.1:result.1000), function(x) rpois(length(x), 
-                                                                          x*check$prop_pop_catch))
-  check %>%
-    group_by(catchment, scenario) %>%
-    summarize_at(vars(result.1:result.1000), sum, na.rm = TRUE) -> bites_by_catch
-  
-  bite_mat <- as.matrix(select(ungroup(bites_by_catch), result.1:result.1000))
-  
-  # Make this foreach loop parallel so that you can minimize time spent waiting on tasks!
-  foreach(bycatch = iter(bite_mat, by = "row"), .combine = rbind,
-          .options.RNG = 324) %dorng% {
-            # vials
-            vial_preds <- sapply(bycatch, get.vials)
-            vials <- unlist(vial_preds["vials", ])
-            vials_mean <- mean(vials, na.rm = TRUE)
-            vials_sd <- sd(vials, na.rm = TRUE)
-            vials_upper <- vials_mean + 1.96*vials_sd/sqrt(length(vials))
-            vials_lower <- vials_mean - 1.96*vials_sd/sqrt(length(vials))
-            
-            # throughput
-            throughput <- unlist(vial_preds["throughput", ])
-            throughput_mean <- mean(throughput, na.rm = TRUE)
-            throughput_sd <- sd(throughput, na.rm = TRUE)
-            throughput_upper <- throughput_mean + 1.96*throughput_sd/sqrt(length(throughput))
-            throughput_lower <- throughput_mean - 1.96*throughput_sd/sqrt(length(throughput))
-            
-            # avg bites annually
-            bites_mean <- mean(bycatch, na.rm = TRUE)
-            bites_sd <- sd(bycatch, na.rm = TRUE)
-            bites_upper <- bites_mean + 1.96*bites_sd/sqrt(length(bites))
-            bites_lower <- bites_mean - 1.96*bites_sd/sqrt(length(bites))
-            
-            out <- data.table(vials_mean, vials_sd, vials_upper, vials_lower, 
-                              throughput_mean, throughput_sd, throughput_upper, 
-                              throughput_lower, bites_mean, bites_sd, bites_upper, 
-                              bites_lower)
-          } -> vials
-  
-  out <- data.table(catchment = bites_by_catch$catchment, 
-                    scenario = bites_by_catch$scenario, vials, scale = "Commune")
-  
-} -> vials_commune
+# Getting bites by catchment
+foreach(i = 1:length(scenario_loop), .combine = rbind, 
+        .packages = c('data.table', 'dplyr', 'foreach')) %dopar% {
 
-
-# Vials given district ttimes ----------------------------------------------------------------
-params <- model_means[model_means$scale == "District", ]
-
-foreach(i = 1:length(scenario_loop), .combine = rbind) %do% {
   # read in max and all catch
   comm <- fread(cmd = paste("grep -w ", scenario_loop[i], " output/ttimes/commune_maxcatch.csv", 
                             sep = ""), col.names = colnames)
   comm_all <- fread(cmd = paste("grep -w ", scenario_loop[i], " output/ttimes/commune_maxcatch.csv", 
                                 sep = ""), col.names = colnames)
   
-  bite_mat <- predict.bites(ttimes = comm$ttimes_wtd_dist/60, pop = comm$pop, 
+  bite_mat <- predict.bites(ttimes = comm$ttimes_wtd/60, pop = comm$pop, 
                             catch = comm$catchment, names = comm$commcode, 
                             beta_ttimes = params$beta_ttimes, beta_0 = params$beta_0, 
                             beta_pop = 0, sigma_0 = params$sigma_0, known_alphas = NA, 
                             pop_predict = params$pop_predict, intercept = params$intercept, 
-                            trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc")
+                            trans = 1e5, known_catch = FALSE, nsims = 10, type = "inc")
   
   bites <- data.table(commcode = comm$commcode, scenario = comm$scenario,
                       bite_mat)
+  
   check <- comm_all[bites, on = c("commcode", "scenario")]
-  check <- mutate_at(check, vars(result.1:result.1000), function(x) rpois(length(x), 
-                                                                          x*check$prop_pop_catch))
-  check %>%
-    group_by(catchment, scenario) %>%
-    summarize_at(vars(result.1:result.1000), sum, na.rm = TRUE) -> bites_by_catch
   
-  bite_mat <- as.matrix(select(ungroup(bites_by_catch), result.1:result.1000))
+  cols <- names(check[, .SD, .SDcols = result.1:result.10])
   
-  # Make this foreach loop parallel so that you can minimize time spent waiting on tasks!
-  foreach(bycatch = iter(bite_mat, by = "row"), .combine = rbind,
-          .options.RNG = 323) %dorng% {
-            # vials
-            vial_preds <- sapply(bycatch, get.vials)
-            vials <- unlist(vial_preds["vials", ])
-            vials_mean <- mean(vials, na.rm = TRUE)
-            vials_sd <- sd(vials, na.rm = TRUE)
-            vials_upper <- vials_mean + 1.96*vials_sd/sqrt(length(vials))
-            vials_lower <- vials_mean - 1.96*vials_sd/sqrt(length(vials))
-            
-            # throughput
-            throughput <- unlist(vial_preds["throughput", ])
-            throughput_mean <- mean(throughput, na.rm = TRUE)
-            throughput_sd <- sd(throughput, na.rm = TRUE)
-            throughput_upper <- throughput_mean + 1.96*throughput_sd/sqrt(length(throughput))
-            throughput_lower <- throughput_mean - 1.96*throughput_sd/sqrt(length(throughput))
-            
-            # avg bites annually
-            bites_mean <- mean(bycatch, na.rm = TRUE)
-            bites_sd <- sd(bycatch, na.rm = TRUE)
-            bites_upper <- bites_mean + 1.96*bites_sd/sqrt(length(bites))
-            bites_lower <- bites_mean - 1.96*bites_sd/sqrt(length(bites))
-            
-            out <- data.table(vials_mean, vials_sd, vials_upper, vials_lower, 
-                              throughput_mean, throughput_sd, throughput_upper, 
-                              throughput_lower, bites_mean, bites_sd, bites_upper, 
-                              bites_lower)
-          } -> vials
+  check[, (cols) := lapply(.SD, function(x) rpois(length(x), 
+                                        x*prop_pop_catch)), .SDcols = cols]
+  bites_by_catch <- check[, lapply(.SD, sum, na.rm = TRUE), .SDcols = cols, 
+                          by = c("catchment", "scenario")]
+  bites_by_catch
+} -> catch_bites
+
+# write with fread!
+fwrite(catch_bites, "output/preds/bites_by_catch_comm.gz")
+print(paste("check class:", class(catch_bites)))
+print(colnames(catch_bites), sep = "\n")
+catch_mat <- as.matrix(catch_bites[, .SD, .SDcols = result.1:result.10])
+
+rm(catch_bites)
+gc()
+
+# data.table way 
+print("These are how many rows that need to be done:")
+print(nrow(catch_mat))
+
+# Getting vials by catchment
+foreach(bycatch = iter(catch_mat, by = "row"), .combine = rbind, 
+        .packages = 'data.table') %dopar% {
+  # vials
+  vial_preds <- sapply(bycatch, get.vials)
+  vials <- unlist(vial_preds["vials", ])
+  vials_mean <- mean(vials, na.rm = TRUE)
+  vials_sd <- sd(vials, na.rm = TRUE)
+  vials_upper <- vials_mean + 1.96*vials_sd/sqrt(length(vials))
+  vials_lower <- vials_mean - 1.96*vials_sd/sqrt(length(vials))
   
-  out <- data.table(catchment = bites_by_catch$catchment, 
-                    scenario = bites_by_catch$scenario, vials, scale = "District")
-} -> vials_district
+  # throughput
+  throughput <- unlist(vial_preds["throughput", ])
+  throughput_mean <- mean(throughput, na.rm = TRUE)
+  throughput_sd <- sd(throughput, na.rm = TRUE)
+  throughput_upper <- throughput_mean + 1.96*throughput_sd/sqrt(length(throughput))
+  throughput_lower <- throughput_mean - 1.96*throughput_sd/sqrt(length(throughput))
+  
+  # avg bites annually
+  bites_mean <- mean(bycatch, na.rm = TRUE)
+  bites_sd <- sd(bycatch, na.rm = TRUE)
+  bites_upper <- bites_mean + 1.96*bites_sd/sqrt(length(bites))
+  bites_lower <- bites_mean - 1.96*bites_sd/sqrt(length(bites))
+  
+  out <- data.table(vials_mean, vials_sd, vials_upper, vials_lower, 
+                    throughput_mean, throughput_sd, throughput_upper, 
+                    throughput_lower, bites_mean, bites_sd, bites_upper, 
+                    bites_lower)
+} -> vials
 
-vials_all <- rbind(vials_district, vials_commune)
-fwrite(vials_all, "output/preds/vials.gz")
+vials <- data.table(catchment = bites_by_catch$catchment, 
+                    scenario = bites_by_catch$scenario, vials, scale = "Commune")
 
-# Close out 
-file_path <- "R/05_predictions/02_vials.R"
+# write comm vials
+fwrite(vials, "output/preds/vials_comm.gz")
 
-if(type == "serial") {
-  print("Done serially:)")
-  out.session(path = file_path, filename = "output/log_local.csv")
-} 
+# # Vials given district ttimes ----------------------------------------------------------------
+# params <- model_means[model_means$scale == "District", ]
+# 
+# foreach(i = 1:length(scenario_loop), .combine = rbind) %do% {
+#   # read in max and all catch
+#   comm <- fread(cmd = paste("grep -w ", scenario_loop[i], " output/ttimes/commune_maxcatch.csv", 
+#                             sep = ""), col.names = colnames)
+#   comm_all <- fread(cmd = paste("grep -w ", scenario_loop[i], " output/ttimes/commune_maxcatch.csv", 
+#                                 sep = ""), col.names = colnames)
+#   
+#   bite_mat <- predict.bites(ttimes = comm$ttimes_wtd_dist/60, pop = comm$pop, 
+#                             catch = comm$catchment, names = comm$commcode, 
+#                             beta_ttimes = params$beta_ttimes, beta_0 = params$beta_0, 
+#                             beta_pop = 0, sigma_0 = params$sigma_0, known_alphas = NA, 
+#                             pop_predict = params$pop_predict, intercept = params$intercept, 
+#                             trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc")
+#   
+#   bites <- data.table(commcode = comm$commcode, scenario = comm$scenario,
+#                       bite_mat)
+#   check <- comm_all[bites, on = c("commcode", "scenario")]
+#   check <- mutate_at(check, vars(result.1:result.1000), function(x) rpois(length(x), 
+#                                                                           x*check$prop_pop_catch))
+#   check %>%
+#     group_by(catchment, scenario) %>%
+#     summarize_at(vars(result.1:result.1000), sum, na.rm = TRUE) -> bites_by_catch
+#   
+#   bite_mat <- as.matrix(select(ungroup(bites_by_catch), result.1:result.1000))
+#   
+#   # Make this foreach loop parallel so that you can minimize time spent waiting on tasks!
+#   foreach(bycatch = iter(bite_mat, by = "row"), .combine = rbind,
+#           .options.RNG = 323) %dorng% {
+#             # vials
+#             vial_preds <- sapply(bycatch, get.vials)
+#             vials <- unlist(vial_preds["vials", ])
+#             vials_mean <- mean(vials, na.rm = TRUE)
+#             vials_sd <- sd(vials, na.rm = TRUE)
+#             vials_upper <- vials_mean + 1.96*vials_sd/sqrt(length(vials))
+#             vials_lower <- vials_mean - 1.96*vials_sd/sqrt(length(vials))
+#             
+#             # throughput
+#             throughput <- unlist(vial_preds["throughput", ])
+#             throughput_mean <- mean(throughput, na.rm = TRUE)
+#             throughput_sd <- sd(throughput, na.rm = TRUE)
+#             throughput_upper <- throughput_mean + 1.96*throughput_sd/sqrt(length(throughput))
+#             throughput_lower <- throughput_mean - 1.96*throughput_sd/sqrt(length(throughput))
+#             
+#             # avg bites annually
+#             bites_mean <- mean(bycatch, na.rm = TRUE)
+#             bites_sd <- sd(bycatch, na.rm = TRUE)
+#             bites_upper <- bites_mean + 1.96*bites_sd/sqrt(length(bites))
+#             bites_lower <- bites_mean - 1.96*bites_sd/sqrt(length(bites))
+#             
+#             out <- data.table(vials_mean, vials_sd, vials_upper, vials_lower, 
+#                               throughput_mean, throughput_sd, throughput_upper, 
+#                               throughput_lower, bites_mean, bites_sd, bites_upper, 
+#                               bites_lower)
+#           } -> vials
+#   
+#   out <- data.table(catchment = bites_by_catch$catchment, 
+#                     scenario = bites_by_catch$scenario, vials, scale = "District")
+# } -> vials_district
+# 
+# vials_all <- rbind(vials_district, vials_commune)
+# fwrite(vials_all, "output/preds/vials.gz")
+# 
+# # Close out 
+# file_path <- "R/05_predictions/02_vials.R"
 
-if(type == "local") {
-  stopCluster(cl)
-  print("Done locally:)")
-  out.session(path = file_path, filename = "output/log_local.csv")
-} 
+# out.session(path = file_path, filename = "output/log_cluster.csv")
+closeCluster(cl)
+mpi.quit()
+print("Done remotely:)")
+Sys.time()
 
-if (type == "remote") {
-  out.session(path = file_path, filename = "output/log_cluster.csv")
-  closeCluster(cl)
-  mpi.quit()
-  print("Done remotely:)")
-  Sys.time()
-}
