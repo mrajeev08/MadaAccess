@@ -11,6 +11,7 @@
 #' @return Returned
 #' @section Dependencies:
 #'     List dependencies here, i.e. packages and other functions triangle
+
 predict.bites <- function(ttimes, pop, catch, names,
                           beta_ttimes, beta_0, beta_pop, sigma_0, known_alphas, 
                           pop_predict = "addPop", intercept = "random",
@@ -98,8 +99,8 @@ predict.deaths <- function(bite_mat, pop,
       exp_mode <- (exp_min + exp_max)/2
     }
     
-    human_exp_inc <- rtriangle(n = length(bite_mat), a = exp_min, b = exp_max)
-    p_rabid <- rtriangle(n = length(bite_mat), a = p_rab_min, b = p_rab_max)
+    human_exp_inc <- rtriangle(n = length(bite_mat), a = exp_min, b = exp_max, c = exp_mode)
+    p_rabid <- rtriangle(n = length(bite_mat), a = p_rab_min, b = p_rab_max, c = p_rab_mode)
   }
   
   # Rabied exposures
@@ -122,7 +123,7 @@ predict.deaths <- function(bite_mat, pop,
   
   # Estimating deaths and deaths averted
   unreported <- rpois(length(rabid_exps), rabid_exps - reported_rabid)
-  deaths <- matrix(rbinom(length(rabid_exps), size = unreported, prob = 0.16),
+  deaths <- matrix(rbinom(length(rabid_exps), size = unreported, prob = prob_death),
                     nrow = nrow(bite_mat), ncol = ncol(bite_mat))
   reported <- rpois(length(rabid_exps), reported_rabid)
   averted <- matrix(rbinom(length(rabid_exps), size = reported, prob = prob_death), 
@@ -178,11 +179,12 @@ inc_from_hdr <- function(hdr = 5, pop = 1e5, p_exp = 0.39, dog_inc = 0.01) {
 
 # Function for getting vials from input bites -------------------------------------------------
 get.vials <- function(x) {
-  day0 <- round(runif(x, min = 1, max = 365))
-  days <- data.table(days = c(day0, day0 + 3, day0 + 7))
-  return(list(vials = sum(days[, .(.N), by = days][, ceiling(N/2)]), 
-              throughput = mean(days[, .(.N), by = days]$N, na.rm = TRUE)))
+  day0 <- floor(runif(x, min = 1, max = 365))
+  days <- tabulate(c(day0, day0 + 3, day0 + 7))
+  return(list(vials = sum(ceiling(days/2)), 
+              throughput = mean(days)))
 }
+
 
 # Helper Functions -----------------------------------------------------------------------------
 # Function for getting bootstrapped CIS
