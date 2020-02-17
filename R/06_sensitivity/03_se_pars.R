@@ -6,6 +6,7 @@
 library(data.table)
 library(tidyverse)
 select <- dplyr::select
+source("R/functions/out.session.R")
 
 # Get model means for commune and district models
 model_ests <- read.csv("output/mods/estimates.csv")
@@ -55,3 +56,10 @@ foreach(i = 1:length(scale), .combine = rbind) %do% {
                               vary != "beta_ttimes" ~ beta_ttimes), 
            scale = scale[i])-> se_pars
 } -> se_pars
+
+write.csv(se_pars, "output/sensitivity/se_pars.csv", row.names = FALSE)
+
+##' Saving session info
+out.session(path = "R/06_sensitivity/03_burden_se_pars.R", filename = "output/log_local.csv")
+
+
