@@ -1,46 +1,49 @@
-####################################################################################################
-##' Sensitivity analyses for model ests
-##' Details:  
-##' Author: Malavika Rajeev 
-####################################################################################################
-rm(list = ls())
+# ------------------------------------------------------------------------------------------------ #
+#' Sensitivity analyses for model ests      
+# ------------------------------------------------------------------------------------------------ #
 
-## Libraries
+# Init MPI Backend
+library(doMPI)
+cl <- startMPIcluster()
+clusterSize(cl) # this just tells you how many you've got
+registerDoMPI(cl)
+Sys.time()
+
+# Set up
 library(tidyverse)
 library(data.table)
 library(rgdal)
 library(lubridate)
 library(doParallel)
+library(doRNG)
 library(glue)
 select <- dplyr::select
-source("R/functions/utils.R")
+source("R/functions/out.session.R")
 source("R/functions/data_functions.R")
 source("R/functions/estimate_pars.R")
 source("R/functions/predict_functions.R")
 
-## Read in data
+# Read in data
 national <- fread("data/processed/bitedata/national.csv")
 moramanga <- fread("data/processed/bitedata/moramanga.csv")
 ctar_metadata <- fread("data/raw/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 
-## What we want to look at is correcting data vs. not correcting data
-rep_cut <- c(15, Inf) # exclude all periods with 15 consecutive zero days or don't exclude any
-contact_cut <- c(3, Inf) # exclude all days with greater than 3 sd above reporting vs. don't exclude contacts
+# What we want to look at is correcting data vs. not correcting data
+rep_cut <- c(7, 15, Inf) # exclude all periods with 7/15 consecutive zero days or don't exclude any
 
-##' 1. bite data 
-##' ------------------------------------------------------------------------------------------------
+# 1. bite data -----------------------------------------------------------------------------
 comb <- function(...) {
   mapply('rbind', ..., SIMPLIFY = FALSE)
 }
 
-foreach(p = 1:length(rep_cut), .combine = comb, .multicombine = TRUE) %:%
-  foreach(m = 1:length(contact_cut), .combine = comb, .multicombine = TRUE) %do% {
+foreach(p = 1:length(rep_cut), .combine = comb, .multicombine = TRUE, 
+        .packages = c('dplyr', 'tidyr', 'lubridate')) %dopar% {
+  
     rep_cutoff <- rep_cut[p]
-    contact_cutoff <- contact_cut[m]
-    
-    ##' Getting daily throughput for each clinic
+
+    #' Getting daily throughput for each clinic
     national %>%
       filter(year(date_reported) > 2013, year(date_reported) < 2018, !is.na(distcode), !is.na(id_ctar)) %>%
       mutate(date_reported = ymd(date_reported)) %>%
@@ -50,35 +53,33 @@ foreach(p = 1:length(rep_cut), .combine = comb, .multicombine = TRUE) %:%
       complete(date_reported = seq(min(date_reported), max(date_reported), by = "day"), id_ctar, 
                fill = list(no_patients = 0)) -> throughput
     
-    ##' rle.days = Helper function for getting which days to include (moved to functions from data_functions.R)
-    ##' and also identify potential CAT 1 by the throughput mean/sd
+    #' rle.days = Helper function for getting which days to include (moved to functions from data_functions.R)
+    #' and also identify potential CAT 1 by the throughput mean/sd
     throughput %>%
       group_by(id_ctar) %>%
       arrange(date_reported, .by_group = TRUE) %>%
       mutate(include_day = rle.days(no_patients, threshold = rep_cutoff), 
              mean_throughput = mean(no_patients[include_day == 1]),
              sd_throughput = sd(no_patients[include_day == 1]),
-             estimated_cat1 = ifelse(no_patients >= mean_throughput + contact_cutoff*sd_throughput, 
-                                     1, 0),
              year = year(date_reported)) -> throughput
     
-    ##' yearly reporting
-    ##' sum the total # of days included over # of days in year (365)
+    #' yearly reporting
+    #' sum the total # of days included over # of days in year (365)
     throughput %>%
       group_by(year, id_ctar) %>%
       summarize(reporting = sum(include_day)/365) -> reporting
     
-    ##' Left join with throughput to get exclusion criteria
+    #' Left join with throughput to get exclusion criteria
     national %>%
       filter(year(date_reported) > 2013, year(date_reported) < 2018,
              distcode %in% mada_districts$distcode, 
              id_ctar %in% ctar_metadata$id_ctar[!is.na(ctar_metadata$id_ctar)],
              type == "new") %>% 
       mutate(date_reported = ymd(date_reported)) %>%
-      left_join(select(throughput, date_reported, id_ctar, include_day, estimated_cat1, year)) -> bites
+      left_join(select(throughput, date_reported, id_ctar, include_day, year)) -> bites
     
-    ##' Getting district level exclusion criteria
-    ##' if submitted less than 10 forms total
+    #' Getting district level exclusion criteria
+    #' if submitted less than 10 forms total
     national %>%
       filter(year(date_reported) > 2013, year(date_reported) < 2018, 
              distcode %in% mada_districts$distcode, 
@@ -92,13 +93,13 @@ foreach(p = 1:length(rep_cut), .combine = comb, .multicombine = TRUE) %:%
     
     mada_districts$exclude_dist <- ctar_metadata$exclude_dist[match(mada_districts$catchment,
                                                                     ctar_metadata$CTAR)]
-    ##' A check
+    #' A check
     unique(mada_districts$catchment[mada_districts$exclude_dist == 1])
     
-    ##' Getting bite incidence estimates for all districts
+    #' Getting bite incidence estimates for all districts
     bites %>%
-      ## filter known contacts and estimated ones based on throughput
-      filter(estimated_cat1 == 0, include_day == 1) %>% 
+      # filter based on throughput
+      filter(include_day == 1) %>% 
       group_by(year, distcode) %>%
       summarize(bites = n()) -> bites_district
     bites_district$CTAR <- mada_districts$catchment[match(bites_district$distcode, 
@@ -106,15 +107,15 @@ foreach(p = 1:length(rep_cut), .combine = comb, .multicombine = TRUE) %:%
     bites_district$id_ctar<- ctar_metadata$id_ctar[match(bites_district$CTAR, ctar_metadata$CTAR)]
     bites_district %>%
       left_join(reporting) %>%
-      filter(reporting > 0.25) %>% ## dont include any district for which catchment clinic had
-      ## less than 25% reporting
-      ## correct for reporting by year and ctar reported to 
+      filter(reporting > 0.25) %>% # dont include any district for which catchment clinic had
+      # less than 25% reporting
+      # correct for reporting by year and ctar reported to 
       mutate(bites = bites/reporting) %>%
       group_by(distcode) %>%
       summarize(avg_bites = mean(bites, na.rm = TRUE)) %>%
       complete(distcode = mada_districts$distcode, fill = list(avg_bites = 0)) -> bite_ests
     
-    ##' Join bites with district and commune covariates 
+    #' Join bites with district and commune covariates 
     mada_districts@data %>%
       filter(exclude_dist == 0) %>%
       mutate(catch = as.numeric(droplevels(catchment)), 
@@ -122,7 +123,7 @@ foreach(p = 1:length(rep_cut), .combine = comb, .multicombine = TRUE) %:%
       left_join(bite_ests) %>%
       arrange(group) -> district_bites
     
-    ##' Communes
+    #' Communes
     mada_communes$exclude_dist <- mada_districts$exclude_dist[match(mada_communes$distcode,
                                                                     mada_districts$distcode)]
     mada_communes$ctch_dist <- mada_districts$catchment[match(mada_communes$distcode,
@@ -136,42 +137,38 @@ foreach(p = 1:length(rep_cut), .combine = comb, .multicombine = TRUE) %:%
     district_bites$start <- c(1, lag(district_bites$end)[-1] + 1)
     
     district_bites$rep_cutoff <- comm_covars$rep_cutoff <- rep_cutoff
-    district_bites$contact_cutoff <- comm_covars$contact_cutoff <- contact_cutoff
-    
-    ## Output as list and then do multicombine
+
+    # Output as list and then do multicombine
     list(district_bites, comm_covars)
 } -> master_data
+
 bitedata_se <- master_data[[1]]
 commcovar_se <- master_data[[2]]
 
 write.csv(bitedata_se, "output/sensitivity/bitedata_se.csv", row.names = FALSE)
 write.csv(commcovar_se, "output/sensitivity/commcovar_se.csv", row.names = FALSE)
 
-##' Model estimates 
-##' ------------------------------------------------------------------------------------------------
-foreach(p = 1:length(rep_cut), .combine = "rbind") %:%
-  foreach(m = 1:length(contact_cut), .combine = "rbind") %do% {
+# Model estimates --------------------------------------------------------------------------
+foreach(p = 1:length(rep_cut), .combine = rbind, 
+        .packages = c('dplyr', 'foreach', 'rjags')) %dopar% {
     
-    district_bites <- filter(bitedata_se, contact_cutoff == contact_cut[m], 
-                             rep_cutoff == rep_cut[p])
-    comm_covars <- filter(commcovar_se, contact_cutoff == contact_cut[m], 
-                             rep_cutoff == rep_cut[p])                         
+    district_bites <- filter(bitedata_se, rep_cutoff == rep_cut[p])
+    comm_covars <- filter(commcovar_se, rep_cutoff == rep_cut[p])                         
     
-    ##' Mada data
-    ## These all should have same index letter
+    # Mada data
+    # These all should have same index letter
     covars_list <- list(district_bites, comm_covars)
     scale <- c("District", "Commune")
     sum_it <- c(FALSE, TRUE)
     
-    ## The other index letters
+    # The other index letters
     intercept_type <- c("random", "fixed")
     pop_predict <- c("addPop", "onlyPop", "flatPop")
     
     mods_mada <- 
-      foreach(i = 1:length(covars_list), .combine = "rbind") %:%
-      foreach(k = 1:length(pop_predict), .combine = "rbind") %:%
-      foreach(l = 1:length(intercept_type), .combine = "rbind", 
-              .packages = 'rjags') %dopar% {
+      foreach(i = 1:length(covars_list), .combine = rbind) %:%
+      foreach(k = 1:length(pop_predict), .combine = rbind) %:%
+      foreach(l = 1:length(intercept_type), .combine = rbind) %do% {
                 
                 covar_df <- covars_list[[i]]
                 ttimes <- covar_df$ttimes_wtd/60
@@ -184,7 +181,7 @@ foreach(p = 1:length(rep_cut), .combine = "rbind") %:%
                                      ncatches = max(district_bites$catch), pop_predict =  pop_predict[k], 
                                      intercept = intercept_type[l], summed = sum_it[i], 
                                      data_source = "National_se",
-                                     scale = paste0(scale[i], "_contact", contact_cut[m], "_rep", 
+                                     scale = paste0(scale[i], "_rep", 
                                                     rep_cut[p]), 
                                      trans = 1e5, 
                                      chains = 3, adapt = 500, iter = 10000, thinning = 1,
@@ -209,7 +206,6 @@ foreach(p = 1:length(rep_cut), .combine = "rbind") %:%
                                               summed = sum_it[i], 
                                               data_source = "National_se", 
                                               scale = scale[i], dic = dic_est, 
-                                              contacts = district_bites$contact_cutoff[1], 
                                               reporting = district_bites$rep_cutoff[1]))
               }
     mods_mada
@@ -217,27 +213,24 @@ foreach(p = 1:length(rep_cut), .combine = "rbind") %:%
 
 write.csv(master_df, "output/sensitivity/model_se.csv", row.names = FALSE)
 
-##' 3. Run predictions 
-##' ------------------------------------------------------------------------------------------------
-## Estimates
+# 3. Run predictions ---------------------------------------------------------------------------
+
 master_df %>%
   select(params, Mean, pop_predict, intercept, data_source,
-         scale, contacts, reporting) %>%
+         scale, reporting) %>%
   spread(key = params, value = Mean, fill = 0) %>%
   mutate(n = 82) -> model_means
 
-## Predictions
-foreach(i = iter(model_means, by = "row"), 
-          j = icount(), .combine = "rbind") %do% {
+# Predictions
+foreach(i = iter(model_means, by = "row"), j = icount(), .combine = rbind, 
+        .packages = c('dplyr', 'foreach', 'data.table', 'glue')) %dopar% {
             
             print(j/nrow(model_means)*100)
             
-            district_bites <- filter(bitedata_se, contact_cutoff == i$contacts, 
-                                     rep_cutoff == i$reporting)
-            comm_covars <- filter(commcovar_se, contact_cutoff == i$contacts, 
-                                  rep_cutoff == i$reporting)                      
+            district_bites <- filter(bitedata_se, rep_cutoff == i$reporting)
+            comm_covars <- filter(commcovar_se, rep_cutoff == i$reporting)                      
             
-            ## Filter to covars
+            # Filter to covars
             if(i$scale == "District") {
               covar_df <- district_bites
               covar_df$names <- district_bites$distcode
@@ -246,7 +239,7 @@ foreach(i = iter(model_means, by = "row"),
               covar_df$names <- comm_covars$commcode
             }
             
-            ## Also transform covar
+            # Also transform covar
             covar_df$ttimes <- covar_df$ttimes_wtd/60
             
             if(i$intercept == "random") {
@@ -262,24 +255,31 @@ foreach(i = iter(model_means, by = "row"),
                                       known_alphas = known_alphas, pop_predict = i$pop_predict, 
                                       intercept = i$intercept, trans = 1e5, known_catch = TRUE, 
                                       nsims = 1000)
-            mean <- rowMeans(bite_mat, na.rm = TRUE) ## mean for each row = admin unit
+            mean <- rowMeans(bite_mat, na.rm = TRUE) # mean for each row = admin unit
             sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
             preds_mada <- data.table(names = covar_df$names, group_names = covar_df$distcode,
                        ttimes = covar_df$ttimes, pop = covar_df$pop, 
                        catch = covar_df$catch, mean_bites = mean, sd_bites = sd, 
                        pop_predict = i$pop_predict, intercept = i$intercept, scale = i$scale, 
-                       data_source = i$data_source, reporting = i$reporting, 
-                       contacts = i$contacts)
+                       data_source = i$data_source, reporting = i$reporting)
             
             preds_mada %>%
-              group_by(group_names, data_source, scale, pop_predict, intercept, reporting, 
-                       contacts) %>% 
+              group_by(group_names, data_source, scale, pop_predict, intercept, reporting) %>% 
               summarize_at(vars(contains("bites")), sum) %>%
               left_join(district_bites, by = c("group_names" = "distcode")) -> preds_mada_grouped
 } -> preds_grouped
 
 write.csv(preds_grouped, "output/sensitivity/modpreds_se.csv", row.names = FALSE)
  
-##' Saving session info
-out.session(path = "R/06_sensitivity/02_model_se.R", filename = "sessionInfo.csv")
 
+# Parse these from bash for where to put things
+sync_to <- "~/Documents/Projects/MadaAccess/output/sensitivity/"
+sync_from <- "mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/"
+
+# Close out 
+file_path <- "R/06_sensitivity/02_model_se.R"
+out.session(path = file_path, filename = "log_cluster.csv")
+closeCluster(cl)
+mpi.quit()
+print("Done remotely:)")
+Sys.time()

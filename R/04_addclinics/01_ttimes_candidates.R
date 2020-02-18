@@ -6,29 +6,11 @@
 #'   2.9 GHz Intel Core i5
 # ------------------------------------------------------------------------------------------------ #
 
-# Pull in command line arguments on how to run this script
-args <- commandArgs(trailingOnly = TRUE)
-type <- args[1]
-cores <- as.numeric(args[2])
-
-if(type == "local") {
-  library(doParallel)
-  cl <- makeCluster(detectCores() - 1, type = "FORK")
-  registerDoParallel(cl)
-} 
-
-if(type == "remote") {
-  # set up cluster on single node with do Parallel
-  library(doParallel) 
-  cl <- makeCluster(cores)
-  registerDoParallel(cl)
-  Sys.time()
-}
-
-if(type == "serial") {
-  print("Warning: will run without parallel backend")
-}
-
+# set up cluster on single node with do Parallel
+library(doParallel)
+cl <- makeCluster(cores)
+registerDoParallel(cl)
+Sys.time()
 
 # Libraries
 library(rgdal)
@@ -84,21 +66,8 @@ fwrite(stacked_ttimes, "/scratch/gpfs/mrajeev/output/ttimes/candidate_matrix.gz"
 # Close out 
 file_path <- "R/04_addclinics/01_ttimes_candidates.R"
 
-if(type == "serial") {
-  print("Done serially:)")
-  out.session(path = file_path, filename = "output/log_local.csv")
-} 
-
-if(type == "local") {
-  stopCluster(cl)
-  print("Done locally:)")
-  out.session(path = file_path, filename = "output/log_local.csv")
-} 
-
-if (type == "remote") {
-  out.session(path = file_path, filename = "output/log_cluster.csv")
-  closeCluster(cl)
-  mpi.quit()
-  print("Done remotely:)")
-  Sys.time()
-}
+out.session(path = file_path, filename = "log_cluster.csv")
+closeCluster(cl)
+mpi.quit()
+print("Done remotely:)")
+Sys.time()

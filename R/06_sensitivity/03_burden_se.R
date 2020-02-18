@@ -1,177 +1,137 @@
-####################################################################################################
-##' Getting incremental estimates of burden 
-##' Details: Pulling in district and commune estimates of travel times as clinics are added 
-##' Author: Malavika Rajeev 
-####################################################################################################
+# ------------------------------------------------------------------------------------------------ #
+#' Getting sensitivity to parameter assumptions for burden & impact of expanding access                          
+# ------------------------------------------------------------------------------------------------ #
 
-##' Set up
-##' ------------------------------------------------------------------------------------------------
-rm(list = ls())
+# check seff to see how much mem I should get ~ 3 gb or default?
 
-##' Libraries and scripts
+# Init MPI Backend
+library(doMPI)
+cl <- startMPIcluster()
+clusterSize(cl) # this just tells you how many you've got
+registerDoMPI(cl)
+Sys.time()
+
+# Set up 
 library(data.table)
 library(magrittr)
 library(foreach)
 library(doRNG)
 library(iterators)
 library(tidyverse)
+library(triangle)
 source("R/functions/predict_functions.R")
+source("R/functions/out.session.R")
 select <- dplyr::select
 
-## Read in data
-commune_master <- fread("output/ttimes/master_commune.csv")
-setorder(commune_master, commune_id, scenario)
-commune_master[, diff_comm := weighted_times - shift(weighted_times, 1), by = commune_id]
-commune_master[, diff_dist := weighted_times_dist - shift(weighted_times_dist, 1), by = commune_id]
+# Filter to only do ones for which travel times have changed
+commune_master <- fread("output/ttimes/commune_maxcatch.gz")
+setorder(commune_master, commcode, scenario)
+commune_master[, diff_comm := ttimes_wtd - shift(ttimes_wtd, 1), by = commcode]
+commune_master[, diff_dist := ttimes_wtd_dist - shift(ttimes_wtd_dist, 1), by = commcode]
 comm_run <- commune_master[diff_comm != 0 | scenario %in% c(0, 1648)]
 dist_run <- commune_master[diff_dist != 0 | scenario %in% c(0, 1648)]
-rm(commune_master) ## cleaning up memory!
+rm(commune_master) # cleaning up memory!
 gc()
 
-##' Get model means for commune and district models
-model_ests <- read.csv("output/mods/estimates.csv")
-model_ests %>%
-  dplyr::select(params, Mean, pop_predict, intercept, data_source, scale) %>%
-  tidyr::spread(key = params, value = Mean, fill = 0) %>%
-  dplyr::filter(pop_predict == "flatPop", data_source == "National", 
-                intercept == "random") -> model_means
+# Bring in sensitivity parameters
+se_pars <- fread("output/sensitivity/se_pars.csv")
+nrow(se_pars)
 
-##' Scaling factors 
-##' ------------------------------------------------------------------------------------------------
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
-
-## Communes
-pop <- mada_communes$pop
-pop <- pop[order(pop, decreasing = FALSE)]
-incidence_max <- 0.01*0.39/7
-incidence_min <- 0.01*0.39/25
-pos_scale <- seq(incidence_min, incidence_max, length.out = length(pop))
-neg_scale <- seq(incidence_max, incidence_min, length.out = length(pop))
-pos <- lm(pos_scale ~ pop) ## use these and constrain
-neg <- lm(neg_scale ~ pop) ## use these and constrain
-neg_comm <- data.table(scaling = "neg", sfactor = neg$coefficients[2], intercept = incidence_max,
-                       scale = "Commune", type = "---")
-pos_comm <- data.table(scaling = "pos", sfactor = pos$coefficients[2], intercept = incidence_min,
-                       scale = "Commune", type = "+++")
-max_comm <- data.table(scaling = "flat", sfactor = 0, intercept = incidence_max,
-                       scale = "Commune", type = "max")
-min_comm <- data.table(scaling = "flat", sfactor = 0, intercept = incidence_min,
-                       scale = "Commune", type = "min")
-## Districts
-pop <- mada_districts$pop
-pop <- pop[order(pop, decreasing = FALSE)]
-pos_scale <- seq(incidence_min, incidence_max, length.out = length(pop))
-neg_scale <- seq(incidence_max, incidence_min, length.out = length(pop))
-pos <- lm(pos_scale ~ pop) ## use these and constrain
-neg <- lm(neg_scale ~ pop) ## use these and constrain
-neg_dist <- data.table(scaling = "neg", sfactor = neg$coefficients[2], intercept = incidence_max, 
-                       scale = "District", type = "---")
-pos_dist <- data.table(scaling = "pos", sfactor = pos$coefficients[2], intercept = incidence_min,
-                       scale = "District", type = "+++")
-max_dist <- data.table(scaling = "flat", sfactor = 0, intercept = incidence_max,
-                       scale = "District", type = "max")
-min_dist <- data.table(scaling = "flat", sfactor = 0, intercept = incidence_min,
-                       scale = "District", type = "min")
-
-scaling_df <- rbind(neg_comm, pos_comm, neg_dist, pos_dist)
-flat_df <- rbind(max_comm, max_dist, min_comm, min_dist)
-pop_plot <- seq(0, 1e6, by = 1000)
-constrained_inc <- function(slope, intercept, pop, max, min){
-  inc <- slope*pop + intercept
-  inc[inc >= max] <- max
-  inc[inc <= min] <- min
-  return(inc)
-}
-
-foreach(vals = iter(scaling_df, by = "row"), .combine = rbind) %do% {
-  preds <- constrained_inc(vals$sfactor, vals$intercept, pop_plot, incidence_max,
-                           incidence_min)*1e5
-  data.table(vals, preds, pop_plot)
-} -> predicted_inc
-
-write.csv(predicted_inc, "output/sensitivity/scaling.csv", row.names = FALSE)
-incidence_df <- rbind(flat_df, scaling_df)
-
-##' Commune predictions 
-##' ------------------------------------------------------------------------------------------------
-params <- model_means[model_means$scale == "Commune", ]
-bite_mat_comm <- predict.bites(ttimes = comm_run$weighted_times/60, pop = comm_run$pop, 
-                          catch = comm_run$base_catches, names = comm_run$commune_id, 
-                          beta_ttimes = params$beta_ttimes, beta_0 = params$beta_0, 
-                          beta_pop = 0, sigma_0 = params$sigma_0, known_alphas = NA, 
-                          pop_predict = params$pop_predict, intercept = params$intercept, 
-                          trans = 1e5, known_catch = FALSE, nsims = 1000)
-params <- model_means[model_means$scale == "District", ]
-bite_mat_dist <- predict.bites(ttimes = dist_run$weighted_times/60, pop = dist_run$pop, 
-                               catch = dist_run$base_catches, names = dist_run$commune_id, 
-                               beta_ttimes = params$beta_ttimes, beta_0 = params$beta_0, 
-                               beta_pop = 0, sigma_0 = params$sigma_0, known_alphas = NA, 
-                               pop_predict = params$pop_predict, intercept = params$intercept, 
-                               trans = 1e5, known_catch = FALSE, nsims = 1000)
-
-## scale vals + min/max HDR
-## p_rabid min/max fixed
-## rho_max min/max fixed
-rho_max_vals <- c(0.85, 0.99)
-p_rabid_vals <- c(0.2, 0.6)
+# Predictions ---------------------------------------------------------------------------
+# This takes a good bit of time (abt 20 min) & RAM so running on cluster
+# So summarizing stats ahead of time
+# i.e. need the admin level burden for the baseline scenario == 0 
+# and the national level burden for the rest of the scenarios (split this way?)
 
 multicomb <- function(x, ...) {
   mapply(rbind, x, ..., SIMPLIFY = FALSE)
 }
 
-foreach(i = 1:length(p_rabid_vals), .combine = multicomb) %:%
-foreach(k = iter(incidence_df, by = "row"), .combine = multicomb) %:%
-foreach(j = 1:length(rho_max_vals), .combine = multicomb) %do% {
-  ## With max + min scaling!  
-  if(k$scale == "District") {
-    bite_mat <- bite_mat_dist
-    admin_df <- dist_run
-  } else {
-    bite_mat <- bite_mat_comm
-    admin_df <- comm_run
+foreach(j = iter(se_pars, by = "row"), .combine = multicomb, 
+        .packages = c('data.table', 'foreach', 'triangle', 'foreach', 'dplyr',
+                      'tidyr')) %dopar% {
+          
+  print(j)
+  if(j$scale == "Commune"){
+    admin <- comm_run # these are data.tables so hopefully will not copy only point!
+    ttimes <- admin$ttimes_wtd/60
   }
-  death_mat <- get.burden.fixed(bite_mat, pop = admin_df$pop, hdr = 25, 
-                               incidence = 0.01, exp_rate = 0.39, p_rabid = p_rabid_vals[i],
-                               rho_max = rho_max_vals[j], prob_death = 0.16, scale = TRUE, 
-                               slope = k$sfactor, intercept = k$intercept, 
-                               inc_max = incidence_max, 
-                               inc_min = incidence_min)
-  mean <- rowMeans(death_mat, na.rm = TRUE) ## mean for each row = admin unit
-  sd <- apply(death_mat, 1, sd, na.rm = TRUE)
-  upper <- mean + 1.96*sd/sqrt(ncol(death_mat))
-  lower <- mean - 1.96*sd/sqrt(ncol(death_mat))
-  out <- data.table(deaths_mean = mean, deaths_upper = upper, deaths_lower = lower,
-                    scenario = admin_df$scenario, pop = admin_df$pop,
-                    names = admin_df$commune_id, ttimes = admin_df$weighted_times)
-  out_base <- data.table(scaling = k$sfactor, intercept = k$intercept, rho_max = rho_max_vals[j], 
-                         p_rabid = p_rabid_vals[i], type = k$type, scale = k$scale,
-                         out[scenario == 0])
   
-  ## Fill down with predictions
-  out %>%
-    complete(scenario = 0:472, names) %>%
+  if(j$scale == "District"){
+    admin <- dist_run
+    ttimes <- admin$ttimes_wtd_dist/60
+  }
+  
+  bite_mat <- predict.bites(ttimes = ttimes, pop = admin$pop, 
+                                 catch = admin$catchment, names = admin$commcode, 
+                                 beta_ttimes = j$beta_ttimes, beta_0 = j$beta_0, 
+                                 beta_pop = 0, sigma_0 = j$sigma_0, known_alphas = NA, 
+                                 pop_predict = "flatPop", intercept = "random", 
+                                 trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc")
+  
+  all_mats <-  predict.deaths(bite_mat, pop = admin$pop,
+                              p_rab_min = j$p_rab_min, p_rab_max = j$p_rab_max,
+                              rho_max = j$rho_max, exp_min = j$exp_min, exp_max = j$exp_max,
+                              prob_death = j$p_death, dist = "triangle")
+
+  all_mats <- c(list(bites = bite_mat), all_mats)
+
+  foreach(i = 1:length(all_mats), .combine = 'cbind') %do% {
+    mat <- all_mats[[i]]
+    labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
+    mean <- rowMeans(mat, na.rm = TRUE) # mean for each row = admin unit
+    sd <- apply(mat, 1, sd, na.rm = TRUE)
+    upper <- mean + 1.96*sd/sqrt(ncol(mat))
+    lower <- mean - 1.96*sd/sqrt(ncol(mat))
+    out <- data.table(mean, upper, lower)
+    names(out) <- labels
+    out
+  } -> admin_comm
+  
+  admin_comm <- data.table(names = admin$commcode,
+                           ttimes = ttimes, pop = admin$pop, 
+                           catch = admin$catchment, scenario = admin$scenario, 
+                           scale = j$scale, vary = j$vary, direction = j$direction, admin_comm)
+  
+  max_clinics <- max(admin$scenario[admin$scenario != 1648])
+  
+  admin_base <- admin_comm[scenario == 0] 
+    
+  admin_comm %>%
+    complete(scenario = 1:max_clinics, names) %>% # from 1 to last
     group_by(names) %>%
     arrange(scenario) %>%
-    fill(starts_with("deaths"), .direction = "down") %>%
-    ungroup() %>%
+    fill(3:ncol(admin_comm), .direction = "down") -> admin_comm
+  
+  ## This should be true!
+  admin_comm %>%
     group_by(scenario) %>%
-    summarize_at(vars(starts_with("deaths")), sum, na.rm = TRUE) -> out
-  out <- data.table(scaling = k$sfactor, intercept = k$intercept, rho_max = rho_max_vals[j], 
-                    p_rabid = p_rabid_vals[i], type = k$type, scale = k$scale, out)
-  list(base = out_base, incremental = out)
-} -> sensitivity
+    summarize(n_admin = n()) %>%
+    summarize(all(n_admin == 1579)) # should be true for all of them!
+  
+  admin_comm %>%
+    group_by(scenario) %>%
+    summarize_at(vars(bites_mean:averted_lower, pop), sum, na.rm = TRUE) -> natl_preds
+  
+  natl_preds <- data.table(natl_preds, scale = j$scale, vary = j$vary, direction = j$direction)
+  
+  list(base = admin_base, natl = natl_preds)
+  
+} -> burden_se
 
-base_se <- sensitivity[["base"]]
-incremental_se <- sensitivity[["incremental"]]
-incremental_se$scenario[incremental_se$scenario 
-                                 == max(incremental_se$scenario)] <- 600
-incremental_se %>%
-  group_by(p_rabid, rho_max, scale, type) %>%
-  mutate(deaths_base = deaths_mean[scenario == 0],
-         deaths_upper_base = deaths_upper[scenario == 0], 
-         deaths_lower_base = deaths_lower[scenario == 0]) %>%
-  complete(scenario = 472:600) -> incremental_se
-                                      
-fwrite(base_se, "output/sensitivity/baseline_se.csv")
-fwrite(incremental_se, "output/sensitivity/incremental_se.csv")
+# Write out data
+fwrite(burden_se[["base"]], "output/sensitivity/burden_baseline_se.gz") 
+fwrite(burden_se[["natl"]], "output/sensitivity/burden_addclinics_se.gz") 
+
+# Close out
+file_path <- "R/06_sensitivity/03_burden_se.R"
+out.session(path = file_path, filename = "log_cluster.csv")
+
+# Parse these from bash for where to put things
+sync_to <- "~/Documents/Projects/MadaAccess/output/sensitivity/"
+sync_from <- "mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/burden*"
+
+closeCluster(cl)
+mpi.quit()
+print("Done remotely:)")
+Sys.time()

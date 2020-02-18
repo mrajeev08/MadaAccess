@@ -9,7 +9,7 @@
 
 # set up cluster on single node with do Parallel
 library(doParallel) 
-cl <- makeCluster(20)
+cl <- makeCluster(18)
 registerDoParallel(cl)
 getDoParWorkers()
 Sys.time()
@@ -38,10 +38,13 @@ system.time ({
            dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics_")
 })
 
-# Close out 
-file_path <- "R/04_addclinics/02_ttimes_added.R"
+# Parse these from bash for where to put things
+sync_to <- "~/Documents/Projects/MadaAccess/output/ttimes/"
+sync_from <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/addclinics*"
 
-out.session(path = file_path, filename = "output/log_cluster.csv")
+# Close out
+file_path <- "R/04_addclinics/02_ttimes_added.R"
+out.session(path = file_path, filename = "log_cluster.csv")
 print("Done remotely:)")
 stopCluster(cl)
 Sys.time()

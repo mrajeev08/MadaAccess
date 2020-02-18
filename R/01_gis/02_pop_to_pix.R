@@ -26,4 +26,4 @@ sum(getValues(wp_2015), na.rm = TRUE)
 sum(getValues(wp_2015_matched), na.rm = TRUE)
 
 # Save session info
-out.session(path = "R/01_gis/02_pop_to_pix.R", filename = "output/log_cluster.csv")
+out.session(path = "R/01_gis/02_pop_to_pix.R", filename = "log_cluster.csv")

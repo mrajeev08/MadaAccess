@@ -117,29 +117,33 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
       # So as to not use Inf in summarizing by district/commune
       base_df[, raw_ttimes := ifelse(is.infinite(ttimes), NA, ttimes)]
       
-      # filter out ones that don't have a catchment (i.e. infinite base ttimes/island cells, etc.)
-      base_to_agg <- base_df[!is.na(catchment)]
-      
       # Take out the max ones and any below ttime + pop thresholds
       clinic_names <- clinic_names[-c(which.max(sum.prop), which(sum.prop == 0),
                                       which(sum.prop < thresh_prop))]
       clinic_catchmat[, unique(c(which.max(sum.prop), which(sum.prop == 0), 
                                  which(sum.prop < thresh_prop))) := NULL]
       
+      # deal with NAs
+      base_to_agg <- base_df[!is.na(raw_ttimes)]
+      base_to_agg[, pop_wt_dist := sum(pop, na.rm = TRUE), by = distcode]
+      base_to_agg[, pop_wt_comm := sum(pop, na.rm = TRUE), by = commcode]
+      
       # create district and commune dataframes
       district_df <-
         base_to_agg[, .(ttimes_wtd = sum(raw_ttimes * pop, na.rm = TRUE), 
-                       prop_pop_catch = sum(pop, na.rm = TRUE)/pop_dist[1],
-                       scenario = i, clinic_added = clinic_id, pop = pop_dist[1]), 
+                      prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_dist[1],
+                      pop_wt_dist = pop_wt_dist[1],
+                      scenario = i, clinic_added = clinic_id, pop = pop_dist[1]), 
                 by = .(distcode, catchment)]
-      district_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = distcode]
+      district_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop_wt_dist, by = distcode]
       
       commune_df <-
         base_to_agg[, .(ttimes_wtd = sum(raw_ttimes * pop, na.rm = TRUE),
-                       prop_pop_catch = sum(pop, na.rm = TRUE)/pop_comm[1],
-                       scenario = i, clinic_added = clinic_id, pop = pop_comm[1]), 
+                      prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_comm[1],
+                      pop_wt_comm = pop_wt_comm[1],
+                      scenario = i, clinic_added = clinic_id, pop = pop_comm[1]), 
                 by = .(commcode, catchment)]
-      commune_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = commcode]
+      commune_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop_wt_comm, by = commcode]
       
       if(overwrite == TRUE & i == 1) { # overwrite on first one & use gzip to commpress)
         fwrite(district_df, paste0(dir_name, "district.gz"))

@@ -42,32 +42,49 @@ ttimes_max <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
                           filename_trans = "data/processed/rasters/trans_gc_masked.rds")
 writeRaster(ttimes_max, "output/ttimes/max_ttimes.tif", overwrite = TRUE)
 
-# Max at grid level to get district/comm dataframes
+# Max at grid level to get district/comm dataframes (inlcude baseline CTAR too!)
 cand_mat <- fread("output/ttimes/candidate_matrix.gz") # locally
 cand_mat <- as.matrix(cand_mat)
-max_catches <- apply(cand_mat, 1, which.min) + 31
+base_mat <- as.matrix(fread("output/ttimes/baseline_matrix.gz"))
+cand_mat <- cbind(base_mat, cand_mat)
+max_catches <- apply(cand_mat, 1, which.min)
 max_times <- apply(cand_mat, 1, min, na.rm = TRUE)
+max_catches[is.infinite(max_times)] <- NA
+max_times[is.infinite(max_times)] <- NA # no path (some island cells, etc.)
 
 # Get df with district and commune ids and aggregate accordingly
 max_df <- fread("output/ttimes/baseline_grid.gz")
-max_df[, c("ttimes", "catchment") := .(ifelse(is.infinite(max_times), NA, max_times),
-                                             ifelse(is.infinite(max_times), NA, max_catches))]
+
+# Use max ones because only if no clinic possible to be added will it be Inf
+max_df[, c("ttimes", "catchment") := .(max_times, max_catches)]
 fwrite(max_df, "output/ttimes/max_grid.gz") # compress to save space
 
+
+# Get weighted ttimes by pop for districts/communes -------------------------------------------
+
+# Remove NA catchments
+# deal with NAs
+max_to_agg <- max_df[!is.na(ttimes)]
+max_to_agg[, pop_wt_dist := sum(pop, na.rm = TRUE), by = distcode]
+max_to_agg[, pop_wt_comm := sum(pop, na.rm = TRUE), by = commcode]
+
+# District
 district_df <-
-  max_df[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
-              prop_pop_catch = sum(pop, na.rm = TRUE)/pop_dist[1], pop = pop_dist[1],
+  max_to_agg[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
+              prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_dist[1], 
+              pop_wt_dist = pop_wt_dist[1], pop = pop_dist[1],
               scenario = "max"), 
           by = .(distcode, catchment)]
-district_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = distcode]
+district_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop_wt_dist, by = distcode]
 fwrite(district_df, "output/ttimes/max_district.csv")
 
 commune_df <-
-  max_df[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE),
-              prop_pop_catch = sum(pop, na.rm = TRUE)/pop_comm[1], pop = pop_comm[1],
+  max_to_agg[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE),
+              prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_comm[1], 
+              pop_wt_comm = pop_wt_comm[1], pop = pop_comm[1],
               scenario = "max"), 
           by = .(commcode, catchment)]
-commune_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop, by = commcode]
+commune_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop_wt_comm, by = commcode]
 fwrite(commune_df, "output/ttimes/max_commune.csv")
 
 # Save session info

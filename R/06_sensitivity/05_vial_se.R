@@ -52,7 +52,7 @@ nrow(lookup)
 head(lookup)
 
 foreach(j = iter(lookup, by = "row"), .combine = rbind, 
-        .packages = c('data.table', 'foreach')) %dopar% {
+        .packages = c('data.table', 'foreach', 'dplyr')) %dopar% {
           
           # read in max and all catch
           comm <- fread(cmd = paste("grep -w ", j$loop, 

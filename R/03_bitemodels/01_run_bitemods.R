@@ -52,7 +52,7 @@ mods_mada <-
                            intercept = intercept_type[l], summed = sum_it[i], 
                            data_source = "National",
                            scale = scale[i], trans = 1e5, 
-                           chains = 4, adapt = 1000, iter = 15000, thinning = 2,
+                           chains = 3, adapt = 500, iter = 10000, thinning = 1,
                            dic = TRUE, save = TRUE)
     
     samps <- out[["samps"]]
@@ -102,7 +102,7 @@ mods_mora <-
                          intercept = intercept_type, summed = sum_it, 
                          data_source = "Moramanga",
                          scale = scale, trans = 1e5, 
-                         chains = 4, adapt = 1000, iter = 15000, thinning = 2,
+                         chains = 3, adapt = 500, iter = 10000, thinning = 1,
                          dic = TRUE, save = TRUE)
     
     samps <- out[["samps"]]
@@ -130,9 +130,13 @@ warnings()
 mods_all <- bind_rows(mods_mada, mods_mora)
 write.csv(mods_all, "output/mods/estimates.csv", row.names = FALSE)
 
+# Parse these from bash for where to put things
+sync_to <- "~/Documents/Projects/MadaAccess/output/mods/"
+sync_from <- "mrajeev@della.princeton.edu:~/MadaAccess/output/mods/"
+
 # Close out 
 file_path <- "R/03_bitemodels/01_run_bitemods.R"
-out.session(path = file_path, filename = "output/log_cluster.csv")
+out.session(path = file_path, filename = "log_cluster.csv")
 closeCluster(cl)
 mpi.quit()
 print("Done remotely:)")

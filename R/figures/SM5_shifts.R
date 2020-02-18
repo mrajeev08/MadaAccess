@@ -27,7 +27,7 @@ mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 base_times <- raster("output/ttimes/baseline_ttimes.tif")
-pop_1x1 <- raster("data/processed/rasters/worldpop2015adj_mada_1x1km.tif")
+pop_1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
 
 ## Single catchment
 district_master$scale <- "District"
@@ -99,7 +99,7 @@ names(clinic_cols) <- clinic_labs
 
 S5.1A <- ggplot() +
   geom_polygon(data = gg_district_plot,
-               aes(x = long.x, y = lat.x, group = group, 
+               aes(x = long, y = lat, group = group, 
                    fill = cut(when_added, breaks = clinic_brks, labels = clinic_labs)), 
                color = NA) +
   geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "grey50",
@@ -111,7 +111,7 @@ S5.1A <- ggplot() +
 
 S5.1B <- ggplot() +
   geom_polygon(data = gg_commune_plot,
-               aes(x = long.x, y = lat.x, group = group, 
+               aes(x = long, y = lat, group = group, 
                    fill = cut(when_added, breaks = clinic_brks, labels = clinic_labs)), 
                color = NA) +
   geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE, shape = 4), color = "grey50",

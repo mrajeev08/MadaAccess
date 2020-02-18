@@ -23,15 +23,15 @@ mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 
 ##' Input rasters
 base_times <- raster("output/ttimes/baseline_ttimes.tif")
-pop <- raster("data/processed/rasters/worldpop2015adj_mada_1x1km.tif")
+pop1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
 
 ##'Shapefiles
 gg_communes <- fortify(mada_communes, region = "commcode")
 gg_communes %>%
-  left_join(select(mada_communes@data, -long, -lat), by = c("id" = "commcode")) -> gg_communes
+  left_join(mada_communes@data, by = c("id" = "commcode")) -> gg_communes
 gg_districts <- fortify(mada_districts, region = "distcode")
 gg_districts %>%
-  left_join(select(mada_districts@data, -long, -lat), by = c("id" = "distcode")) -> gg_districts
+  left_join(mada_districts@data, by = c("id" = "distcode")) -> gg_districts
 
 ##' Plotting GIS inputs/outputs 
 ##' ------------------------------------------------------------------------------------------------

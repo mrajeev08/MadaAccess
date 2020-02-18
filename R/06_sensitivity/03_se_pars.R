@@ -27,10 +27,10 @@ foreach(i = 1:length(scale), .combine = rbind) %do% {
   direction <- c("min", "max")
   se_pars <- expand_grid(base, vary, direction)
   se_pars %>%
-    mutate(exp_max = case_when(vary == "human_exp" & direction == "min" ~ 10/1e5, 
+    mutate(exp_max = case_when(vary == "human_exp" & direction == "min" ~ 15/1e5, 
                                vary == "human_exp" & direction == "max" ~ 110/1e5,
                                vary != "human_exp" ~ exp_max),
-           exp_min = case_when(vary == "human_exp" & direction == "min" ~ 10/1e5, 
+           exp_min = case_when(vary == "human_exp" & direction == "min" ~ 15/1e5, 
                                vary == "human_exp" & direction == "max" ~ 110/1e5,
                                vary != "human_exp" ~ exp_min),
            p_rab_max = ifelse(vary == "p_rabid" & direction == "min", p_rab_min, p_rab_max),

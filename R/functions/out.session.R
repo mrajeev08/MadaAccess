@@ -4,7 +4,7 @@
 
 ## Function for writing out session info at end of each script run
 out.session <- function(path, filename = "sessionInfo.csv") {
-  library(data.table) ## using data table to deal with fast binding
+  library(data.table) ## using data table to deal with easy parsing / binding
   out <- sessionInfo()
   versions <- lapply(out$otherPkgs, function(x) x["Version"])
   versions <- as.data.table(t(unlist(versions)))

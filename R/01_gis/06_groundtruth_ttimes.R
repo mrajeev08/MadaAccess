@@ -34,7 +34,7 @@ mora %>%
   left_join(select(mada_communes@data, commcode, district, from_lat = lat_cent, from_long = long_cent, 
                    commune, pop, ttimes_wtd, ttimes_un, catchment), 
             by = c("commcode" = "commcode")) %>%
-  mutate(ttimes_wtd = ttimes_wtd/60) %>% 
+  mutate(ttimes_est = ttimes_wtd/60, ttimes_un = ttimes_un/60) %>% 
   filter(catchment == "Moramanga") %>%
   mutate(multiple = rowSums(dplyr::select(., car:Pus)),
          mode = case_when(multiple > 1 ~ "Multiple",
@@ -48,15 +48,11 @@ mora %>%
          to_long = ctar_metadata$LONGITUDE[ctar_metadata$CTAR == "Moramanga"], 
          to_lat  =  ctar_metadata$LATITUDE[ctar_metadata$CTAR == "Moramanga"], 
          ttimes_reported = hours, 
-         scale = "Commune") %>%
-  select(-(car:known_cat1)) -> gtruth_mora 
+         type = "commune_wtd") %>%
+  select(-(car:known_cat1), -ttimes_wtd) -> gtruth_mora 
 
 gtruth_mora$distance <- geosphere::distGeo(cbind(gtruth_mora$to_long, gtruth_mora$to_lat), 
                               cbind(gtruth_mora$from_long, gtruth_mora$from_lat))/1000 # in km
-
-gtruth_IPM <- read.csv("output/ttimes/groundtruth_IPM.csv")
-gtruth_IPM$mins_estimated[is.infinite(gtruth_IPM$mins_estimated)] <- NA
-
 
 # IPM groundtruthing (ttimes between points) ---------------------------------------------
 ttimes_IPM <- read.csv("data/raw/ttimes_IPM.csv")
@@ -85,17 +81,18 @@ ttimes_IPM %>%
   mutate(arrival = mdy_hm(paste(Date, Harrival)),
          depart = mdy_hm(paste(Date, Hdepart)),
          ttimes_reported = as.numeric(arrival - depart)/60, 
-         ttimes = unlist(ttimes_est), 
-         scale = "point", mode = "Car") %>%
-  select(ttimes, ttimes_reported, 
+         ttimes_est = unlist(ttimes_est)/60, 
+         type = "point", mode = "Car") %>%
+  select(ttimes_est, ttimes_reported, 
          from_lat = LatDep, from_long = LongDep, to_lat = LatAriv, to_long = LongAriv, 
-         scale, mode) -> gtruth_IPM
+         type, mode) -> gtruth_IPM
 gtruth_IPM$distance <- geosphere::distGeo(cbind(gtruth_IPM$to_long, gtruth_IPM$to_lat), 
                                            cbind(gtruth_IPM$from_long, gtruth_IPM$from_lat))/1000 # in km
+gtruth_IPM$ttimes_est[is.infinite(gtruth_IPM$ttimes_est)] <- NA
 
 gtruth <- bind_rows(gtruth_IPM, gtruth_mora)
 
-write.csv(gtruth, "output/ttimes/gtruth_ttimes.csv")
+write.csv(gtruth, "output/ttimes/gtruth_ttimes.csv", row.names = FALSE)
 
 # Save session info ---------------------------------------------------------------------------
 out.session(path = "R/01_gis/06_groundtruth.R", filename = "output/log_local.csv")

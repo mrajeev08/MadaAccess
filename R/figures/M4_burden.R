@@ -1,13 +1,11 @@
-####################################################################################################
-##' Baseline burden predictions
-##' Details: Predictions of baseline burden at admin level
-##' Author: Malavika Rajeev 
-####################################################################################################
-## source bite ests
-rm(list = ls())
-source("R/functions/utils.R")
+# ------------------------------------------------------------------------------------------------ #
+#' Baseline burden predictions      
+#' Details: Predictions of baseline burden at admin level          
+# ------------------------------------------------------------------------------------------------ #
 
-## libraries
+source("R/functions/out.session.R")
+
+# libraries
 library(foreach)
 library(iterators)
 library(tidyverse)
@@ -17,16 +15,16 @@ library(rgdal)
 library(patchwork)
 library(cowplot)
 
-## Predicted burden
-burden_preds <- fread("output/preds/complete/burden_filled.csv")
+# Predicted burden
+burden_preds <- fread("output/preds/burden/burden_complete.gz")
 burden_preds <- burden_preds[scenario == 0]
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 ctar_metadata <- fread("data/raw/ctar_metadata.csv")
 
-## Grouped to district
-burden_preds$distcode <- mada_communes$distcode[burden_preds$names]
-burden_preds$commcode <- mada_communes$commcode[burden_preds$names]
+# Grouped to district
+burden_preds$distcode <- mada_communes$distcode[match(burden_preds$names, mada_communes$commcode)]
+burden_preds$commcode <- burden_preds$names
 
 burden_preds %>%
   filter(scale == "District") %>%
@@ -39,6 +37,7 @@ burden_preds %>%
                mean, na.rm = TRUE) %>%
   left_join(district_deaths) %>%
   mutate(scale = "District") -> district_deaths
+
 burden_to_plot <- bind_rows(burden_preds[scale == "Commune"], district_deaths)
 
 burden_preds %>%
@@ -65,12 +64,12 @@ M4.A <- ggplot() +
   theme(axis.text.y = element_blank()) +
   coord_flip(clip = "off")
 
-plot_ly(data = burden_to_plot, y = ~reorder(distcode, ttimes), x = ~deaths_mean/pop*1e5,
-        symbol = ~scale, symbols = c("square", "diamond"), size = ~scale,
-        sizes = c(1, 2),
-        marker = list(color = burden_to_plot$ttimes, colorscale = "Viridis",
-                      showscale = TRUE)) %>% 
-  add_markers()
+# plot_ly(data = burden_to_plot, y = ~reorder(distcode, ttimes), x = ~deaths_mean/pop*1e5,
+#         symbol = ~scale, symbols = c("square", "diamond"), size = ~scale,
+#         sizes = c(1, 2),
+#         marker = list(color = burden_to_plot$ttimes, colorscale = "Viridis",
+#                       showscale = TRUE)) %>% 
+#   add_markers()
 
 gg_commune <- fortify(mada_communes, region = "commcode")
 gg_commune %>% 
@@ -79,6 +78,8 @@ gg_commune %>%
 gg_district <- fortify(mada_districts, region = "distcode")
 gg_district %>% 
   left_join(district_deaths, by = c("id" = "distcode")) -> gg_district_plot
+
+col_lim <- ceiling(max(gg_commune_plot$deaths_mean/gg_commune_plot$pop*1e5))
 
 M4.B <- ggplot() +
   geom_polygon(data = gg_commune_plot,
@@ -89,8 +90,9 @@ M4.B <- ggplot() +
   labs(tag = "B") +
   scale_fill_viridis_c(option = "magma", direction = -1, 
                       name = "Predicted incidence \n of deaths per 100k",
-                      limits=c(0, 5)) +
-  theme_map()
+                      limits=c(0, col_lim)) +
+  theme_map() +
+  coord_quickmap()
 
 
 M4.C <- ggplot() +
@@ -102,15 +104,16 @@ M4.C <- ggplot() +
   labs(tag = "C") +
   scale_fill_viridis_c(option = "magma", direction = -1, 
                        name = "Predicted incidence \n of deaths per 100k",
-                       limits = c(0, 5)) +
-  theme_map()
+                       limits = c(0, col_lim)) +
+  theme_map() +
+  coord_quickmap()
 
 figM4 <- (M4.A | ((M4.B / M4.C) + plot_layout(nrow = 2, guides = "collect"))) + plot_layout(widths = c(1, 2))
 ggsave("figs/main/M4.jpeg", figM4, height = 14, width = 10)
 ggsave("figs/main/M4.tiff", figM4, dpi = 300, device = "tiff", height = 12, width = 10, 
        compression = "lzw", type = "cairo")
 
-## National deaths
+# National deaths
 burden_preds %>%
   group_by(scale) %>%
   summarize_at(vars(pop:averted_lower), sum, na.rm = TRUE) -> natl_burden

@@ -33,88 +33,70 @@ model_ests %>%
   dplyr::filter(pop_predict == "flatPop", data_source == "National", 
                 intercept == "random") -> model_means
 
-# Commune predictions -----------------------------------------------------------------------
-params <- model_means[model_means$scale == "Commune", ]
+# All predictions -----------------------------------------------------------------------
 
-bite_mat <- predict.bites(ttimes = comm_run$ttimes_wtd/60, pop = comm_run$pop, 
-                          catch = comm_run$catchment, names = comm_run$commcode, 
-                          beta_ttimes = params$beta_ttimes, beta_0 = params$beta_0, 
-                          beta_pop = 0, sigma_0 = params$sigma_0, known_alphas = NA, 
-                          pop_predict = params$pop_predict, intercept = params$intercept, 
-                          trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc")
-all_mats <-  predict.deaths(bite_mat, pop = comm_run$pop,
-                           p_rab_min = 0.2, p_rab_max = 0.6,
-                           rho_max = 0.98, exp_min = 15/1e5, exp_max = 76/1e5,
-                           prob_death = 0.16, dist = "uniform")
-
-all_mats <- c(list(bites = bite_mat), all_mats)
-
-foreach(i = 1:length(all_mats), .combine = 'cbind', .packages = "data.table") %do% {
-    mat <- all_mats[[i]]
-    labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
-    mean <- rowMeans(mat, na.rm = TRUE) # mean for each row = admin unit
-    sd <- apply(mat, 1, sd, na.rm = TRUE)
-    upper <- mean + 1.96*sd/sqrt(ncol(mat))
-    lower <- mean - 1.96*sd/sqrt(ncol(mat))
-    out <- data.table(mean, upper, lower)
-    names(out) <- labels
-    out
-  } -> admin_comm
-
-admin_comm <- data.table(names = comm_run$commcode,
-                         ttimes = comm_run$ttimes_wtd/60, pop = comm_run$pop, 
-                         catch = comm_run$catchment, scenario = comm_run$scenario, 
-                         scale = "Commune", admin_comm)
-
-# District predictions -----------------------------------------------------------------------
-params <- model_means[model_means$scale == "District", ]
-bite_mat <- predict.bites(ttimes = dist_run$ttimes_wtd/60, pop = dist_run$pop, 
-                          catch = dist_run$catchment, names = dist_run$commcode, 
-                          beta_ttimes = params$beta_ttimes, beta_0 = params$beta_0, 
-                          beta_pop = 0, sigma_0 = params$sigma_0, known_alphas = NA, 
-                          pop_predict = params$pop_predict, intercept = params$intercept, 
-                          trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc")
-all_mats <-  predict.deaths(bite_mat, pop = dist_run$pop,
-                            p_rab_min = 0.2, p_rab_max = 0.6,
-                            rho_max = 0.98, exp_min = 15/1e5, exp_max = 76/1e5, 
-                            prob_death = 0.16, dist = "uniform")
-
-all_mats <- c(list(bites = bite_mat), all_mats)
-
-foreach(i = 1:length(all_mats), .combine = 'cbind', .packages = "data.table") %do% {
-  mat <- all_mats[[i]]
-  labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
-  mean <- rowMeans(mat, na.rm = TRUE) # mean for each row = admin unit
-  sd <- apply(mat, 1, sd, na.rm = TRUE)
-  upper <- mean + 1.96*sd/sqrt(ncol(mat))
-  lower <- mean - 1.96*sd/sqrt(ncol(mat))
-  out <- data.table(mean, upper, lower)
-  names(out) <- labels
-  out
-} -> admin_dist
-
-admin_dist <- data.table(names = dist_run$commcode,
-                         ttimes = dist_run$ttimes_wtd/60, pop = dist_run$pop, 
-                         catch = dist_run$catchment, scenario = dist_run$scenario, 
-                         scale = "District", admin_dist)
-
-# Complete results
-# ------------------------------------------------------------------------------------------------
-burden_partial <- rbind(admin_dist, admin_comm)
-max_clinics <- max(comm_run$scenario[comm_run$scenario != 1648])
-
-burden_partial %>%
-  complete(scenario = 1:max_clinics, names, scale) %>% # from 1 to last
-  group_by(names, scale) %>%
-  arrange(scenario) %>%
-  fill(4:ncol(burden_partial), .direction = "down") -> burden_complete
-
-## This should be true!
-burden_complete %>%
-  group_by(scenario, scale) %>%
-  summarize(n_admin = n()) %>%
-  group_by(scale) %>%
-  summarize(all(n_admin == 1579)) # should be true for all of them!
+foreach(j = iter(model_means, by = "row"), .combine = rbind) %do% {
+          
+          print(j)
+          
+          if(j$scale == "Commune"){
+            admin <- comm_run # these are data.tables so hopefully will not copy only point!
+            ttimes <- admin$ttimes_wtd/60
+          }
+          
+          if(j$scale == "District"){
+            admin <- dist_run
+            ttimes <- admin$ttimes_wtd_dist/60
+          }
+          
+          bite_mat <- predict.bites(ttimes = ttimes, pop = admin$pop, 
+                                    catch = admin$catchment, names = admin$commcode, 
+                                    beta_ttimes = j$beta_ttimes, beta_0 = j$beta_0, 
+                                    beta_pop = 0, sigma_0 = j$sigma_0, known_alphas = NA, 
+                                    pop_predict = "flatPop", intercept = "random", 
+                                    trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc")
+          
+          all_mats <-  predict.deaths(bite_mat, pop = admin$pop,
+                                      p_rab_min = 0.2, p_rab_max = 0.6,
+                                      rho_max = 0.98, exp_min = 15/1e5, exp_max = 76/1e5,
+                                      prob_death = 0.16, dist = "triangle")
+          
+          all_mats <- c(list(bites = bite_mat), all_mats)
+          
+          foreach(i = 1:length(all_mats), .combine = 'cbind') %do% {
+            mat <- all_mats[[i]]
+            labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
+            mean <- rowMeans(mat, na.rm = TRUE) # mean for each row = admin unit
+            sd <- apply(mat, 1, sd, na.rm = TRUE)
+            upper <- mean + 1.96*sd/sqrt(ncol(mat))
+            lower <- mean - 1.96*sd/sqrt(ncol(mat))
+            out <- data.table(mean, upper, lower)
+            names(out) <- labels
+            out
+          } -> admin_comm
+          
+          admin_comm <- data.table(names = admin$commcode,
+                                   ttimes = ttimes, pop = admin$pop, 
+                                   catch = admin$catchment, scenario = admin$scenario, 
+                                   scale = j$scale, admin_comm)
+          
+          max_clinics <- max(admin$scenario[admin$scenario != 1648])
+          
+          admin_comm %>%
+            complete(scenario = 1:max_clinics, names) %>% # from 1 to last
+            group_by(names) %>%
+            arrange(scenario) %>%
+            fill(3:ncol(admin_comm), .direction = "down") -> admin_comm
+          
+          ## This should be true!
+          admin_comm %>%
+            group_by(scenario) %>%
+            summarize(n_admin = n()) %>%
+            summarize(all(n_admin == 1579)) # should be true for all of them!
+          
+          admin_comm
+          
+  } -> burden_complete
 
 fwrite(burden_complete, "output/preds/burden.gz")
 
