@@ -9,23 +9,34 @@
 # spatial data
 Rscript ./R/01_gis/01_process_rasters.R # ok
 
-sub -sn -t 12 -n 1 -mem 25000 -sp "./R/01_gis/02_pop_to_pix.R" -jn "pop2pix" -dd
-"~/Documents/Projects/MadaAccess/data/processed/rasters/" -re "mrajeev@della.princeton.edu:~/MadaAccess/data/processed/rasters/wp_2015_temp.tif" -wt 1m -n@
-
 Rscript ./R/01_gis/03_aggregate_pop.R # ok
 Rscript ./R/01_gis/04_run_baseline.R # ok
 Rscript ./R/01_gis/05_make_shapefiles.R # ok
-
-
-
-sub -t 12 -n 18 -sp "./R/03_bitemodels/01_run_bitemods.R remote" -jn "bitemods" -dd "~/Documents/Projects/MadaAccess/output/mods/" -re "mrajeev@della.princeton.edu:~/MadaAccess/output/mods/" -wt 2m
 
 # serial (non-parallelized)
 # Rscript ./R/01_gis/02_pop_to_pix.R serial
 # locally parallelized with doParallel
 # Rscript ./R/01_gis/02_pop_to_pix.R local
 
-sub-sn -t 12 -n 18 -sp "./R/04_addclinics/02_ttimes_added.R remote 18" -jn "addclinics" -dd "~/Documents/Projects/MadaAccess/output/ttimes/" -re "mrajeev@della.princeton.edu:~/MadaAccess/output/ttimes/addclinics*" -wt 1m
+Rscript ./R/04_addclinics/02_ttimes_added.R local
+
+Rscript ./R/05_predictions/02_vials_incremental.R local
+
+
+sub -sn -t 12 -n 1 -mem 25000 -sp "./R/01_gis/02_pop_to_pix.R" -jn "pop2pix" -dd
+"~/Documents/Projects/MadaAccess/data/processed/rasters/" -re "mrajeev@della.princeton.edu:~/MadaAccess/data/processed/rasters/wp_2015_temp.tif" -wt 1m -n@
+
+sub -t 12 -n 18 -sp "./R/03_bitemodels/01_run_bitemods.R" -jn "bitemods" -dd "~/Documents/Projects/MadaAccess/output/mods/" -re "mrajeev@della.princeton.edu:~/MadaAccess/output/mods/" -wt 2m
+
+sub -sn -t 12 -n 18 -mem 4500 -sp "./R/04_addclinics/02_ttimes_added.R" -jn "addclinics" -dd "~/Documents/Projects/MadaAccess/output/ttimes/" -re "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/addclinics*" -wt 5m
+
+sub -t 12 -n 10 -mem 6000 -sp "./R/06_sensitivity/03_burden_se.R" -jn "burden_se" -wt 5m -n@
+
+sub -t 12 -n 30 -mem 3000 -sp "./R/05_predictions/02_vials_incremental.R" -jn "vials" -wt 5m -n@
+
+sub -t 12 -n 30 -mem 3000 -sp "./R/06_sensitivity/05_vial_se.R" -jn "vials" -wt 5m -n@
+
+sub -sn -t 12 -n 18 -mem 4500 -sp "./R/04_addclinics/02_ttimes_added.R" -jn "addclinics" -wt 5m
 
 
 # rsync pull down outputs
@@ -71,3 +82,6 @@ R/06_sensitivity/03_burden_se.R
 # one word doc for sharing with collaborators
 # one html for github pages
 # submission files per medRvix/PLoS NTDs
+
+# way to process output locations & input locations without having to specify on the command line!
+grep "sync_to" ./R/05_predictions/02_vials_incremental.R | cut -f 2 -d '-'

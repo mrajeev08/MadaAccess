@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=addclinics	 # create a short name for your job
 #SBATCH --nodes=1		      # node count
-#SBATCH --ntasks=20	        # total number of tasks across all nodes
+#SBATCH --ntasks=18	        # total number of tasks across all nodes
 #SBATCH --cpus-per-task=1	 # cpu-cores per task (>1 if multithread tasks)
 #SBATCH --mem-per-cpu=4500	 # mem per CPU
 #SBATCH --time=12:00:00          # total run time limit (HH:MM:SS)

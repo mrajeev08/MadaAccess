@@ -10,7 +10,7 @@ ssh -T mrajeev@della <<HERE
         echo waiting   # updating
         jstat=\$(sacct -j "\$jid" -u mrajeev | head -n 3)
         echo "Here's the job stat: \$jstat"
-        sleep 1m # time to sleep for (base it on how long the job should take)
+        sleep 5m # time to sleep for (base it on how long the job should take)
     done
     if grep -q "FAILED\CANCELLED" <<< \$jstat
     then
@@ -21,4 +21,4 @@ ssh -T mrajeev@della <<HERE
     fi
 HERE
         sleep 1m    # sleep again as sometimes takes a while to write output
-        rsync -rLvzt mrajeev@della.princeton.edu:~/MadaAccess/output/preds/vials.gz ~/Documents/Projects/MadaAccess/output/preds/ 
+        rsync -rLvzt mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/catch_preds_se.gz ~/Documents/Projects/MadaAccess/output/sensitivity/ 

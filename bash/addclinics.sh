@@ -10,7 +10,7 @@ ssh -T mrajeev@della <<HERE
         echo waiting   # updating
         jstat=\$(sacct -j "\$jid" -u mrajeev | head -n 3)
         echo "Here's the job stat: \$jstat"
-        sleep 1m # time to sleep for (base it on how long the job should take)
+        sleep 5m # time to sleep for (base it on how long the job should take)
     done
     if grep -q "FAILED\CANCELLED" <<< \$jstat
     then

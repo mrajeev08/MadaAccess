@@ -30,9 +30,10 @@ parser$add_argument("-jn", "--jobName", help="Name of job/slurm script", default
 parser$add_argument("-wt", "--wait", help="time to wait before checking, default is 1m", default="1m")
 parser$add_argument("-@", "--email", action="store_true", help="whether to email or not", default = TRUE)
 parser$add_argument("-n@", "--noemail", action="store_false", dest="email", help="don't email")
+
 # For writing local bash script
-parser$add_argument("-dd", "--destdir", help = "Directory to pull TO")
-parser$add_argument("-re", "--remote", help = "Remote directory to pull FROM")
+parser$add_argument("-dd", "--destdir", help = "Directory to pull TO default is Null so will look in Rscript passed for sync_to", default= 'NULL')
+parser$add_argument("-re", "--remote", help = "Remote directory to pull FROM, same as per destdir", default = 'NULL')
 
 # get command line options, if help option encountered print help and exit,
 # otherwise if options not found on command line then set defaults,
@@ -43,9 +44,26 @@ ntasks <- trimws(toString(args$ntasks))
 memCPU <- trimws(toString(args$memCPU))
 jobName <- trimws(toString(args$jobName))
 scriptPath <- trimws(toString(args$scriptPath))
-destdir <- trimws(toString(args$destdir))
-remote <- trimws(toString(args$remote))
 wait <- trimws(toString(args$wait))
+
+# parse from Rscript
+if(is.null(args$destdir)) {
+    destdir <- trimws(toString(args$destdir))
+} else {
+    destdir <- system2("grep", args = paste("sync_to ", scriptPath, " | cut -f 2 -d -", sep = ""),
+                        stdout = TRUE)
+    destdir <- unlist(strsplit(destdir, "\""))[2]
+    print(paste("will pull to: ", destdir))
+}
+
+if(is.null(args$remote)) {
+    remote <- trimws(toString(args$remote))
+} else {
+    remote <- system2("grep", args = paste("sync_from ", scriptPath, " | cut -f 2 -d -", sep = ""),
+                        stdout = TRUE)
+    remote <- unlist(strsplit(remote, "\""))[2]
+    print(paste("will pull from: ", remote))
+}
 
 sink(paste("bash/", jobName, ".slurm", sep = ""))
 cat("#!/bin/bash\n")
