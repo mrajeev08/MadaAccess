@@ -12,13 +12,16 @@
 #' @section Dependencies:
 #'     List dependencies here, i.e. packages and other functions triangle
 
-predict.bites <- function(ttimes, pop, catch, names,
-                          beta_ttimes, beta_0, beta_pop, sigma_0, known_alphas, 
+predict.bites <- function(ttimes, pop, catch, names, group, ngroups,
+                          beta_ttimes, beta_0, beta_pop, sigma_0, sigma_e, known_alphas, 
                           pop_predict = "addPop", intercept = "random",
                           trans = 1e5, known_catch = TRUE, nsims = 1000, 
                           type = "bites") {
   
   foreach(i = 1:nsims, .combine = cbind) %do% {
+    
+    epsilon <- rnorm(length(ttimes), mean = 0, sd = sigma_e) # overdispersion 
+      
     if(intercept == "random") {
       # draw catchment level effects (pull this out for foreach)
       # first make catchment a factor and then drop levels and convert to numeric
@@ -34,29 +37,29 @@ predict.bites <- function(ttimes, pop, catch, names,
       } 
       
       if (pop_predict == "flatPop") {
-        exp_bites <- exp(alpha + beta_ttimes*ttimes)*pop
+        exp_bites <- exp(alpha + beta_ttimes*ttimes + epsilon)*pop
       }
       
       if(pop_predict == "addPop") {
-        exp_bites <- exp(alpha + beta_ttimes*ttimes + beta_pop*pop/trans) 
+        exp_bites <- exp(alpha + beta_ttimes*ttimes + beta_pop*pop/trans + epsilon) 
       }
       
       if(pop_predict == "onlyPop") {
-        exp_bites <- exp(alpha + beta_pop*pop/trans)
+        exp_bites <- exp(alpha + beta_pop*pop/trans + epsilon)
       }
     }
     
     if(intercept == "fixed") {
       if (pop_predict == "flatPop") {
-        exp_bites <- exp(beta_0 + beta_ttimes*ttimes)*pop
+        exp_bites <- exp(beta_0 + beta_ttimes*ttimes + epsilon)*pop
       }
       
       if(pop_predict == "addPop") {
-        exp_bites <- exp(beta_0 + beta_ttimes*ttimes + beta_pop*pop/trans) 
+        exp_bites <- exp(beta_0 + beta_ttimes*ttimes + beta_pop*pop/trans + epsilon) 
       }
       
       if(pop_predict == "onlyPop") {
-        exp_bites <- exp(beta_0 + beta_pop*pop/trans)
+        exp_bites <- exp(beta_0 + beta_pop*pop/trans + epsilon)
       }
     }
     if(type == "bites") {

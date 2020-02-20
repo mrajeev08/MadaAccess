@@ -281,6 +281,15 @@ We make several simplifying assumptions regarding PEP provisioning and efficacy.
 
 We assume that spatial access to PEP is the primary driver of health-seeking behavior, however many other factors may drive an individual’s decision to seek PEP, such as socioeconomic and educational status and awareness about the danger of rabies [@samboKnowledgeAttitudesPractices2014; @barbosacostaInfluencePovertyRabies2018; @etheartEffectCounsellingHealthcareseeking2017; @hampsonRabiesExposuresPostExposure2008]. Importantly, in the Madagascar context where PEP is provided free of charge to patients, the main cost of seeking PEP is for transport and associated time lost for travel. In addition, more remote communities tend to be of lower socioecomonic and educational status [@peters2008poverty], so our travel time metric may act as a proxy for these set of correlated variables that interact to determine an individual’s access to PEP. While we did not explicitly include variation in clinic functioning, we did include a catchment level random intercept, to account for spatial differences in reported bite incidence not due to travel times. This random component of the model did improve fit to the data, suggesting that variation at the clinic level (i.e. differences in clinic functioning such as vaccine availability) and at the catchment level (i.e. differences in regional bite incidence, awareness, outreach, etc.) are likely important drivers of health-seeking behavior and overall vaccine demand. 
 
+Limitations of the travel time estimates & a bit about scale here?
+
+## Box 1: case studies of exceptions to the travel time effects
+
+### Anosibe A'nala
+
+### Antananarivo
+
+
 ## Broader context
 ```{r}
 burden_preds <- fread("../output/preds/complete/burden_filled.csv")

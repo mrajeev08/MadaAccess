@@ -7,7 +7,8 @@
 estimate.pars <- function(bites, ttimes, pop, ncovars, nlocs, catch, ncatches, start, end,
                           pop_predict = "addPop", intercept = "random",
                           summed = TRUE, data_source = "national", scale = "Commune",
-                          trans = 1e5, chains = 3, adapt = 500, iter = 10000, thinning = 5, 
+                          trans = 1e5, chains = 3, adapt = 500, burn = 100, 
+                          iter = 10000, thinning = 5, 
                           dic = TRUE, save = FALSE) {
   
   if(summed == TRUE) sumit = "summed" else sumit = "nosum"
@@ -19,7 +20,7 @@ estimate.pars <- function(bites, ttimes, pop, ncovars, nlocs, catch, ncatches, s
   
   jags_mod <- jags.model(textConnection(model), data = data, inits = inits, 
                          n.chains = chains, n.adapt = adapt)
-  
+  update(jags_mod, burn)
   samps <- coda.samples(jags_mod, params, n.iter = iter, thin = thinning)
 
   if(dic == TRUE) {

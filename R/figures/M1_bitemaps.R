@@ -133,7 +133,7 @@ mada_map <- ggplot() +
   geom_polygon(data = gg_district, 
                aes(x = long, y = lat, group = group, fill = ctar), 
                color = "white", alpha = 0.5) +
-  geom_bezier2(data = filter(ctar_todist_bez, count > 4, distcode != dist_ctar), 
+  geom_bezier2(data = filter(ctar_todist_bez, count > 10, distcode != dist_ctar), 
                aes(x = long, y = lat, group = fct_reorder(group, total_lines, .desc = TRUE), 
                    color = ctar, size = ifelse(index == 1, 0.05, size_lines(count))), n = 1000, 
                alpha = 0.8) +
@@ -145,14 +145,85 @@ mada_map <- ggplot() +
              shape = 21, color = "white", alpha = 1) +
   geom_point(data = filter(ctar_all, exclude == 1), aes(x = long_cent, y = lat_cent), 
              shape = 1, stroke = 1, color = "black") +
+  geom_bezier2(data = filter(leg_pts, group != length(long_from) + 1), 
+               aes(x = long, y = lat, group = group, 
+                   size = ifelse(index == 1, 0.05, size_lines(sizes))), n = 1000, color = "grey50",
+               alpha = 0.8) +
+  geom_point(data = filter(leg_pts, type != "mid"), 
+             aes(x = long, y = lat, size = size_pts(sizes)), fill = "grey50",
+             shape = 21) + 
+  geom_text(data = filter(leg_pts, type != "mid"), aes(x = long, y = lat, label = sizes),
+            hjust = 0, vjust = 0, angle = 45, nudge_y = 0.2) +
+  geom_text(data = filter(leg_pts, long == min(long) | long == max(long)), 
+            aes(x = long, y = lat, label = c("District", "ARMC")), hjust = c(0, 1),
+            nudge_x = c(0.5, -0.5)) +
   scale_color_manual(values = catch_fills, guide = "none") +
   scale_fill_manual(values = catch_cols, guide = "none") +
-  scale_size_identity("Reported bites", 
-                      guide = "none") +
+  scale_size_identity("Reported bites", guide = "none") +
   labs(tag = "A") +
   theme_minimal_hgrid() +
   theme_map() +
-  coord_quickmap()
+  coord_quickmap(clip = "off")
+
+
+get.bezleg <- function(bbox, n_pts, size_vec, min_size, offset_long, offset_lat) {
+  
+  long_min <- bbox["x", "min"] + offset_long # pulls it in from bbox edge
+  long_max <- bbox["x", "max"] - offset_long # pulls it in from bbox edge
+  lat_pt<- bbox["y", "min"] + offset_lat # pulls it down away from Mada 
+    
+  long <- seq(long_min, long_max, length.out = n_pts)
+
+  long_to <- long[2:(floor(n_pts/2))]
+  lat_to <- rep(lat_pt, length(long_to))
+  
+  long_from <- rev(long[(floor(n_pts/2) + 2):(n_pts - 1)])
+  lat_from <- rep(lat_pt, length(long_from))
+  
+  control_pts <- get.bezier.pts(origin = data.frame(x = long_from, 
+                                                    y = lat_from),
+                                destination = data.frame(x = long_to, 
+                                                         y = lat_to), 
+                                frac = 0.5, 
+                                transform = function(x) x/2)
+  
+  origin <- data.frame(long = long_from, lat = lat_from, index = 1, sizes = rev(size_vec),
+                       group = 1:length(long_from), type = "origin")
+  mid <- data.frame(long = control_pts[, "out_x"], lat = control_pts[, "out_y"], index = 2, 
+                    sizes = size_vec, group = 1:length(long_from), type = "mid")
+  end <- data.frame(long = long_to, lat = lat_to, index = 2, sizes = rev(size_vec), 
+                    group = 1:length(long_from), type = "end")
+  min_pt <- data.frame(long = median(long), lat = lat_pt, index = 1, sizes = min_size,
+                       group = length(long_from) + 1, type = "min")
+  
+  all_pts <- bind_rows(origin, mid, end, min_pt)
+  return(all_pts)
+}
+
+leg_pts <- get.bezleg(bbox = bbox(mada_districts), n_pts = 11, size_vec = c(100, 400, 1600, 5000), 
+                      min_size = 10, offset_long = 0.5, offset_lat = -1.5)
+
+ggplot() +
+  geom_polygon(data = gg_district, 
+               aes(x = long, y = lat, group = group), 
+               color = "white", alpha = 0.5) +
+  geom_bezier2(data = filter(leg_pts, group != length(long_from) + 1), 
+               aes(x = long, y = lat, group = group, 
+                   size = ifelse(index == 1, 0.05, sizes)), n = 1000, color = "grey50",
+               alpha = 0.8) +
+  geom_point(data = filter(leg_pts, type != "mid"), aes(x = long, y = lat, size = sizes,
+                                                        color = type, fill = type),
+             shape = 21) + 
+  geom_text(data = filter(leg_pts, type != "mid"), aes(x = long, y = lat, label = sizes),
+            hjust = 0, vjust = 0, angle = 45, nudge_y = 0.2) +
+  geom_text(data = filter(leg_pts, long == min(long) | long == max(long)), 
+            aes(x = long, y = lat, label = c("District", "ARMC")), hjust = c(0, 1),
+            nudge_x = c(0.5, -0.5)) +
+  scale_size(guide = "none") +
+  scale_color_manual(values = c("black", "black", "white"), guide = "none") +
+  scale_fill_manual(values = c(alpha("black", 0.5), "NA", alpha("black", 0.75))) +
+  coord_quickmap(clip = "off")
+
 
 # Mapping raw data: Moramanga at commune level --------------------------------------------------
 moramanga %>%
@@ -290,7 +361,7 @@ layout_mora <- mora_map + map_inset + plot_layout(design = layout_inset)
 bite_maps <- mada_map + layout_mora
 
 # for inline figs
-ggsave("figs/main/bite_maps.jpeg", bite_maps, height = 7, width = 7)
+ggsave("figs/main/bite_maps.jpeg", bite_maps, height = 10, width = 10)
 # for plos
 ggsave("figs/main/bite_maps.tiff", bite_maps, dpi = 300, height = 7, width = 7,
        compression = "lzw", type = "cairo")

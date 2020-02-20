@@ -16,6 +16,9 @@ library(dplyr)
 library(foreach)
 library(iterators)
 library(rjags)
+library(tidyr)
+library(iterators)
+library(doRNG)
 
 # source bite ests
 district_bites <- fread("output/bites/district_bites.csv")
@@ -25,84 +28,41 @@ source("R/functions/estimate_pars.R")
 source("R/functions/out.session.R")
 
 # Run all Mada models -----------------------------------------------------------------------
-# Mada data
-# These all should have same index letter
-covars_list <- list(district_bites, comm_covars)
-scale <- c("District", "Commune")
-sum_it <- c(FALSE, TRUE)
+mods_natl <- expand_grid(pop_predict = c("addPop", "onlyPop", "flatPop"), 
+                         intercept = c("random", "fixed"), 
+                         scale = c("District", "Commune"), data_source = "National")
+mods_mora <- expand_grid(pop_predict = c("addPop", "onlyPop", "flatPop"), intercept = "fixed", 
+                         scale = "Commune", data_source = "Moramanga")
 
-# The other index letters
-intercept_type <- c("random", "fixed")
-pop_predict <- c("addPop", "onlyPop", "flatPop")
+mods_natl %>%
+  bind_rows(mods_mora) %>%
+  mutate(sum_it = case_when(data_source %in% "Moramanga" ~ FALSE, scale %in% "District" ~ FALSE,
+                            scale %in% "Commune" ~ TRUE), 
+         covars_df = case_when(data_source %in% "Moramanga" ~ list(mora_bites),
+                               scale %in% "District" ~ list(district_bites),
+                               scale %in% "Commune" ~ list(comm_covars)), 
+         data_df = case_when(data_source %in% "Moramanga" ~ list(mora_bites), 
+                             data_source %in% "National" ~ list(district_bites))) -> mods
 
 # For each of those opts
-mods_mada <- 
-  foreach(i = 1:length(covars_list), .combine = "rbind") %:%
-  foreach(k = 1:length(pop_predict), .combine = "rbind") %:%
-  foreach(l = 1:length(intercept_type), .combine = "rbind", .packages = "rjags") %dopar% {
-    covar_df <- covars_list[[i]]
+mods_all <- 
+  foreach(j = iter(mods, by = "row"), .combine = "rbind", .packages = "rjags", 
+          .options.RNG = 321) %dorng% {
+            
+    covar_df <- j$covars_df[[1]]
+    data_df <- j$data_df[[1]]
     ttimes <- covar_df$ttimes_wtd/60
-    
-    out <- estimate.pars(bites = round(district_bites$avg_bites), 
-                           ttimes = ttimes, pop = covar_df$pop, 
-                           start = district_bites$start, end = district_bites$end,
-                           ncovars = nrow(covar_df), 
-                           nlocs = nrow(district_bites), catch = covar_df$catch, 
-                           ncatches = max(district_bites$catch), pop_predict =  pop_predict[k], 
-                           intercept = intercept_type[l], summed = sum_it[i], 
-                           data_source = "National",
-                           scale = scale[i], trans = 1e5, 
-                           chains = 3, adapt = 500, iter = 10000, thinning = 1,
-                           dic = TRUE, save = TRUE)
-    
-    samps <- out[["samps"]]
-    dic <- out[["dic"]]
-    
-    dic_est <- mean(dic$deviance) + mean(dic$penalty)
-    
-    samp_summ <- summary(samps)
-    params <- rownames(samp_summ$statistics)
-    diag <- gelman.diag(samps)
-    
-    samp_df <- as.data.frame(list(params = params, samp_summ$statistics, 
-                                  neff = effectiveSize(samps),
-                                  quant_2.5 = samp_summ$quantiles[, 5], 
-                                  quant_97.5 = samp_summ$quantiles[, 1],
-                                  psrf_est = diag$psrf[, 1], 
-                                  psrf_upper = diag$psrf[, 2], mpsrf = diag$mpsrf,  
-                                  pop_predict = pop_predict[k], intercept = intercept_type[l], 
-                                  summed = sum_it[i], 
-                                  data_source = "National", 
-                                  scale = scale[i], dic = dic_est))
-  }
-
-warnings()
-
-# Moramanga models -------------------------------------------------------------------------------
-# These all should have same index letter
-scale <- "Commune"
-sum_it <- FALSE
-intercept_type <- "fixed"
-
-# The other index letters
-pop_predict <- c("addPop", "onlyPop", "flatPop")
-
-mods_mora <- 
-  foreach(k = 1:length(pop_predict), .combine = "rbind", 
-          .packages = "rjags") %dopar% {
-    
-    ttimes <- mora_bites$ttimes_wtd/60
-    
-    out <- estimate.pars(bites = round(mora_bites$avg_bites), 
-                         ttimes = ttimes, pop = mora_bites$pop, 
-                         start = mora_bites$start, end = mora_bites$end,
-                         ncovars = nrow(mora_bites), 
-                         nlocs = nrow(mora_bites), catch = mora_bites$catch, 
-                         ncatches = max(mora_bites$catch), pop_predict =  pop_predict[k], 
-                         intercept = intercept_type, summed = sum_it, 
-                         data_source = "Moramanga",
-                         scale = scale, trans = 1e5, 
-                         chains = 3, adapt = 500, iter = 10000, thinning = 1,
+            
+    out <- estimate.pars(bites = data_df$avg_bites/data_df$pop*1e5,
+                         ttimes = ttimes, pop = covar_df$pop, 
+                         start = data_df$start, end = data_df$end,
+                         ncovars = nrow(covar_df), 
+                         nlocs = nrow(data_df), catch = covar_df$catch, 
+                         ncatches = max(data_df$catch), pop_predict = j$pop_predict, 
+                         intercept = j$intercept, summed = j$sum_it, 
+                         data_source = paste0("norm1e5_", j$data_source),
+                         scale = j$scale, trans = 1e5, burn = 125000, 
+                         chains = 3, adapt = 1000, iter = 500000, thinning = 15,
                          dic = TRUE, save = TRUE)
     
     samps <- out[["samps"]]
@@ -114,21 +74,18 @@ mods_mora <-
     params <- rownames(samp_summ$statistics)
     diag <- gelman.diag(samps)
     
-    samp_df <- as.data.frame(list(params = params, samp_summ$statistics, 
-                                  neff = effectiveSize(samps),
-                                  quant_2.5 = samp_summ$quantiles[, 5], 
-                                  quant_97.5 = samp_summ$quantiles[, 1],
-                                  psrf_est = diag$psrf[, 1], 
-                                  psrf_upper = diag$psrf[, 2], mpsrf = diag$mpsrf, 
-                                  pop_predict = pop_predict[k], intercept = intercept_type,
-                                  summed = sum_it, data_source = "Moramanga", 
-                                  scale = scale, dic = dic_est))
+    samp_df <- data.frame(params = params, samp_summ$statistics, 
+                          neff = effectiveSize(samps), quant_2.5 = samp_summ$quantiles[, 5], 
+                          quant_97.5 = samp_summ$quantiles[, 1], psrf_est = diag$psrf[, 1], 
+                          psrf_upper = diag$psrf[, 2], mpsrf = diag$mpsrf, 
+                          pop_predict = j$pop_predict, intercept = j$intercept, 
+                          summed = j$sum_it, data_source = j$data_source, 
+                          scale = j$scale, dic = dic_est)
   }
 
 warnings()
 
-mods_all <- bind_rows(mods_mada, mods_mora)
-write.csv(mods_all, "output/mods/estimates.csv", row.names = FALSE)
+write.csv(mods_all, "output/mods/estimates_poisOD.csv", row.names = FALSE)
 
 # Parse these from bash for where to put things
 sync_to <- "~/Documents/Projects/MadaAccess/output/mods/"
@@ -141,6 +98,3 @@ closeCluster(cl)
 mpi.quit()
 print("Done remotely:)")
 Sys.time()
-
-
-

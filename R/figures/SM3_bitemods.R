@@ -17,7 +17,7 @@ library(cowplot)
 select <- dplyr::select
 
 # Estimates
-model_ests <- read.csv("output/mods/estimates.csv")
+model_ests <- read.csv("output/mods/estimates_poisOD.csv")
 model_ests %>%
   select(params, Mean, pop_predict, intercept, data_source, scale) %>%
   spread(key = params, value = Mean, fill = 0) -> model_means
@@ -44,7 +44,6 @@ psrfs <- ggplot(convergence, aes(x = type, y = val, color = interaction(data_sou
   geom_boxplot() +
   scale_color_manual(values = model_cols, name = "Scale", 
                      labels = scale_labs) +
-  ylim(c(0.98, 1.02)) +
   facet_grid(pop_predict ~ intercept, scales = "free_x", drop = TRUE) +
   geom_hline(yintercept = 1, linetype = 2, color = "grey") +
   scale_x_discrete(labels= c("psrf_upper" = "Indiviudal covariate", "mpsrf" = "Multivariate")) +
@@ -56,7 +55,7 @@ psrfs <- ggplot(convergence, aes(x = type, y = val, color = interaction(data_sou
 ggsave("figs/supplementary/psrfs.jpeg", psrfs, device = "jpeg", height = 10, width = 8)
 
 # Fitted predictions
-preds_grouped <- read.csv("output/preds/bites/fitted_grouped_all.csv")
+preds_grouped <- read.csv("output/preds/bites/fitted_grouped_all_OD.csv")
 preds_grouped$mod_intercept <- preds_grouped$intercept
 fitted_preds <- ggplot(data = filter(preds_grouped), 
        aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
@@ -75,8 +74,8 @@ fitted_preds <- ggplot(data = filter(preds_grouped),
 ggsave("figs/supplementary/fitted_preds.jpeg", fitted_preds, device = "jpeg", height = 10, width = 8)
 
 # Out of fit predictions
-outfit_mora <- read.csv("output/preds/bites/outfit_mora.csv")
-outfit_mada <- read.csv("output/preds/bites/outfit_grouped_mada.csv")
+outfit_mora <- read.csv("output/preds/bites/outfit_mora_OD.csv")
+outfit_mada <- read.csv("output/preds/bites/outfit_grouped_mada_OD.csv")
 
 # Trying nested facet labels
 outfit_mada$type <- "National"
@@ -109,26 +108,27 @@ S3.3 <- ggplot(data = outfit_all,
 ggsave("figs/supplementary/S3.3.jpeg", S3.3, device = "jpeg", height = 8, width = 12)
 
 # Plot priors and posteriors ------------------------------------------------------------------
-all_samps <- get.samps(parent_dir = "output/mods/samps/", 
-                       files = list.files("output/mods/samps", recursive = TRUE))
+all_samps <- get.samps(parent_dir = "output/mods/samps/poisOD_Moramanga/",
+                       files = list.files("output/mods/samps/poisOD_Moramanga", recursive = TRUE))
+
 all_samps %>%
   select(-contains("alpha")) %>%
-  pivot_longer(c(beta_0:beta_ttimes, sigma_0)) -> samps
+  pivot_longer(c(beta_0:beta_ttimes, sigma_e)) -> samps
 
 priors <- data.frame()
 
 random_posts <- ggplot(data = filter(samps, intercept == "random"), 
-                     aes(x = value, fill = interaction(data_source, scale))) +
+                     aes(x = value, fill = scale)) +
   geom_density(alpha = 0.5) +
-  scale_fill_manual(values = model_cols, name = "Scale",
-                    labels = scale_labs) +
+  # scale_fill_manual(values = model_cols, name = "Scale",
+  #                  labels = scale_labs) +
   facet_wrap(name ~ pop_predict, scales = "free", drop = TRUE, ncol = 3)
 
 fixed_posts <- ggplot(data = filter(samps, intercept == "fixed"), 
-                       aes(x = value, fill = interaction(data_source, scale))) +
+                       aes(x = value, fill = scale)) +
   geom_density(alpha = 0.5) +
-  scale_fill_manual(values = model_cols, name = "Scale",
-                    labels = scale_labs) +
+  # scale_fill_manual(values = model_cols, name = "Scale",
+  #                  labels = scale_labs) +
   facet_wrap(name ~ pop_predict, scales = "free", drop = TRUE, ncol = 3)
 
 ggsave("figs/supplementary/random_posts.jpeg", random_posts)
