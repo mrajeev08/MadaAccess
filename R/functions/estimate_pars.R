@@ -1,22 +1,25 @@
-####################################################################################################
-##' Estimate parameters using bayesian (and/or hierarchical) models in JAGS 
-##' Details: function for estimating parameters from different candidate models using RJAGS
-##' Author: Malavika Rajeev 
-####################################################################################################
-
+#' Estimate parameters using bayesian models in JAGS 
+#' Description
+#' Details
+#' @param Paramters
+#' @return Returned
+#' @section Dependencies:
+#'     List dependencies here, i.e. packages and other functions
+#'   
+  
 estimate.pars <- function(bites, ttimes, pop, ncovars, nlocs, catch, ncatches, start, end,
                           pop_predict = "addPop", intercept = "random",
-                          summed = TRUE, data_source = "national", scale = "Commune",
+                          summed = TRUE, OD = TRUE, data_source = "national", scale = "Commune",
                           trans = 1e5, chains = 3, adapt = 500, burn = 100, 
                           iter = 10000, thinning = 5, 
                           dic = TRUE, save = FALSE) {
-  
-  if(summed == TRUE) sumit = "summed" else sumit = "nosum"
   
   mod_name <- paste(scale, intercept, pop_predict, sep = "_")
   
   model_script <- paste0("R/functions/candidate_mods/", intercept, "_intercept.R")
   source(model_script, local = TRUE)
+  
+  cat(model)
   
   jags_mod <- jags.model(textConnection(model), data = data, inits = inits, 
                          n.chains = chains, n.adapt = adapt)

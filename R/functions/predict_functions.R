@@ -3,7 +3,55 @@
 #' Details: Wrapper function for getting bites, deaths, and vials from inputs
 # ------------------------------------------------------------------------------------------------ #
 
-# 1. Function for getting bites from model inputs (return a matrix) -------------------------------
+#' Get fixed estimates for predictions (i.e. expectation)
+#' Description
+#' Details
+#' @param Paramters
+#' @return Returned
+#' @section Dependencies:
+#'     List dependencies here, i.e. packages and other functions
+
+predict.bites.fixed <- function(ttimes, pop, catch, names,
+                                beta_ttimes, beta_0, beta_pop, known_alphas, 
+                                pop_predict = "addPop", intercept = "random",
+                                trans = 1e5) {
+  
+  if(intercept == "random") {
+    
+    if (pop_predict == "flatPop") {
+      exp_bites <- exp(known_alphas + beta_ttimes*ttimes)*pop
+    }
+    
+    if(pop_predict == "addPop") {
+      exp_bites <- exp(known_alphas + beta_ttimes*ttimes + beta_pop*pop/trans) 
+    }
+    
+    if(pop_predict == "onlyPop") {
+      exp_bites <- exp(known_alphas + beta_pop*pop/trans)
+    }
+    
+  }
+  
+  if(intercept == "fixed") {
+    
+    if (pop_predict == "flatPop") {
+      exp_bites <- exp(beta_0 + beta_ttimes*ttimes)*pop
+    }
+    
+    if(pop_predict == "addPop") {
+      exp_bites <- exp(beta_0 + beta_ttimes*ttimes + beta_pop*pop/trans) 
+    }
+    
+    if(pop_predict == "onlyPop") {
+      exp_bites <- exp(beta_0 + beta_pop*pop/trans)
+    }
+  }
+  
+  return(exp_bites)
+}
+
+
+
 #' Function for getting bite incidence or # of bites from model inputs
 #' Description
 #' Details
@@ -14,14 +62,18 @@
 
 predict.bites <- function(ttimes, pop, catch, names, group, ngroups,
                           beta_ttimes, beta_0, beta_pop, sigma_0, sigma_e, known_alphas, 
-                          pop_predict = "addPop", intercept = "random",
+                          pop_predict = "addPop", intercept = "random", OD = TRUE,
                           trans = 1e5, known_catch = TRUE, nsims = 1000, 
                           type = "bites") {
   
   foreach(i = 1:nsims, .combine = cbind) %do% {
     
-    epsilon <- rnorm(length(ttimes), mean = 0, sd = sigma_e) # overdispersion 
-      
+    if (OD == TRUE) {
+      epsilon <- rnorm(length(ttimes), mean = 0, sd = sigma_e) # overdispersion 
+    } else {
+      epsilon <- 0
+    }
+    
     if(intercept == "random") {
       # draw catchment level effects (pull this out for foreach)
       # first make catchment a factor and then drop levels and convert to numeric

@@ -1,9 +1,8 @@
-####################################################################################################
-##' Figure 2 
-##' Details: Sankey diagram for decision tree  
-##' Author: Malavika Rajeev 
-####################################################################################################
+# ------------------------------------------------------------------------------------------------ #
+#' Sankey diagram for decision tree                                                                                        
+# ------------------------------------------------------------------------------------------------ #
 
+# set up
 library(ggplot2)
 library(cowplot)
 
@@ -19,13 +18,13 @@ ggplot(data = df, aes(x = x, y = y)) +
 
 df <- data.frame(x = c(0.2, 0.4, 0.6), y = c(0, 2/(0.6 - 0.4), 0))
 ggplot(data = df, aes(x = x, y = y)) + 
-  geom_polygon(fill = "maroon", color = "NA", alpha = 1) +
+  geom_polygon(fill = "darkblue", color = "NA", alpha = 1) +
   geom_vline(xintercept = 0.4, color = "grey", linetype = 2) +
   scale_x_continuous(breaks = df$x) +
   theme_minimal_hgrid()  +
   theme(axis.text.y = element_blank(), axis.ticks.x = element_blank(),
         panel.grid.major.y = element_blank()) +
-  labs(x = "Probability of reported bite being true exposure", y = "")
+  labs(x = "Probability of reported bite being true rabies exposure", y = "")
 
 df <- data.frame(x = c(0.13, 0.16, 0.20), y = c(0, 2/(0.20 - 0.13), 0))
 ggplot(data = df, aes(x = x, y = y)) + 
@@ -52,8 +51,8 @@ plot_ly(
               "U_i (unreported rabies exposures)", "Non-rabid reported exposures", "Deaths Averted", 
               "Rabies exposures not resulting in deaths", "Deaths due to rabies"),
     color = c("#B03060", "lightblue", "#B03060", "darkred", "grey", "#B03060", "grey", "darkred"),
-    x = c(0.25, 0.05, 0.45, 0.45, 0.9, 0.9, 0.9, 0.9),
-    y = c(0.6, 0.2, 0.4, 0.9, 0.02, 0.15, 0.6, 0.99),
+    x = c(0.35, 0.05, 0.55, 0.55, 0.9, 0.9, 0.9, 0.9),
+    y = c(0.6, 0.2, 0.4, 0.9, 0.05, 0.3, 0.6, 0.95),
     pad = 50,
     thickness = 100,
     line = list(
@@ -64,7 +63,7 @@ plot_ly(
   link = list(
     source = c(0, 1, 1, 0, 2, 2, 3, 3),
     target = c(2, 0, 4, 3, 6, 5, 6, 7),
-    value =  c(1, 1, 0.5, 1, 0.6, 0.4, 0.4, 0.6),
+    value =  c(1, 1, 0.5, 1, 0.6, 0.4, 0.6, 0.4),
     color = c("#B03060", "#B03060", "grey", "darkred", "grey", "#B03060", "grey", "darkred")
   )
 )

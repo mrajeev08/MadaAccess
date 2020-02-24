@@ -30,9 +30,12 @@ source("R/functions/out.session.R")
 # Run all Mada models -----------------------------------------------------------------------
 mods_natl <- expand_grid(pop_predict = c("addPop", "onlyPop", "flatPop"), 
                          intercept = c("random", "fixed"), 
-                         scale = c("District", "Commune"), data_source = "National")
+                         scale = c("District", "Commune"),
+                         OD = c("TRUE", "FALSE"), data_source = "National")
 mods_mora <- expand_grid(pop_predict = c("addPop", "onlyPop", "flatPop"), intercept = "fixed", 
-                         scale = "Commune", data_source = "Moramanga")
+                         scale = "Commune", 
+                         OD = c("TRUE", "FALSE"), 
+                         data_source = "Moramanga")
 
 mods_natl %>%
   bind_rows(mods_mora) %>%
@@ -52,17 +55,19 @@ mods_all <-
     covar_df <- j$covars_df[[1]]
     data_df <- j$data_df[[1]]
     ttimes <- covar_df$ttimes_wtd/60
-            
-    out <- estimate.pars(bites = data_df$avg_bites/data_df$pop*1e5,
+    
+    if (j$OD == TRUE) ODname = "poisOD" else ODname = NULL
+    
+    out <- estimate.pars(bites = data_df$avg_bites,
                          ttimes = ttimes, pop = covar_df$pop, 
                          start = data_df$start, end = data_df$end,
                          ncovars = nrow(covar_df), 
                          nlocs = nrow(data_df), catch = covar_df$catch, 
                          ncatches = max(data_df$catch), pop_predict = j$pop_predict, 
-                         intercept = j$intercept, summed = j$sum_it, 
-                         data_source = paste0("norm1e5_", j$data_source),
-                         scale = j$scale, trans = 1e5, burn = 125000, 
-                         chains = 3, adapt = 1000, iter = 500000, thinning = 15,
+                         intercept = j$intercept, summed = j$sum_it, OD = j$OD, 
+                         data_source = paste0(ODname, "_", j$data_source),
+                         scale = j$scale, trans = 1e5, burn = 1000, 
+                         chains = 3, adapt = 1000, iter = 50000, thinning = 4,
                          dic = TRUE, save = TRUE)
     
     samps <- out[["samps"]]
@@ -79,13 +84,13 @@ mods_all <-
                           quant_97.5 = samp_summ$quantiles[, 1], psrf_est = diag$psrf[, 1], 
                           psrf_upper = diag$psrf[, 2], mpsrf = diag$mpsrf, 
                           pop_predict = j$pop_predict, intercept = j$intercept, 
-                          summed = j$sum_it, data_source = j$data_source, 
+                          summed = j$sum_it, data_source = j$data_source, OD = j$OD, 
                           scale = j$scale, dic = dic_est)
   }
 
 warnings()
 
-write.csv(mods_all, "output/mods/estimates_poisOD.csv", row.names = FALSE)
+write.csv(mods_all, "output/mods/estimates.csv", row.names = FALSE)
 
 # Parse these from bash for where to put things
 sync_to <- "~/Documents/Projects/MadaAccess/output/mods/"

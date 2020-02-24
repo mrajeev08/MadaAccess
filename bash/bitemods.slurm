@@ -10,4 +10,4 @@
 
 export OMPI_MCA_btl='tcp,self,sm'
 module load openmpi/gcc/2.0.2
-srun Rscript ./R/03_bitemodels/01_run_bitemods.R remote
+srun Rscript ./R/03_bitemodels/01_run_bitemods.R

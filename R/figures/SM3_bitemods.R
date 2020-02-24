@@ -108,12 +108,12 @@ S3.3 <- ggplot(data = outfit_all,
 ggsave("figs/supplementary/S3.3.jpeg", S3.3, device = "jpeg", height = 8, width = 12)
 
 # Plot priors and posteriors ------------------------------------------------------------------
-all_samps <- get.samps(parent_dir = "output/mods/samps/poisOD_Moramanga/",
-                       files = list.files("output/mods/samps/poisOD_Moramanga", recursive = TRUE))
+all_samps <- get.samps(parent_dir = "output/mods/samps/poisOD_National/",
+                       files = list.files("output/mods/samps/poisOD_National", recursive = TRUE))
 
 all_samps %>%
   select(-contains("alpha")) %>%
-  pivot_longer(c(beta_0:beta_ttimes, sigma_e)) -> samps
+  pivot_longer(c(beta_0:beta_ttimes, sigma_0, sigma_e)) -> samps
 
 priors <- data.frame()
 

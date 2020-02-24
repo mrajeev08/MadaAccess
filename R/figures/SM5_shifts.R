@@ -39,6 +39,27 @@ scale_levs <- c("Commune", "District")
 model_cols <- c("#0B775E", "#35274A")
 names(model_cols) <- scale_levs 
 
+# Catchmaps? ----------------------------------------------------------------------------------
+bites_by_catch <- fread("output/preds/catch_preds.gz")
+
+# join w/ csb + ctar points
+ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
+
+# candidate points
+csbs <- read.csv("data/raw/csbs.csv", stringsAsFactors = FALSE)
+csbs %>% 
+  filter(type == "CSB2", genre_fs != "Priv", type_fs != "Health Post") %>%
+  dplyr::select(CTAR = nom_fs, X_COORD = ycoor, Y_COORD = xcoor) -> csbs
+
+point_mat_all <- rbind(dplyr::select(ctar_metadata, long = LONGITUDE, lat = LATITUDE),
+                       dplyr::select(csbs, long = Y_COORD, lat = X_COORD))
+point_mat_all$catchment <- 1:nrow(point_mat_all)
+bites_by_catch %>%
+  left_join(point_mat_all) -> bites_by_catch
+
+
+
+
 ##' Plotting where clinics are added 
 ##' ------------------------------------------------------------------------------------------------
 ## candidate points
