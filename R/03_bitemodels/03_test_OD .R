@@ -1,8 +1,8 @@
 # ------------------------------------------------------------------------------------------------ #
-#' Test for overdispersion for best fitting models                                                                            
+#' Test for overdispersion for best fitting models
 # ------------------------------------------------------------------------------------------------ #
 
-# Set-up --------------------------------------------------------------------------------------
+# Set-up 
 library(foreach)
 library(data.table)
 library(iterators)
@@ -15,41 +15,27 @@ source("R/functions/predict_functions.R")
 source("R/functions/out.session.R")
 
 # source bite and model ests
+outliers <- c("MG31310", "MG32318")
 district_bites <- fread("output/bites/district_bites.csv")
+district_bites <- district_bites[!(distcode %in% outliers)]
 comm_covars <- fread("output/bites/comm_covars.csv")
+comm_covars <- comm_covars[!(distcode %in% outliers)]
 mora_bites <- fread("output/bites/mora_bites.csv")
 model_ests <- read.csv("output/mods/estimates.csv")
 
-
-# Filter to mods w/ no OD and check convergence -----------------------------------------------
+# Get mod mean param ests, degrees of freedom -----------------------------------------------
 model_ests %>%
-  filter(OD == TRUE) %>%
   select(params, Mean, pop_predict, intercept, summed, data_source,
          scale) %>%
   spread(key = params, value = Mean, fill = 0) -> model_means
 
 
 model_ests %>%
-  filter(OD == TRUE) %>%
   group_by(pop_predict, intercept, scale, data_source) %>%
   summarize(df = n()) -> model_dfs
 
-# Check convergence
-model_ests %>%
-  filter(OD == TRUE) %>%
-  select(data_source, scale, pop_predict, intercept, val = psrf_upper) %>%
-  mutate(type = "psrf_upper") -> psrf
-model_ests %>%
-  filter(OD == TRUE) %>%
-  select(data_source, scale, pop_predict, intercept, val = mpsrf) %>%
-  mutate(type = "mpsrf") -> mpsrf
-convergence_noOD<- bind_rows(mpsrf, psrf)
-write.csv(convergence_noOD, "output/stats/convergence_noOD.csv")
-max(convergence_noOD$val) # all converged
-
-
-
 # Check for overdispersion --------------------------------------------------------------------
+
 # first get expectation 
 exp_bites <- 
   foreach(i = iter(model_means, by = "row"), .combine = rbind) %do% {
@@ -103,48 +89,41 @@ exp_bites %>%
             by = c("names" = "commcode")) -> exp_preds_mora
 exp_preds <- bind_rows(exp_preds_mada, exp_preds_mora)
 
-# get sum of squared errors and compare to the expected variance
+# get sum of squared errors and adjust the sds by the sqrt of the od factor
 exp_preds %>%
   left_join(model_dfs) %>%
   mutate(z = (exp_bites - avg_bites)/sqrt(exp_bites),
          nobs = case_when(data_source %in% "National" ~ nrow(district_bites),
                           data_source %in% "Moramanga" ~ nrow(mora_bites))) %>%
   group_by(data_source, scale, pop_predict, intercept) %>%
-  summarize(od = sqrt(sum(z^2)/(nobs[1] - df[1]))) -> model_ods
+  summarize(od = sum(z^2)/(nobs[1] - df[1])) -> model_ods
 
 model_ests %>%
+  filter(OD == FALSE) %>%
   left_join(model_ods) %>%
-  mutate(sd_adj = SD*od) -> model_ests_adj
+  mutate(sd_adj = SD*sqrt(od)) -> model_ests_adj
 
-ggplot(data = filter(model_ests_adj, intercept == "fixed"), aes(x = data_source, y = Mean, 
-                                                                color = scale)) +
-  geom_pointrange(aes(ymax = Mean + sd_adj, ymin = Mean - sd_adj)) +
-  coord_flip() +
-  facet_wrap(pop_predict ~ params, scales = "free", ncol = 2)
+write.csv(model_ests_adj, "output/mods/estimates_adj_OD.csv")
 
-ggplot(data = filter(model_ests_adj, intercept == "random", !grepl("alpha", params, fixed = TRUE)), 
-       aes(x = data_source, y = Mean, color = scale)) +
-  geom_pointrange(aes(ymax = Mean + sd_adj, ymin = Mean - sd_adj)) +
-  coord_flip() +
-  facet_wrap(pop_predict ~ params, scales = "free", ncol = 2)
 
-ggplot(data = exp_preds, aes(x = ttimes_wtd, y = exp_bites/pop*1e5)) + geom_point()
+# Predictions given OD in params --------------------------------------------------------------
+ttimes_plot <- seq(0, 15, by = 0.05)
 
-# adjust param sds accordingly and plot
-# fixed
-# random effect (sep fig for alpha's too!)
+model_ests_adj %>%
+  select(params, Mean, pop_predict, intercept, data_source,
+         scale) %>%
+  filter()
+  spread(key = params, value = Mean, fill = 0) %>%
+  mutate(n = case_when(data_source == "Moramanga" ~ 61, 
+                       data_source == "National" ~ 82)) -> model_means
 
-# output df of adjusted param estimates
+model_ests_adj %>%
+  select(params, sd_adj, pop_predict, intercept, data_source,
+         scale) %>%
+  spread(key = params, value = SD, fill = 0) %>%
+  mutate(n = case_when(data_source == "Moramanga" ~ 61, 
+                       data_source == "National" ~ 82)) -> model_SDs
 
-# Make dataframe of how we want to predict (and do them in one simplified loop)
-
-# Filter OD models to those that pass this test -----------------------------------------------
-
-# Get priors and posteriors (ggmcmc) (plot) ---------------------------------------------------
-
-# Get predictions fitted ----------------------------------------------------------------------
-
-# Get predictions out of fit ------------------------------------------------------------------
-
-# Get predictions expected rel with ttimes ----------------------------------------------------
+# Session Info
+out.session(path = "R/03_bitemodels/03_test_OD.R", filename = "output/log_local.csv")
 
