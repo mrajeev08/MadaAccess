@@ -26,7 +26,6 @@ pop1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
 # Groundtruthing ------------------------------------------------------------------------------
-
 # Mora self reported ttimes
 mora <- read.csv("data/processed/bitedata/moramanga_ttimes.csv")
 mada_communes$catchment <- ctar_metadata$CTAR[mada_communes$catchment]

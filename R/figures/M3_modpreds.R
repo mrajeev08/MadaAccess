@@ -26,16 +26,16 @@ model_ests %>%
          scale) %>%
   spread(key = params, value = Mean, fill = 0) %>%
   filter(pop_predict == "flatPop") %>%
-  mutate(n = case_when(data_source == "Moramanga" ~ 61, 
-                       data_source == "National" ~ 82)) -> model_means
+  mutate(n = case_when(data_source == "Moramanga" ~ nrow(mora_bites), 
+                       data_source == "National" ~ nrow(district_bites))) -> model_means
 
 model_ests %>%
   select(params, SD, pop_predict, intercept, data_source,
          scale) %>%
   spread(key = params, value = SD, fill = 0) %>%
   filter(pop_predict == "flatPop") %>%
-  mutate(n = case_when(data_source == "Moramanga" ~ 61, 
-                       data_source == "National" ~ 82)) -> model_SDs
+  mutate(n = case_when(data_source == "Moramanga" ~ nrow(mora_bites), 
+                       data_source == "National" ~ nrow(district_bites))) -> model_SDs
 
 # Fig M3.A
 # Predictions of bite incidence per 100k

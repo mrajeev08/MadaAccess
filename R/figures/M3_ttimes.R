@@ -22,7 +22,6 @@ base_times <- raster("output/ttimes/base_ttimes.tif")
 pop1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
-
 # Figure: raw ttimes + prop pop  ----------------------------------------------------------------
 ttime_cols <- c('#fff7f3', '#fde0dd', '#fcc5c0', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e', 
                 '#7a0177', '#49006a')
@@ -31,19 +30,13 @@ ttime_labs <- c("< 1", "1 - 2", "2 - 3", "3 - 4", "4 - 6",  "6 - 8", "8 - 10", "
 names(ttime_cols) <- ttime_labs
 
 base_df <- as.data.frame(base_times, xy = TRUE)
-base_df$pop <- getValues(pop1x1)
-  
+
 ttimes_A <- ggplot() + 
   geom_raster(data = base_df, aes(x, y, 
                                   fill = cut(base_ttimes/60, breaks = ttime_breaks, 
                                              labels = ttime_labs))) + 
   scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
                     drop = FALSE, na.value = "black") +
-  scale_alpha_continuous(range = c(0.1, 1), 
-                         trans = "log", breaks = c(10, 1000, 1e4, 1e5), na.value = 1,
-                         guide = guide_legend(title = "log(pop)", override.aes = list(fill = '#dd3497',
-                                                                                      linetype = 1,
-                                                                                      color = '#dd3497'))) +
   geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "darkgrey", 
              shape = 4,
              stroke = 2) +
@@ -66,21 +59,12 @@ prop_B <- ggplot(data = prop_pop_ttimes, aes(x = cut_times, y = prop_pop,
                                               fill = cut_times)) +
   geom_col(color = "grey") +
   scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
-                    drop = FALSE, guide = "none") +
+                    drop = FALSE) +
   ylim(c(0, 0.6)) +
   labs(x = "Travel times (hrs)", y = "Proportion of\n population") +
   theme_minimal_hgrid() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(tag = "B")
-
-ttimes_base <- (ttimes_A | prop_B) + plot_layout(widths = c(2, 1), guides = "collect")
-
-# for inline figs
-ggsave("figs/main/ttimes_base.jpeg", ttimes_base, height = 5, width = 7)
-# for plos
-ggsave("figs/main/ttimes_base.tiff", ttimes_base, dpi = 300, height = 5, width = 7,
-       compression = "lzw", type = "cairo")
-
 
 # Comparing ttimes wtd/un/distance ------------------------------------------------------------
 gtruth <- read.csv("output/ttimes/gtruth_ttimes.csv")
@@ -90,126 +74,45 @@ gtruth %>%
   group_by(commcode) %>%
   summarize(mean = mean(ttimes_reported), 
             nobs = n(), 
-            max = max(ttimes_reported, na.rm = TRUE), min = min(ttimes_reported, na.rm = TRUE)) %>%
+            max = max(ttimes_reported, na.rm = TRUE), min = min(ttimes_reported, na.rm = TRUE),
+            upper = quantile(ttimes_reported, probs = 0.975), 
+            lower = quantile(ttimes_reported, probs = 0.0275)) %>%
   left_join(select(gtruth, type, commcode, ttimes_est, ttimes_un, distance)) %>%
   unique() -> mora_means
 
 gtruth %>%
   filter(type == "point") %>%
-  mutate(nobs = 5, mean = ttimes_reported) %>%
+  mutate(nobs = 1, mean = ttimes_reported) %>%
   bind_rows(mora_means) -> all
 
-gtruth_comp <- ggplot(data = all, 
-       aes(x = ttimes_est, y = mean, size = log(nobs), shape = type, 
-           color = type)) +
+gtruth_comp_C <- ggplot(data = all, 
+       aes(x = ttimes_est, y = mean, size = log(nobs + 5), shape = type, 
+           fill = type), color = "grey50") +
   geom_point(alpha = 0.75) +
-  geom_linerange(aes(ymax = max, ymin = min), size = 1, alpha = 0.75) +
-  scale_size_identity() +
-  geom_smooth(method = "lm", size = 1) +
-  scale_shape_discrete(solid = TRUE, labels = c("Commune mean", "Grid cell"),
+  geom_linerange(aes(ymax = upper, ymin = lower), size = 1, alpha = 0.5) +
+  scale_size_identity(breaks = log(c(5, 25, 100) + 5), labels = c("5", "25", "100+"),
+                      guide = "legend", name = "No. of observations \n (for commune mean)") +
+  geom_smooth(method = "lm", aes(color = type, fill = type), alpha = 0.5, size = 1) +
+  scale_shape_manual(values = c(21, 22), labels = c("Commune mean", "Grid cell"),
                        name = "Type of estimate") +
   scale_color_manual(values = c("#665565", "#CC575F"),
                                   labels = c("Commune mean", "Grid cell"), 
                        name = "Type of estimate") +
+  scale_fill_manual(values = c("#665565", "#CC575F"),
+                     labels = c("Commune mean", "Grid cell"), 
+                     name = "Type of estimate") +
   geom_abline(slope = 1, intercept = 0, linetype = 2) + 
-  guides(shape = guide_legend(override.aes = list(linetype = c(0, 0), fill = "NA",
-                                                  size = 2))) +
+  guides(shape = guide_legend(override.aes = list(linetype = c(0, 0), size = 2))) +
   theme_minimal_hgrid() +
-  labs(x = "Estimated travel times (hrs)", y = "Reported travel times (hrs)")
+  labs(x = "Estimated travel times (hrs)", y = "Reported travel times (hrs)", 
+       tag = "C")
  
-# for inline figs
-ggsave("figs/main/gtruth.jpeg", gtruth_comp, height = 5, width = 5)
+# combined
+figM2_ttimes <- (ttimes_A + (prop_B / gtruth_comp_C)) + plot_layout(widths = c(1.5, 1))
 # for plos
-ggsave("figs/main/gtruth.tiff", gtruth_comp, dpi = 300, height = 5, width = 5,
+ggsave("figs/main/M2_ttimes.jpeg", figM2_ttimes, height = 10, width = 10)
+ggsave("figs/main/M2_ttimes.tiff", figM2_ttimes, dpi = 300, height = 10, width = 10,
        compression = "lzw", type = "cairo")
 
-# Supplementary  ------------------------------------------------------------------------------
-
-# Raw data (IPM)
-
-# Raw data (Mora)
-
-# Plots comparing ttimes_wtd / unwtd / distance @ commune/district/grid scales
-all$ttimes_wtd <- ifelse(all$type == "commune_wtd", all$ttimes_est, NA)
-all$ttimes_un <- ifelse(all$type == "point", all$ttimes_est, all$ttimes_un)
-
-ggplot(data = filter(all, type == "commune_wtd"), 
-       aes(x = ttimes_wtd, y = mean, size = log(nobs), shape = type), alpha = 0.75) +
-  geom_point() +
-  scale_size_identity() +
-  geom_smooth(method = "lm") +
-  facet_wrap(~ type, scales = "free_x", drop = FALSE)
-
-ggplot(data = all, 
-       aes(x = ttimes_un, y = mean, size = log(nobs), shape = type), alpha = 0.75) +
-  geom_point() +
-  scale_size_identity() +
-  geom_smooth(method = "lm", , size = 1) +
-  facet_wrap(~ type, scales = "free_x")
-
-points <- c(NA, summary(lm(mean ~ ttimes_un, data =filter(all, type == "point")))$r.squared,
-            summary(lm(mean ~ log(distance), data =filter(all, type == "point")))$r.squared)
-communes <- c(summary(lm(mean ~ ttimes_wtd, data =filter(all, type == "commune_wtd")))$r.squared, 
-              summary(lm(mean ~ ttimes_un, data =filter(all, type == "commune_wtd")))$r.squared,
-              summary(lm(mean ~ log(distance), data =filter(all, type == "commune_wtd")))$r.squared)  
-metric <- c("Weighted travel times (hrs)", "Unweighted travel times (hrs)", "Distance (km)")
-
-write.csv(data.frame(metric, points, communes), "output/stats/access_met_r2.csv")
-
-ggplot(data = all, 
-       aes(x = distance, y = mean, size = log(nobs), shape = type), alpha = 0.75) +
-  geom_point() +
-  scale_size_identity() +
-  geom_smooth(method = "lm", size = 1) +
-  facet_wrap(~ type, scales = "free_x")
-
-ggplot() +
-  geom_point(data = all, 
-             aes(x = ttimes_un, y = mean, 
-                 color = mean, size = log(nobs), shape = type),
-             alpha = 0.75) +
-  scale_color_viridis_c(option = "magma", direction = -1) +
-  scale_size_identity() +
-  geom_abline(slope = 1, intercept = 0, linetype = 2)
-
-dist <- ggplot() +
-  geom_point(data = all, 
-             aes(x = distance, y = mean, 
-                 color = mean, size = log(nobs), shape = type),
-             alpha = 0.75) +
-  scale_color_viridis_c(option = "magma", direction = -1) +
-  scale_size_identity() +
-  geom_smooth(data = all, aes(x = distance, y = mean), method = "lm")
-
-(ttimes_un + ttimes_wtd + dist) + plot_layout(nrow = 3)
-
-summary(lm(ttimes_reported ~ distance, all))$r.squared
-
-cor(mora_means$mean, mora_means$ttimes_est, use = "complete.obs")
-cor(gtruth$ttimes_un, gtruth$ttimes_reported, use = "complete.obs")
-cor(gtruth$distance, gtruth$ttimes_reported, use = "complete.obs")
-
-GGally::ggpairs(data = all, columns = c("ttimes_est", "ttimes_un", "distance", "ttimes_reported"))
-
-gtruth %>%
-  filter(type != "point", !is.na(mode)) %>%
-  group_by(mode) %>%
-  summarize(ttimes_est = mean(ttimes_est, na.rm = TRUE), 
-            ttimes_reported = mean(ttimes_reported, na.rm = TRUE),
-            nobs = n()) -> mode_sum
-gtruth_mora <- filter(gtruth, type != "point", !is.na(mode))
-ggplot(data = mode_sum, aes(x = mode, y = nobs, fill = ttimes_reported)) + geom_col()
-
-ggplot(data = gtruth_mora, aes(x = mode, y = ttimes_reported)) + 
-  geom_boxplot(outlier.color = NA) +
-  ggbeeswarm::geom_quasirandom(alpha = 0.5, shape = 1)
-
-ggplot(data = gtruth_mora, aes(x = mode, y = ttimes_reported)) + 
-  geom_violin() +
-  ggbeeswarm::geom_quasirandom(alpha = 0.5, shape = 1)
-
-ggplot(data = gtruth_mora, aes(x = reorder(mode, mode, function(x) -length(x)))) + geom_bar()
-ggplot(data = gtruth_mora, aes(x = reorder(mode, mode, function(x) -length(x)))) + 
-  geom_bar() +
-  facet_wrap(~commcode, scales = 'free')
-
+# save session info
+out.session(path = "R/figures/M2_ttimes.R", filename = "output/log_local.csv")

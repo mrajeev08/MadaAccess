@@ -9,6 +9,7 @@ library(dplyr)
 library(raster)
 library(rgdal)
 library(data.table)
+library(rmapshaper)
 source("R/functions/out.session.R")
 
 # Shapefiles
@@ -71,6 +72,19 @@ writeOGR(mada_communes, dsn = "data/processed/shapefiles", layer = "mada_commune
          driver = "ESRI Shapefile", overwrite_layer = TRUE)
 writeOGR(mada_districts, dsn = "data/processed/shapefiles", layer = "mada_districts", 
          driver = "ESRI Shapefile", overwrite_layer = TRUE)
+
+# Simplify shapefiles for easier plotting ---------------------------------------------------------
+mada_districts <- rmapshaper::ms_simplify(mada_districts)
+format(object.size(mada_districts), units = "Mb")
+
+mada_communes <- rmapshaper::ms_simplify(mada_communes)
+format(object.size(mada_communes), units = "Mb")
+
+# convert to geojson using command line gdal
+writeOGR(mada_districts, "data/processed/shapefiles", layer = "mada_districts_simple", 
+         driver = "ESRI Shapefile", overwrite = TRUE)
+writeOGR(mada_communes, "data/processed/shapefiles", layer = "mada_communes_simple", 
+         driver = "ESRI Shapefile", overwrite = TRUE)
 
 # Saving session info
 out.session(path = "R/01_gis/05_make_shapefiles.R", filename = "output/log_local.csv")
