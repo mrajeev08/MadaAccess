@@ -17,3 +17,5 @@ figs/
 docs/*temp*
 *.html
 misc
+master.sh
+bash/*
