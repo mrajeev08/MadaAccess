@@ -5,6 +5,7 @@
 
 # source bite ests
 source("R/functions/out.session.R")
+source("R/functions/summarize_samps.R")
 
 # libraries
 library(foreach)
@@ -12,6 +13,7 @@ library(iterators)
 library(tidyverse)
 library(glue)
 library(patchwork)
+library(cowplot)
 library(data.table)
 
 # source bite ests
@@ -47,11 +49,63 @@ modpreds <- ggplot(data = filter(preds, intercept == "random" | data_source == "
   scale_fill_manual(values = model_cols, name = "Scale",
                     labels = scale_labs) +
   scale_shape_manual(values = c(6, 1), name = "Dataset") +
-  labs(x = "Travel time (hrs)", y = "Predicted bites per 100k") +
+  labs(x = "Travel time (hrs)", y = "Predicted bites per 100k", tag = "A") +
   cowplot::theme_minimal_grid()
 
-ggsave("figs/main/M5_modpreds.tiff", modpreds, dpi = 300, height = 4, width = 6)
-ggsave("figs/main/M5_modpreds.jpeg", modpreds, height = 4, width = 6)
+# Plot posterior ests ------------------------------------------------------------------
+all_samps_natl <- get.samps(parent_dir = "output/mods/samps/National/")
+all_samps_natl <- filter(all_samps_natl, pop_predict == "flatPop", 
+                         intercept == "random")
+all_samps_mora <- get.samps(parent_dir = "output/mods/samps/Moramanga/")
+all_samps_mora <- filter(all_samps_mora, pop_predict == "flatPop")
+all_samps <- bind_rows(all_samps_mora, all_samps_natl)
+
+# so that same # of hgrid lines across these
+set_breaks = function(limits) {
+  round(seq(limits[1] + 0.5, limits[2] - 0.5, length.out = 3), 1)
+}
+
+beta_ttimes <- ggplot(data = filter(all_samps, Parameter == "beta_ttimes"), 
+                aes(x = Parameter, y = value, 
+                                      fill = interaction(data_source, scale))) +
+  geom_violin(alpha = 0.5) +
+  scale_fill_manual(values = model_cols, name = "Scale",
+                    labels = scale_labs, guide = "none") +
+  scale_x_discrete(labels = "") +
+  labs(x = bquote(beta[t] ~ "(Travel time effect)"), y = "Estimate", 
+       tag = "B") +
+  theme_minimal_hgrid() +
+  theme(axis.ticks.x = element_blank())
+
+
+beta_0 <- ggplot(data = filter(all_samps, Parameter == "beta_0"), 
+       aes(x = Parameter, y = value, 
+           fill = interaction(data_source, scale))) +
+  geom_violin(alpha = 0.5) +
+  scale_fill_manual(values = model_cols, name = "Scale",
+                    labels = scale_labs, guide = "none") +
+  scale_x_discrete(labels = "") +
+  scale_y_continuous(breaks = set_breaks) +
+  labs(x = bquote(beta[0] ~ "(Intercept)"), y = "Estimate", tag = "C") +
+  theme_minimal_hgrid() +
+  theme(axis.ticks.x = element_blank())
+
+sigma_0 <- ggplot(data = filter(all_samps, Parameter == "sigma_0"), 
+       aes(x = Parameter, y = value, 
+           fill = interaction(data_source, scale))) +
+  geom_violin(alpha = 0.5) +
+  scale_fill_manual(values = model_cols, name = "Scale",
+                    labels = scale_labs, guide = "none") +
+  scale_x_discrete(labels = "") +
+  labs(x = bquote(sigma[0] ~ "(Catchment random effect)"), y = "Estimate", tag = "D") +
+  theme_minimal_hgrid() +
+  theme(axis.ticks.x = element_blank())
+
+posts <- beta_0/beta_ttimes/sigma_0
+mods <- (modpreds | posts) + plot_layout(guides = "collect")
+
+ggsave("figs/main/M5_mods.tiff", mods, dpi = 300, height = 8, width = 8)
+ggsave("figs/main/M5_mods.jpeg", mods, height = 8, width = 8)
 
 # Session Info
 out.session(path = "R/M5_modpreds.R", filename = "output/log_local.csv")

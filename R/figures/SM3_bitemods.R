@@ -5,7 +5,6 @@
 
 # source 
 source("R/functions/out.session.R")
-source("R/functions/summarize_samps.R")
 source("R/functions/nested_facets.R")
 
 # libraries
@@ -170,60 +169,6 @@ pred_inc_cutoffs <- ggplot(data = filter(preds_se, intercept == "random"),
 ggsave("figs/supplementary/S3.5_cutoffs.jpeg", pred_inc_cutoffs, device = "jpeg", height = 6, 
        width = 6)
 
-# Plot posterior ests ------------------------------------------------------------------
-# For random effect model at district scale + commune model w/ Moramanga data
-scale_levs <- c("Moramanga.Commune", "National.Commune", "National.District")
-scale_labs <- c("Moramanga", "Commune", "District")
-model_cols <- c("#F2300F", "#0B775E", "#35274A")
-names(scale_labs) <- scale_levs 
-names(model_cols) <- scale_levs
-
-all_samps <- get.samps(parent_dir = "output/mods/samps/National/")
-all_samps_mora <- get.samps(parent_dir = "output/mods/samps/Moramanga/")
-all_samps <- bind_rows(all_samps_mora, all_samps)
-
-
-ggplot(data = filter(all_samps, data_source == "Moramanga", pop_predict == "flatPop",
-                                     !grepl("alpha", Parameter)), 
-                       aes(x = Parameter, y = value, fill = interaction(data_source, scale))) +
-  geom_boxplot(alpha = 0.5) +
-  scale_fill_manual(values = model_cols, name = "Scale",
-                    labels = scale_labs) +
-  facet_grid(intercept ~ Parameter, scales = "free", drop = FALSE) +
-  labs(x = "Estimate", y = "Density") +
-  theme_minimal_grid()
-
-ggplot(data = filter(all_samps, data_source == "National", pop_predict == "flatPop",
-                     !grepl("alpha", Parameter)), 
-       aes(x = value, fill = interaction(data_source, scale))) +
-  geom_density(alpha = 0.5) +
-  scale_fill_manual(values = model_cols, name = "Scale",
-                    labels = scale_labs) +
-  facet_wrap(intercept ~ Parameter, scales = "free", drop = FALSE) +
-  labs(x = "Estimate", y = "Density") +
-  theme_minimal_grid()
-
-fixed_posts <- ggplot(data = all_samps_fixed, 
-                      aes(x = value, fill = interaction(data_source, scale))) +
-  geom_density(alpha = 0.5) +
-  scale_fill_manual(values = model_cols, name = "Scale",
-                    labels = scale_labs) +
-  facet_wrap(Parameter ~ pop_predict, scales = "free", ncol = 3, drop = FALSE) +
-  labs(x = "Estimate", y = "Density")
-
-ggplot(data = all_samps_fixed, 
-       aes(x = Iteration, y = value, linetype = factor(Chain), 
-           color = interaction(data_source, scale))) +
-  geom_line(alpha = 0.5) +
-  scale_color_manual(values = model_cols, name = "Scale",
-                     labels = scale_labs) +
-  facet_wrap(Parameter ~ pop_predict, scales = "free", ncol = 3, drop = FALSE) +
-  labs(x = "Iteration", y = "Estimate")
-
-ggsave("figs/supplementary/random_posts.jpeg", random_posts)
-ggsave("figs/supplementary/fixed_posts.jpeg", fixed_posts)
-
-ggsave("figs/supplementary/pred_inc_cutoffs.jpeg", width = 7, height = 10)
-
-
+# Session Info
+out.session(path = "R/figures/SM3_bitemods.R", filename = "output/log_local.csv")
 
