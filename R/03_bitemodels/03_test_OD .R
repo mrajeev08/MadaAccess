@@ -105,25 +105,7 @@ model_ests %>%
 
 write.csv(model_ests_adj, "output/mods/estimates_adj_OD.csv")
 
-
-# Predictions given OD in params --------------------------------------------------------------
-ttimes_plot <- seq(0, 15, by = 0.05)
-
-model_ests_adj %>%
-  select(params, Mean, pop_predict, intercept, data_source,
-         scale) %>%
-  filter()
-  spread(key = params, value = Mean, fill = 0) %>%
-  mutate(n = case_when(data_source == "Moramanga" ~ 61, 
-                       data_source == "National" ~ 82)) -> model_means
-
-model_ests_adj %>%
-  select(params, sd_adj, pop_predict, intercept, data_source,
-         scale) %>%
-  spread(key = params, value = SD, fill = 0) %>%
-  mutate(n = case_when(data_source == "Moramanga" ~ 61, 
-                       data_source == "National" ~ 82)) -> model_SDs
-
 # Session Info
-out.session(path = "R/03_bitemodels/03_test_OD.R", filename = "output/log_local.csv")
+out.session(path = "R/03_bitemodels/02_OD_test.R", filename = "output/log_local.csv")
+
 

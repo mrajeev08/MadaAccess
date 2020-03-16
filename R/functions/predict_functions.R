@@ -122,7 +122,7 @@ predict.bites.fixed <- function(ttimes, pop, catch, names,
 predict.bites <- function(ttimes, pop, catch, names, 
                           beta_ttimes, beta_0, beta_pop, sigma_0, known_alphas, 
                           beta_ttimes_sd, beta_0_sd, beta_pop_sd,
-                          pop_predict = "addPop", intercept = "random", dist = TRUE,
+                          pop_predict = "addPop", intercept = "random", dist = FALSE,
                           trans = 1e5, known_catch = TRUE, nsims = 1000, 
                           type = "bites",...) {
   

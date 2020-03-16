@@ -1,88 +1,43 @@
-## Function to summarize results in output directory (or in other directories accordingly)
-## Subset outside of function if you want to run on only bits of it
-get.samps <- function(parent_dir = "output/samps/", 
-                              files = list.files("output/samps", recursive = TRUE)) {
-  ## testing
-  # parent_dir <- "output/scales/"
-  # files <- list.files("output", recursive = TRUE)
-  files <- files[!grepl("dic", files, fixed = TRUE)]
+# Function to summarize results in output directory (or in other directories accordingly)
+# Subset outside of function if you want to run on only bits of it
+get.samps <- function(parent_dir = "output/mods/samps/") {
   
-  ## Response var structure
+  # list files
+  files <- list.files(parent_dir, recursive = TRUE)
+
+  # Response var structure
   pop_predict <- case_when(grepl("flatPop", files, fixed = TRUE) ~ "flatPop",
                         grepl("addPop", files, fixed = TRUE) ~ "addPop",
                         grepl("onlyPop", files, fixed = TRUE) ~ "onlyPop")
   
-  ## Location 
+  # Location 
   intercept <- case_when(grepl("fixed", files, fixed = TRUE) ~ "fixed",
                         grepl("random", files, fixed = TRUE) ~ "random")
   
-  ## Scale 
+  # Scale 
   scale <- case_when(grepl("Commune", files, fixed = TRUE) ~ "Commune",
                      grepl("District", files, fixed = TRUE) ~ "District")
-  ## Structure 
-  data_source <- case_when(grepl("Moramanga", files, fixed = TRUE) ~ "Moramanga",
-                         grepl("National", files, fixed = TRUE) ~ "National")
+  # Data source 
+  data_source <- case_when(grepl("Moramanga", parent_dir, fixed = TRUE) ~ "Moramanga",
+                         grepl("National", parent_dir, fixed = TRUE) ~ "National")
  
-  ## file data table
+  # file data table
   file_dt <- as.data.frame(list(filenames = files, pop_predict = pop_predict, scale = scale,
                                 intercept = intercept, data_source = data_source))
   
-  ## Pull in samples
-  all_samps <- foreach(i = 1:nrow(file_dt)) %do% {
-    samples <- readRDS(paste0(parent_dir, file_dt$filenames[i]))
-    samples <- as.data.frame(do.call(rbind, samples[[1]]))
-    samples$scale <- file_dt$scale[i]
-    samples$data_source <- file_dt$data_source[i]
-    samples$intercept <- file_dt$intercept[i]
-    samples$pop_predict <- file_dt$pop_predict[i]
+  # Pull in samples
+  all_samps <- foreach(j = iter(file_dt, by = "row"), .combine = bind_rows) %do% {
+    filename <- paste0(parent_dir, j$filenames)
+    samples <- readRDS(filename)
+    samples <- ggmcmc::ggs(samples[[1]])
+    samples$scale <- j$scale
+    samples$data_source <- j$data_source
+    samples$intercept <- j$intercept
+    samples$pop_predict <- j$pop_predict
+    samples$filename  <- filename
     samples
   }
-  
-  all_samps <- bind_rows(all_samps)
-  
+ 
   return(all_samps)
 }
 
-## Function to summarize results in output directory (or in other directories accordingly)
-get.samps.se <- function(parent_dir = "output/samps/", 
-                      files = list.files("output/samps", recursive = TRUE)) {
-  ## testing
-  # parent_dir <- "output/mods/samps/National_se/"
-  # files <- list.files("output/mods/samps/National_se", recursive = TRUE)
-
-  ## Response var structure
-  pop_predict <- case_when(grepl("flatPop", files, fixed = TRUE) ~ "flatPop",
-                           grepl("addPop", files, fixed = TRUE) ~ "addPop",
-                           grepl("onlyPop", files, fixed = TRUE) ~ "onlyPop")
-  
-  ## Location 
-  intercept <- case_when(grepl("fixed", files, fixed = TRUE) ~ "fixed",
-                         grepl("random", files, fixed = TRUE) ~ "random")
-  
-  ## Scale 
-  scale <- case_when(grepl("Commune", files, fixed = TRUE) ~ "Commune",
-                     grepl("District", files, fixed = TRUE) ~ "District")
-  ## Structure 
-  data_source <- case_when(grepl("Moramanga", files, fixed = TRUE) ~ "Moramanga",
-                           grepl("National", files, fixed = TRUE) ~ "National")
-  ## Contact cutoff
-  contact_cutoff <- str_split(files, "_", simplify = TRUE)[, 2]
-  ## Reporting cutoff
-  rep_cutoff <- str_split(files, "_", simplify = TRUE)[, 3]
-  
-  ## file data table
-  file_dt <- as.data.frame(list(filenames = files, pop_predict = pop_predict, scale = scale,
-                                intercept = intercept, data_source = data_source, 
-                                rep_cutoff = rep_cutoff, contact_cutoff = contact_cutoff))
-
-  ## Pull in samples
-  all_samps <- foreach(i = 1:nrow(file_dt)) %do% {
-    samples <- readRDS(paste0(parent_dir, file_dt$filenames[i]))
-    samples <- as.data.frame(do.call(rbind, samples[[1]]))
-    samples <- data.frame(samples, file_dt[i, -1], row.names = NULL)
-  }
-  
-  all_samps <- bind_rows(all_samps)
-  
-  return(all_samps)
-}

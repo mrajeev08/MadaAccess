@@ -1,17 +1,18 @@
-## Models w/out random effect
-##' Model with grouping var w/out random effect
+# Models w/out random effect
+
+# Model with grouping var w/out random effect
 if (summed == TRUE) {
   model <- "model {
 
     # Priors
-    beta_0 ~ dnorm(0, 10^-6)
-    beta_ttimes ~ dnorm(0, 10^-6)
+    beta_0 ~ dnorm(0, 10^-3)
+    beta_ttimes ~ dnorm(0, 10^-3)
     
     # Insert OD prior here
     
     # Likelihood
     for (i in 1:ncovars) {
-      nbites[i] <- exp_bites[i]*pop[i]
+      nbites[i] <- exp_bites[i]*pop[i] # remove offset
       log(exp_bites[i]) <- beta_0 + beta_ttimes*ttimes[i] # Insert OD param here
     }
     
@@ -21,75 +22,78 @@ if (summed == TRUE) {
     }
   }"
   
-  ## data
+  # data
   data <- list(bites = round(bites), ttimes = ttimes, pop = pop,
                ncovars = ncovars, nlocs = nlocs, start = start, end = end)
 }
 
-## Unsummed model
+# Model @ District scale
 if (summed == FALSE) {
   model <- "model {
 
     # Priors
-    beta_0 ~ dnorm(0, 10^-6)
-    beta_ttimes ~ dnorm(0, 10^-6)
+    beta_0 ~ dnorm(0, 10^-3)
+    beta_ttimes ~ dnorm(0, 10^-3)
     
     # Insert OD prior here
     
     # Likelihood
     for (i in 1:nlocs) {
       bites[i] ~ dpois(nbites[i])
-      nbites[i] <- exp_bites[i]*pop[i]
+      nbites[i] <- exp_bites[i]*pop[i] # remove offset
       log(exp_bites[i]) <- beta_0 + beta_ttimes*ttimes[i] # Insert OD param here
     }
   }"
   
-  ## data
+  # data
   data <- list(bites = round(bites), ttimes = ttimes, pop = pop,
                nlocs = nlocs)
 
 }
 
-## params
+# params
 params <- c("beta_0", "beta_ttimes")
-## inits
-inits <- list(beta_0 = rnorm(1, 0, 1e-6), 
-              beta_ttimes = rnorm(1, 0, 1e-6))
+# inits
+inits <- list(beta_0 = rnorm(1, 0, 1), 
+              beta_ttimes = rnorm(1, 0, 1))
 
-## Other options
+# Pop options
 if(pop_predict ==  "addPop") {
-  ## edit model text accordingly
-  model <- gsub("beta_ttimes ~ dnorm(0, 10^-6)",
-                "beta_ttimes ~ dnorm(0, 10^-6)\n    beta_pop ~ dnorm(0, 10^-6)", 
+  # edit model text accordingly
+  model <- gsub("beta_ttimes ~ dnorm(0, 10^-3)",
+                "beta_ttimes ~ dnorm(0, 10^-3)\n    beta_pop ~ dnorm(0, 10^-3)", 
                 model, fixed = TRUE)   # add extra params + priors
+  model <- gsub("*pop[i] # remove offset", "", model, fixed = TRUE) # remove the offset
   model <- gsub("beta_0 + beta_ttimes*ttimes[i]",
                 "beta_0 + beta_ttimes*ttimes[i] + beta_pop*pop[i]/trans", 
                 model, fixed = TRUE)    # change formula for exp_bites
-  ## data add in trans
+  # data add in trans
   data <- c(data, trans = trans)
-  ## params: add beta pop
+  # params: add beta pop
   params <- c(params, "beta_pop")
-  ## inits: add beta pop
-  inits <- c(inits, beta_pop = rnorm(1, 0, 1e-6))
+  # inits: add beta pop
+  inits <- c(inits, beta_pop = rnorm(1, 0, 1))
 }
 
 if(pop_predict ==  "onlyPop") {
-  ## edit model text accordingly
-  model <- gsub("beta_ttimes ~ dnorm(0, 10^-6)",
-                "beta_pop ~ dnorm(0, 10^-6)", model, fixed = TRUE)   # remove extra params + priors
+  # edit model text accordingly
+  model <- gsub("beta_ttimes ~ dnorm(0, 10^-3)",
+                "beta_pop ~ dnorm(0, 10^-3)", model, fixed = TRUE)   # remove extra params + priors
+  model <- gsub("*pop[i] # remove offset", "", model, fixed = TRUE) # remove the offset
   model <- gsub("beta_0 + beta_ttimes*ttimes[i]",
                 "beta_0 + beta_pop*pop[i]/trans",
                 model, fixed = TRUE)   # change formula for exp_bites
-  ## data add in trans
+  # data add in trans
   data <- c(data, trans = trans)
   params <- c(params, "beta_pop")
   
-  ## remove ttimes from every bit
+  # remove ttimes from every bit
   data[["ttimes"]] <- NULL
   inits[["beta_ttimes"]] <- NULL
   params <- params[params != "beta_ttimes"]
 }
 
+# Overdispersion
 if(OD == TRUE) {
   
   "sigma_e ~ dunif(0, 100)
@@ -111,3 +115,4 @@ if(OD == TRUE) {
   # add sigma_e to param list
   params <- c(params, "sigma_e")
 }
+

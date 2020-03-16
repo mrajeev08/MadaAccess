@@ -40,53 +40,53 @@ write.csv(convergence, "output/stats/convergence.csv")
 preds_mada <- 
   foreach(i = iter(model_means, by = "row"), 
           j = icount(), .combine = "rbind") %do% {
-    
-    print(j/nrow(model_means)*100)
-    if(i$data_source == "Moramanga") {
-      covar_df <- mora_bites
-      covar_df$names <- mora_bites$commcode
-    } else {
-      if(i$scale == "District") {
-        covar_df <- district_bites
-        covar_df$names <- district_bites$distcode
-      } else {
-        covar_df <- comm_covars
-        covar_df$names <- comm_covars$commcode
-      }
-    }
-    
-    # Also transform covar
-    covar_df$ttimes <- covar_df$ttimes_wtd/60
-    
-    if(i$intercept == "random") {
-      known_alphas <-  as.numeric(i[, match(glue("alpha[{covar_df$catch}]"), colnames(i))])
-    } else {
-      known_alphas <- rep(NA, nrow(covar_df))
-    }
-    
-    bite_mat <- predict.bites(ttimes = covar_df$ttimes, pop = covar_df$pop, 
-                              catch = covar_df$pop, names = covar_df$distcode,
-                              beta_ttimes = i$beta_ttimes, beta_0 = i$beta_0, 
-                              beta_pop = i$beta_pop, sigma_0 = i$sigma_0, sigma_e = 0,
-                              known_alphas = known_alphas, pop_predict = i$pop_predict, OD = FALSE,
-                              intercept = i$intercept, trans = 1e5, known_catch = TRUE, 
-                              nsims = 1000, dist = FALSE)
-    
-    mean <- rowMeans(bite_mat, na.rm = TRUE) # mean for each row = admin unit
-    sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
-    data.table(names = covar_df$names, group_names = covar_df$distcode,
-               ttimes = covar_df$ttimes, pop = covar_df$pop, 
-               catch = covar_df$catch, mean_bites = mean, sd_bites = sd, 
-               pop_predict = i$pop_predict, intercept = i$intercept, scale = i$scale, 
-               data_source = i$data_source, OD = FALSE)
-}
+            
+            print(j/nrow(model_means)*100)
+            if(i$data_source == "Moramanga") {
+              covar_df <- mora_bites
+              covar_df$names <- mora_bites$commcode
+            } else {
+              if(i$scale == "District") {
+                covar_df <- district_bites
+                covar_df$names <- district_bites$distcode
+              } else {
+                covar_df <- comm_covars
+                covar_df$names <- comm_covars$commcode
+              }
+            }
+            
+            # Also transform covar
+            covar_df$ttimes <- covar_df$ttimes_wtd/60
+            
+            if(i$intercept == "random") {
+              known_alphas <-  as.numeric(i[, match(glue("alpha[{covar_df$catch}]"), colnames(i))])
+            } else {
+              known_alphas <- rep(NA, nrow(covar_df))
+            }
+            
+            bite_mat <- predict.bites(ttimes = covar_df$ttimes, pop = covar_df$pop, 
+                                      catch = covar_df$pop, names = covar_df$distcode,
+                                      beta_ttimes = i$beta_ttimes, beta_0 = i$beta_0, 
+                                      beta_pop = i$beta_pop, sigma_0 = i$sigma_0, sigma_e = 0,
+                                      known_alphas = known_alphas, pop_predict = i$pop_predict, OD = FALSE,
+                                      intercept = i$intercept, trans = 1e5, known_catch = TRUE, 
+                                      nsims = 1000, dist = FALSE)
+            
+            mean <- rowMeans(bite_mat, na.rm = TRUE) # mean for each row = admin unit
+            sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
+            data.table(names = covar_df$names, group_names = covar_df$distcode,
+                       ttimes = covar_df$ttimes, pop = covar_df$pop, 
+                       catch = covar_df$catch, mean_bites = mean, sd_bites = sd, 
+                       pop_predict = i$pop_predict, intercept = i$intercept, scale = i$scale, 
+                       data_source = i$data_source, OD = FALSE)
+          }
 
 preds_mada %>%
   filter(data_source != "Moramanga") %>%
   group_by(group_names, data_source, scale, pop_predict, intercept, OD) %>% 
   summarize_at(vars(contains("bites")), sum) %>%
   left_join(district_bites, by = c("group_names" = "distcode")) -> preds_mada_grouped
-            
+
 preds_mada %>%
   filter(data_source == "Moramanga") %>%
   select(names, group_names, data_source, scale, OD, pop_predict, intercept, mean_bites, 
@@ -105,30 +105,30 @@ model_means %>%
 outfit_mora <- 
   foreach(i = iter(mada_means, by = "row"), j = icount(), 
           .combine = "rbind") %do% {
-    
-    print(j/nrow(mada_means)*100)
-
-    if(i$intercept == "random") {
-      known_alphas <-  as.numeric(i[, match(glue("alpha[{mora_bites$catch}]"), colnames(i))])
-    } else {
-      known_alphas <- rep(NA, nrow(mora_bites))
-    }
-    
-    bite_mat <- predict.bites(ttimes = mora_bites$ttimes_wtd/60, pop = mora_bites$pop, 
-                              catch = mora_bites$catch, names = mora_bites$commcode,
-                              beta_ttimes = i$beta_ttimes, beta_0 = i$beta_0, 
-                              beta_pop = i$beta_pop, sigma_0 = i$sigma_0, sigma_e = 0,
-                              known_alphas = known_alphas, pop_predict = i$pop_predict, OD = FALSE,
-                              intercept = i$intercept, trans = 1e5, known_catch = TRUE, 
-                              nsims = 1000, dist = FALSE)
-    mean <- rowMeans(bite_mat, na.rm = TRUE) # mean for each row = admin unit
-    sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
-    data.table(names = mora_bites$commcode, 
-               ttimes = mora_bites$ttimes_wtd/60, pop = mora_bites$pop, 
-               catch = mora_bites$catch, mean_bites = mean, sd_bites = sd, 
-               pop_predict = i$pop_predict, intercept = i$intercept, scale = i$scale, OD = FALSE,
-               data_source = i$data_source, type = "mora_outfit", observed = mora_bites$avg_bites)
-  }
+            
+            print(j/nrow(mada_means)*100)
+            
+            if(i$intercept == "random") {
+              known_alphas <-  as.numeric(i[, match(glue("alpha[{mora_bites$catch}]"), colnames(i))])
+            } else {
+              known_alphas <- rep(NA, nrow(mora_bites))
+            }
+            
+            bite_mat <- predict.bites(ttimes = mora_bites$ttimes_wtd/60, pop = mora_bites$pop, 
+                                      catch = mora_bites$catch, names = mora_bites$commcode,
+                                      beta_ttimes = i$beta_ttimes, beta_0 = i$beta_0, 
+                                      beta_pop = i$beta_pop, sigma_0 = i$sigma_0, sigma_e = 0,
+                                      known_alphas = known_alphas, pop_predict = i$pop_predict, OD = FALSE,
+                                      intercept = i$intercept, trans = 1e5, known_catch = TRUE, 
+                                      nsims = 1000, dist = FALSE)
+            mean <- rowMeans(bite_mat, na.rm = TRUE) # mean for each row = admin unit
+            sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
+            data.table(names = mora_bites$commcode, 
+                       ttimes = mora_bites$ttimes_wtd/60, pop = mora_bites$pop, 
+                       catch = mora_bites$catch, mean_bites = mean, sd_bites = sd, 
+                       pop_predict = i$pop_predict, intercept = i$intercept, scale = i$scale, OD = FALSE,
+                       data_source = i$data_source, type = "mora_outfit", observed = mora_bites$avg_bites)
+          }
 
 write.csv(outfit_mora, "output/preds/bites/outfit_mora.csv", row.names = FALSE)
 
@@ -191,9 +191,7 @@ model_ests %>%
   select(params, Mean, pop_predict, intercept, data_source,
          scale) %>%
   filter(pop_predict == "flatPop") %>%
-  spread(key = params, value = Mean, fill = 0) %>%
-  mutate(n = case_when(data_source == "Moramanga" ~ 61, 
-                       data_source == "National" ~ 82)) -> model_means
+  spread(key = params, value = Mean, fill = 0) -> model_means
 ttimes_plot <- seq(0, 15, by = 0.05)
 
 # All models with no ODs
@@ -201,9 +199,7 @@ model_ests %>%
   select(params, SD, pop_predict, intercept, data_source,
          scale) %>%
   filter(pop_predict == "flatPop") %>%
-  spread(key = params, value = SD, fill = 0) %>%
-  mutate(n = case_when(data_source == "Moramanga" ~ 61, 
-                       data_source == "National" ~ 82)) -> model_sd_noOD
+  spread(key = params, value = SD, fill = 0) -> model_sd_noOD
 
 foreach(mean = iter(model_means, by = "row"), 
         sd = iter(model_sd_noOD, by = "row"), 
@@ -233,21 +229,21 @@ model_ests %>%
   select(params, sd_adj, pop_predict, intercept, data_source,
          scale) %>%
   filter(pop_predict == "flatPop", intercept == "fixed") %>%
-  spread(key = params, value = sd_adj, fill = 0)  -> model_sd_OD
+  spread(key = params, value = sd_adj, fill = 0) -> model_sd_OD
 
 foreach(mean = iter(model_means, by = "row"),
         sd = iter(model_sd_OD, by = "row"), 
         .combine = "bind_rows") %do% {
           bite_mat <- predict.bites.dist(ttimes = ttimes_plot, pop = 1e5,
-                                          beta_ttimes_mean = mean$beta_ttimes, 
-                                          beta_ttimes_sd = sd$beta_ttimes, 
-                                          beta_0_mean = mean$beta_0, 
-                                          beta_0_sd = sd$beta_0, 
-                                          beta_pop_mean = 0, beta_pop_sd = 0,
-                                          sigma_0 = mean$sigma_0, 
-                                          pop_predict = mean$pop_predict, 
-                                          intercept = mean$intercept, 
-                                          trans = 1e5, nsims = 1000)
+                                         beta_ttimes_mean = mean$beta_ttimes, 
+                                         beta_ttimes_sd = sd$beta_ttimes, 
+                                         beta_0_mean = mean$beta_0, 
+                                         beta_0_sd = sd$beta_0, 
+                                         beta_pop_mean = 0, beta_pop_sd = 0,
+                                         sigma_0 = mean$sigma_0, 
+                                         pop_predict = mean$pop_predict, 
+                                         intercept = mean$intercept, 
+                                         trans = 1e5, nsims = 1000)
           
           exp_bites <- rowMeans(bite_mat, na.rm = TRUE)
           exp_bites_upper <- apply(bite_mat, 1, quantile, prob = 0.975, na.rm = TRUE)
@@ -263,4 +259,3 @@ write.csv(expectations, "output/preds/bites/expectations.csv", row.names = FALSE
 
 # Session Info
 out.session(path = "R/03_bitemodels/03_get_modpreds.R", filename = "output/log_local.csv")
-

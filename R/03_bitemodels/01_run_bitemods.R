@@ -30,11 +30,9 @@ source("R/functions/out.session.R")
 # Run all Mada models -----------------------------------------------------------------------
 mods_natl <- expand_grid(pop_predict = c("addPop", "onlyPop", "flatPop"), 
                          intercept = c("random", "fixed"), 
-                         scale = c("District", "Commune"),
-                         OD = c("TRUE", "FALSE"), data_source = "National")
+                         scale = c("District", "Commune"), data_source = "National")
 mods_mora <- expand_grid(pop_predict = c("addPop", "onlyPop", "flatPop"), intercept = "fixed", 
                          scale = "Commune", 
-                         OD = c("TRUE", "FALSE"), 
                          data_source = "Moramanga")
 
 mods_natl %>%
@@ -56,18 +54,16 @@ mods_all <-
     data_df <- j$data_df[[1]]
     ttimes <- covar_df$ttimes_wtd/60
     
-    if (j$OD == TRUE) ODname = "poisOD" else ODname = NULL
-    
     out <- estimate.pars(bites = data_df$avg_bites,
                          ttimes = ttimes, pop = covar_df$pop, 
                          start = data_df$start, end = data_df$end,
                          ncovars = nrow(covar_df), 
                          nlocs = nrow(data_df), catch = covar_df$catch, 
                          ncatches = max(data_df$catch), pop_predict = j$pop_predict, 
-                         intercept = j$intercept, summed = j$sum_it, OD = j$OD, 
-                         data_source = paste0(ODname, "_", j$data_source),
-                         scale = j$scale, trans = 1e5, burn = 1000, 
-                         chains = 3, adapt = 1000, iter = 50000, thinning = 4,
+                         intercept = j$intercept, summed = j$sum_it, OD = FALSE, 
+                         data_source = j$data_source,
+                         scale = j$scale, trans = 1e5, burn = 5000, 
+                         chains = 3, adapt = 2500, iter = 60000, thinning = 5,
                          dic = TRUE, save = TRUE)
     
     samps <- out[["samps"]]
@@ -84,7 +80,7 @@ mods_all <-
                           quant_97.5 = samp_summ$quantiles[, 1], psrf_est = diag$psrf[, 1], 
                           psrf_upper = diag$psrf[, 2], mpsrf = diag$mpsrf, 
                           pop_predict = j$pop_predict, intercept = j$intercept, 
-                          summed = j$sum_it, data_source = j$data_source, OD = j$OD, 
+                          summed = j$sum_it, data_source = j$data_source, OD = FALSE, 
                           scale = j$scale, dic = dic_est)
   }
 
