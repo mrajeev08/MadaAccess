@@ -3,6 +3,65 @@
 #' Details: Wrapper function for getting bites, deaths, and vials from inputs
 # ------------------------------------------------------------------------------------------------ #
 
+#' Get estimates from param distributions
+#' Description
+#' sigma_0 does not have an sd parameter on it
+#' Details
+#' @param Paramters
+#' @return Returned
+#' @section Dependencies:
+#'     List dependencies here, i.e. packages and other functions
+
+predict.bites.dist <- function(ttimes, pop,
+                               beta_ttimes_mean, beta_ttimes_sd, beta_0_mean, beta_0_sd, 
+                               beta_pop_mean, beta_pop_sd, sigma_0, 
+                               pop_predict = "addPop", intercept = "random", 
+                               trans = 1e5, nsims = 1000) {
+  
+  foreach(i = 1:nsims, .combine = cbind) %do% {
+
+    # Draw parameters
+    beta_0 <- rnorm(1, mean = beta_0_mean, sd = beta_0_sd) 
+    beta_ttimes <- rnorm(1, mean = beta_ttimes_mean, sd = beta_ttimes_sd)
+    beta_pop <- rnorm(1, mean = beta_pop_mean, sd = beta_pop_sd)
+  
+    if(intercept == "random") {
+
+      alphas <- rnorm(1, mean = beta_0, sd = sigma_0)
+
+      if (pop_predict == "flatPop") {
+        exp_bites <- exp(alphas + beta_ttimes*ttimes)*pop
+      }
+      
+      if(pop_predict == "addPop") {
+        exp_bites <- exp(alphas + beta_ttimes*ttimes + beta_pop*pop/trans) 
+      }
+      
+      if(pop_predict == "onlyPop") {
+        exp_bites <- exp(alphas + beta_pop*pop/trans)
+      }
+    }
+    
+    if(intercept == "fixed") {
+      
+      if (pop_predict == "flatPop") {
+        exp_bites <- exp(beta_0 + beta_ttimes*ttimes)*pop
+      }
+      
+      if(pop_predict == "addPop") {
+        exp_bites <- exp(beta_0 + beta_ttimes*ttimes + beta_pop*pop/trans) 
+      }
+      
+      if(pop_predict == "onlyPop") {
+        exp_bites <- exp(beta_0 + beta_pop*pop/trans)
+      }
+    }
+    exp_bites
+  } -> bite_mat
+  
+  return(bite_mat)
+}
+
 #' Get fixed estimates for predictions (i.e. expectation)
 #' Description
 #' Details
@@ -50,36 +109,42 @@ predict.bites.fixed <- function(ttimes, pop, catch, names,
   return(exp_bites)
 }
 
-
-
-#' Function for getting bite incidence or # of bites from model inputs
+#' Function for simulating bite incidence or # of bites from model inputs
 #' Description
 #' Details
+#' If dist = TRUE then draw params from distribution on each draw! sigma_0 does not have an sd 
+#' because it as an sd
 #' @param Paramters
 #' @return Returned
 #' @section Dependencies:
 #'     List dependencies here, i.e. packages and other functions triangle
 
-predict.bites <- function(ttimes, pop, catch, names, group, ngroups,
-                          beta_ttimes, beta_0, beta_pop, sigma_0, sigma_e, known_alphas, 
-                          pop_predict = "addPop", intercept = "random", OD = TRUE,
+predict.bites <- function(ttimes, pop, catch, names, 
+                          beta_ttimes, beta_0, beta_pop, sigma_0, known_alphas, 
+                          beta_ttimes_sd, beta_0_sd, beta_pop_sd,
+                          pop_predict = "addPop", intercept = "random", dist = TRUE,
                           trans = 1e5, known_catch = TRUE, nsims = 1000, 
-                          type = "bites") {
+                          type = "bites",...) {
   
   foreach(i = 1:nsims, .combine = cbind) %do% {
     
-    if (OD == TRUE) {
-      epsilon <- rnorm(length(ttimes), mean = 0, sd = sigma_e) # overdispersion 
+    if(dist == TRUE) {
+      # Draw parameters
+      beta_0_val <- rnorm(1, mean = beta_0, sd = beta_0_sd) 
+      beta_ttimes_val <- rnorm(1, mean = beta_ttimes, sd = beta_ttimes_sd)
+      beta_pop_val <- rnorm(1, mean = beta_pop, sd = beta_pop_sd)
     } else {
-      epsilon <- 0
+      beta_0_val <- beta_0
+      beta_ttimes_val <- beta_ttimes
+      beta_pop_val <- beta_pop
     }
-    
+     
     if(intercept == "random") {
       # draw catchment level effects (pull this out for foreach)
       # first make catchment a factor and then drop levels and convert to numeric
       catch_val <- as.numeric(droplevels(as.factor(catch)))
       
-      alpha <- rnorm(max(catch_val, na.rm = TRUE), mean = beta_0, sd = sigma_0)
+      alpha <- rnorm(max(catch_val, na.rm = TRUE), mean = beta_0_val, sd = sigma_0)
       alpha <- alpha[catch_val]
       
       # get alpha so that if known_catch is TRUE it pulls from estimates
@@ -89,41 +154,42 @@ predict.bites <- function(ttimes, pop, catch, names, group, ngroups,
       } 
       
       if (pop_predict == "flatPop") {
-        exp_bites <- exp(alpha + beta_ttimes*ttimes + epsilon)*pop
+        exp_bites <- exp(alpha + beta_ttimes_val*ttimes)*pop
       }
       
       if(pop_predict == "addPop") {
-        exp_bites <- exp(alpha + beta_ttimes*ttimes + beta_pop*pop/trans + epsilon) 
+        exp_bites <- exp(alpha + beta_ttimes_val*ttimes + beta_pop_val*pop/trans) 
       }
       
       if(pop_predict == "onlyPop") {
-        exp_bites <- exp(alpha + beta_pop*pop/trans + epsilon)
+        exp_bites <- exp(alpha + beta_pop_val*pop/trans)
       }
     }
     
     if(intercept == "fixed") {
       if (pop_predict == "flatPop") {
-        exp_bites <- exp(beta_0 + beta_ttimes*ttimes + epsilon)*pop
+        exp_bites <- exp(beta_0_val + beta_ttimes_val*ttimes)*pop
       }
       
       if(pop_predict == "addPop") {
-        exp_bites <- exp(beta_0 + beta_ttimes*ttimes + beta_pop*pop/trans + epsilon) 
+        exp_bites <- exp(beta_0_val + beta_ttimes_val*ttimes + beta_pop_val*pop/trans) 
       }
       
       if(pop_predict == "onlyPop") {
-        exp_bites <- exp(beta_0 + beta_pop*pop/trans + epsilon)
+        exp_bites <- exp(beta_0_val + beta_pop_val*pop/trans)
       }
     }
     if(type == "bites") {
       exp_bites <- rpois(length(exp_bites), exp_bites)
     }
+    
     exp_bites
   } -> bite_mat
   
   return(bite_mat)
 }
 
-#  Predict deaths and other key decision tree outputs -----------------------------------------
+# Predict deaths and other key decision tree outputs -----------------------------------------
 # Function for getting deaths from input bites (return a matrix)
 #' Title
 #' Description
@@ -157,6 +223,8 @@ predict.deaths <- function(bite_mat, pop,
     human_exp_inc <- rtriangle(n = length(bite_mat), a = exp_min, b = exp_max, c = exp_mode)
     p_rabid <- rtriangle(n = length(bite_mat), a = p_rab_min, b = p_rab_max, c = p_rab_mode)
   }
+  
+  # TO DO = scaling factors!
   
   # Rabied exposures
   pop_vec <- rep(pop, ncol(bite_mat))
@@ -230,7 +298,6 @@ hdr_from_inc <- function(inc = 48, pop = 1e5, p_exp = 0.39, dog_inc = 0.01) {
 inc_from_hdr <- function(hdr = 5, pop = 1e5, p_exp = 0.39, dog_inc = 0.01) {
   p_exp*dog_inc*pop/hdr
 }
-
 
 # Function for getting vials from input bites -------------------------------------------------
 get.vials <- function(x) {

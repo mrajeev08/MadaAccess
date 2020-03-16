@@ -21,4 +21,4 @@ ssh -T mrajeev@della <<HERE
     fi
 HERE
         sleep 1m    # sleep again as sometimes takes a while to write output
-        rsync -rLvzt mrajeev@della.princeton.edu:~/MadaAccess/output/mods/ ~/Documents/Projects/MadaAccess/output/mods/ 
+        rsync -rLvzt mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/ ~/Documents/Projects/MadaAccess/output/sensitivity/ 

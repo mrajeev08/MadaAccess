@@ -18,6 +18,8 @@ library(doParallel)
 library(doRNG)
 library(glue)
 select <- dplyr::select
+
+# Functions
 source("R/functions/out.session.R")
 source("R/functions/data_functions.R")
 source("R/functions/estimate_pars.R")
@@ -27,8 +29,8 @@ source("R/functions/predict_functions.R")
 national <- fread("data/processed/bitedata/national.csv")
 moramanga <- fread("data/processed/bitedata/moramanga.csv")
 ctar_metadata <- fread("data/raw/ctar_metadata.csv")
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
+mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
+mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
 
 # What we want to look at is correcting data vs. not correcting data
 rep_cut <- c(7, 15, Inf) # exclude all periods with 7/15 consecutive zero days or don't exclude any
@@ -45,7 +47,8 @@ foreach(p = 1:length(rep_cut), .combine = comb, .multicombine = TRUE,
 
     #' Getting daily throughput for each clinic
     national %>%
-      filter(year(date_reported) > 2013, year(date_reported) < 2018, !is.na(distcode), !is.na(id_ctar)) %>%
+      filter(year(date_reported) > 2013, year(date_reported) < 2018, 
+             !is.na(distcode), !is.na(id_ctar)) %>%
       mutate(date_reported = ymd(date_reported)) %>%
       group_by(date_reported, id_ctar) %>%
       summarise(no_patients = n()) %>%
@@ -53,7 +56,8 @@ foreach(p = 1:length(rep_cut), .combine = comb, .multicombine = TRUE,
       complete(date_reported = seq(min(date_reported), max(date_reported), by = "day"), id_ctar, 
                fill = list(no_patients = 0)) -> throughput
     
-    #' rle.days = Helper function for getting which days to include (moved to functions from data_functions.R)
+    #' rle.days = Helper function for getting which days to include 
+    #' (moved to functions from data_functions.R)
     #' and also identify potential CAT 1 by the throughput mean/sd
     throughput %>%
       group_by(id_ctar) %>%
@@ -149,125 +153,148 @@ write.csv(bitedata_se, "output/sensitivity/bitedata_se.csv", row.names = FALSE)
 write.csv(commcovar_se, "output/sensitivity/commcovar_se.csv", row.names = FALSE)
 
 # Model estimates --------------------------------------------------------------------------
-foreach(p = 1:length(rep_cut), .combine = rbind, 
-        .packages = c('dplyr', 'foreach', 'rjags')) %dopar% {
-    
-    district_bites <- filter(bitedata_se, rep_cutoff == rep_cut[p])
-    comm_covars <- filter(commcovar_se, rep_cutoff == rep_cut[p])                         
-    
-    # Mada data
-    # These all should have same index letter
-    covars_list <- list(district_bites, comm_covars)
-    scale <- c("District", "Commune")
-    sum_it <- c(FALSE, TRUE)
-    
-    # The other index letters
-    intercept_type <- c("random", "fixed")
-    pop_predict <- c("addPop", "onlyPop", "flatPop")
-    
-    mods_mada <- 
-      foreach(i = 1:length(covars_list), .combine = rbind) %:%
-      foreach(k = 1:length(pop_predict), .combine = rbind) %:%
-      foreach(l = 1:length(intercept_type), .combine = rbind) %do% {
-                
-                covar_df <- covars_list[[i]]
-                ttimes <- covar_df$ttimes_wtd/60
-                
-                out <- estimate.pars(bites = round(district_bites$avg_bites), 
-                                     ttimes = ttimes, pop = covar_df$pop, 
-                                     start = district_bites$start, end = district_bites$end,
-                                     ncovars = nrow(covar_df), 
-                                     nlocs = nrow(district_bites), catch = covar_df$catch, 
-                                     ncatches = max(district_bites$catch), pop_predict =  pop_predict[k], 
-                                     intercept = intercept_type[l], summed = sum_it[i], 
-                                     data_source = "National_se",
-                                     scale = paste0(scale[i], "_rep", 
-                                                    rep_cut[p]), 
-                                     trans = 1e5, 
-                                     chains = 3, adapt = 500, iter = 10000, thinning = 1,
-                                     dic = TRUE, save = TRUE)
-                
-                samps <- out[["samps"]]
-                dic <- out[["dic"]]
-                
-                dic_est <- mean(dic$deviance) + mean(dic$penalty)
-                
-                samp_summ <- summary(samps)
-                params <- rownames(samp_summ$statistics)
-                diag <- gelman.diag(samps)
-                
-                samp_df <- as.data.frame(list(params = params, samp_summ$statistics, 
-                                              neff = effectiveSize(samps),
-                                              quant_2.5 = samp_summ$quantiles[, 5], 
-                                              quant_97.5 = samp_summ$quantiles[, 1],
-                                              psrf_est = diag$psrf[, 1], 
-                                              psrf_upper = diag$psrf[, 2], mpsrf = diag$mpsrf,  
-                                              pop_predict = pop_predict[k], intercept = intercept_type[l], 
-                                              summed = sum_it[i], 
-                                              data_source = "National_se", 
-                                              scale = scale[i], dic = dic_est, 
-                                              reporting = district_bites$rep_cutoff[1]))
-              }
-    mods_mada
-} -> master_df
+mods_natl <- expand_grid(pop_predict = "flatPop", 
+                         intercept = c("random", "fixed"), 
+                         scale = c("District", "Commune"), data_source = "National_se",
+                         rep_cutoff = c(7, 15, Inf))
+mods_natl %>%
+  mutate(sum_it = case_when(scale %in% "District" ~ FALSE,
+                            scale %in% "Commune" ~ TRUE), 
+         covars_df = case_when(scale %in% "District" ~ list(bitedata_se),
+                               scale %in% "Commune" ~ list(commcovar_se)), 
+         data_df = list(bitedata_se)) -> mods_natl
 
-write.csv(master_df, "output/sensitivity/model_se.csv", row.names = FALSE)
+mods_all <- 
+  foreach(j = iter(mods_natl, by = "row"), .combine = "rbind", .packages = "rjags", 
+          .options.RNG = 321) %dorng% {
+            
+          covar_df <- filter(j$covars_df[[1]], rep_cutoff == j$rep_cutoff)
+          data_df <- filter(j$data_df[[1]], rep_cutoff == j$rep_cutoff)
+          ttimes <- covar_df$ttimes_wtd/60
+            
+          out <- estimate.pars(bites = data_df$avg_bites,
+                                 ttimes = ttimes, pop = covar_df$pop, 
+                                 start = data_df$start, end = data_df$end,
+                                 ncovars = nrow(covar_df), 
+                                 nlocs = nrow(data_df), catch = covar_df$catch, 
+                                 ncatches = max(data_df$catch), pop_predict = j$pop_predict, 
+                                 intercept = j$intercept, summed = j$sum_it, OD = FALSE, 
+                                 data_source = j$data_source,
+                                 scale = j$scale, trans = 1e5, burn = 5000, 
+                                 chains = 3, adapt = 2500, iter = 60000, thinning = 5,
+                                 dic = TRUE, save = TRUE)
+            
+            samps <- out[["samps"]]
+            dic <- out[["dic"]]
+            
+            dic_est <- mean(dic$deviance) + mean(dic$penalty)
+            
+            samp_summ <- summary(samps)
+            params <- rownames(samp_summ$statistics)
+            diag <- gelman.diag(samps)
+            
+            samp_df <- data.frame(params = params, samp_summ$statistics, 
+                                  neff = effectiveSize(samps), quant_2.5 = samp_summ$quantiles[, 5], 
+                                  quant_97.5 = samp_summ$quantiles[, 1], psrf_est = diag$psrf[, 1], 
+                                  psrf_upper = diag$psrf[, 2], mpsrf = diag$mpsrf, 
+                                  pop_predict = j$pop_predict, intercept = j$intercept, 
+                                  summed = j$sum_it, data_source = j$data_source, OD = FALSE, 
+                                  scale = j$scale, dic = dic_est, rep_cutoff = j$rep_cutoff)
+  }
+
+write.csv(mods_all, "output/sensitivity/model_se.csv", row.names = FALSE)
 
 # 3. Run predictions ---------------------------------------------------------------------------
-
-master_df %>%
+mods_all %>%
   select(params, Mean, pop_predict, intercept, data_source,
-         scale, reporting) %>%
-  spread(key = params, value = Mean, fill = 0) %>%
+         scale, rep_cutoff) %>%
+  spread(names_from = params, values_from = Mean, fill = 0) %>%
   mutate(n = 82) -> model_means
 
-# Predictions
-foreach(i = iter(model_means, by = "row"), j = icount(), .combine = rbind, 
-        .packages = c('dplyr', 'foreach', 'data.table', 'glue')) %dopar% {
-            
-            print(j/nrow(model_means)*100)
-            
-            district_bites <- filter(bitedata_se, rep_cutoff == i$reporting)
-            comm_covars <- filter(commcovar_se, rep_cutoff == i$reporting)                      
-            
-            # Filter to covars
-            if(i$scale == "District") {
-              covar_df <- district_bites
-              covar_df$names <- district_bites$distcode
-            } else {
-              covar_df <- comm_covars
-              covar_df$names <- comm_covars$commcode
-            }
-            
-            # Also transform covar
-            covar_df$ttimes <- covar_df$ttimes_wtd/60
-            
-            if(i$intercept == "random") {
-              known_alphas <-  as.numeric(i[, match(glue("alpha[{covar_df$catch}]"), colnames(i))])
-            } else {
-              known_alphas <- rep(NA, nrow(covar_df))
-            }
-            
-            bite_mat <- predict.bites(ttimes = covar_df$ttimes, pop = covar_df$pop, 
-                                      catch = covar_df$pop, names = covar_df$distcode,
-                                      beta_ttimes = i$beta_ttimes, beta_0 = i$beta_0, 
-                                      beta_pop = i$beta_pop, sigma_0 = i$sigma_0, 
-                                      known_alphas = known_alphas, pop_predict = i$pop_predict, 
-                                      intercept = i$intercept, trans = 1e5, known_catch = TRUE, 
-                                      nsims = 1000)
-            mean <- rowMeans(bite_mat, na.rm = TRUE) # mean for each row = admin unit
-            sd <- apply(bite_mat, 1, sd, na.rm = TRUE)
-            preds_mada <- data.table(names = covar_df$names, group_names = covar_df$distcode,
-                       ttimes = covar_df$ttimes, pop = covar_df$pop, 
-                       catch = covar_df$catch, mean_bites = mean, sd_bites = sd, 
-                       pop_predict = i$pop_predict, intercept = i$intercept, scale = i$scale, 
-                       data_source = i$data_source, reporting = i$reporting)
-            
-            preds_mada %>%
-              group_by(group_names, data_source, scale, pop_predict, intercept, reporting) %>% 
-              summarize_at(vars(contains("bites")), sum) %>%
-              left_join(district_bites, by = c("group_names" = "distcode")) -> preds_mada_grouped
-} -> preds_grouped
+mods_all %>%
+  select(params, Mean, pop_predict, intercept, data_source,
+         scale, rep_cutoff) %>%
+  pivot_wider(names_from = params, values_from = Mean, fill = 0) %>%
+  mutate(n = 82) -> model_means
+# Get expectations given a range of travel times and pop of 1e5 --------------------------------
+# Only for flat pop mods
+model_ests <- fread("output/mods/estimates_adj_OD.csv")
+model_ests %>%
+  select(params, Mean, pop_predict, intercept, data_source,
+         scale) %>%
+  filter(pop_predict == "flatPop") %>%
+  spread(key = params, value = Mean, fill = 0) %>%
+  mutate(n = case_when(data_source == "Moramanga" ~ 61, 
+                       data_source == "National" ~ 82)) -> model_means
+ttimes_plot <- seq(0, 15, by = 0.05)
+
+# All models with no ODs
+model_ests %>%
+  select(params, SD, pop_predict, intercept, data_source,
+         scale) %>%
+  filter(pop_predict == "flatPop") %>%
+  spread(key = params, value = SD, fill = 0) %>%
+  mutate(n = case_when(data_source == "Moramanga" ~ 61, 
+                       data_source == "National" ~ 82)) -> model_sd_noOD
+
+foreach(mean = iter(model_means, by = "row"), 
+        sd = iter(model_sd_noOD, by = "row"), 
+        .combine = "bind_rows") %do% {
+          
+          bite_mat <- predict.bites.dist(ttimes = ttimes_plot, pop = 1e5,
+                                         beta_ttimes_mean = mean$beta_ttimes, 
+                                         beta_ttimes_sd = sd$beta_ttimes, 
+                                         beta_0_mean = mean$beta_0, 
+                                         beta_0_sd = sd$beta_0, 
+                                         beta_pop_mean = 0, beta_pop_sd = 0,
+                                         sigma_0 = mean$sigma_0,
+                                         pop_predict = mean$pop_predict, 
+                                         intercept = mean$intercept, 
+                                         trans = 1e5, nsims = 1000)
+          
+          exp_bites <- rowMeans(bite_mat, na.rm = TRUE)
+          exp_bites_upper <- apply(bite_mat, 1, quantile, prob = 0.975, na.rm = TRUE)
+          exp_bites_lower <- apply(bite_mat, 1, quantile, prob = 0.025, na.rm = TRUE)
+          
+          out <- data.table(mean, exp_bites, exp_bites_upper, exp_bites_lower, ttimes_wtd = ttimes_plot, 
+                            pop = 1e5, OD = FALSE)
+        } -> preds_no_od
+
+# Compare to fixed effects models with overdispersion
+model_ests %>%
+  select(params, sd_adj, pop_predict, intercept, data_source,
+         scale) %>%
+  filter(pop_predict == "flatPop", intercept == "fixed") %>%
+  spread(key = params, value = sd_adj, fill = 0) %>%
+  mutate(n = case_when(data_source == "Moramanga" ~ 61, 
+                       data_source == "National" ~ 82)) -> model_sd_OD
+
+foreach(mean = iter(model_means, by = "row"),
+        sd = iter(model_sd_OD, by = "row"), 
+        .combine = "bind_rows") %do% {
+          bite_mat <- predict.bites.dist(ttimes = ttimes_plot, pop = 1e5,
+                                         beta_ttimes_mean = mean$beta_ttimes, 
+                                         beta_ttimes_sd = sd$beta_ttimes, 
+                                         beta_0_mean = mean$beta_0, 
+                                         beta_0_sd = sd$beta_0, 
+                                         beta_pop_mean = 0, beta_pop_sd = 0,
+                                         sigma_0 = mean$sigma_0, 
+                                         pop_predict = mean$pop_predict, 
+                                         intercept = mean$intercept, 
+                                         trans = 1e5, nsims = 1000)
+          
+          exp_bites <- rowMeans(bite_mat, na.rm = TRUE)
+          exp_bites_upper <- apply(bite_mat, 1, quantile, prob = 0.975, na.rm = TRUE)
+          exp_bites_lower <- apply(bite_mat, 1, quantile, prob = 0.025, na.rm = TRUE)
+          
+          out <- data.table(mean, exp_bites, exp_bites_upper, exp_bites_lower,
+                            ttimes_wtd = ttimes_plot, 
+                            pop = 1e5, OD = TRUE)
+        } -> preds_od  
+
+expectations <- bind_rows(preds_no_od, preds_od)
+
+write.csv(expectations, "output/preds/bites/expectations.csv", row.names = FALSE)
 
 write.csv(preds_grouped, "output/sensitivity/modpreds_se.csv", row.names = FALSE)
  
