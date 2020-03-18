@@ -257,5 +257,12 @@ foreach(mean = iter(model_means, by = "row"),
 expectations <- bind_rows(preds_no_od, preds_od)
 write.csv(expectations, "output/preds/bites/expectations.csv", row.names = FALSE)
 
+
+# Write out lookup table for alphas -----------------------------------------------------------
+known_alphas <- colnames(model_means)[match(glue("alpha[{district_bites$catch}]"), 
+                                            colnames(model_means))]
+alpha_lookup <- data.table(distcode = c(district_bites$distcode), alpha_var = known_alphas)
+write.csv(alpha_lookup, "output/mods/alpha_lookup.csv")
+
 # Session Info
 out.session(path = "R/03_bitemodels/03_get_modpreds.R", filename = "output/log_local.csv")
