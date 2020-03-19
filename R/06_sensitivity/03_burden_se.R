@@ -66,7 +66,7 @@ foreach(j = iter(se_pars, by = "row"), .combine = multicomb,
                                  catch = admin$catchment, names = admin$commcode, 
                                  beta_ttimes = j$beta_ttimes, beta_0 = j$beta_0, 
                                  beta_pop = 0, sigma_0 = j$sigma_0, known_alphas = NA, 
-                                 pop_predict = "flatPop", intercept = "random", 
+                                 pop_predict = "flatPop", intercept = "random", dist = FALSE,
                                  trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc")
   
   all_mats <-  predict.deaths(bite_mat, pop = admin$pop,
@@ -81,8 +81,8 @@ foreach(j = iter(se_pars, by = "row"), .combine = multicomb,
     labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
     mean <- rowMeans(mat, na.rm = TRUE) # mean for each row = admin unit
     sd <- apply(mat, 1, sd, na.rm = TRUE)
-    upper <- mean + 1.96*sd/sqrt(ncol(mat))
-    lower <- mean - 1.96*sd/sqrt(ncol(mat))
+    upper <- apply(mat, 1, quantile, prob = 0.975)
+    lower <- apply(mat, 1, quantile, prob = 0.025)
     out <- data.table(mean, upper, lower)
     names(out) <- labels
     out
