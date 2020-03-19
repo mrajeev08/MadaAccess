@@ -41,14 +41,10 @@ model_ests %>%
 model_sds_adj <- bind_rows(filter(model_sds_adj, data_source == "National", scale == "District",
                                 intercept == "random"), filter(model_sds_adj, 
                                                                data_source == "Moramanga"))
-# Known alphas
-alpha_lookup <- read.csv("output/mods/alpha_lookup.csv")
-comm_run$alpha_lookup <- alpha_lookup$alpha_var[match(comm_run$distcode, alpha_lookup$distcode)]
-dist_run$alpha_lookup <- alpha_lookup$alpha_var[match(dist_run$distcode, alpha_lookup$distcode)]
 
 # All predictions -----------------------------------------------------------------------
 foreach(par = iter(model_means, by = "row"), 
-        sd = iter(model_sds_adj, by = "row"), .combine = rbind, .options.RNG = 1434) %dorng% {
+        sds = iter(model_sds_adj, by = "row"), .combine = rbind, .options.RNG = 1434) %dorng% {
           
           if(par$data_source == "Moramanga"){
             admin <- comm_run # these are data.tables so hopefully will not copy only point!
@@ -62,20 +58,14 @@ foreach(par = iter(model_means, by = "row"),
             OD_dist <- FALSE # not accounting for overdispersion
           }
 
-          par %>%
-            select(starts_with("alpha")) %>%
-            pivot_longer(everything()) -> alpha_lookup
-          
-          known_alphas <- alpha_lookup$value[match(admin$alpha_lookup, alpha_lookup$name)]
-            
           bite_mat <- predict.bites(ttimes = ttimes, pop = admin$pop, 
                                     catch = admin$catchment, names = admin$commcode, 
-                                    beta_ttimes = par$beta_ttimes, beta_ttimes_sd = sd$beta_ttimes,
-                                    beta_0 = par$beta_0, beta_0_sd = sd$beta_0, 
-                                    beta_pop = 0, beta_pop_sd = sd$beta_pop, 
-                                    sigma_0 = par$sigma_0, known_alphas = known_alphas, 
+                                    beta_ttimes = par$beta_ttimes, beta_ttimes_sd = sds$beta_ttimes,
+                                    beta_0 = par$beta_0, beta_0_sd = sds$beta_0, 
+                                    beta_pop = 0, beta_pop_sd = sds$beta_pop, 
+                                    sigma_0 = par$sigma_0, known_alphas = NA, 
                                     pop_predict = "flatPop", intercept = "random", dist = OD_dist,
-                                    trans = 1e5, known_catch = TRUE, nsims = 1000, type = "inc")
+                                    trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc")
           
           all_mats <-  predict.deaths(bite_mat, pop = admin$pop,
                                       p_rab_min = 0.2, p_rab_max = 0.6,

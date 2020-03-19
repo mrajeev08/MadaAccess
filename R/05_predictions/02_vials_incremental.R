@@ -28,23 +28,36 @@ scenario_loop <- unique(fread("output/ttimes/commune_maxcatch.csv")$lookup)
 colnames <- colnames(fread("output/ttimes/commune_maxcatch.csv"))
 
 # Get model means for commune and district models
-model_ests <- read.csv("output/mods/estimates.csv")
+model_ests <- read.csv("output/mods/estimates_adj_OD.csv")
 model_ests %>%
-  dplyr::select(params, Mean, pop_predict, intercept, data_source, scale) %>%
-  tidyr::spread(key = params, value = Mean, fill = 0) %>%
-  dplyr::filter(pop_predict == "flatPop", data_source == "National", 
-                intercept == "random") -> model_means
+  select(params, Mean, pop_predict, intercept, data_source, scale) %>%
+  spread(key = params, value = Mean, fill = 0) %>%
+  filter(pop_predict == "flatPop") -> model_means
+model_means <- bind_rows(filter(model_means, data_source == "National", scale == "District",
+                                intercept == "random"), 
+                         filter(model_means, data_source == "Moramanga"))
+model_ests %>%
+  select(params, sd_adj, pop_predict, intercept, data_source, scale) %>%
+  spread(key = params, value = sd_adj, fill = 0) %>%
+  filter(pop_predict == "flatPop") -> model_sds_adj
+model_sds_adj <- bind_rows(filter(model_sds_adj, data_source == "National", scale == "District",
+                                  intercept == "random"), filter(model_sds_adj, 
+                                                                 data_source == "Moramanga"))
 
 # Vials given commune/district ttimes -----------------------------------------------------------------
 
-# make df with the lookup + scale
-# reverse so bigger dfs don't slow everything down
+# make df with the lookup + scale (reverse vec so big ones at end don't slow things down)
 lookup <- expand.grid(loop = rev(scenario_loop), scale = c("Commune", "District"))
 
-foreach(j = iter(lookup, by = "row"), .combine = rbind, 
+multicomb <- function(x, ...) {
+  mapply(rbind, x, ..., SIMPLIFY = FALSE)
+}
+
+foreach(j = iter(lookup, by = "row"), .combine = multicomb, 
         .packages = c('data.table', 'foreach')) %dopar% {
           
-          params <- model_means[model_means$scale == j$scale, ]
+          mean <- model_means[model_means$scale == j$scale, ]
+          sd <- model_sds_adj[model_sds_adj$scale == j$scale, ]
           
           # read in max and all catch
           comm <- fread(cmd = paste("grep -w ", j$loop, 
@@ -53,20 +66,26 @@ foreach(j = iter(lookup, by = "row"), .combine = rbind,
           comm_all <- fread(cmd = paste("grep -w ", j$loop, 
                                         " output/ttimes/commune_maxcatch.csv", 
                                         sep = ""), col.names = colnames)
+          
           if(j$scale == "Commune") {
             ttimes <- comm$ttimes_wtd/60
+            OD_dist <- TRUE # not accounting for overdispersion
           } 
           
           if(j$scale == "District") {
             ttimes <- comm$ttimes_wtd_dist/60
+            OD_dist <- FALSE # accounting for overdispersion
           }
           
           bite_mat <- predict.bites(ttimes = ttimes, pop = comm$pop, 
                                     catch = comm$catchment, names = comm$commcode, 
-                                    beta_ttimes = params$beta_ttimes, beta_0 = params$beta_0, 
-                                    beta_pop = 0, sigma_0 = params$sigma_0, known_alphas = NA, 
-                                    pop_predict = params$pop_predict, intercept = params$intercept, 
-                                    trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc")
+                                    beta_ttimes = mean$beta_ttimes, beta_ttimes_sd = sd$beta_ttimes,
+                                    beta_0 = mean$beta_0, beta_0_sd = sd$beta_0, 
+                                    beta_pop = 0, beta_pop_sd = sd$beta_pop, 
+                                    sigma_0 = mean$sigma_0, known_alphas = NA, 
+                                    pop_predict = mean$pop_predict, intercept = mean$intercept, 
+                                    trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc",
+                                    dist = OD_dist)
           
           bites <- data.table(commcode = comm$commcode, scenario = comm$scenario,
                               bite_mat)
@@ -75,10 +94,17 @@ foreach(j = iter(lookup, by = "row"), .combine = rbind,
           
           cols <- names(check[, .SD, .SDcols = result.1:result.1000])
           
-          check[, (cols) := lapply(.SD, function(x) rpois(length(x), 
-                                                x*prop_pop_catch)), .SDcols = cols]
+          check[, (cols) := lapply(.SD, function(x) x*prop_pop_catch), .SDcols = cols]
           bites_by_catch <- check[, lapply(.SD, sum, na.rm = TRUE), .SDcols = cols, 
                                   by = c("catchment", "scenario")]
+          
+          # Get mean proportion of bites from each district
+          bites_by_catch_all <- bites_by_catch[comm_all, on = c("catchment", "scenario")]
+          bites_by_catch_all <- as.matrix(bites_by_catch_all[, cols, with = FALSE])
+          prop_bites <- bite_mat/bites_by_catch_all
+          prop_bites_means <- rowMeans(prop_bites, na.rm = TRUE)
+          prop_preds <- data.table(prop_bites = prop_bites_means, commcode = comm_all$commcode, 
+                                        scenario = comm_all$scenario, scale = j$scale)
           
           catch_mat <- as.matrix(bites_by_catch[, .SD, .SDcols = cols])
           
@@ -89,32 +115,35 @@ foreach(j = iter(lookup, by = "row"), .combine = rbind,
                           ncol = ncol(catch_mat))
           vials_mean <- rowMeans(vials, na.rm = TRUE)
           vials_sd <- apply(vials, 1, sd, na.rm = TRUE)
-          vials_upper <- vials_mean + 1.96*vials_sd/sqrt(length(vials))
-          vials_lower <- vials_mean - 1.96*vials_sd/sqrt(length(vials))
+          vials_upper <- apply(vials, 1, quantile, prob = 0.975)
+          vials_lower <- apply(vials, 1, quantile, prob = 0.025)
           
           # throughput
           tp <- matrix(unlist(vial_preds["throughput", ]), nrow = nrow(catch_mat), 
                        ncol = ncol(catch_mat))
           tp_mean <- rowMeans(tp, na.rm = TRUE)
           tp_sd <- apply(tp, 1, sd, na.rm = TRUE)
-          tp_upper <- tp_mean + 1.96*tp_sd/sqrt(length(vials))
-          tp_lower <- tp_mean - 1.96*tp_sd/sqrt(length(vials))
+          tp_upper <- apply(tp, 1, quantile, prob = 0.975)
+          tp_lower <- apply(tp, 1, quantile, prob = 0.025)
           
           # bites
           bites_mean <- rowMeans(catch_mat, na.rm = TRUE)
           bites_sd <- apply(catch_mat, 1, sd, na.rm = TRUE)
-          bites_upper <- bites_mean + 1.96*bites_sd/sqrt(length(bites))
-          bites_lower <- bites_mean - 1.96*bites_sd/sqrt(length(bites))
+          bites_upper <- apply(catch_mat, 1, quantile, prob = 0.975)
+          bites_lower <- apply(catch_mat, 1, quantile, prob = 0.025)
           
-          out <- data.table(catchment = bites_by_catch$catchment, 
+          catch_preds <- data.table(catchment = bites_by_catch$catchment, 
                             scenario = bites_by_catch$scenario, scale = j$scale,
                             vials_mean, vials_sd, vials_upper, vials_lower, 
                             tp_mean, tp_sd, tp_upper, 
                             tp_lower, bites_mean, bites_sd, bites_upper, bites_lower)
-          out
-} -> catch_preds
+          list(catch_preds = catch_preds, prop_preds = prop_preds)
+} -> preds
 
+catch_preds <- preds[["catch_preds"]]
+prop_preds <- preds[["prop_preds"]]
 fwrite(catch_preds, "output/preds/catch_preds.gz")
+fwrite(prop_preds, "output/preds/catch_props.csv")
 
 # Close out
 file_path <- "R/05_predictions/02_vials.R"
@@ -122,7 +151,7 @@ out.session(path = file_path, filename = "log_cluster.csv")
 
 # Parse these from bash for where to put things
 sync_to <- "~/Documents/Projects/MadaAccess/output/preds/"
-sync_from <- "mrajeev@della.princeton.edu:~/MadaAccess/output/preds/catch_preds.gz"
+sync_from <- "mrajeev@della.princeton.edu:~/MadaAccess/output/preds/catch*"
 
 closeCluster(cl)
 mpi.quit()

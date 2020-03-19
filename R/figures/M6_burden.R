@@ -16,10 +16,9 @@ library(patchwork)
 library(cowplot)
 
 # Predicted burden
-burden_preds <- fread("output/preds/burden/burden_complete.gz")
-burden_preds <- burden_preds[scenario == 0]
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
+burden_preds <- fread("output/preds/burden_base.gz")
+mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
+mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
 ctar_metadata <- fread("data/raw/ctar_metadata.csv")
 
 # Grouped to district
@@ -43,9 +42,15 @@ burden_to_plot <- bind_rows(burden_preds[scale == "Commune"], district_deaths)
 burden_preds %>%
   group_by(scale) %>%
   summarize(natl_inc = sum(deaths_mean, na.rm = TRUE)/sum(pop, na.rm = TRUE)*1e5) -> natl_inc
-  
 
-M4.A <- ggplot() +
+# Colors and labs
+scale_levs <- c("Commune", "District")
+scale_labs <- c("Commune (Moramanga)", "District (National)")
+model_cols <- c("darkgrey", "black")
+names(scale_labs) <- scale_levs 
+names(model_cols) <- scale_levs
+
+compare_burden <- ggplot() +
   geom_hline(data = natl_inc, aes(yintercept = natl_inc, color = scale), linetype = 1, 
              alpha = 0.75, size = 1.2) +
   geom_point(data = burden_to_plot, 
@@ -54,22 +59,19 @@ M4.A <- ggplot() +
                  size = scale, color = scale, stroke = 1.1)) +
   scale_fill_viridis_c(option = "viridis", direction = 1,
                       name = "Travel times \n (hrs)", limits=c(0, 15), oob = scales::squish)  +
-  scale_shape_manual(values = c(22, 23), name = "Model scale") +
-  scale_alpha_manual(values = c(0.85, 1), name = "Model scale") +
-  scale_size_manual(values = c(2.5, 3.5), name = "Model scale") +
-  scale_color_manual(values = c("darkgrey", "black"), name = "Model scale") +
+  scale_shape_manual(values = c(22, 23), labels = scale_labs,
+                     name = "Model scale (data)") +
+  scale_alpha_manual(values = c(0.85, 1), labels = scale_labs,
+                     name = "Model scale (data)") +
+  scale_size_manual(values = c(2.5, 3.5), labels = scale_labs, 
+                    name = "Model scale (data)") +
+  scale_color_manual(values = model_cols, labels = scale_labs, 
+                     name = "Model scale (data)") +
   labs(x = "Districts (ordered by \n increasing travel times)", 
        y = "Predicted incidence of \n deaths per 100k", tag = "A") +
   theme_minimal_hgrid() +
   theme(axis.text.y = element_blank()) +
   coord_flip(clip = "off")
-
-# plot_ly(data = burden_to_plot, y = ~reorder(distcode, ttimes), x = ~deaths_mean/pop*1e5,
-#         symbol = ~scale, symbols = c("square", "diamond"), size = ~scale,
-#         sizes = c(1, 2),
-#         marker = list(color = burden_to_plot$ttimes, colorscale = "Viridis",
-#                       showscale = TRUE)) %>% 
-#   add_markers()
 
 gg_commune <- fortify(mada_communes, region = "commcode")
 gg_commune %>% 
@@ -81,7 +83,7 @@ gg_district %>%
 
 col_lim <- ceiling(max(gg_commune_plot$deaths_mean/gg_commune_plot$pop*1e5))
 
-M4.B <- ggplot() +
+comm_burden <- ggplot() +
   geom_polygon(data = gg_commune_plot,
                aes(x = long, y = lat, group = group, fill = deaths_mean/pop*1e5), 
                color = "white", size = 0.1) +
@@ -95,7 +97,7 @@ M4.B <- ggplot() +
   coord_quickmap()
 
 
-M4.C <- ggplot() +
+district_burden <- ggplot() +
   geom_polygon(data = gg_district_plot,
                aes(x = long, y = lat, group = group, fill = deaths_mean/pop*1e5), 
                color = "white", size = 0.1) +
@@ -108,13 +110,14 @@ M4.C <- ggplot() +
   theme_map() +
   coord_quickmap()
 
-figM4 <- (M4.A | ((M4.B / M4.C) + plot_layout(nrow = 2, guides = "collect"))) + plot_layout(widths = c(1, 2))
-ggsave("figs/main/M4.jpeg", figM4, height = 14, width = 10)
-ggsave("figs/main/M4.tiff", figM4, dpi = 300, device = "tiff", height = 12, width = 10, 
+burden_base <- (compare_burden | ((comm_burden / district_burden) + plot_layout(nrow = 2, guides = "collect"))) + plot_layout(widths = c(1, 2))
+ggsave("figs/main/M6_burden_base.jpeg", burden_base, height = 14, width = 10)
+ggsave("figs/main/M6_burden_base.tiff", burden_base, dpi = 300, device = "tiff", height = 12, width = 10, 
        compression = "lzw", type = "cairo")
 
 # National deaths
 burden_preds %>%
   group_by(scale) %>%
-  summarize_at(vars(pop:averted_lower), sum, na.rm = TRUE) -> natl_burden
+  summarize_at(vars(pop, bites_mean:averted_lower), sum, na.rm = TRUE) -> natl_burden
 write.csv(natl_burden, "output/preds/natl_burden.csv", row.names = FALSE)
+
