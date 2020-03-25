@@ -36,7 +36,7 @@ model_cols <- c("#F2300F", "#35274A")
 names(scale_labs) <- scale_levs 
 names(model_cols) <- scale_levs
 
-# Figure 5.A
+# Burden
 burden <- ggplot(data = filter(natl_preds, scenario != max_total), 
                   aes(x = scenario, y = deaths_mean, color = scale, fill = scale)) +
   geom_line(size = 1) +
@@ -57,7 +57,7 @@ burden <- ggplot(data = filter(natl_preds, scenario != max_total),
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
-# Figure 5.B
+# Vials per death
 vials_per_death <- ggplot(data = filter(natl_preds_all, scenario != max_total), 
                    aes(x = scenario, y = vials_mean/deaths_mean, color = scale, fill = scale)) +
   geom_line(size = 1) +
@@ -73,13 +73,13 @@ vials_per_death <- ggplot(data = filter(natl_preds_all, scenario != max_total),
                      labels = c("baseline", 100, 300, 500, max_added, "max (1648)")) +
   annotate(geom = "text", x = max_added + 100, y = 1, label = "......") +
   labs(x = "", y = "Mean vials per \n death nationally",
-       tag = "B") +
+       tag = "C") +
   ylim(c(0, max(natl_preds_all$vials_lower/natl_preds_all$deaths_lower))) + 
   coord_cartesian(clip = "off") +
   theme_minimal_hgrid() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
-# Figure 5.C
+# Vials
 vials <- ggplot(data = filter(natl_preds_all, scenario != max_total), 
                   aes(x = scenario, y = vials_mean, color = scale, fill = scale)) +
   geom_line(size = 1) +
@@ -93,13 +93,13 @@ vials <- ggplot(data = filter(natl_preds_all, scenario != max_total),
   scale_x_continuous(breaks = c(0, 100, 300, 500, max_added, max_total), 
                      labels = c("baseline", 100, 300, 500, max_added, "max (1648)")) +
   annotate(geom = "text", x = max_added + 100, y = 2.5e4, label = "......") +
-  labs(x = "# additional clinics \n providing PEP", y = "Mean vials total \n nationally",
-       tag = "C") +
+  labs(x = "# Additional ARMC", y = "Mean vials total \n nationally",
+       tag = "B") +
   coord_cartesian(clip = "off") + 
   theme_minimal_hgrid() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-figM7 <- burden / vials_per_death / vials + plot_layout(guides = "collect")
+figM7 <- burden / vials / vials_per_death + plot_layout(guides = "collect")
 ggsave("figs/main/M7_addARMC.jpeg", figM7, device = "jpeg", height = 8.75, width = 8)
 ggsave("figs/main/M7_addARMC.tiff", figM7, device = "tiff", dpi = 300, height = 8.75, width = 8, 
        compression = "lzw", type = "cairo")

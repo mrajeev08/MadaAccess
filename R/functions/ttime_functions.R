@@ -57,9 +57,9 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #' @param base_df a data.table with the following rows for each grid cell:
 #'  ttimes (the baseline travel times), prop_pop (the proportion of the population), 
 #'  catchment (the baseline clinic catchment id), pop_dist (the total population in the district
-#'  in which the grid cell falls), pop_dist (the total population in the commune in which the grid 
+#'  in which the grid cell falls), pop_comm (the total population in the commune in which the grid 
 #'  cell falls), commcode (corresponds to commcode in shapefile)), 
-#'  distcode (corresponds to row number in distcode in shapefile);
+#'  distcode (corresponds to distcode in shapefile);
 #' @param clinic_names character vector of the names of the candidate ARMC to be added
 #' @param clinic_catchmat a matrix of ttimes estimates for each of the grid cells (rows) in the
 #' shapefile for each of the candidate clinics (columns, should match length of clinic_names vector) 
@@ -106,6 +106,8 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
       
       # In case all admin units go below the threshold: stop adding
       clinic_id <- clinic_names[which.max(sum.prop)]
+      prop_pop <- max(sum.prop[!is.infinite(sum.prop)], na.rm = TRUE)
+      prop_df <- data.table(clinic_id, prop_pop)
       base_df[, new_ttimes := clinic_catchmat[[which.max(sum.prop)]]]
       
       # If ttimes improved then, new ttimes replaces the baseline and catchment
@@ -148,9 +150,11 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
       if(overwrite == TRUE & i == 1) { # overwrite on first one & use gzip to commpress)
         fwrite(district_df, paste0(dir_name, "district.gz"))
         fwrite(commune_df,  paste0(dir_name, "commune.gz"))
+        fwrite(prop_df, paste0(dir_name, "prop_df.csv"))
       } else {
         fwrite(district_df, paste0(dir_name, "district.gz"), append = TRUE)
         fwrite(commune_df,  paste0(dir_name, "commune.gz"), append = TRUE)
+        fwrite(prop_df, paste0(dir_name, "prop_df.csv"), append = TRUE)
       }
       
     } else {

@@ -40,10 +40,13 @@ model_ests %>%
   select(params, sd_adj, pop_predict, intercept, data_source, scale) %>%
   spread(key = params, value = sd_adj, fill = 0) %>%
   filter(pop_predict == "flatPop") -> model_sds_adj
-model_sds_adj <- bind_rows(filter(model_sds_adj, data_source == "National", scale == "District",
-                                  intercept == "random"), filter(model_sds_adj, 
-                                                                 data_source == "Moramanga"))
-
+model_ests %>%
+  select(params, SD, pop_predict, intercept, data_source, scale) %>%
+  spread(key = params, value = SD, fill = 0) %>%
+  filter(pop_predict == "flatPop") -> model_sds_unadj
+model_sds <- bind_rows(filter(model_sds_unadj, data_source == "National", scale == "District",
+                              intercept == "random"), filter(model_sds_adj, 
+                                                             data_source == "Moramanga"))
 # Vials given commune/district ttimes -----------------------------------------------------------------
 
 # make df with the lookup + scale (reverse vec so big ones at end don't slow things down)
@@ -54,10 +57,10 @@ multicomb <- function(x, ...) {
 }
 
 foreach(j = iter(lookup, by = "row"), .combine = multicomb, 
-        .packages = c('data.table', 'foreach')) %dopar% {
+        .packages = c('data.table', 'foreach'), .options.RNG = 2687) %dorng% {
           
           mean <- model_means[model_means$scale == j$scale, ]
-          sd <- model_sds_adj[model_sds_adj$scale == j$scale, ]
+          sd <- model_sds[model_sds$scale == j$scale, ]
           
           # read in max and all catch
           comm <- fread(cmd = paste("grep -w ", j$loop, 
@@ -99,12 +102,14 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
                                   by = c("catchment", "scenario")]
           
           # Get mean proportion of bites from each district
-          bites_by_catch_all <- bites_by_catch[comm_all, on = c("catchment", "scenario")]
-          bites_by_catch_all <- as.matrix(bites_by_catch_all[, cols, with = FALSE])
-          prop_bites <- bite_mat/bites_by_catch_all
+          check_prop <- comm_all[bites, on = c("commcode", "scenario")]
+          catchment <- check_prop$catchment
+          check <- as.matrix(check[, cols, with = FALSE])
+          check_prop <- as.matrix(check_prop[, cols, with = FALSE])
+          prop_bites <- check/check_prop
           prop_bites_means <- rowMeans(prop_bites, na.rm = TRUE)
           prop_preds <- data.table(prop_bites = prop_bites_means, commcode = comm_all$commcode, 
-                                        scenario = comm_all$scenario, scale = j$scale)
+                                   catchment, scenario = comm_all$scenario, scale = j$scale)
           
           catch_mat <- as.matrix(bites_by_catch[, .SD, .SDcols = cols])
           
@@ -134,6 +139,7 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
           
           catch_preds <- data.table(catchment = bites_by_catch$catchment, 
                             scenario = bites_by_catch$scenario, scale = j$scale,
+                            data_source = j$data_source,
                             vials_mean, vials_sd, vials_upper, vials_lower, 
                             tp_mean, tp_sd, tp_upper, 
                             tp_lower, bites_mean, bites_sd, bites_upper, bites_lower)

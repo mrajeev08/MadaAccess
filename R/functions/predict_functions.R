@@ -202,7 +202,7 @@ predict.deaths <- function(bite_mat, pop,
                            p_rab_min = 0.2, p_rab_max = 0.6, p_rab_mode = NULL,
                            rho_max = 0.9,
                            exp_min = 15/1e5, exp_max = 76/1e5, exp_mode = NULL,
-                           prob_death = 0.16, dist = "uniform") {
+                           prob_death = 0.16, dist = "uniform", inc = "draw", exp_scaled, ...) {
   
   # Getting rabies exposures incidence and p_rabid
   if(dist == "uniform") {
@@ -223,10 +223,13 @@ predict.deaths <- function(bite_mat, pop,
     human_exp_inc <- rtriangle(n = length(bite_mat), a = exp_min, b = exp_max, c = exp_mode)
     p_rabid <- rtriangle(n = length(bite_mat), a = p_rab_min, b = p_rab_max, c = p_rab_mode)
   }
+
+  # Overide the previous kind if scaled!
+  if(inc == "scaled") {
+    human_exp_inc <- exp_scaled
+  }
   
-  # TO DO = scaling factors!
-  
-  # Rabied exposures
+  # Rabid exposures
   pop_vec <- rep(pop, ncol(bite_mat))
   rabid_exps <- human_exp_inc*pop_vec # expected rabid exposures
   
@@ -245,11 +248,9 @@ predict.deaths <- function(bite_mat, pop,
                       ncol = ncol(bite_mat))
   
   # Estimating deaths and deaths averted
-  unreported <- rpois(length(rabid_exps), rabid_exps - reported_rabid)
-  deaths <- matrix(rbinom(length(rabid_exps), size = unreported, prob = prob_death),
-                    nrow = nrow(bite_mat), ncol = ncol(bite_mat))
-  reported <- rpois(length(rabid_exps), reported_rabid)
-  averted <- matrix(rbinom(length(rabid_exps), size = reported, prob = prob_death), 
+  unreported <- rabid_exps - reported_rabid
+  deaths <- matrix(unreported*prob_death, nrow = nrow(bite_mat), ncol = ncol(bite_mat))
+  averted <- matrix(reported_rabid*prob_death, 
                     nrow = nrow(bite_mat), ncol = ncol(bite_mat))
   
   out <- list(deaths = deaths, averted = averted, p_rabid = p_rabid,
@@ -257,6 +258,13 @@ predict.deaths <- function(bite_mat, pop,
                                                            ncol = ncol(bite_mat)))
   
   return(out)
+}
+
+constrained_inc <- function(slope, intercept, pop, max, min){
+  inc <- slope*pop + intercept
+  inc[inc >= max] <- max
+  inc[inc <= min] <- min
+  return(inc)
 }
 
 # Get burden or reporting (fixed) -------------------------------------------------------------

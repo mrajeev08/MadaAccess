@@ -1,6 +1,5 @@
 # ------------------------------------------------------------------------------------------------ #
 #' Vial sensitivity to bite model predictions
-#' May also be worth thinking about doing an se analyses with the bite data params
 # ------------------------------------------------------------------------------------------------ #
 
 # Init MPI Backend
@@ -52,7 +51,7 @@ nrow(lookup)
 head(lookup)
 
 foreach(j = iter(lookup, by = "row"), .combine = rbind, 
-        .packages = c('data.table', 'foreach', 'dplyr')) %dopar% {
+        .packages = c('data.table', 'foreach', 'dplyr'), .options.RNG = 2607) %dorng% {
           
           # read in max and all catch
           comm <- fread(cmd = paste("grep -w ", j$loop, 
@@ -73,9 +72,8 @@ foreach(j = iter(lookup, by = "row"), .combine = rbind,
                                     catch = comm$catchment, names = comm$commcode, 
                                     beta_ttimes = j$beta_ttimes, beta_0 = j$beta_0, 
                                     beta_pop = 0, sigma_0 = j$sigma_0, known_alphas = NA, 
-                                    pop_predict = "flatPop", intercept = "random", 
-                                    trans = 1e5, known_catch = FALSE, nsims = 500, 
-                                    type = "inc")
+                                    pop_predict = "flatPop", intercept = "random", dist = FALSE,
+                                    trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc")
           
           bites <- data.table(commcode = comm$commcode, scenario = comm$scenario,
                               bite_mat)
@@ -116,7 +114,7 @@ foreach(j = iter(lookup, by = "row"), .combine = rbind,
           bites_lower <- bites_mean - 1.96*bites_sd/sqrt(length(bites))
           
           out <- data.table(scenario = bites_by_catch$scenario, scale = j$scale,
-                            vary = j$vary, direction = j$direction, 
+                            vary = j$vary, direction = j$direction, data_source = j$data_source,
                             vials_mean, vials_sd, vials_upper, vials_lower, 
                             tp_mean, tp_sd, tp_upper, 
                             tp_lower, bites_mean, bites_sd, bites_upper, bites_lower)

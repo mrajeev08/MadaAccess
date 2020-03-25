@@ -32,19 +32,23 @@ model_ests %>%
   spread(key = params, value = Mean, fill = 0) %>%
   filter(pop_predict == "flatPop") -> model_means
 model_means <- bind_rows(filter(model_means, data_source == "National", scale == "District",
-                                 intercept == "random"), 
+                                intercept == "random"), 
                          filter(model_means, data_source == "Moramanga"))
 model_ests %>%
   select(params, sd_adj, pop_predict, intercept, data_source, scale) %>%
   spread(key = params, value = sd_adj, fill = 0) %>%
   filter(pop_predict == "flatPop") -> model_sds_adj
-model_sds_adj <- bind_rows(filter(model_sds_adj, data_source == "National", scale == "District",
-                                intercept == "random"), filter(model_sds_adj, 
-                                                               data_source == "Moramanga"))
+model_ests %>%
+  select(params, SD, pop_predict, intercept, data_source, scale) %>%
+  spread(key = params, value = SD, fill = 0) %>%
+  filter(pop_predict == "flatPop") -> model_sds_unadj
+model_sds <- bind_rows(filter(model_sds_unadj, data_source == "National", scale == "District",
+                              intercept == "random"), filter(model_sds_adj, 
+                                                             data_source == "Moramanga"))
 
 # All predictions -----------------------------------------------------------------------
 foreach(par = iter(model_means, by = "row"), 
-        sds = iter(model_sds_adj, by = "row"), .combine = rbind, .options.RNG = 1434) %dorng% {
+        sds = iter(model_sds, by = "row"), .combine = rbind, .options.RNG = 1434) %dorng% {
           
           if(par$data_source == "Moramanga"){
             admin <- comm_run # these are data.tables so hopefully will not copy only point!

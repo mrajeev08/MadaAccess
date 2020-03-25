@@ -49,9 +49,10 @@ multicomb <- function(x, ...) {
 
 foreach(j = iter(se_pars, by = "row"), .combine = multicomb, 
         .packages = c('data.table', 'foreach', 'triangle', 'foreach', 'dplyr',
-                      'tidyr')) %dopar% {
+                      'tidyr'), .options.RNG = 267) %dorng% {
           
   print(j)
+                        
   if(j$scale == "Commune"){
     admin <- comm_run # these are data.tables so hopefully will not copy only point!
     ttimes <- admin$ttimes_wtd/60
@@ -91,6 +92,7 @@ foreach(j = iter(se_pars, by = "row"), .combine = multicomb,
   admin_comm <- data.table(names = admin$commcode,
                            ttimes = ttimes, pop = admin$pop, 
                            catch = admin$catchment, scenario = admin$scenario, 
+                           data_source = j$data_source,
                            scale = j$scale, vary = j$vary, direction = j$direction, admin_comm)
   
   max_clinics <- max(admin$scenario[admin$scenario != 1648])

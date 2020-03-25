@@ -160,14 +160,14 @@ pred_inc_cutoffs <- ggplot(data = filter(preds_se, intercept == "random"),
   scale_fill_manual(values = model_cols, name = "Scale") +
   labs(x = "Travel times (hrs)", y = "Predicted bites per 100k") +
   theme(text = element_text(size= 20)) +
-  facet_wrap(~ rep_cutoff, ncol = 1, labeller = labeller(rep_cutoff = cutoff_labs)) +
+  facet_wrap(~ rep_cutoff, nrow = 1, labeller = labeller(rep_cutoff = cutoff_labs)) +
   theme_minimal_grid() +
   theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "gray92"),
         panel.grid = element_line(color = "white", size = 0.5),
         axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 ggsave("figs/supplementary/S3.5_cutoffs.jpeg", pred_inc_cutoffs, device = "jpeg", height = 6, 
-       width = 6)
+       width = 8)
 
 # Session Info
 out.session(path = "R/figures/SM3_bitemods.R", filename = "output/log_local.csv")

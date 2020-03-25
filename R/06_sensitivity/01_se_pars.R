@@ -10,7 +10,6 @@ library(iterators)
 select <- dplyr::select
 source("R/functions/out.session.R")
 
-
 # Get model means for commune and district models
 model_ests <- read.csv("output/mods/estimates_adj_OD.csv")
 model_ests %>%
@@ -28,13 +27,12 @@ model_ests %>%
   select(params, SD, pop_predict, intercept, data_source, scale) %>%
   spread(key = params, value = SD, fill = 0) %>%
   filter(pop_predict == "flatPop") -> model_sds_unadj
-
-model_sds_adj <- bind_rows(filter(model_sds_unadj, data_source == "National", scale == "District",
+model_sds <- bind_rows(filter(model_sds_unadj, data_source == "National", scale == "District",
                                   intercept == "random"), filter(model_sds_adj, 
                                                                  data_source == "Moramanga"))
 
 # Univariate sensitivity ---------------------------------------------------------------------
-foreach(means = iter(model_means, by = "row"), sds = iter(model_sds_adj, by = "row"), 
+foreach(means = iter(model_means, by = "row"), sds = iter(model_sds, by = "row"), 
         .combine = rbind) %do% {
           
   base <- data.table(exp_min = 15/1e5, exp_max = 76/1e5, p_rab_min = 0.2, p_rab_max = 0.6,
@@ -66,21 +64,21 @@ foreach(means = iter(model_means, by = "row"), sds = iter(model_sds_adj, by = "r
                                 direction == "min" ~ means$beta_0 - 1.96*sds$beta_0, 
                                vary == "beta_0" & 
                                 direction == "max" ~ means$beta_0 + 1.96*sds$beta_0, 
-                               vary != "beta_0" ~ beta_0),
+                               vary != "beta_0" ~ means$beta_0),
            beta_ttimes = case_when(vary == "beta_ttimes" & 
-                                direction == "min" ~ means$beta_0 - 1.96*sds$beta_0, 
+                                direction == "min" ~ means$beta_ttimes - 1.96*sds$beta_ttimes, 
                               vary == "beta_ttimes" & 
-                                direction == "max" ~ means$beta_0 + 1.96*sds$beta_0, 
-                              vary != "beta_ttimes" ~ beta_ttimes), 
+                                direction == "max" ~ means$beta_ttimes + 1.96*sds$beta_ttimes, 
+                              vary != "beta_ttimes" ~ means$beta_ttimes), 
            sigma_0 = case_when(vary == "sigma_0" & direction == "min" ~ means$sigma_0 - 1.96*sds$sigma_0,
                                vary == "sigma_0" & direction == "max" ~ means$sigma_0 + 1.96*sds$sigma_0,
-                               vary != "sigma_0" ~ sigma_0),
-           scale = scale[i])-> se_pars
+                               vary != "sigma_0" ~ means$sigma_0),
+           scale = means$scale, data_source = means$data_source) -> se_pars
 } -> se_pars
 
 write.csv(se_pars, "output/sensitivity/se_pars.csv", row.names = FALSE)
 
-##' Saving session info
+# Saving session info
 out.session(path = "R/06_sensitivity/03_burden_se_pars.R", filename = "output/log_local.csv")
 
 
