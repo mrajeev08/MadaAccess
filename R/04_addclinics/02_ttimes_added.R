@@ -39,8 +39,8 @@ system.time ({
 })
 
 # Parse these from bash for where to put things
-sync_to <- "~/Documents/Projects/MadaAccess/output/ttimes/"
-sync_from <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/addclinics*"
+syncto <- "~/Documents/Projects/MadaAccess/output/ttimes/"
+syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/addclinics*"
 
 # Close out
 file_path <- "R/04_addclinics/02_ttimes_added.R"

@@ -89,8 +89,8 @@ warnings()
 write.csv(mods_all, "output/mods/estimates.csv", row.names = FALSE)
 
 # Parse these from bash for where to put things
-sync_to <- "~/Documents/Projects/MadaAccess/output/mods/"
-sync_from <- "mrajeev@della.princeton.edu:~/MadaAccess/output/mods/"
+syncto <- "~/Documents/Projects/MadaAccess/output/mods/"
+syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/output/mods/"
 
 # Close out 
 file_path <- "R/03_bitemodels/01_run_bitemods.R"

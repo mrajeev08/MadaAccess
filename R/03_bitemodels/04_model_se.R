@@ -242,8 +242,8 @@ foreach(mean = iter(model_means, by = "row"),
 write.csv(preds_cutoff, "output/preds/bites/expectations_se.csv", row.names = FALSE)
 
 # Parse these from bash for where to put things
-sync_to <- "~/Documents/Projects/MadaAccess/output/sensitivity/"
-sync_from <- "mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/"
+syncto <- "~/Documents/Projects/MadaAccess/output/sensitivity/"
+syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/"
 
 # Close out 
 file_path <- "R/06_sensitivity/02_model_se.R"

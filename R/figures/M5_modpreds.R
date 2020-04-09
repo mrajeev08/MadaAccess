@@ -73,7 +73,7 @@ beta_ttimes <- ggplot(data = filter(all_samps, Parameter == "beta_ttimes"),
                     labels = scale_labs, guide = "none") +
   scale_x_discrete(labels = "") +
   labs(x = bquote(beta[t] ~ "(Travel time effect)"), y = "Estimate", 
-       tag = "B") +
+       tag = "C") +
   theme_minimal_hgrid() +
   theme(axis.ticks.x = element_blank())
 
@@ -86,7 +86,7 @@ beta_0 <- ggplot(data = filter(all_samps, Parameter == "beta_0"),
                     labels = scale_labs, guide = "none") +
   scale_x_discrete(labels = "") +
   scale_y_continuous(breaks = set_breaks) +
-  labs(x = bquote(beta[0] ~ "(Intercept)"), y = "Estimate", tag = "C") +
+  labs(x = bquote(beta[0] ~ "(Intercept)"), y = "Estimate", tag = "B") +
   theme_minimal_hgrid() +
   theme(axis.ticks.x = element_blank())
 

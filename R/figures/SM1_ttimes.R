@@ -138,7 +138,6 @@ gtruth %>%
             ttimes_reported = mean(ttimes_reported, na.rm = TRUE),
             nobs = n()) -> mode_sum
 gtruth_mora <- filter(gtruth, type != "point", !is.na(mode))
-ggplot(data = mode_sum, aes(x = mode, y = nobs, fill = ttimes_reported)) + geom_col()
 
 S1.3_modes <- ggplot(data = gtruth_mora, aes(x = mode, y = ttimes_reported)) + 
   geom_boxplot(outlier.color = NA) +

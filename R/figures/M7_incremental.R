@@ -31,7 +31,7 @@ natl_preds$scenario[natl_preds$scenario == max(natl_preds$scenario)] <- max_tota
 # Colors
 # labs & cols
 scale_levs <- c("Commune", "District")
-scale_labs <- c("Moramanga", "District")
+scale_labs <- c("Commune (Moramanga data)", "District (National data)")
 model_cols <- c("#F2300F", "#35274A")
 names(scale_labs) <- scale_levs 
 names(model_cols) <- scale_levs
@@ -50,7 +50,7 @@ burden <- ggplot(data = filter(natl_preds, scenario != max_total),
   scale_x_continuous(breaks = c(0, 100, 300, 500, max_added, max_total), 
                      labels = c("baseline", 100, 300, 500, max_added, "max (1648)")) +
   annotate(geom = "text", x = max_added + 100, y = -30, label = "......") +
-  labs(x = "", y = "Mean deaths \n nationally",
+  labs(x = "", y = "Average annual deaths",
        tag = "A") +
   coord_cartesian(clip = "off", ylim = c(0, max(natl_preds$deaths_upper))) +
   theme_minimal_hgrid() +
@@ -59,12 +59,12 @@ burden <- ggplot(data = filter(natl_preds, scenario != max_total),
 
 # Vials per death
 vials_per_death <- ggplot(data = filter(natl_preds_all, scenario != max_total), 
-                   aes(x = scenario, y = vials_mean/deaths_mean, color = scale, fill = scale)) +
+                   aes(x = scenario, y = vials_mean/averted_mean, color = scale, fill = scale)) +
   geom_line(size = 1) +
-  geom_ribbon(aes(ymax = vials_upper/deaths_upper, ymin = vials_lower/deaths_lower), color = NA, alpha = 0.35) +
+  geom_ribbon(aes(ymax = vials_upper/averted_upper, ymin = vials_lower/averted_lower), color = NA, alpha = 0.35) +
   geom_pointrange(data = filter(natl_preds_all, scenario == max_total),
-                  aes(x = scenario, y = vials_mean/deaths_mean,
-                      ymax = vials_upper/deaths_upper, ymin = vials_lower/deaths_lower, 
+                  aes(x = scenario, y = vials_mean/averted_mean,
+                      ymax = vials_upper/averted_upper, ymin = vials_lower/averted_lower, 
                       color = scale),
                   position = position_dodge(width = 50)) +
   scale_color_manual(values = model_cols, labels = scale_labs, name = "Scale") +
@@ -72,9 +72,9 @@ vials_per_death <- ggplot(data = filter(natl_preds_all, scenario != max_total),
   scale_x_continuous(breaks = c(0, 100, 300, 500, max_added, max_total), 
                      labels = c("baseline", 100, 300, 500, max_added, "max (1648)")) +
   annotate(geom = "text", x = max_added + 100, y = 1, label = "......") +
-  labs(x = "", y = "Mean vials per \n death nationally",
+  labs(x = "# Additional ARMC", y = "Average vials per \n death averted",
        tag = "C") +
-  ylim(c(0, max(natl_preds_all$vials_lower/natl_preds_all$deaths_lower))) + 
+  ylim(c(0, max(natl_preds_all$vials_lower/natl_preds_all$averted_lower))) + 
   coord_cartesian(clip = "off") +
   theme_minimal_hgrid() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -93,7 +93,7 @@ vials <- ggplot(data = filter(natl_preds_all, scenario != max_total),
   scale_x_continuous(breaks = c(0, 100, 300, 500, max_added, max_total), 
                      labels = c("baseline", 100, 300, 500, max_added, "max (1648)")) +
   annotate(geom = "text", x = max_added + 100, y = 2.5e4, label = "......") +
-  labs(x = "# Additional ARMC", y = "Mean vials total \n nationally",
+  labs(x = "", y = "Average annual vial demand",
        tag = "B") +
   coord_cartesian(clip = "off") + 
   theme_minimal_hgrid() +

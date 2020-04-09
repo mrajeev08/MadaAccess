@@ -8,14 +8,8 @@ source("R/functions/out.session.R")
 source("R/functions/nested_facets.R")
 
 # libraries
-library(foreach)
-library(iterators)
 library(tidyverse)
-library(glue)
-library(rgdal)
-library(patchwork)
 library(cowplot)
-library(ggmcmc)
 library(data.table)
 select <- dplyr::select
 

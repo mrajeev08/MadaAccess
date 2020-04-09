@@ -8,9 +8,11 @@
 rm(list=ls())
 library(malariaAtlas) # for friction surface
 library(raster) # for reading in rasters
-library(rgdal) # for reading in shapefiles
+require(rgdal) # for reading in shapefiles
 library(gdistance) # for making transition object
 source("R/functions/out.session.R")
+
+here::here()
 
 # Shapefile for masking to (from OCHA)
 mada_districts <- readOGR("data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")

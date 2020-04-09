@@ -6,10 +6,7 @@
 source("R/functions/out.session.R")
 
 # libraries
-library(foreach)
-library(iterators)
 library(tidyverse)
-library(glue)
 library(data.table)
 library(rgdal)
 library(patchwork)
@@ -19,7 +16,6 @@ library(cowplot)
 burden_preds <- fread("output/preds/burden_base.gz")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
-write.csv(coordinates(mada_districts), "check.csv")
 ctar_metadata <- fread("data/raw/ctar_metadata.csv")
 
 # Grouped to district

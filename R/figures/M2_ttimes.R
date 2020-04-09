@@ -8,11 +8,9 @@ library(rgdal)
 library(raster)
 library(patchwork)
 library(cowplot)
-library(foreach)
 library(data.table)
 select <- dplyr::select
 source('R/functions/out.session.R')
-source('R/functions/ttime_functions.R')
 
 # data
 ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")

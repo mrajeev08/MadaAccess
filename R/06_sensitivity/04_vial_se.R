@@ -133,8 +133,8 @@ file_path <- "R/06_sensitivity/05_vial_se.R"
 out.session(path = file_path, filename = "output/log_cluster.csv")
 
 # Parse these from bash for where to put things
-sync_to <- "~/Documents/Projects/MadaAccess/output/sensitivity/"
-sync_from <- "mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/catch_preds_se.gz"
+syncto <- "~/Documents/Projects/MadaAccess/output/sensitivity/"
+syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/catch_preds_se.gz"
 
 closeCluster(cl)
 mpi.quit()

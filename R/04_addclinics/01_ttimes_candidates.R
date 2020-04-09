@@ -8,7 +8,7 @@
 
 # set up cluster on single node with do Parallel
 library(doParallel)
-cl <- makeCluster(cores)
+cl <- makeCluster(18)
 registerDoParallel(cl)
 Sys.time()
 
