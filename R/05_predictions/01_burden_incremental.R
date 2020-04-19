@@ -3,6 +3,15 @@
 #' Details: Pulling in district and commune estimates of travel times as clinics are added 
 # ------------------------------------------------------------------------------------------------ #
 
+#sub_cmd=-t 12 -n 30 -mem 4000 -sp "./R/05_predictions/01_burden_incremental.R" -jn "burden" -wt 5m -n@
+
+# Init MPI Backend
+library(doMPI)
+cl <- startMPIcluster()
+clusterSize(cl) # this just tells you how many you've got
+registerDoMPI(cl)
+Sys.time()
+
 # Set up ------------------------------------------------------------------------------------
 library(data.table)
 library(magrittr)
@@ -15,15 +24,9 @@ source("R/functions/out.session.R")
 source("R/functions/predict_functions.R")
 select <- dplyr::select
 
-# Filter to only do ones for which travel times have changed
-commune_master <- fread("output/ttimes/commune_maxcatch.gz")
-setorder(commune_master, commcode, scenario)
-commune_master[, diff_comm := ttimes_wtd - shift(ttimes_wtd, 1), by = commcode]
-commune_master[, diff_dist := ttimes_wtd_dist - shift(ttimes_wtd_dist, 1), by = commcode]
-comm_run <- commune_master[diff_comm != 0 | scenario %in% c(0, 1648)]
-dist_run <- commune_master[diff_dist != 0 | scenario %in% c(0, 1648)]
-rm(commune_master) # cleaning up memory!
-gc()
+# Set-up these two vectors for reading in data using cmd line args
+scenario_loop <- unique(fread("output/ttimes/commune_maxcatch.csv")$lookup)
+colnames <- colnames(fread("output/ttimes/commune_maxcatch.csv"))
 
 # Get model means for commune and district models
 model_ests <- read.csv("output/mods/estimates_adj_OD.csv")
@@ -46,32 +49,46 @@ model_sds <- bind_rows(filter(model_sds_unadj, data_source == "National", scale 
                               intercept == "random"), filter(model_sds_adj, 
                                                              data_source == "Moramanga"))
 
-# All predictions -----------------------------------------------------------------------
-foreach(par = iter(model_means, by = "row"), 
-        sds = iter(model_sds, by = "row"), .combine = rbind, .options.RNG = 1434) %dorng% {
-          
-          if(par$data_source == "Moramanga"){
-            admin <- comm_run # these are data.tables so hopefully will not copy only point!
-            ttimes <- admin$ttimes_wtd/60
-            OD_dist <- TRUE # accounting for overdispersion
-          }
-          
-          if(par$scale == "District"){
-            admin <- dist_run
-            ttimes <- admin$ttimes_wtd_dist/60
-            OD_dist <- FALSE # not accounting for overdispersion
-          }
+# Vials given commune/district ttimes -------------------------------------------------------
 
-          bite_mat <- predict.bites(ttimes = ttimes, pop = admin$pop, 
-                                    catch = admin$catchment, names = admin$commcode, 
-                                    beta_ttimes = par$beta_ttimes, beta_ttimes_sd = sds$beta_ttimes,
-                                    beta_0 = par$beta_0, beta_0_sd = sds$beta_0, 
-                                    beta_pop = 0, beta_pop_sd = sds$beta_pop, 
-                                    sigma_0 = par$sigma_0, known_alphas = NA, 
-                                    pop_predict = "flatPop", intercept = "random", dist = OD_dist,
-                                    trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc")
+# make df with the lookup + scale (reverse vec so big ones at end don't slow things down)
+lookup <- expand.grid(loop = rev(scenario_loop), scale = c("Commune", "District"))
+
+multicomb <- function(x, ...) {
+  mapply(rbind, x, ..., SIMPLIFY = FALSE)
+}
+
+# All predictions -----------------------------------------------------------------------
+foreach(j = iter(lookup, by = "row"), .combine = multicomb, 
+        .packages = c('data.table', 'foreach', "triangle"), .options.RNG = 2677) %dorng% {
           
-          all_mats <-  predict.deaths(bite_mat, pop = admin$pop,
+          pars <- model_means[model_means$scale == j$scale, ]
+          sds <- model_sds[model_sds$scale == j$scale, ]
+          
+          # read in max and all catch
+          comm <- fread(cmd = paste("grep -w ", j$loop, 
+                                    " output/ttimes/commune_maxcatch.csv", 
+                                    sep = ""), col.names = colnames)
+          
+          if(j$scale == "Commune") {
+            ttimes <- comm$ttimes_wtd/60
+          } 
+          
+          if(j$scale == "District") {
+            ttimes <- comm$ttimes_wtd_dist/60
+          }
+          
+          bite_mat <- predict.bites(ttimes = ttimes, pop = comm$pop, 
+                                    catch = comm$catchment, names = comm$commcode, 
+                                    beta_ttimes = pars$beta_ttimes, beta_ttimes_sd = sds$beta_ttimes,
+                                    beta_0 = pars$beta_0, beta_0_sd = sds$beta_0, 
+                                    beta_pop = 0, beta_pop_sd = sds$beta_pop, 
+                                    sigma_0 = pars$sigma_0, sigma_0_sd = sds$sigma_0, known_alphas = NA, 
+                                    pop_predict = pars$pop_predict, intercept = pars$intercept, 
+                                    trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc",
+                                    dist = TRUE)
+          
+          all_mats <-  predict.deaths(bite_mat, pop = comm$pop,
                                       p_rab_min = 0.2, p_rab_max = 0.6,
                                       rho_max = 0.98, exp_min = 15/1e5, exp_max = 76/1e5,
                                       prob_death = 0.16, dist = "triangle")
@@ -82,42 +99,58 @@ foreach(par = iter(model_means, by = "row"),
             mat <- all_mats[[i]]
             labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
             mean <- rowMeans(mat, na.rm = TRUE) # mean for each row = admin unit
-            sd <- apply(mat, 1, sd, na.rm = TRUE)
             upper <- apply(mat, 1, quantile, prob = 0.975)
             lower <- apply(mat, 1, quantile, prob = 0.025)
             out <- data.table(mean, upper, lower)
             names(out) <- labels
             out
-          } -> admin_comm
+          } -> admin_preds
           
-          admin_comm <- data.table(names = admin$commcode,
-                                   ttimes = ttimes, pop = admin$pop, 
-                                   catch = admin$catchment, scenario = admin$scenario, 
-                                   scale = par$scale, data_source = par$data_source,
-                                   admin_comm)
+          natl_mats <- all_mats[c("bites", "deaths", "averted")]
           
-          max_clinics <- max(admin$scenario[admin$scenario != 1648])
+          foreach(i = 1:length(natl_mats), .combine = 'cbind') %do% {
+            mat <- natl_mats[[i]]
+            labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
+            totals <- colSums(mat, na.rm = TRUE) # sums at natl level
+            mean <- mean(totals)
+            upper <- quantile(totals, prob = 0.975)
+            lower <- quantile(totals, prob = 0.025)
+            out <- data.table(mean, upper, lower)
+            names(out) <- labels
+            out
+          } -> natl_preds
           
-          admin_comm %>%
-            complete(scenario = 1:max_clinics, names) %>% # from 1 to last
-            group_by(names) %>%
-            arrange(scenario) %>%
-            fill(3:ncol(admin_comm), .direction = "down") -> admin_comm
+          natl_preds <- data.table(scenario = comm$scenario[1], scale = pars$scale, 
+                                  data_source = pars$data_source, natl_preds)
           
-          ## This should be true!
-          admin_comm %>%
-            group_by(scenario) %>%
-            summarize(n_admin = n()) %>%
-            summarize(all(n_admin == 1579)) # should be true for all of them!
+          admin_preds <- data.table(names = comm$commcode,
+                                   ttimes = ttimes, pop = comm$pop, 
+                                   catch = comm$catchment, scenario = comm$scenario, 
+                                   scale = pars$scale, data_source = pars$data_source,
+                                   admin_preds)
           
-          admin_comm
+          list(admin_preds = admin_preds, natl_preds = natl_preds)
           
-  } -> burden_complete
+  } -> preds_all
 
-fwrite(burden_complete, "output/preds/burden_all.gz")
-burden_base <- filter(burden_complete, scenario == 0)
+admin_preds <- preds_all[["admin_preds"]]
+natl_preds <- preds_all[["natl_preds"]]
+
+fwrite(admin_preds, "output/preds/burden_all.gz")
+fwrite(natl_preds, "output/preds/burden_natl.gz")
+
+burden_base <- filter(admin_preds, scenario == 0)
 fwrite(burden_base, "output/preds/burden_base.gz")
 
-##' Saving session info
-out.session(path = "R/05_predictions/01_burden.R", filename = "output/log_local.csv")
+# Saving session info
+out.session(path = "R/05_predictions/01_burden_incremental.R", filename = "output/log_cluster.csv")
+
+# Parse these from bash for where to put things
+syncto <- "~/Documents/Projects/MadaAccess/output/preds/"
+syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/output/preds/burden*"
+
+closeCluster(cl)
+mpi.quit()
+print("Done remotely:)")
+Sys.time()
 

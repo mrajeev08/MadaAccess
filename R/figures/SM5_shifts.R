@@ -69,22 +69,26 @@ point_mat_all %>%
                               is.na(prop_pop) & clinic_id > 32 ~ 1e-12,
                               !is.na(prop_pop) ~ prop_pop),
          step_added = case_when(is.na(step_added) & clinic_id < 32 ~ 0,
-                                is.na(step_added) & clinic_id > 32 ~ 923,
                                 !is.na(step_added) ~ as.numeric(step_added))) -> point_mat_all
 
 gg_commune <- fortify(mada_communes, region = "commcode")
 
 S5.1_ARMCadded <- ggplot() +
   geom_polygon(data = gg_commune, aes(x = long, y = lat, group = group), fill = "black") +
+  geom_point(data = filter(point_mat_all, is.na(step_added)),
+             aes(x = long, y = lat), color = "white",
+             alpha = 0.5, shape = 3) +
   geom_point(data = filter(point_mat_all, step_added > 0),
              aes(x = long, y = lat, size = prop_pop, fill = step_added), color = "grey50", 
              alpha = 0.75, shape = 21) +
   geom_point(data = filter(point_mat_all, step_added == 0),
              aes(x = long, y = lat), shape = 3, size = 2, stroke = 1.2, color = "white") +
   coord_quickmap() +
-  scale_fill_distiller(trans = "sqrt", direction = -1, palette = "PuRd",
-                       breaks = c(1, 100, 200, 400, 923), name = "Step clinic added") +
-  scale_size_continuous(name = "Proportion of pop \n (travel times reduced < 3 hrs)") +
+  scale_fill_distiller(trans = "sqrt", direction = -1, palette = "PuRd", na.value = "grey50",
+                       breaks = c(1, 100, 200, 400, max(point_mat_all$step_added, na.rm = TRUE)),
+                       labels = c(1, 100, 300, 400, "723 (max added)"),
+                                  name = "Step clinic added") +
+  scale_size_continuous(name = "Proportion of pop \n for which travel times reduced)") +
   theme_map()
 
 ggsave("figs/supplementary/S5.1_ARMCadded.jpeg", S5.1_ARMCadded, width = 6, height = 8)
@@ -587,7 +591,7 @@ gg_commune <- left_join(select(burden_all, names, scenario, scale, pop, bites_me
                         by = c("names" = "id"))
 
 scenario_labs <- c(`0` = "baseline", `100` = "100", `200` = "200", `400` = "400", `723` = "723", 
-                                         `1648` = "max(1648)")
+                                         `1648` = "max (1648)")
 
 S5.8_comm <- ggplot() +
   geom_polygon(data = filter(gg_commune, scale == "Commune"), 
@@ -605,7 +609,7 @@ S5.8_comm <- ggplot() +
                       name = "Bites reported to clinic", 
                       guide = guide_legend(override.aes = list(alpha = 0.5, color = "grey50"))) +
   scale_color_distiller(aesthetics = c("color", "fill"), name = "Step clinic added") +
-  scale_alpha(name = "Bites per 100k", breaks = c(5, 50, 100, 150, 200)) +
+  scale_alpha(name = "Bites per 100k", breaks = c(5, 50, 100, 200, 400, 600)) +
   coord_quickmap() +
   facet_wrap(~ scenario, labeller = labeller(scenario = scenario_labs), nrow = 2) +
   theme_map()
@@ -663,7 +667,7 @@ prop_dist <- ggplot() +
   geom_density_ridges(data = clinic_bites_indist, 
                       aes(x = prop_bites, y = as.factor(scenario), fill = scale), 
                       alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, guide = "legend") +
+  scale_fill_manual(values = model_cols, labels = scale_labs, name = "Model scale (data)", guide = "legend") +
   scale_y_discrete(labels = c("baseline", 100, 200, 400, max_added, "max (1648)")) +
   scale_x_continuous(limits = c(0, 1.01)) +
   labs(y = "", x = "Proportion of bites \n reported from \n same district as ARMC", tag = "B") +

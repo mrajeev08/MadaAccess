@@ -9,21 +9,13 @@ library(data.table)
 library(patchwork)
 library(cowplot) 
 
-admin_preds <- fread("output/preds/burden_all.gz")
-vial_preds <- fread("output/preds/catch_preds.gz")
+# read in natl preds
+natl_preds <- fread("output/preds/burden_natl.gz")
+natl_vials <- fread("output/preds/catch_preds_natl.csv")
 
 # Joining and summarizing preds
-admin_preds %>%
-  filter(scale != "") %>%
-  group_by(scale, scenario) %>%
-  summarize_at(vars(bites_mean:averted_lower, pop), sum, na.rm = TRUE) -> natl_preds
 max_added <- sort(unique(natl_preds$scenario), decreasing = TRUE)[2]
 max_total <- max_added + 200
-
-vial_preds %>%
-  group_by(scale, scenario) %>%
-  summarize_at(vars(vials_mean:vials_lower), sum, na.rm = TRUE) -> natl_vials
-
 natl_preds_all <- left_join(natl_preds, natl_vials)
 natl_preds_all$scenario[natl_preds_all$scenario == max(natl_preds_all$scenario)] <- max_total
 natl_preds$scenario[natl_preds$scenario == max(natl_preds$scenario)] <- max_total
@@ -74,7 +66,6 @@ vials_per_death <- ggplot(data = filter(natl_preds_all, scenario != max_total),
   annotate(geom = "text", x = max_added + 100, y = 1, label = "......") +
   labs(x = "# Additional ARMC", y = "Average vials per \n death averted",
        tag = "C") +
-  ylim(c(0, max(natl_preds_all$vials_lower/natl_preds_all$averted_lower))) + 
   coord_cartesian(clip = "off") +
   theme_minimal_hgrid() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))

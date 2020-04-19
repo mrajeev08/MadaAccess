@@ -2,6 +2,8 @@
 #' Vial sensitivity to bite model predictions
 # ------------------------------------------------------------------------------------------------ #
 
+#sub_cmd=-t 12 -n 30 -mem 3000 -sp "./R/06_sensitivity/04_vial_se.R" -jn "vials_se" -wt 5m -n@
+  
 # Init MPI Backend
 library(doMPI)
 cl <- startMPIcluster()
@@ -24,22 +26,10 @@ source("R/functions/out.session.R")
 
 # Set-up these two vectors for reading in data using cmd line args
 scenario_loop <- unique(fread("output/ttimes/commune_maxcatch.csv")$lookup)
-colnames <- colnames(fread("output/ttimes/commune_maxcatch.csv"))
-
-# Get model means for commune and district models
-model_ests <- read.csv("output/mods/estimates.csv")
-model_ests %>%
-  dplyr::select(params, Mean, pop_predict, intercept, data_source, scale) %>%
-  tidyr::spread(key = params, value = Mean, fill = 0) %>%
-  dplyr::filter(pop_predict == "flatPop", data_source == "National", 
-                intercept == "random") -> model_means
-
-multicomb <- function(x, ...) {
-  mapply(rbind, x, ..., SIMPLIFY = FALSE)
-}
+colnames_max <- colnames(fread("output/ttimes/commune_maxcatch.csv"))
+colnames_all <- colnames(fread("output/ttimes/commune_allcatch.csv"))
 
 # Vials given commune/district ttimes -----------------------------------------------------------------
-
 # Bring in sensitivity parameters
 vial_se_pars <- fread("output/sensitivity/se_pars.csv")[grep("beta|sigma", vary)]
 vial_se_pars <- vial_se_pars[, c("beta_ttimes", "beta_0", "sigma_0", "vary", "direction", "scale")]
@@ -47,8 +37,10 @@ vial_se_pars <- vial_se_pars[, c("beta_ttimes", "beta_0", "sigma_0", "vary", "di
 # make df with the lookup + scale
 # reverse so bigger dfs don't slow everything down
 lookup <- expand_grid(loop = rev(scenario_loop), vial_se_pars)
-nrow(lookup)
-head(lookup)
+
+multicomb <- function(x, ...) {
+  mapply(rbind, x, ..., SIMPLIFY = FALSE)
+}
 
 foreach(j = iter(lookup, by = "row"), .combine = rbind, 
         .packages = c('data.table', 'foreach', 'dplyr'), .options.RNG = 2607) %dorng% {
@@ -56,10 +48,10 @@ foreach(j = iter(lookup, by = "row"), .combine = rbind,
           # read in max and all catch
           comm <- fread(cmd = paste("grep -w ", j$loop, 
                                     " output/ttimes/commune_maxcatch.csv", 
-                                    sep = ""), col.names = colnames)
+                                    sep = ""), col.names = colnames_max)
           comm_all <- fread(cmd = paste("grep -w ", j$loop, 
-                                        " output/ttimes/commune_maxcatch.csv", 
-                                        sep = ""), col.names = colnames)
+                                        " output/ttimes/commune_allcatch.csv", 
+                                        sep = ""), col.names = colnames_all)
           if(j$scale == "Commune") {
             ttimes <- comm$ttimes_wtd/60
           } 
@@ -80,10 +72,10 @@ foreach(j = iter(lookup, by = "row"), .combine = rbind,
           
           check <- comm_all[bites, on = c("commcode", "scenario")]
           
-          cols <- names(check[, .SD, .SDcols = result.1:result.500])
+          cols <- names(check[, .SD, .SDcols = grepl("result", names(check), fixed = TRUE)])
           
-          check[, (cols) := lapply(.SD, function(x) rpois(length(x), 
-                                                          x*prop_pop_catch)), .SDcols = cols]
+          check[, (cols) := lapply(.SD, function(x) x*prop_pop_catch), .SDcols = cols]
+          
           bites_by_catch <- check[, lapply(.SD, sum, na.rm = TRUE), .SDcols = cols, 
                                   by = c("catchment", "scenario")]
           
@@ -96,22 +88,22 @@ foreach(j = iter(lookup, by = "row"), .combine = rbind,
                           ncol = ncol(catch_mat))
           vials_mean <- rowMeans(vials, na.rm = TRUE)
           vials_sd <- apply(vials, 1, sd, na.rm = TRUE)
-          vials_upper <- vials_mean + 1.96*vials_sd/sqrt(length(vials))
-          vials_lower <- vials_mean - 1.96*vials_sd/sqrt(length(vials))
+          vials_natl_upper <- quantile(vials_natl, prob = 0.975, na.rm = TRUE)
+          vials_natl_lower <- quantile(vials_natl, prob = 0.025, na.rm = TRUE)
           
           # throughput
           tp <- matrix(unlist(vial_preds["throughput", ]), nrow = nrow(catch_mat), 
                        ncol = ncol(catch_mat))
           tp_mean <- rowMeans(tp, na.rm = TRUE)
           tp_sd <- apply(tp, 1, sd, na.rm = TRUE)
-          tp_upper <- tp_mean + 1.96*tp_sd/sqrt(length(vials))
-          tp_lower <- tp_mean - 1.96*tp_sd/sqrt(length(vials))
+          tp_upper <- apply(tp, 1, quantile, prob = 0.975, na.rm = TRUE)
+          tp_lower <- apply(tp, 1, quantile, prob = 0.025, na.rm = TRUE)
           
           # bites
           bites_mean <- rowMeans(catch_mat, na.rm = TRUE)
           bites_sd <- apply(catch_mat, 1, sd, na.rm = TRUE)
-          bites_upper <- bites_mean + 1.96*bites_sd/sqrt(length(bites))
-          bites_lower <- bites_mean - 1.96*bites_sd/sqrt(length(bites))
+          bites_upper <- apply(catch_mat, 1, quantile, prob = 0.975, na.rm = TRUE)
+          bites_lower <- apply(catch_mat, 1, quantile, prob = 0.025, na.rm = TRUE)
           
           out <- data.table(scenario = bites_by_catch$scenario, scale = j$scale,
                             vary = j$vary, direction = j$direction, data_source = j$data_source,

@@ -3,6 +3,8 @@
 #' Details: Pulling in district and commune estimates of travel times as clinics are added 
 # ------------------------------------------------------------------------------------------------ #
 
+#sub_cmd=-t 12 -n 30 -mem 3000 -sp "./R/05_predictions/02_vials_incremental.R" -jn "vials" -wt 5m -n@
+
 # Init MPI Backend
 library(doMPI)
 cl <- startMPIcluster()
@@ -25,7 +27,8 @@ source("R/functions/out.session.R")
 
 # Set-up these two vectors for reading in data using cmd line args
 scenario_loop <- unique(fread("output/ttimes/commune_maxcatch.csv")$lookup)
-colnames <- colnames(fread("output/ttimes/commune_maxcatch.csv"))
+colnames_max <- colnames(fread("output/ttimes/commune_maxcatch.csv"))
+colnames_all <- colnames(fread("output/ttimes/commune_allcatch.csv"))
 
 # Get model means for commune and district models
 model_ests <- read.csv("output/mods/estimates_adj_OD.csv")
@@ -60,36 +63,34 @@ multicomb <- function(x, ...) {
 foreach(j = iter(lookup, by = "row"), .combine = multicomb, 
         .packages = c('data.table', 'foreach'), .options.RNG = 2687) %dorng% {
           
-          mean <- model_means[model_means$scale == j$scale, ]
-          sd <- model_sds[model_sds$scale == j$scale, ]
+          pars <- model_means[model_means$scale == j$scale, ]
+          sds <- model_sds[model_sds$scale == j$scale, ]
           
           # read in max and all catch
           comm <- fread(cmd = paste("grep -w ", j$loop, 
                                     " output/ttimes/commune_maxcatch.csv", 
-                                    sep = ""), col.names = colnames)
+                                    sep = ""), col.names = colnames_max)
           comm_all <- fread(cmd = paste("grep -w ", j$loop, 
-                                        " output/ttimes/commune_maxcatch.csv", 
-                                        sep = ""), col.names = colnames)
+                                        " output/ttimes/commune_allcatch.csv", 
+                                        sep = ""), col.names = colnames_all)
           
           if(j$scale == "Commune") {
             ttimes <- comm$ttimes_wtd/60
-            OD_dist <- TRUE # not accounting for overdispersion
           } 
           
           if(j$scale == "District") {
             ttimes <- comm$ttimes_wtd_dist/60
-            OD_dist <- FALSE # accounting for overdispersion
           }
           
           bite_mat <- predict.bites(ttimes = ttimes, pop = comm$pop, 
                                     catch = comm$catchment, names = comm$commcode, 
-                                    beta_ttimes = mean$beta_ttimes, beta_ttimes_sd = sd$beta_ttimes,
-                                    beta_0 = mean$beta_0, beta_0_sd = sd$beta_0, 
-                                    beta_pop = 0, beta_pop_sd = sd$beta_pop, 
-                                    sigma_0 = mean$sigma_0, known_alphas = NA, 
-                                    pop_predict = mean$pop_predict, intercept = mean$intercept, 
-                                    trans = 1e5, known_catch = FALSE, nsims = 10, type = "inc",
-                                    dist = OD_dist)
+                                    beta_ttimes = pars$beta_ttimes, beta_ttimes_sd = sds$beta_ttimes,
+                                    beta_0 = pars$beta_0, beta_0_sd = sds$beta_0, 
+                                    beta_pop = 0, beta_pop_sd = sds$beta_pop, 
+                                    sigma_0 = pars$sigma_0, sigma_0_sd = sds$sigma_0, known_alphas = NA, 
+                                    pop_predict = pars$pop_predict, intercept = pars$intercept, 
+                                    trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc",
+                                    dist = TRUE)
           
           bites <- data.table(commcode = comm$commcode, scenario = comm$scenario,
                               bite_mat)
@@ -101,8 +102,6 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
           check[, (cols) := lapply(.SD, function(x) x*prop_pop_catch), .SDcols = cols]
           bites_by_catch <- check[, lapply(.SD, sum, na.rm = TRUE), .SDcols = cols, 
                                   by = c("catchment", "scenario")]
-          
-
           
           # Get mean proportion of bites from each district
           check_prop <- comm_all[bites_by_catch, on = c("catchment", "scenario")]
@@ -139,6 +138,10 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
           vials_sd <- apply(vials, 1, sd, na.rm = TRUE)
           vials_upper <- apply(vials, 1, quantile, prob = 0.975, na.rm = TRUE)
           vials_lower <- apply(vials, 1, quantile, prob = 0.025, na.rm = TRUE)
+          vials_natl <- colSums(vials, na.rm = TRUE) # for each sim
+          vials_natl_mean <- mean(vials_natl)
+          vials_natl_upper <- quantile(vials_natl, prob = 0.975, na.rm = TRUE)
+          vials_natl_lower <- quantile(vials_natl, prob = 0.025, na.rm = TRUE)
           
           # throughput
           tp <- matrix(unlist(vial_preds["throughput", ]), nrow = nrow(catch_mat), 
@@ -147,7 +150,7 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
           tp_sd <- apply(tp, 1, sd, na.rm = TRUE)
           tp_upper <- apply(tp, 1, quantile, prob = 0.975, na.rm = TRUE)
           tp_lower <- apply(tp, 1, quantile, prob = 0.025, na.rm = TRUE)
-          
+
           # bites
           bites_mean <- rowMeans(catch_mat, na.rm = TRUE)
           bites_sd <- apply(catch_mat, 1, sd, na.rm = TRUE)
@@ -160,14 +163,21 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
                             vials_mean, vials_sd, vials_upper, vials_lower, 
                             tp_mean, tp_sd, tp_upper, 
                             tp_lower, bites_mean, bites_sd, bites_upper, bites_lower)
-          list(catch_preds = catch_preds, prop_preds = prop_preds)
+          
+          natl_preds <- data.table(scenario = bites_by_catch$scenario[1], 
+                                   scale = j$scale, data_source = j$data_source, 
+                                   vials_mean = vials_natl_mean, vials_upper = vials_natl_upper, 
+                                   vials_lower = vials_natl_lower)
+          
+          list(catch_preds = catch_preds, prop_preds = prop_preds, natl_preds = natl_preds)
 } -> preds
 
 catch_preds <- preds[["catch_preds"]]
 prop_preds <- preds[["prop_preds"]]
+natl_preds <- preds[["natl_preds"]]
 fwrite(catch_preds, "output/preds/catch_preds.gz")
 fwrite(prop_preds, "output/preds/catch_props.csv")
-
+fwrite(natl_preds, "output/preds/catch_preds_natl.csv")
 # Close out
 file_path <- "R/05_predictions/02_vials.R"
 out.session(path = file_path, filename = "log_cluster.csv")

@@ -13,47 +13,49 @@
 #'     List dependencies here, i.e. packages and other functions
 
 predict.bites.dist <- function(ttimes, pop,
-                               beta_ttimes_mean, beta_ttimes_sd, beta_0_mean, beta_0_sd, 
-                               beta_pop_mean, beta_pop_sd, sigma_0, 
+                               beta_ttimes, beta_ttimes_sd, beta_0, beta_0_sd, 
+                               beta_pop, beta_pop_sd, sigma_0, 
                                pop_predict = "addPop", intercept = "random", 
                                trans = 1e5, nsims = 1000) {
   
   foreach(i = 1:nsims, .combine = cbind) %do% {
 
     # Draw parameters
-    beta_0 <- rnorm(1, mean = beta_0_mean, sd = beta_0_sd) 
-    beta_ttimes <- rnorm(1, mean = beta_ttimes_mean, sd = beta_ttimes_sd)
-    beta_pop <- rnorm(1, mean = beta_pop_mean, sd = beta_pop_sd)
-  
+    beta_0_val <- rnorm(1, mean = beta_0, sd = beta_0_sd) 
+    beta_ttimes_val <- rnorm(1, mean = beta_ttimes, sd = beta_ttimes_sd)
+    beta_pop_val <- rnorm(1, mean = beta_pop, sd = beta_pop_sd)
+    
     if(intercept == "random") {
-
-      alphas <- rnorm(1, mean = beta_0, sd = sigma_0)
+      
+      sigma_0_val <- rnorm(1, mean = sigma_0, sd = sigma_0_sd)
+      sigma_0_val <- ifelse(sigma_0_val < 0, 0, sigma_0_val)    
+      alphas <- rnorm(1, mean = beta_0_val, sd = sigma_0_val)
 
       if (pop_predict == "flatPop") {
-        exp_bites <- exp(alphas + beta_ttimes*ttimes)*pop
+        exp_bites <- exp(alphas + beta_ttimes_val*ttimes)*pop
       }
       
       if(pop_predict == "addPop") {
-        exp_bites <- exp(alphas + beta_ttimes*ttimes + beta_pop*pop/trans) 
+        exp_bites <- exp(alphas + beta_ttimes_val*ttimes + beta_pop_val*pop/trans) 
       }
       
       if(pop_predict == "onlyPop") {
-        exp_bites <- exp(alphas + beta_pop*pop/trans)
+        exp_bites <- exp(alphas + beta_pop_val*pop/trans)
       }
     }
     
     if(intercept == "fixed") {
       
       if (pop_predict == "flatPop") {
-        exp_bites <- exp(beta_0 + beta_ttimes*ttimes)*pop
+        exp_bites <- exp(beta_0_val + beta_ttimes_val*ttimes)*pop
       }
       
       if(pop_predict == "addPop") {
-        exp_bites <- exp(beta_0 + beta_ttimes*ttimes + beta_pop*pop/trans) 
+        exp_bites <- exp(beta_0_val + beta_ttimes_val*ttimes + beta_pop_val*pop/trans) 
       }
       
       if(pop_predict == "onlyPop") {
-        exp_bites <- exp(beta_0 + beta_pop*pop/trans)
+        exp_bites <- exp(beta_0_val + beta_pop_val*pop/trans)
       }
     }
     exp_bites
@@ -62,7 +64,7 @@ predict.bites.dist <- function(ttimes, pop,
   return(bite_mat)
 }
 
-#' Get fixed estimates for predictions (i.e. expectation)
+#' Get fixed estimates for predictions w/ known catchment intercepts (i.e. expectation)
 #' Description
 #' Details
 #' @param Paramters
@@ -119,9 +121,9 @@ predict.bites.fixed <- function(ttimes, pop, catch, names,
 #' @section Dependencies:
 #'     List dependencies here, i.e. packages and other functions triangle
 
-predict.bites <- function(ttimes, pop, catch, names, 
+predict.bites <- function(ttimes, pop, catch, names,
                           beta_ttimes, beta_0, beta_pop, sigma_0, known_alphas, 
-                          beta_ttimes_sd, beta_0_sd, beta_pop_sd,
+                          beta_ttimes_sd, beta_0_sd, beta_pop_sd, sigma_0_sd,
                           pop_predict = "addPop", intercept = "random", dist = FALSE,
                           trans = 1e5, known_catch = TRUE, nsims = 1000, 
                           type = "bites",...) {
@@ -133,18 +135,20 @@ predict.bites <- function(ttimes, pop, catch, names,
       beta_0_val <- rnorm(1, mean = beta_0, sd = beta_0_sd) 
       beta_ttimes_val <- rnorm(1, mean = beta_ttimes, sd = beta_ttimes_sd)
       beta_pop_val <- rnorm(1, mean = beta_pop, sd = beta_pop_sd)
+      sigma_0_val <- rnorm(1, mean = sigma_0, sd = sigma_0_sd)
+      sigma_0_val <- ifelse(sigma_0_val < 0, 0, sigma_0_val)
     } else {
       beta_0_val <- beta_0
       beta_ttimes_val <- beta_ttimes
       beta_pop_val <- beta_pop
+      sigma_0_val <- sigma_0
     }
-     
+    
     if(intercept == "random") {
       # draw catchment level effects (pull this out for foreach)
       # first make catchment a factor and then drop levels and convert to numeric
       catch_val <- as.numeric(droplevels(as.factor(catch)))
-      
-      alpha <- rnorm(max(catch_val, na.rm = TRUE), mean = beta_0_val, sd = sigma_0)
+      alpha <- rnorm(max(catch_val, na.rm = TRUE), mean = beta_0_val, sd = sigma_0_val)
       alpha <- alpha[catch_val]
       
       # get alpha so that if known_catch is TRUE it pulls from estimates

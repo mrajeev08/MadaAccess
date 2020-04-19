@@ -56,9 +56,18 @@ modpreds <- ggplot(data = filter(preds, intercept == "random" | data_source == "
 all_samps_natl <- get.samps(parent_dir = "output/mods/samps/National/")
 all_samps_natl <- filter(all_samps_natl, pop_predict == "flatPop", 
                          intercept == "random")
-all_samps_mora <- get.samps(parent_dir = "output/mods/samps/Moramanga/")
-all_samps_mora <- filter(all_samps_mora, pop_predict == "flatPop")
-all_samps <- bind_rows(all_samps_mora, all_samps_natl)
+
+# Do the adjusted ones for Moramanga
+model_ests <- read.csv("output/mods/estimates_adj_OD.csv")
+model_ests <- bind_rows(filter(model_ests, pop_predict == "flatPop", data_source == "Moramanga"),
+               filter(model_ests, pop_predict == "flatPop", intercept == "random"))
+
+foreach(x = iter(model_ests, by = "row"), .combine = rbind, .options.RNG = 2577) %dorng% {
+  data.table(Parameter = x$params, data_source = x$data_source, scale = x$scale, 
+             value = rnorm(72000, mean = x$Mean, sd = x$sd_adj))
+} -> all_samps
+
+# all_samps <- bind_rows(all_samps_natl, mora_samps)
 
 # so that same # of hgrid lines across these
 set_breaks = function(limits) {
@@ -71,6 +80,7 @@ beta_ttimes <- ggplot(data = filter(all_samps, Parameter == "beta_ttimes"),
   geom_violin(alpha = 0.5) +
   scale_fill_manual(values = model_cols, name = "Scale",
                     labels = scale_labs, guide = "none") +
+  ylim(c(-1.5, 0)) +
   scale_x_discrete(labels = "") +
   labs(x = bquote(beta[t] ~ "(Travel time effect)"), y = "Estimate", 
        tag = "C") +

@@ -3,6 +3,8 @@
 #' Details: Models include travel times in addition to population 
 # ------------------------------------------------------------------------------------------------ #
 
+#sub_cmd=-t 12 -n 18 -sp "./R/03_bitemodels/01_run_bitemods.R" -jn bitemods -wt 2m -n@
+
 # Init MPI Backend
 library(doMPI)
 cl <- startMPIcluster()

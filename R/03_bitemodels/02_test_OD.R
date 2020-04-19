@@ -96,12 +96,12 @@ exp_preds %>%
          nobs = case_when(data_source %in% "National" ~ nrow(district_bites),
                           data_source %in% "Moramanga" ~ nrow(mora_bites))) %>%
   group_by(data_source, scale, pop_predict, intercept) %>%
-  summarize(od = sum(z^2)/(nobs[1] - df[1])) -> model_ods
+  summarize(od = sqrt(sum(z^2)/(nobs[1] - df[1]))) -> model_ods
 
 model_ests %>%
   filter(OD == FALSE) %>%
   left_join(model_ods) %>%
-  mutate(sd_adj = SD*sqrt(od)) -> model_ests_adj
+  mutate(sd_adj = SD*od) -> model_ests_adj
 
 write.csv(model_ests_adj, "output/mods/estimates_adj_OD.csv")
 
