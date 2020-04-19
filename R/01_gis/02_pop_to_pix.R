@@ -4,6 +4,10 @@
 #' Ran it on Della @ Princeton and allocated 25 gigs of RAM; takes ~ 2 hour to run 
 # ------------------------------------------------------------------------------------------------ #
 
+# Pass the command for sub util (to submit to cluster, see sub -h or sub --help)
+# Don't quote the jobname, otherwise will pass quotes to it!
+# sub_cmd=-sn -t 12 -n 1 -mem 25000 -sp "./R/01_gis/02_pop_to_pix.R" -jn pop2pix -wt 1m -n@
+
 # Set-up
 library(raster)
 library(data.table)
@@ -26,4 +30,7 @@ sum(getValues(wp_2015), na.rm = TRUE)
 sum(getValues(wp_2015_matched), na.rm = TRUE)
 
 # Save session info
+syncto <- "~/Documents/Projects/MadaAccess/data/processed/"
+syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/data/processed/wp_2015_temp.tif"
+
 out.session(path = "R/01_gis/02_pop_to_pix.R", filename = "log_cluster.csv")

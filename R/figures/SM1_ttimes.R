@@ -242,4 +242,4 @@ S1.5_outputs <- (ttimes_district | ttimes_commune) + plot_layout(guides = "colle
 ggsave("figs/supplementary/S1.5_outputs.jpeg", S1.5_outputs, device = "jpeg", height = 10, width = 12)
 
 #' Saving session info
-out.session(path = "R/figures/SM1_basetimes.R", filename = "sessionInfo.csv")
+out.session(path = "R/figures/SM1_basetimes.R", filename = "output/log_local.csv")

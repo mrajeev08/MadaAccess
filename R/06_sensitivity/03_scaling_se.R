@@ -23,8 +23,6 @@ incidence_max <- 110/1e5
 incidence_min <- 15/1e5
 pos_scale <- seq(incidence_min, incidence_max, length.out = length(pop))
 neg_scale <- seq(incidence_max, incidence_min, length.out = length(pop))
-# pos <- lm(pos_scale ~ pop) # use these and constrain
-# neg <- lm(neg_scale ~ pop) # use these and constrain
 pos <- lm(pos_scale ~ 0 + pop, offset=rep(10/1e5, length(pop)))
 neg <- lm(neg_scale ~ 0 + pop, offset=rep(110/1e5, length(pop)))
 neg_comm <- data.table(scaling = "neg", sfactor = neg$coefficients[1], intercept = 110/1e5,
@@ -37,8 +35,6 @@ pop <- mada_districts$pop - min(mada_districts$pop)
 pop <- pop[order(pop, decreasing = FALSE)]
 pos_scale <- seq(incidence_min, incidence_max, length.out = length(pop))
 neg_scale <- seq(incidence_max, incidence_min, length.out = length(pop))
-# pos <- lm(pos_scale ~ pop) ## use these and constrain
-# neg <- lm(neg_scale ~ pop) ## use these and constrain
 pos <- lm(pos_scale ~ 0 + pop, offset=rep(10/1e5, length(pop)))
 neg <- lm(neg_scale ~ 0 + pop, offset=rep(110/1e5, length(pop)))
 neg_dist <- data.table(scaling = "neg", sfactor = neg$coefficients[1], intercept = 110/1e5, 
@@ -70,15 +66,9 @@ model_sds <- bind_rows(filter(model_sds_unadj, data_source == "National", scale 
                                                              data_source == "Moramanga"))
 
 # Burden predictions ---------------------------------------------------------------------
+
 # Filter to only do ones for which travel times have changed
-commune_master <- fread("output/ttimes/commune_maxcatch.gz")
-setorder(commune_master, commcode, scenario)
-commune_master[, diff_comm := ttimes_wtd - shift(ttimes_wtd, 1), by = commcode]
-commune_master[, diff_dist := ttimes_wtd_dist - shift(ttimes_wtd_dist, 1), by = commcode]
-comm_run <- commune_master[diff_comm != 0 | scenario %in% c(0, 1648)]
-dist_run <- commune_master[diff_dist != 0 | scenario %in% c(0, 1648)]
-rm(commune_master) # cleaning up memory!
-gc()
+comm_run <- fread("output/ttimes/commune_maxcatch.gz")
 
 # With adjustment for overdispersion
 par <- model_means[model_means$scale == "Commune", ]
@@ -88,7 +78,7 @@ bite_mat_comm <- predict.bites(ttimes = comm_run$ttimes_wtd/60, pop = comm_run$p
                                beta_ttimes = par$beta_ttimes, beta_ttimes_sd = sds$beta_ttimes,
                                beta_0 = par$beta_0, beta_0_sd = sds$beta_0, 
                                beta_pop = 0, beta_pop_sd = sds$beta_pop, 
-                               sigma_0 = par$sigma_0, known_alphas = NA, 
+                               sigma_0 = par$sigma_0, sigma_0_sd = sds$sigma_0, known_alphas = NA, 
                                pop_predict = "flatPop", intercept = par$intercept, dist = TRUE,
                                trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc")
 
@@ -106,21 +96,18 @@ multicomb <- function(x, ...) {
   mapply(rbind, x, ..., SIMPLIFY = FALSE)
 }
 
-foreach(j = iter(scaling_df, by = "row"), .combine = multicomb, 
-        .packages = c('data.table', 'foreach', 'triangle', 'foreach', 'dplyr','tidyr')) %do% {
+foreach(j = iter(scaling_df, by = "row"), .combine = multicomb) %do% {
           
           print(j)
           if(j$scale == "Commune"){
-            admin <- comm_run # these are data.tables so hopefully will not copy only point!
-            bite_mat <- bite_mat_comm 
-            ttimes <- admin$ttimes_wtd/60
+            bite_mat <- bite_mat_comm
+            ttimes <- comm_run$ttimes_wtd/60
             data_source <- "Moramanga" # since comparing Mora commune with National
           }
           
           if(j$scale == "District"){
-            admin <- dist_run
             bite_mat <- bite_mat_dist
-            ttimes <- admin$ttimes_wtd_dist/60
+            ttimes <- comm_run$ttimes_wtd_dist/60
             data_source <- "National" # since comparing Mora commune with National
           }
           
@@ -155,18 +142,6 @@ foreach(j = iter(scaling_df, by = "row"), .combine = multicomb,
           
           admin_base <- admin_comm[scenario == 0] 
           admin_base$data_source <- data_source
-          
-          admin_comm %>%
-            complete(scenario = 1:max_clinics, names) %>% # from 1 to last
-            group_by(names) %>%
-            arrange(scenario) %>%
-            fill(3:ncol(admin_comm), .direction = "down") -> admin_comm
-          
-          ## This should be true!
-          admin_comm %>%
-            group_by(scenario) %>%
-            summarize(n_admin = n()) %>%
-            summarize(all(n_admin == 1579)) # should be true for all of them!
           
           admin_comm %>%
             group_by(scenario) %>%
