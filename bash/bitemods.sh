@@ -1,6 +1,6 @@
 #!/bin/bash
-ssh -T mrajeev@della <<HERE
-    cd MadaAccess  # change to repo
+ssh -T mrajeev@della.princeton.edu <<HERE
+    cd  MadaAccess  # change to repo
     jid=\$(sbatch bash/bitemods.slurm | cut -c 21-)
     echo "Here's the job id: \$jid"
     jstat=\$(sacct -j "\$jid" -u mrajeev | head -n 3)
@@ -21,4 +21,4 @@ ssh -T mrajeev@della <<HERE
     fi
 HERE
         sleep 1m    # sleep again as sometimes takes a while to write output
-        rsync -rLvzt mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/ ~/Documents/Projects/MadaAccess/output/sensitivity/ 
+        rsync -rLvzt mrajeev@della.princeton.edu:~/MadaAccess/output/mods/ ~/Documents/Projects/MadaAccess/output/mods/ 
