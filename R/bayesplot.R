@@ -19,10 +19,8 @@ all_samps_natl <- summarize.samps(parent_dir = "output/mods/samps/National/")
 intercepts <- filter(all_samps_natl, pop_predict == "flatPop", 
                          intercept == "random", 
                          grepl("alpha|beta_0", Parameter))
-intercepts$Parameter <- as.character(intercepts$Parameter)
-intercepts$Parameter[intercepts$Parameter == "beta_0"] <- "beta[0]"
 
-ggplot(data = filter(intercepts, OD == FALSE), aes(x = value, y = Parameter, fill = scale)) +
+ggplot(data = intercepts, aes(x = value, y = Parameter, fill = scale)) +
   geom_density_ridges(scale = 2, color = NA, alpha = 0.75) +
   scale_y_discrete(labels = function(l) parse(text = l)) +
   facet_wrap(~ OD, labeller = as_labeller(c("FALSE" = "No overdispersion", 
@@ -31,10 +29,21 @@ ggplot(data = filter(intercepts, OD == FALSE), aes(x = value, y = Parameter, fil
   labs(y = "Intercept", x = "Estimates") +
   theme_minimal_hgrid()
 
-ggplot(data = intercepts_90, aes(y = value, x = Parameter, fill = OD)) +
-  geom_boxplot() +
+ggplot(data = intercepts, aes(y = value, x = Parameter, fill = scale)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) +
   coord_flip() +
-  facet_wrap(OD ~scale)
+  scale_y_discrete(labels = function(l) parse(text = l)) +
+  facet_wrap(~ OD, scales = "free_x")
+
+ggplot(data = intercepts, aes(y = value, x = Parameter, fill = scale, color = scale)) +
+  geom_violin(alpha = 0.7) +
+  scale_x_discrete(labels = function(l) parse(text = l)) +
+  facet_wrap(~ OD, labeller = as_labeller(c("FALSE" = "No overdispersion", 
+                                      "TRUE" = "Estimating overdispersion"))) +
+  labs(x = "Intercept", y = "Estimates") +
+  coord_flip() +
+  theme_minimal_hgrid()
+
 
 check <- as.array(samps)
 check <- aperm(check, c(1, 3, 2)) 
