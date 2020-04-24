@@ -17,6 +17,15 @@ range_dogs_ph <- c(0.24, 0.26)
 # Range of hdrs then
 mora_hdrs <- range_people_ph/range_dogs_ph
 
+# Helper functions for getting inc from hdr & vice versa
+hdr_from_inc <- function(inc = 48, pop = 1e5, p_exp = 0.39, dog_inc = 0.01) {
+  1/(inc/pop/dog_inc/p_exp)
+}
+
+inc_from_hdr <- function(hdr = 5, pop = 1e5, p_exp = 0.39, dog_inc = 0.01) {
+  p_exp*dog_inc*pop/hdr
+}
+
 # incidence from hdrs of Moramanga
 inc_from_hdr(hdr = 5)
 inc_from_hdr(hdr = 25)

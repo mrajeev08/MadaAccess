@@ -31,12 +31,12 @@ if (summed == TRUE) {
   
   # data
   data <- list(bites = round(bites), ttimes = ttimes, pop = pop,
-               catch = catch, ncatches = ncatches, 
+               catch = catch, ncatches = ncatches, group = group, 
                ncovars = ncovars, nlocs = nlocs, start = start, end = end)
   
 }
 
-# Model @ district scale 
+# Model w/out latent var
 if(summed == FALSE) {
   model <- "model {
     # Priors
@@ -109,25 +109,25 @@ if(pop_predict =="onlyPop") {
 }
 
 # Overdispersion
+# Overdispersion
 if(OD == TRUE) {
   
-  "sigma_e ~ dunif(0, 100)
+  "sigma_e ~ dunif(0, 10)
     tau_e <- pow(sigma_e, -2)     
-    for(j in 1:ncovars){
-      epsilon[j] ~ dnorm(0, tau_e)\n  
+    for(j in 1:nlocs){
+      epsilon[j] ~ dnorm(0, tau_e) 
     }" -> OD_priors
-  
-  if (summed == FALSE) {
-    OD_priors <- gsub("ncovars", "nlocs", OD_priors, fixed = TRUE)
-  }
   
   # add lines for prior & param
   model <- gsub("# Insert OD prior here", OD_priors, model, fixed = TRUE)
-  model <- gsub("# Insert OD param here", "+ epsilon[i]", model, fixed = TRUE)   
+  if (summed == FALSE) {
+    model <- gsub("# Insert OD param here", "+ epsilon[i]", model, fixed = TRUE)   
+  } else {
+    model <- gsub("# Insert OD param here", "+ epsilon[group[i]]", model, fixed = TRUE)
+  }
   
   # add sigma_e to inits
   inits <- c(inits, sigma_e = rlnorm(1))
   # add sigma_e to param list
   params <- c(params, "sigma_e")
 }
-

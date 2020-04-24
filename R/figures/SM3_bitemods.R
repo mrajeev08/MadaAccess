@@ -3,14 +3,20 @@
 #' + sensitivity of model selection to correction for undersubmission of forms
 # ------------------------------------------------------------------------------------------------ #
 
+start <- Sys.time()
+
 # source 
 source("R/functions/out.session.R")
 source("R/functions/nested_facets.R")
+source("R/functions/summarize_samps.R")
 
 # libraries
 library(tidyverse)
 library(cowplot)
 library(data.table)
+library(foreach)
+library(coda)
+library(iterators)
 select <- dplyr::select
 
 # source bite ests
@@ -24,13 +30,12 @@ district_bites$scale <- "District"
 covars <- bind_rows(district_bites, comm_covars)
 covars$scale <- factor(covars$scale, levels = c("District", "Commune"))
 
-S3.1_corrs <- 
-  ggplot(data = covars, aes(x = ttimes_wtd/60, y = pop, color = scale)) +
+ggplot(data = covars, aes(x = ttimes_wtd/60, y = pop, color = scale)) +
   geom_point() +
   facet_wrap(~scale, scales = "free") +
   labs(x = "Travel times (hrs)", y = "Population") +
   theme_minimal_grid() +
-  scale_color_manual(values = c("#35274A", "#0B775E"), guide = "none")
+  scale_color_manual(values = c("#35274A", "#0B775E"), guide = "none") -> S3.1_corrs
 
 ggsave("figs/supplementary/S3.1_corrs.jpeg", S3.1_corrs, device = "jpeg", height = 5, width = 7)
 
@@ -41,27 +46,24 @@ model_cols <- c("#F2300F", "#0B775E", "#35274A")
 names(scale_labs) <- scale_levs 
 names(model_cols) <- scale_levs
 
-# Estimates
-model_ests <- read.csv("output/mods/estimates.csv")
-model_ests %>%
-  select(params, Mean, pop_predict, intercept, data_source, scale, OD) %>%
-  spread(key = params, value = Mean, fill = 0) -> model_means
-
 # Fitted predictions
 preds_grouped <- read.csv("output/preds/bites/fitted_grouped_all.csv")
 preds_grouped$mod_intercept <- preds_grouped$intercept
-fitted_preds <- ggplot(data = filter(preds_grouped), 
+fitted_preds <- ggplot(data = filter(preds_grouped, OD == FALSE), 
        aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
            color = interaction(data_source, scale))) +
-  geom_point(alpha = 0.5, size = 2) +
+  geom_pointrange(aes(ymin = log(bites_lower + 0.1), 
+                      ymax = log(bites_upper + 0.1)), alpha = 0.5) +
   scale_color_manual(values = model_cols, name = "Scale", 
                      labels = scale_labs) +
-  facet_grid(pop_predict ~ mod_intercept, scales = "free_x", drop = TRUE) +
+  facet_grid(pop_predict ~ mod_intercept, scales = "free_x", 
+             labeller = labeller(mod_intercept= c("fixed" = "Fixed intercept", 
+                                          "random" = "Random intercept")), drop = TRUE) +
   geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey") +
   xlab("log(Observed bites)") +
   ylab("log(Predicted bites)") +
   theme_minimal_grid() +
-  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "gray92"),
+  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "grey92"),
         panel.grid = element_line(color = "white", size = 0.5))
       
 ggsave("figs/supplementary/S3.2_fitted.jpeg", fitted_preds, device = "jpeg", height = 10, width = 8)
@@ -81,10 +83,11 @@ levels(outfit_all$mod_intercept) <- list("Fixed intercept" = "fixed", "Random in
 type_labs <- c("National" = "underline('National data predicted \n by Moramanga models')", 
   "Moramanga" = "underline('Moramanga data predicted by National models')")
 
-outfit_preds <- ggplot(data = outfit_all, 
+outfit_preds <- ggplot(data = filter(outfit_all, OD == FALSE), 
                 aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
                     color = interaction(data_source, scale))) +
-  geom_point(alpha = 0.5, size = 2) +
+  geom_pointrange(aes(ymin = log(bites_lower + 0.1), 
+                      ymax = log(bites_upper + 0.1)), alpha = 0.5) +
   scale_color_manual(values = model_cols, name = "Scale", 
                      labels = scale_labs) +
   facet_nested(pop_predict ~ type + mod_intercept, scales = "free",
@@ -99,18 +102,42 @@ outfit_preds <- ggplot(data = outfit_all,
 
 ggsave("figs/supplementary/S3.3_outfit.jpeg", outfit_preds, device = "jpeg", height = 8, width = 12)
 
-# Comparing expected relationships between ttimes & reported bites ------------------------------
-preds <- read.csv("output/preds/bites/expectations.csv") # Expectations
-preds <- filter(preds, interaction(data_source, OD) != "Moramanga.FALSE")
+# Comparing models with overdispersion and without -----------------------------------------
 
-# data
+# Posteriors are now similar for all models
+all_samps_natl <- summarize.samps(parent_dir = "output/mods/samps/National/")
+all_samps_mora <- summarize.samps(parent_dir = "output/mods/samps/Moramanga/")
+all_samps_mora %>%
+  bind_rows(all_samps_natl) %>%
+  filter(pop_predict == "flatPop") %>%
+  mutate(Parameter = fct_recode(Parameter, `beta[t]` = "beta_ttimes", `beta[0]` = "beta_0",
+                                `sigma[0]` = "sigma_0", `sigma[e]` = "sigma_e")) -> all_samps
+ggplot(data = filter(all_samps, !(grepl("alpha", Parameter))),
+       aes(x = intercept, y = value, 
+           fill = interaction(data_source, scale))) +
+  geom_violin(alpha = 0.5) +
+  scale_fill_manual(values = model_cols, name = "Scale",
+                    labels = scale_labs) +
+  scale_x_discrete(labels = c("fixed" = "Fixed", 
+                              "random" = "Random")) + 
+  labs(x = "Intercept type", y = "Posterior estimates") +
+  facet_grid(Parameter ~ OD, scales = "free_y", 
+             labeller = labeller(OD = c("FALSE" = "No overdispersion", 
+                                        "TRUE" = "Estimating\n overdispersion"),
+                                 Parameter = label_parsed)) +
+  theme_minimal_hgrid() +
+  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "grey92"),
+        panel.grid = element_line(color = "white", size = 0.5)) -> posts_all
+ggsave("figs/supplementary/S3.4_posts_all.jpeg", posts_all, device = "jpeg", height = 8, width = 8)
+
+# And generates similar predictions (except for Mora data!)
+preds <- read.csv("output/preds/bites/expectations.csv") # Expectations
 district_bites$data_source <- "National"
 mora_bites$data_source <- "Moramanga"
 observed <- bind_rows(district_bites, mora_bites)
-  
-modpreds <- ggplot(data = filter(preds, intercept == "random" | OD == TRUE), 
-                   aes(x = ttimes_wtd, y = exp_bites, color = interaction(data_source, scale))) +
-  geom_ribbon(aes(ymin = exp_bites_lower, ymax = exp_bites_upper, 
+
+ggplot(data = preds, aes(x = ttimes, y = mean_bites, color = interaction(data_source, scale))) +
+  geom_ribbon(aes(ymin = bites_lower, ymax =  bites_upper, 
                   fill = interaction(data_source, scale)),
               color = NA, alpha = 0.5) +
   geom_point(data = observed, aes(x = ttimes_wtd/60, y = avg_bites/pop*1e5, 
@@ -123,46 +150,125 @@ modpreds <- ggplot(data = filter(preds, intercept == "random" | OD == TRUE),
                     labels = scale_labs) +
   scale_shape_manual(values = c(6, 1), name = "Dataset") +
   labs(x = "Travel time (hrs)", y = "Predicted bites per 100k") +
-  cowplot::theme_minimal_grid() +
-  facet_wrap(~OD, 
-             labeller = as_labeller(c("FALSE" = "Random intercept", 
-                                      "TRUE" = "Fixed intercept \n adjusted for \n overdispersion")))
+  facet_grid(intercept ~ OD, scales = "free",  
+             labeller = labeller(OD = c("FALSE" = "No overdispersion",
+                                        "TRUE" = "Estimating\n overdispersion"),
+                                 intercept= c("fixed" = "Fixed intercept", 
+                                                  "random" = "Random intercept"))) +
+  theme_minimal_grid() +
+  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "grey92"),
+        panel.grid = element_line(color = "white", size = 0.5)) -> preds_OD
 
-ggsave("figs/supplementary/S3.4_ODcheck.jpeg", modpreds, device = "jpeg", height = 6, width = 6)
+ggsave("figs/supplementary/S3.5_preds_OD.jpeg", preds_OD, device = "jpeg", height = 8, width = 8)
+  
+# Random effects are no longer identifiable (although sigma_0 is estimated as non-zero)
+all_samps_natl %>%
+  filter(pop_predict == "flatPop", intercept == "random", grepl("alpha|beta_0", Parameter)) %>%
+  mutate(Parameter = fct_recode(Parameter, `beta[0]` = "beta_0")) -> intercepts
+
+ggplot(data = intercepts, aes(y = value, x = Parameter, fill = interaction(data_source, scale), 
+                              color = interaction(data_source, scale))) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  scale_x_discrete(labels = function(l) parse(text = l)) +
+  scale_color_manual(aesthetics = c("color", "fill"), 
+                                    values = model_cols, name = "Scale", 
+                     labels = scale_labs) +
+  facet_wrap(~ OD, labeller = as_labeller(c("FALSE" = "No overdispersion", 
+                                            "TRUE" = "Estimating\n overdispersion")), 
+             scales = "free") +
+  labs(x = "Intercept", y = "Estimates") +
+  coord_flip() +
+  theme_minimal_hgrid() +
+  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "grey92"),
+        panel.grid = element_line(color = "white", size = 0.5)) -> posts_intercepts
+
+ggsave("figs/supplementary/S3.6_posts_intercepts.jpeg", posts_intercepts, device = "jpeg", 
+       height = 8, width = 8)
+
+# And random effects mods w/out OD generates similar predictions to fixed effect mods with OD
+ggplot(data = filter(preds, interaction(OD, intercept, data_source) %in% 
+                       c("TRUE.fixed.National", "FALSE.random.National")), 
+       aes(x = ttimes, y = mean_bites, color = interaction(data_source, scale))) +
+  geom_ribbon(aes(ymin = bites_lower, ymax =  bites_upper, 
+                  fill = interaction(data_source, scale)),
+              color = NA, alpha = 0.5) +
+  geom_point(data = observed, aes(x = ttimes_wtd/60, y = avg_bites/pop*1e5, 
+                                  shape = data_source), color = "black", alpha = 0.5, size = 1.5,
+             stroke = 1.2, inherit.aes = FALSE) +
+  geom_line(size = 1.1) +
+  scale_color_manual(values = model_cols, name = "Scale", 
+                     labels = scale_labs) +
+  scale_fill_manual(values = model_cols, name = "Scale",
+                    labels = scale_labs) +
+  scale_shape_manual(values = c(6, 1), name = "Dataset") +
+  labs(x = "Travel time (hrs)", y = "Predicted bites per 100k") +
+  theme_minimal_grid() +
+  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "grey92"),
+        panel.grid = element_line(color = "white", size = 0.5)) +
+  facet_wrap(OD ~ intercept, 
+             labeller = labeller(OD = c("FALSE" = "No overdispersion",
+                                        "TRUE" = "Estimating overdispersion"),
+                                 intercept= c("fixed" = "Fixed intercept", 
+                                              "random" = "Random intercept"))) -> preds_ODcomp
+
+ggsave("figs/supplementary/S3.7_preds_ODcomp.jpeg", preds_ODcomp, device = "jpeg", 
+       height = 6, width = 8)
 
 # Sensitivity of model ests to reporting cut-offs ---------------------------------------------
-# Sensitivity analyses
-model_se <- fread("output/sensitivity/model_se.csv")
-bitedata_se <- fread("output/sensitivity/bitedata_se.csv")
-preds_se <- fread("output/preds/bites/expectations_se.csv")
+bitedata_se <- fread("output/mods/bitedata_se.csv")
+preds_se <- fread("output/mods/preds/expectations_se.csv")
 
-# Colors $ labs
-scale_levs <- c("Commune", "District")
+# labs 
+scale_labs <- c("Commune", "District")
 model_cols <- c("#0B775E", "#35274A")
-names(model_cols) <- scale_levs 
+names(model_cols) <- scale_labs
 cutoff_labs <- c("7" = "7 days", "15" = "15 days", "Inf" = "Uncorrected")
 
+# Posterior estimates
+all_samps_se <- summarize.samps(parent_dir = "output/mods/samps/National_se/")
+all_samps_se %>%
+  mutate(Parameter = fct_recode(Parameter, `beta[t]` = "beta_ttimes", `beta[0]` = "beta_0",
+                                `sigma[e]` = "sigma_e"), 
+         rep_cutoff = gsub("[^0-9]", "", all_samps_se$filenames), 
+         rep_cutoff = ifelse(rep_cutoff == "", Inf, rep_cutoff)) -> all_samps_se
+
+ggplot(data = filter(all_samps_se, !(grepl("alpha", Parameter))), aes(x = scale, y = value, 
+           fill = scale)) +
+  geom_violin(alpha = 0.5) +
+  scale_fill_manual(values = model_cols, name = "Model scale", labels = scale_labs) +
+  scale_x_discrete(labels = NULL) +
+  labs(x = "", y = "Posterior estimates") +
+  facet_grid(Parameter ~ rep_cutoff, scales = "free_y", 
+             labeller = labeller(rep_cutoff = cutoff_labs,
+                                 Parameter = label_parsed)) +
+  theme_minimal_hgrid() +
+  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "grey92"),
+        panel.grid = element_line(color = "white", size = 0.5)) -> posts_rep_se
+
+ggsave("figs/supplementary/S3.8_posts_rep_se.jpeg", posts_rep_se, device = "jpeg", height = 8, 
+       width = 8)
+
 # Expected relationships
-pred_inc_cutoffs <- ggplot(data = filter(preds_se, intercept == "random"), 
-                  aes(x = ttimes_wtd, y = exp_bites, color = scale)) +
+ggplot(data = preds_se, 
+                  aes(x = ttimes, y = mean_bites, color = scale)) +
   geom_line(size = 1.2) +
-  geom_ribbon(aes(ymin = exp_bites_lower, ymax = exp_bites_upper, fill = scale),
-              color = NA, alpha = 0.25) +
-  geom_point(data = bitedata_se, aes(x = ttimes_wtd/60, y = avg_bites/pop*1e5), 
-             color = "black", shape = 1, alpha = 0.5) +
+  geom_ribbon(aes(ymin = bites_upper, ymax = bites_lower, fill = scale),
+              color = NA, alpha = 0.5) +
+  geom_point(data = bitedata_se, aes(x = ttimes_wtd/60, y = avg_bites/pop*1e5), color = "black", 
+             alpha = 0.5, size = 1.5, stroke = 1.2, shape = 1) +
   scale_color_manual(values = model_cols, name = "Scale") +
   scale_fill_manual(values = model_cols, name = "Scale") +
-  labs(x = "Travel times (hrs)", y = "Predicted bites per 100k") +
+  labs(x = "Travel  times (hrs)", y = "Predicted bites per 100k") +
   theme(text = element_text(size= 20)) +
   facet_wrap(~ rep_cutoff, nrow = 1, labeller = labeller(rep_cutoff = cutoff_labs)) +
   theme_minimal_grid() +
-  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "gray92"),
-        panel.grid = element_line(color = "white", size = 0.5),
-        axis.text.x = element_text(angle = 45, hjust = 1)) 
+  theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "grey92"),
+        panel.grid = element_line(color = "white", size = 0.5)) -> preds_rep_se
 
-ggsave("figs/supplementary/S3.5_cutoffs.jpeg", pred_inc_cutoffs, device = "jpeg", height = 6, 
-       width = 8)
+
+ggsave("figs/supplementary/S3.9_preds_rep_se.jpeg", preds_rep_se, device = "jpeg", 
+       height = 6, width = 8)
 
 # Session Info
-out.session(path = "R/figures/SM3_bitemods.R", filename = "output/log_local.csv")
+out.session(path = "R/figures/SM3_bitemods.R", filename = "output/log_local.csv", start = start)
 

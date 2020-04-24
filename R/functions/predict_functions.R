@@ -3,187 +3,105 @@
 #' Details: Wrapper function for getting bites, deaths, and vials from inputs
 # ------------------------------------------------------------------------------------------------ #
 
-#' Get estimates from param distributions
-#' Description
-#' sigma_0 does not have an sd parameter on it
-#' Details
-#' @param Paramters
-#' @return Returned
-#' @section Dependencies:
-#'     List dependencies here, i.e. packages and other functions
-
-predict.bites.dist <- function(ttimes, pop,
-                               beta_ttimes, beta_ttimes_sd, beta_0, beta_0_sd, 
-                               beta_pop, beta_pop_sd, sigma_0, 
-                               pop_predict = "addPop", intercept = "random", 
-                               trans = 1e5, nsims = 1000) {
-  
-  foreach(i = 1:nsims, .combine = cbind) %do% {
-
-    # Draw parameters
-    beta_0_val <- rnorm(1, mean = beta_0, sd = beta_0_sd) 
-    beta_ttimes_val <- rnorm(1, mean = beta_ttimes, sd = beta_ttimes_sd)
-    beta_pop_val <- rnorm(1, mean = beta_pop, sd = beta_pop_sd)
-    
-    if(intercept == "random") {
-      
-      sigma_0_val <- rnorm(1, mean = sigma_0, sd = sigma_0_sd)
-      sigma_0_val <- ifelse(sigma_0_val < 0, 0, sigma_0_val)    
-      alphas <- rnorm(1, mean = beta_0_val, sd = sigma_0_val)
-
-      if (pop_predict == "flatPop") {
-        exp_bites <- exp(alphas + beta_ttimes_val*ttimes)*pop
-      }
-      
-      if(pop_predict == "addPop") {
-        exp_bites <- exp(alphas + beta_ttimes_val*ttimes + beta_pop_val*pop/trans) 
-      }
-      
-      if(pop_predict == "onlyPop") {
-        exp_bites <- exp(alphas + beta_pop_val*pop/trans)
-      }
-    }
-    
-    if(intercept == "fixed") {
-      
-      if (pop_predict == "flatPop") {
-        exp_bites <- exp(beta_0_val + beta_ttimes_val*ttimes)*pop
-      }
-      
-      if(pop_predict == "addPop") {
-        exp_bites <- exp(beta_0_val + beta_ttimes_val*ttimes + beta_pop_val*pop/trans) 
-      }
-      
-      if(pop_predict == "onlyPop") {
-        exp_bites <- exp(beta_0_val + beta_pop_val*pop/trans)
-      }
-    }
-    exp_bites
-  } -> bite_mat
-  
-  return(bite_mat)
-}
-
-#' Get fixed estimates for predictions w/ known catchment intercepts (i.e. expectation)
-#' Description
-#' Details
-#' @param Paramters
-#' @return Returned
-#' @section Dependencies:
-#'     List dependencies here, i.e. packages and other functions
-
-predict.bites.fixed <- function(ttimes, pop, catch, names,
-                                beta_ttimes, beta_0, beta_pop, known_alphas, 
-                                pop_predict = "addPop", intercept = "random",
-                                trans = 1e5) {
-  
-  if(intercept == "random") {
-    
-    if (pop_predict == "flatPop") {
-      exp_bites <- exp(known_alphas + beta_ttimes*ttimes)*pop
-    }
-    
-    if(pop_predict == "addPop") {
-      exp_bites <- exp(known_alphas + beta_ttimes*ttimes + beta_pop*pop/trans) 
-    }
-    
-    if(pop_predict == "onlyPop") {
-      exp_bites <- exp(known_alphas + beta_pop*pop/trans)
-    }
-    
-  }
-  
-  if(intercept == "fixed") {
-    
-    if (pop_predict == "flatPop") {
-      exp_bites <- exp(beta_0 + beta_ttimes*ttimes)*pop
-    }
-    
-    if(pop_predict == "addPop") {
-      exp_bites <- exp(beta_0 + beta_ttimes*ttimes + beta_pop*pop/trans) 
-    }
-    
-    if(pop_predict == "onlyPop") {
-      exp_bites <- exp(beta_0 + beta_pop*pop/trans)
-    }
-  }
-  
-  return(exp_bites)
-}
-
-#' Function for simulating bite incidence or # of bites from model inputs
-#' Description
-#' Details
-#' If dist = TRUE then draw params from distribution on each draw! sigma_0 does not have an sd 
-#' because it as an sd
-#' @param Paramters
-#' @return Returned
-#' @section Dependencies:
-#'     List dependencies here, i.e. packages and other functions triangle
+#' Predict bites given model parameter estimates
+#' Takes covariates and estimates from fitted models to predict either the number of bites or 
+#' expectation.
+#' @param ttimes, pop, catch, names = from data frame, pass as NULL/NA if not included in the model
+#' @param beta_ttimes, beta_0, beta_pop, sigma_0, known_alphas, sigma_e = from model estimates, 
+#' pass as NULL/NA if not included in the model
+#' @param pop_predict type of population scaling in the model
+#' @param intercept type of intercept in the model
+#' @param known_catch whether to use the estimates of the catchment level intercept 
+#' @param trans value to normalize the population covariate by
+#' @param OD whether model includes an overdispersion parameter (sigma_e)
+#' @param par_type predict either the expectation (pred_type = "exp") or number of bites 
+#' (pred_type = "bites") from poisson given expecatation 
+#' @param pred_type If par_type = "point_est" uses point estimate of parameters. 
+#' If par_type = "posterior" need to pass vectors (or matrix if passing known_alphas) with length 
+#' equal to nsims (use \code[get.samps])
+#' for this. 
+#' @param error_n set to 1 when generating expectated range of preds for a given covariate value, 
+#' defaults to length of the data when predicting for a set of locations
+#' @param nsims number of simulations to run
+#' @return Matrix of simulated predictions (nrow = length of data, ncol = nsims)
+#' @section Dependencies: foreach
 
 predict.bites <- function(ttimes, pop, catch, names,
-                          beta_ttimes, beta_0, beta_pop, sigma_0, known_alphas, 
-                          beta_ttimes_sd, beta_0_sd, beta_pop_sd, sigma_0_sd,
-                          pop_predict = "addPop", intercept = "random", dist = FALSE,
-                          trans = 1e5, known_catch = TRUE, nsims = 1000, 
-                          type = "bites",...) {
+                          beta_ttimes, beta_0, beta_pop, sigma_0, known_alphas, sigma_e,
+                          pop_predict = c("flatPop", "addPop", "onlyPop"), 
+                          intercept = c("random", "fixed"), trans = 1e5, known_catch = TRUE, 
+                          OD = FALSE, par_type = c("point_est", "posterior"), 
+                          pred_type = c("bites", "exp"), 
+                          error_n = length(ttimes), nsims = 1000, ...) {
   
   foreach(i = 1:nsims, .combine = cbind) %do% {
     
-    if(dist == TRUE) {
-      # Draw parameters
-      beta_0_val <- rnorm(1, mean = beta_0, sd = beta_0_sd) 
-      beta_ttimes_val <- rnorm(1, mean = beta_ttimes, sd = beta_ttimes_sd)
-      beta_pop_val <- rnorm(1, mean = beta_pop, sd = beta_pop_sd)
-      sigma_0_val <- rnorm(1, mean = sigma_0, sd = sigma_0_sd)
-      sigma_0_val <- ifelse(sigma_0_val < 0, 0, sigma_0_val)
-    } else {
+    if(par_type == "posterior") {
+      beta_0_val <- beta_0[i]
+      beta_ttimes_val <- beta_ttimes[i]
+      beta_pop_val <- beta_pop[i]
+      sigma_0_val <- sigma_0[i]
+      sigma_e_val <- sigma_e[i]
+    }
+    
+    if(par_type == "point_est") {
       beta_0_val <- beta_0
       beta_ttimes_val <- beta_ttimes
       beta_pop_val <- beta_pop
       sigma_0_val <- sigma_0
+      sigma_e_val <- sigma_e
     }
-    
+
+    if(OD == TRUE) {
+      errs <- rnorm(error_n, mean = 0, sd = sigma_e_val)
+    } else  {
+      errs <- 0
+    }
+
     if(intercept == "random") {
-      # draw catchment level effects (pull this out for foreach)
-      # first make catchment a factor and then drop levels and convert to numeric
-      catch_val <- as.numeric(droplevels(as.factor(catch)))
-      alpha <- rnorm(max(catch_val, na.rm = TRUE), mean = beta_0_val, sd = sigma_0_val)
-      alpha <- alpha[catch_val]
       
-      # get alpha so that if known_catch is TRUE it pulls from estimates
-      # known alphas have to be the same length as the data (potentially change this part!)
+      if(known_catch == FALSE) {
+        catch_val <- as.numeric(droplevels(as.factor(catch)))
+        alpha <- rnorm(max(catch_val, na.rm = TRUE), mean = beta_0_val, sd = sigma_0_val)
+        alpha <- alpha[catch_val]
+      }
+      
       if(known_catch == TRUE) {
-        alpha <- ifelse(is.na(known_alphas) | known_alphas == 0, alpha, known_alphas)
-      } 
-      
+        if(par_type == "posterior") {
+          alphas <- unlist(known_alphas[i, ]) # passed as matrix row of posterior samples!
+        } else {
+          alphas <- known_alphas
+        }
+        alpha <- alphas[catch] 
+      }
+
       if (pop_predict == "flatPop") {
-        exp_bites <- exp(alpha + beta_ttimes_val*ttimes)*pop
+        exp_bites <- exp(alpha + beta_ttimes_val*ttimes + errs)*pop
       }
       
       if(pop_predict == "addPop") {
-        exp_bites <- exp(alpha + beta_ttimes_val*ttimes + beta_pop_val*pop/trans) 
+        exp_bites <- exp(alpha + beta_ttimes_val*ttimes + beta_pop_val*pop/trans + errs) 
       }
       
       if(pop_predict == "onlyPop") {
-        exp_bites <- exp(alpha + beta_pop_val*pop/trans)
+        exp_bites <- exp(alpha + beta_pop_val*pop/trans + errs)
       }
     }
     
     if(intercept == "fixed") {
       if (pop_predict == "flatPop") {
-        exp_bites <- exp(beta_0_val + beta_ttimes_val*ttimes)*pop
+        exp_bites <- exp(beta_0_val + beta_ttimes_val*ttimes + errs)*pop
       }
       
       if(pop_predict == "addPop") {
-        exp_bites <- exp(beta_0_val + beta_ttimes_val*ttimes + beta_pop_val*pop/trans) 
+        exp_bites <- exp(beta_0_val + beta_ttimes_val*ttimes + beta_pop_val*pop/trans + errs) 
       }
       
       if(pop_predict == "onlyPop") {
-        exp_bites <- exp(beta_0_val + beta_pop_val*pop/trans)
+        exp_bites <- exp(beta_0_val + beta_pop_val*pop/trans + errs)
       }
     }
-    if(type == "bites") {
+    if(pred_type == "bites") {
       exp_bites <- rpois(length(exp_bites), exp_bites)
     }
     
@@ -193,20 +111,32 @@ predict.bites <- function(ttimes, pop, catch, names,
   return(bite_mat)
 }
 
-# Predict deaths and other key decision tree outputs -----------------------------------------
-# Function for getting deaths from input bites (return a matrix)
-#' Title
-#' Description
-#' Details
-#' @param Paramters
-#' @return Returned
-#' @section Dependencies:
-#'     List dependencies here, i.e. packages and other functions
-predict.deaths <- function(bite_mat, pop,
-                           p_rab_min = 0.2, p_rab_max = 0.6, p_rab_mode = NULL,
-                           rho_max = 0.9,
-                           exp_min = 15/1e5, exp_max = 76/1e5, exp_mode = NULL,
-                           prob_death = 0.16, dist = "uniform", inc = "draw", exp_scaled, ...) {
+#' Predict deaths from reported bite incidence
+#' Takes matrix of predicted reported bites from \code[predict.bites] and applies decision tree 
+#' framework to simulate reporting, deaths, and deaths averted. 
+#' @param p_rab_min minimum estimate of proportion of reported bites that are rabies exposures
+#' @param p_rab_max maximum estimate of proportion of reported bites that are rabies exposures
+#' @param p_rab_mode median estimate of proportion of reported bites that are rabies exposures
+#' @param exp_min minimum estimate of rabies exposure incidence
+#' @param exp_max maximum estimate of rabies exposure incidence
+#' @param exp_mode median estimate of rabies exposure incidence
+#'@param rho_max maximum possible reporting
+#' @param prob_death probability of death in the absence of PEP given a genuine rabies exposure
+#' @param dist "uniform" for sampling probabilities from uniform distribution and "triangle" for 
+#' sampling probabilities from a triangular distribution
+#' @param exp_scaled whether to ignore incidence parameters and instead use a vector of incidence
+#' estimates for each location
+#' @details If dist = "uniform", the _mode parameters are not used. If dist = "triangle",
+#' the mode is used if passed, but if NULL defaults to median of min - max. 
+#' median of min - max.
+#' @return List of matrices of simulated deaths, deaths averted, reporting, and the parameter estimates
+#' (p_rabid, the proportion of bites reported that were rabid and rabid_exps, exposure incidence) used
+#' to generate those predictions.
+#' @section Dependencies: triangle
+
+predict.deaths <- function(bite_mat, pop, p_rab_min = 0.2, p_rab_max = 0.6, p_rab_mode = NULL,
+                           exp_min = 15/1e5, exp_max = 76/1e5, exp_mode = NULL, rho_max = 0.9, 
+                           prob_death = 0.16, dist = "uniform", exp_scaled = NULL, ...) {
   
   # Getting rabies exposures incidence and p_rabid
   if(dist == "uniform") {
@@ -229,7 +159,7 @@ predict.deaths <- function(bite_mat, pop,
   }
 
   # Overide the previous kind if scaled!
-  if(inc == "scaled") {
+  if(!is.null(exp_scaled)) {
     human_exp_inc <- exp_scaled
   }
   
@@ -264,54 +194,31 @@ predict.deaths <- function(bite_mat, pop,
   return(out)
 }
 
-constrained_inc <- function(slope, intercept, pop, max, min){
+#' Helper function for constraining incidence when scaling by pop
+#' From model where y intercept is set to either the max or the minimum and incidence scales 
+#' by slope with population size (if negatively, then not below a minimum threshold and if 
+#' positively then not above a maximum threshold).
+#' @param slope slope that scales incidence with population
+#' @param pop vector of population sizes
+#' @param max maximum possible incidence
+#' @param min minimum possible incidence
+#' @return Vector of scaled incidence by pop.
+#' @section Dependencies: None
+constrained_inc <- function(slope, pop, max, min){
+  intercept <- ifelse(slope > 0, min, max)
   inc <- slope*pop + intercept
   inc[inc >= max] <- max
   inc[inc <= min] <- min
   return(inc)
 }
 
-# Get burden or reporting (fixed) -------------------------------------------------------------
-# Use human_exp_rate instead of incidence*hdr*rho_max!
-get.burden.fixed <- function(bite_mat, pop, hdr = 25, incidence = 0.01, 
-                             exp_rate = 0.39, p_rabid = 0.6, rho_max = 0.9, 
-                             prob_death = 0.16, scale = FALSE, slope = 1, intercept = 0, 
-                             inc_max = inc100k_max, 
-                             inc_min = inc100k_min) {
-  
-  if(scale == TRUE) {
-    # Constrained and scaled incidence
-    inc <- slope*pop + intercept
-    inc[inc > inc_max] <- inc_max
-    inc[inc < inc_min] <- inc_min
-    rabid_exps <- pop*inc
-  } else {
-    rabid_exps <- pop/hdr*incidence*exp_rate
-  }
-  
-  rabid_exps <- matrix(rabid_exps, nrow = nrow(bite_mat), 
-                      ncol = ncol(bite_mat))
-  
-  max_reported <- rabid_exps*rho_max # so that reporting is set at max
-  reported_rabid <- bite_mat*p_rabid
-  reported_rabid <- ifelse(reported_rabid > max_reported, max_reported, reported_rabid)
-  
-  # Simulating deaths
-  deaths <- (rabid_exps - reported_rabid)*prob_death
-  return(deaths)
-}
-
-
-# Helper functions for getting incidence from HDR/p_exp/dog_inc -------------------------------
-hdr_from_inc <- function(inc = 48, pop = 1e5, p_exp = 0.39, dog_inc = 0.01) {
-  1/(inc/pop/dog_inc/p_exp)
-}
-
-inc_from_hdr <- function(hdr = 5, pop = 1e5, p_exp = 0.39, dog_inc = 0.01) {
-  p_exp*dog_inc*pop/hdr
-}
-
-# Function for getting vials from input bites -------------------------------------------------
+#' Helper function to simulate vials
+#' @details This function takes the number of reported bites annually, and samples reporting dates 
+#' and subsequent follow-up dates (on days 3 + 7 per the new abridged regimen)
+#' to estimate vials based on sharing of vials (2 patients per vial on a given day)
+#' @param x numeric number of bites reported in a given year
+#' @return Vector of scaled incidence by pop.
+#' @section Dependencies: None
 get.vials <- function(x) {
   day0 <- floor(runif(x, min = 1, max = 365))
   days <- tabulate(c(day0, day0 + 3, day0 + 7))
@@ -319,29 +226,35 @@ get.vials <- function(x) {
               throughput = mean(days)))
 }
 
-
-# Helper Functions -----------------------------------------------------------------------------
-# Function for getting bootstrapped CIS
-boots_mean <- function(data, indices) {mean(data[indices], na.rm = TRUE)}
-boots_median <- function(data, indices) {median(data[indices], na.rm = TRUE)}
-
-get.boots.dt <- function(vector, type_CI = "basic", names,
-                         func = boots_mean, nsims = 999) {
-  check <- unique(vector)
+#' Draw independent samples from the posterior 
+#' @details Helper function to sample posterior estimates (results saved from \code[estimate.pars]). 
+#' Loads an rds file identified through the parameters passed in the function.
+#' @param pop_predict type of population scaling in the model
+#' @param intercept type of intercept in the model
+#' @param scale scale of the model (either commune or district level)
+#' @param data_source data used to fit the model (either National or Moramanga data)
+#' @param suff pass another suffix to identify the file
+#' @param parent_dir where to look for the file
+#' @param nsims number of samples to draw
+#' @param hpd numeric 0 - 1, whether to draw from the higher posterior density and what level
+#' @return a matrix of independent draws from the posterior distributions of the sourced mcmc chains
+#' @section Dependencies: coda, glue
+get.samps <- function(pop_predict = "flatPop", data_source = "National", intercept = "random", 
+                      scale = "Commune", suff = "", parent_dir = "output/mods/samps/", 
+                      nsims = 1000, hpd = NULL){
+  samps <- readRDS(glue("{parent_dir}{data_source}/{scale}_{intercept}_{pop_predict}{suff}.rds"))[[1]]
+  samp_mat <- do.call(rbind, samps)
   
-  if(length(vector[is.na(vector)]) == length(vector) |
-     (length(check[!is.na(check)]) == 1 & sum(check[!is.na(check)]) > 0)){
-    out <- data.table(point_est = NA, upper = NA, lower = NA)
-    names(out) <- names
+  if(!is.null(hpd)) {
+    samp_mat <- apply(samp_mat, 2, 
+                      function(x, prob, length) {
+                                hpd <- HPDinterval(as.mcmc(x), prob = prob)
+                                to_samp <- x[x >= hpd[, 1] & x <= hpd[, 2]]
+                                rep <- ifelse(length(to_samp) < length, TRUE, FALSE)
+                                return(sample(to_samp, size = length, replace = rep))
+                      }, prob = hpd, length = nsims)
   } else {
-    samples <- boot(vector, func, R = nsims)
-    ests <- boot.ci(samples, type = type_CI)
-    out <- data.table(point_est = ests$t0, upper = ests[[4]][5], lower = ests[[4]][4])
-    names(out) <- names
+    samp_mat <- apply(samp_mat, 2, sample, size = nsims) # independent draws from posterior w/out rep
   }
-  return(out)
-}
-
-multicomb <- function(x, ...) {
-  mapply(cbind, x, ..., SIMPLIFY = FALSE)
+  return(samp_mat)
 }
