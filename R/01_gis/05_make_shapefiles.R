@@ -15,7 +15,7 @@ source("R/functions/out.session.R")
 # Shapefiles
 mada_districts <- readOGR("data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
 mada_communes <- readOGR("data/raw/shapefiles/communes/mdg_admbnda_adm3_BNGRC_OCHA_20181031.shp")
-ctar_metadata <- read.csv(file = "data/raw/ctar_metadata.csv")
+ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
 
 # Get distcodes for both admin levels
 mada_districts$distcode <- substring(as.character(mada_districts$ADM2_PCODE), 1, 7)

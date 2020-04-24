@@ -13,7 +13,7 @@ select <- dplyr::select
 source('R/functions/out.session.R')
 
 # data
-ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
+ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 base_times <- raster("output/ttimes/base_ttimes.tif")

@@ -20,7 +20,7 @@ source("R/functions/out.session.R")
 source("R/functions/bezier.R")
 
 # Pull in data
-ctar_metadata <- read.csv(file = "data/raw/ctar_metadata.csv")
+ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
@@ -51,18 +51,11 @@ names(model_cols) <- scale_levs
 prop_df <- fread("output/ttimes/addclinics_prop_df.csv")
 prop_df$step_added <- 1:nrow(prop_df)
 
-# join w/ csb + ctar points
-ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
-
 # candidate points
-csbs <- read.csv("data/raw/csbs.csv", stringsAsFactors = FALSE)
-csbs %>% 
-  filter(type == "CSB2", genre_fs != "Priv", type_fs != "Health Post") %>%
-  dplyr::select(CTAR = nom_fs, lat = ycoor, long = xcoor) -> csbs
+csbs <- read.csv("data/processed/clinics/csb2.csv", stringsAsFactors = FALSE)
+point_mat_all <- rbind(dplyr::select(ctar_metadata, long = LONGITUDE, lat = LATITUDE, clinic_id),
+                       dplyr::select(csbs, long, lat, clinic_id))
 
-point_mat_all <- rbind(dplyr::select(ctar_metadata, long = LONGITUDE, lat = LATITUDE),
-                       dplyr::select(csbs, long, lat))
-point_mat_all$clinic_id <- 1:nrow(point_mat_all)
 point_mat_all %>%
   left_join(prop_df) %>%
   mutate(prop_pop = case_when(is.na(prop_pop) & clinic_id < 32 ~ 0,
@@ -94,29 +87,13 @@ S5.1_ARMCadded <- ggplot() +
 ggsave("figs/supplementary/S5.1_ARMCadded.jpeg", S5.1_ARMCadded, width = 6, height = 8)
 
 # Plots of how ttimes change ----------------------------------------------------------------
-csbs <- read.csv("data/raw/csbs.csv", stringsAsFactors = FALSE)
-csbs %>% 
-  filter(type == "CSB2", genre_fs != "Priv", type_fs != "Health Post") %>%
-  dplyr::select(CTAR = nom_fs, lat = ycoor, long = xcoor) %>%
-  mutate(candidate_id = 1:nrow(.) + 31) -> csbs
-
-pts <- SpatialPoints(cbind(csbs$long, csbs$lat), 
-                     proj4string = 
-                       CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-csbs$commcode <- over(pts, mada_communes)$commcode
-csbs$distcode <- over(pts, mada_districts)$distcode
+csbs <- read.csv("data/processed/clinics/csb2.csv", stringsAsFactors = FALSE)
 
 commune_maxcatch %>%
   group_by(clinic_added) %>%
   summarize(when_added = min(scenario)) %>%
-  right_join(csbs, by = c("clinic_added" = "candidate_id")) %>%
+  right_join(csbs, by = c("clinic_added" = "clinic_id")) %>%
   mutate(when_added = ifelse(is.na(when_added), 1648, when_added)) -> when_added
-
-pts <- SpatialPoints(cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE), 
-                     proj4string = 
-                       CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-ctar_metadata$commcode <- over(pts, mada_communes)$commcode
-ctar_metadata$distcode <- over(pts, mada_districts)$distcode
 
 ctar_metadata %>%
   select(CTAR, lat = LATITUDE, long = LONGITUDE, commcode, distcode) %>%

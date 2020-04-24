@@ -15,7 +15,7 @@ select <- dplyr::select
 source("R/functions/out.session.R")
 
 # Read in metadata
-ctar_metadata <- fread("data/raw/ctar_metadata.csv")
+ctar_metadata <- fread("data/processed/clinics/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
 national <- fread("data/processed/bitedata/national.csv")
@@ -73,12 +73,6 @@ national %>%
   group_by(distcode, id_ctar) %>%
   summarize(count = n()) %>%
   filter(!is.na(id_ctar), distcode %in% mada_districts$distcode) -> bites_dist
-
-ctar_coords <- SpatialPoints(cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE), 
-                             proj4string = 
-                               CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-ctar_metadata$commcode <- over(ctar_coords, mada_communes)$commcode
-ctar_metadata$distcode <- over(ctar_coords, mada_districts)$distcode
 bites_dist$catch <- mada_districts$catchment[match(bites_dist$distcode, mada_districts$distcode)]
 bites_dist$actual_catch <- ctar_metadata$id_ctar[match(bites_dist$catch, ctar_metadata$CTAR)]
 

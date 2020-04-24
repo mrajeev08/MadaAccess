@@ -30,7 +30,7 @@ source("R/functions/predict_functions.R")
 # Read in data
 national <- fread("data/processed/bitedata/national.csv")
 moramanga <- fread("data/processed/bitedata/moramanga.csv")
-ctar_metadata <- fread("data/raw/ctar_metadata.csv")
+ctar_metadata <- fread("data/processed/clinics/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
 

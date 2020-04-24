@@ -16,7 +16,7 @@ select <- dplyr::select
 source("R/functions/bezier.R")
 
 # Read in data
-ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
+ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
 

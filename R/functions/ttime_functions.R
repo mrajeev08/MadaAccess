@@ -60,7 +60,7 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #'  in which the grid cell falls), pop_comm (the total population in the commune in which the grid 
 #'  cell falls), commcode (corresponds to commcode in shapefile)), 
 #'  distcode (corresponds to distcode in shapefile);
-#' @param clinic_names character vector of the names of the candidate ARMC to be added
+#' @param clinic_names vector of the names or ids of the candidate ARMC to be added
 #' @param clinic_catchmat a matrix of ttimes estimates for each of the grid cells (rows) in the
 #' shapefile for each of the candidate clinics (columns, should match length of clinic_names vector) 
 #' @param prop_pop a numeric vector of the proportion of the total population in each grid cell
@@ -75,7 +75,8 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #' 
 #' @return the final travel times and catchments at the grid cell level 
 #' @details The results, aggregated to the district and commune levels, are written to a file at each 
-#' step to limit memory used.
+#' step to limit memory used. Note that the pop_wt_comm/dist is the population for which travel times are 
+#' not infinite for a given clinic
 #' @section Dependencies:
 #'     Packages: data.table, foreach
 
@@ -123,7 +124,7 @@ add.armc <- function(base_df, clinic_names, clinic_catchmat,
       clinic_names <- clinic_names[-c(which.max(sum.prop), which(sum.prop == 0),
                                       which(sum.prop < thresh_prop))]
       clinic_catchmat[, unique(c(which.max(sum.prop), which(sum.prop == 0), 
-                                 which(sum.prop < thresh_prop))) := NULL]
+                                 which(sum.prop < thresh_prop))) := NULL] # set these to null
       
       # deal with NAs
       base_to_agg <- base_df[!is.na(raw_ttimes)]

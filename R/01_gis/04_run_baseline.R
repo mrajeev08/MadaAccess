@@ -28,7 +28,7 @@ pop1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
 # Get candidate points as matrix
-ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
+ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
 point_mat_base <- as.matrix(dplyr::select(ctar_metadata, x = LONGITUDE, y = LATITUDE))
 
 # Get the minimum ttimes for each clinic ------------------------------------------------------

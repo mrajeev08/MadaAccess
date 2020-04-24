@@ -16,7 +16,7 @@ library(cowplot)
 burden_preds <- fread("output/preds/burden_base.gz")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
-ctar_metadata <- fread("data/raw/ctar_metadata.csv")
+ctar_metadata <- fread("data/processed/clinics/ctar_metadata.csv")
 
 # Grouped to district
 burden_preds$distcode <- mada_communes$distcode[match(burden_preds$names, mada_communes$commcode)]

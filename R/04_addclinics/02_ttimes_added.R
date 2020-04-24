@@ -26,14 +26,14 @@ source("R/functions/ttime_functions.R")
 
 # Pull in candidates
 cand_mat <- fread("/scratch/gpfs/mrajeev/output/ttimes/candidate_matrix.gz") # this is a huge file!
-candidate_ids <- 1:nrow(cand_mat) + 31
+csb2 <- fread("data/processed/clinics/csb2.csv")
 
 ## Baseline df
 base_df <- fread("output/ttimes/baseline_grid.gz")
 
 ## Do the candidates
 system.time ({
-  add.armc(base_df = base_df, clinic_names = candidate_ids, clinic_catchmat = cand_mat, 
+  add.armc(base_df = base_df, clinic_names = csb2$clinic_id, clinic_catchmat = cand_mat, 
            max_clinics = ncol(cand_mat), thresh_ttimes = 3*60, thresh_prop = 1e-4, 
            dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics_")
 })

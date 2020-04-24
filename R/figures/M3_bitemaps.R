@@ -18,18 +18,12 @@ select <- dplyr::select
 # Read in raw data (not processed)
 national <- read.csv("data/processed/bitedata/national.csv")
 moramanga <- read.csv("data/processed/bitedata/moramanga.csv")
-ctar_metadata <- fread("data/raw/ctar_metadata.csv")
+ctar_metadata <- fread("data/processed/clinics/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
 source("R/functions/bezier.R")
 
 # matching up metadata -------------------------------------------------------------------------
-ctar_coords <- SpatialPoints(cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE), 
-                             proj4string = 
-                               CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-ctar_metadata$commcode <- over(ctar_coords, mada_communes)$commcode
-ctar_metadata$distcode <- over(ctar_coords, mada_districts)$distcode
-
 # Centers submitting < 10 forms
 no_data <- c("Fianarantsoa", "Ambatomainty", "Ambovombe Androy", "Tsiroanomandidy", 
              "Taolagnaro", "Mandritsara", "Antsiranana", "Marolambo", "Nosy be", "Sainte Marie", "Vangaindrano")

@@ -15,7 +15,7 @@ select <- dplyr::select
 # Read in raw data (not processed)
 district_bites <- fread("output/bites/district_bites.csv")
 mora_bites <- fread("output/bites/mora_bites.csv")
-ctar_metadata <- fread("data/raw/ctar_metadata.csv")
+ctar_metadata <- fread("data/processed/clinics/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
 

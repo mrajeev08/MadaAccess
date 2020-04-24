@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------------------------ #
 #' Getting max ttimes (i.e. if all CSB IIs in Mada have a clinic)
-#' Can run this locally (takes ~ XX minutes)
+#' Can run this locally (takes ~ 6 minutes)
 # ------------------------------------------------------------------------------------------------ #
 
 # Libraries
@@ -21,20 +21,13 @@ source("R/functions/ttime_functions.R")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 pop1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
-ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
+ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
 # candidate points
-ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
-
-# candidate points
-csbs <- read.csv("data/raw/csbs.csv", stringsAsFactors = FALSE)
-csbs %>% 
-  filter(type == "CSB2", genre_fs != "Priv", type_fs != "Health Post") %>%
-  dplyr::select(CTAR = nom_fs, X_COORD = ycoor, Y_COORD = xcoor) -> csbs
-
-point_mat_all <- as.matrix(rbind(dplyr::select(csbs, Y_COORD, X_COORD),
-                           dplyr::select(ctar_metadata, Y_COORD = LONGITUDE, X_COORD = LATITUDE)))
+csbs <- read.csv("data/processed/clinics/csb2.csv", stringsAsFactors = FALSE)
+point_mat_all <- as.matrix(rbind(dplyr::select(csbs, long, lat),
+                           dplyr::select(ctar_metadata, long = LONGITUDE, lat = LATITUDE)))
 
 # Max raster
 ttimes_max <- get.ttimes(friction = friction_masked, shapefile = mada_districts,

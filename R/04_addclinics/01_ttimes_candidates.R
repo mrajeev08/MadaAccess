@@ -6,11 +6,13 @@
 #'   2.9 GHz Intel Core i5
 # ------------------------------------------------------------------------------------------------ #
 
+# sub_cmd=-sn -t 12 -n 18 -mem 4500 -sp "./R/04_addclinics/01_ttimes_candidates.R" -jn "candidates" -wt 5m -n@
+  
 # set up cluster on single node with do Parallel
 library(doParallel)
 cl <- makeCluster(18)
 registerDoParallel(cl)
-Sys.time()
+start <- Sys.time()
 
 # Libraries
 library(rgdal)
@@ -28,18 +30,13 @@ source("R/functions/ttime_functions.R")
 # Load in GIS files 
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
-ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
+ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
 # candidate points
 # filter out existing csbs and also write out to file!
-csbs <- read.csv("data/raw/csbs.csv", stringsAsFactors = FALSE)
-csbs %>% 
-  filter(type == "CSB2", genre_fs != "Priv", type_fs != "Health Post") %>%
-  dplyr::select(CTAR = nom_fs, X_COORD = ycoor, Y_COORD = xcoor) -> csbs
-
-point_mat_candidates <- as.matrix(select(csbs, Y_COORD, X_COORD))
-candidate_ids <- 1:nrow(csbs) + 31 ## above the baseline 31 clinics (number by row_ids!)
+csbs <- read.csv("data/processed/clinics/csb2.csv")
+point_mat_candidates <- as.matrix(select(csbs, long, lat))
 baseline_df <- fread("output/ttimes/baseline_grid.gz")
 
 # ~ 6 seconds per point
@@ -66,8 +63,7 @@ fwrite(stacked_ttimes, "/scratch/gpfs/mrajeev/output/ttimes/candidate_matrix.gz"
 # Close out 
 file_path <- "R/04_addclinics/01_ttimes_candidates.R"
 
-out.session(path = file_path, filename = "log_cluster.csv")
+out.session(path = file_path, filename = "log_cluster.csv", start = start)
 closeCluster(cl)
 mpi.quit()
 print("Done remotely:)")
-Sys.time()
