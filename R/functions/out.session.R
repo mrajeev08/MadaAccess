@@ -3,7 +3,7 @@
 ##' Malavika Rajeev
 
 ## Function for writing out session info at end of each script run
-out.session <- function(path, filename = "log.csv", start) {
+out.session <- function(path, filename = "log.csv", start = NULL) {
   
   library(data.table) ## using data table to deal with easy parsing / binding
   out <- sessionInfo()
