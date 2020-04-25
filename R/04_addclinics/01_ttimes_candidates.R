@@ -6,7 +6,7 @@
 #'   2.9 GHz Intel Core i5
 # ------------------------------------------------------------------------------------------------ #
 
-# sub_cmd=-sn -t 12 -n 18 -mem 4500 -sp "./R/04_addclinics/01_ttimes_candidates.R" -jn "candidates" -wt 5m -n@
+#sub_cmd=-sn -t 12 -n 18 -mem 4500 -sp "./R/04_addclinics/01_ttimes_candidates.R" -jn candidates -wt 5m -n@
   
 # set up cluster on single node with do Parallel
 library(doParallel)
@@ -39,10 +39,6 @@ csbs <- read.csv("data/processed/clinics/csb2.csv")
 point_mat_candidates <- as.matrix(select(csbs, long, lat))
 baseline_df <- fread("output/ttimes/baseline_grid.gz")
 
-# ~ 6 seconds per point
-cl <- makeCluster(cores, type = "FORK")
-registerDoParallel(cl)
-
 system.time ({
   foreach(points = iter(point_mat_candidates, by = "row"),
           .packages = c("raster", "gdistance", "data.table")) %dopar% {
@@ -60,10 +56,12 @@ stacked_ttimes <- stacked_ttimes[!is.na(getValues(friction_masked)), ]
 # on cluster write to scratch gpfs for larger file size and zip it! 
 fwrite(stacked_ttimes, "/scratch/gpfs/mrajeev/output/ttimes/candidate_matrix.gz") 
 
-# Close out 
+# Parse these from bash for where to put things
+syncto <- "~/Documents/Projects/MadaAccess/output/ttimes/"
+syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/candidate_*"
+
 file_path <- "R/04_addclinics/01_ttimes_candidates.R"
 
 out.session(path = file_path, filename = "log_cluster.csv", start = start)
-closeCluster(cl)
-mpi.quit()
+stopCluster(cl)
 print("Done remotely:)")

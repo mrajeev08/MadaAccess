@@ -7,12 +7,14 @@
 #'   it takes approximately 10 hours
 # ------------------------------------------------------------------------------------------------ #
 
+#sub_cmd=-sn -t 12 -n 18 -mem 4500 -sp "./R/04_addclinics/02_ttimes_added.R" -jn addclinics -wt 5m -n@
+  
 # set up cluster on single node with do Parallel
 library(doParallel) 
 cl <- makeCluster(18)
 registerDoParallel(cl)
 getDoParWorkers()
-Sys.time()
+start <- Sys.time()
 
 # Libraries
 library(foreach)
@@ -44,7 +46,6 @@ syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/add
 
 # Close out
 file_path <- "R/04_addclinics/02_ttimes_added.R"
-out.session(path = file_path, filename = "log_cluster.csv")
+out.session(path = file_path, filename = "log_cluster.csv", start = start)
 print("Done remotely:)")
 stopCluster(cl)
-Sys.time()

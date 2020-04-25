@@ -21,20 +21,20 @@ csbs <- read.csv("data/raw/csbs.csv", stringsAsFactors = FALSE)
 # filter out ctar from csb IIs
 csbs %>% 
   filter(type == "CSB2", genre_fs != "Priv", type_fs != "Health Post") %>%
-  select(lat = ycoor, long = xcoor) -> csb_ii
+  select(lat = ycoor, long = xcoor) -> csb2
 
 dist_mat <- distm(cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE), 
-                  cbind(csb_ii$long, csb_ii$lat))
-csb_ii <- csb_ii[-apply(dist_mat, 1, which.min), ]
-csb_ii$clinic_id <- 1:nrow(csb_ii) + 31 # id for clinics
-write.csv(csb_ii, "data/processed/clinics/csb2.csv", row.names = FALSE)
+                  cbind(csb2$long, csb2$lat))
+csb2 <- csb2[-apply(dist_mat, 1, which.min), ]
+csb2$clinic_id <- 1:nrow(csb2) + 31 # id for clinics
+write.csv(csb2, "data/processed/clinics/csb2.csv", row.names = FALSE)
 
 # get clinic commcodes & distcodes
-csb_coords <- SpatialPoints(cbind(csb_ii$long, csb_ii$lat), 
+csb2_coords <- SpatialPoints(cbind(csb2$long, csb2$lat), 
                      proj4string = 
                        CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-csb_ii$commcode <- over(csb_coords, mada_communes)$commcode
-csb_ii$distcode <- over(csb_coords, mada_districts)$distcode
+csb2$commcode <- over(csb2_coords, mada_communes)$commcode
+csb2$distcode <- over(csb2_coords, mada_districts)$distcode
 
 ctar_coords <- SpatialPoints(cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE), 
                              proj4string = 
@@ -45,16 +45,16 @@ ctar_metadata$clinic_id <- 1:nrow(ctar_metadata)
 
 # get 1 per district with the highest pop density
 pop_1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
-csb_ii$pop_dens <- extract(pop_1x1, csb_coords)
+csb2$pop_dens <- extract(pop_1x1, csb2_coords)
 
-csb_ii %>%
+csb2 %>%
   filter(!(distcode %in% ctar_metadata$distcode)) %>% # filter out any districts with a ctar
   group_by(distcode) %>%
   filter(pop_dens == max(pop_dens, na.rm = TRUE)) %>%
   filter(clinic_id == min(clinic_id)) -> clinic_per_dist # only pick 1 clinic per district
 
 # get 1 per commune with the higher pop density
-csb_ii %>%
+csb2 %>%
   filter(!(commcode %in% ctar_metadata$commcode)) %>% # filter out any communes with a ctar
   group_by(commcode) %>%
   filter(pop_dens == max(pop_dens, na.rm = TRUE)) %>%
@@ -75,17 +75,17 @@ missing_comms <- mada_communes$commcode[!(mada_communes$commcode %in% clinic_per
 csbs %>% 
   filter(type != "CSB1", genre_fs != "Priv") %>%
   select(lat = ycoor, long = xcoor) %>%
-  mutate(clinic_id = 1:nrow(.) + max(csb_ii$clinic_id)) -> csb_i
+  mutate(clinic_id = 1:nrow(.) + max(csb2$clinic_id)) -> csb1
 
-csb_coords <- SpatialPoints(cbind(csb_i$long, csb_i$lat), 
+csb1_coords <- SpatialPoints(cbind(csb1$long, csb1$lat), 
                             proj4string = 
                               CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 
-csb_i$commcode <- over(csb_coords, mada_communes)$commcode
-csb_i$distcode <- over(csb_coords, mada_districts)$distcode
-csb_i$pop_dens <- extract(pop_1x1, csb_coords)
+csb1$commcode <- over(csb1_coords, mada_communes)$commcode
+csb1$distcode <- over(csb1_coords, mada_districts)$distcode
+csb1$pop_dens <- extract(pop_1x1, csb1_coords)
 
-csb_i %>%
+csb1 %>%
   filter(commcode %in% missing_comms) %>%
   group_by(commcode) %>%
   filter(pop_dens == max(pop_dens, na.rm = TRUE)) %>%

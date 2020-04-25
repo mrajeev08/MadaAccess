@@ -1,7 +1,9 @@
 # ------------------------------------------------------------------------------------------------ #
 #' Getting max ttimes (i.e. if all CSB IIs in Mada have a clinic)
-#' Can run this locally (takes ~ 6 minutes)
+#' Can run this locally (takes ~ xx minutes)
 # ------------------------------------------------------------------------------------------------ #
+
+start <- Sys.time()
 
 # Libraries
 library(rgdal)
@@ -81,6 +83,5 @@ commune_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop_wt_comm, by = commc
 fwrite(commune_df, "output/ttimes/max_commune.csv")
 
 # Save session info
-out.session(path = "R/04_addclinics/03_ttimes_max.R", filename = "output/log_local.csv")
-
-Sys.time()
+out.session(path = "R/04_addclinics/03_ttimes_max.R", filename = "output/log_local.csv", 
+            start = start)
