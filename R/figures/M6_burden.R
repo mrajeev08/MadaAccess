@@ -78,18 +78,19 @@ gg_district <- fortify(mada_districts, region = "distcode")
 gg_district %>% 
   left_join(district_deaths, by = c("id" = "distcode")) -> gg_district_plot
 
-col_lim <- ceiling(max(gg_commune_plot$deaths_mean/gg_commune_plot$pop*1e5))
+col_lim <- c(floor(min(gg_commune_plot$deaths_mean/gg_commune_plot$pop*1e5)),
+             ceiling(max(gg_commune_plot$deaths_mean/gg_commune_plot$pop*1e5)))
 
 comm_burden <- ggplot() +
   geom_polygon(data = gg_commune_plot,
                aes(x = long, y = lat, group = group, fill = deaths_mean/pop*1e5), 
-               color = "white", size = 0.1) +
+               color = "white", size = 0.05) +
   geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "grey50",
              shape = 4, size = 2, stroke = 1.5) +
   labs(tag = "B") +
   scale_fill_viridis_c(option = "magma", direction = -1, 
                       name = "Predicted incidence \n of deaths per 100k",
-                      limits=c(0, col_lim)) +
+                      limits = col_lim) +
   theme_map() +
   coord_quickmap()
 
@@ -97,13 +98,13 @@ comm_burden <- ggplot() +
 district_burden <- ggplot() +
   geom_polygon(data = gg_district_plot,
                aes(x = long, y = lat, group = group, fill = deaths_mean/pop*1e5), 
-               color = "white", size = 0.1) +
+               color = "white", size = 0.05) +
   geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "grey50",
              shape = 4, size = 2, stroke = 1.5) +
   labs(tag = "C") +
   scale_fill_viridis_c(option = "magma", direction = -1, 
                        name = "Predicted incidence \n of deaths per 100k",
-                       limits = c(0, col_lim)) +
+                       limits = col_lim) +
   theme_map() +
   coord_quickmap()
 
@@ -112,9 +113,4 @@ ggsave("figs/main/M6_burden_base.jpeg", burden_base, height = 14, width = 10)
 ggsave("figs/main/M6_burden_base.tiff", burden_base, dpi = 300, device = "tiff", height = 12, width = 10, 
        compression = "lzw", type = "cairo")
 
-# National deaths
-burden_preds %>%
-  group_by(scale) %>%
-  summarize_at(vars(pop, bites_mean:averted_lower), sum, na.rm = TRUE) -> natl_burden
-write.csv(natl_burden, "output/preds/natl_burden.csv", row.names = FALSE)
 

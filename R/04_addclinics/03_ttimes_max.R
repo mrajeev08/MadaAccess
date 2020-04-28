@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------------------------ #
 #' Getting max ttimes (i.e. if all CSB IIs in Mada have a clinic)
-#' Can run this locally (takes ~ xx minutes)
+#' Can run this locally (takes ~ 20 minutes)
 # ------------------------------------------------------------------------------------------------ #
 
 start <- Sys.time()

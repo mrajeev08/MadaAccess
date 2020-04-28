@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------------------------ #
 #' Getting ttimes for one clinic per admin unit scenarios
-#' Can run this locally (takes ~ 30+ minutes & lots of RAM!)
+#' Can run this locally (takes ~ 30 minutes)
 # ------------------------------------------------------------------------------------------------ #
 
 start <- Sys.time()
@@ -107,19 +107,19 @@ foreach(i = 1:length(scale)) %do% {
     max_to_agg[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
                    prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_dist[1], 
                    pop_wt_dist = pop_wt_dist[1], pop = pop_dist[1],
-                   scenario = glue("clin_per_{scale[i]}")), 
+                   scenario = glue("armc_per_{scale[i]}")), 
                by = .(distcode, catchment)]
   district_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop_wt_dist, by = distcode]
-  fwrite(district_df, glue("output/ttimes/clin_per_{scale[i]}_district.csv"))
+  fwrite(district_df, glue("output/ttimes/armc_per_{scale[i]}_district.csv"))
   
   commune_df <-
     max_to_agg[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE),
                    prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_comm[1], 
                    pop_wt_comm = pop_wt_comm[1], pop = pop_comm[1],
-                   scenario = glue("clin_per_{scale[i]}")), 
+                   scenario = glue("armc_per_{scale[i]}")), 
                by = .(commcode, catchment)]
   commune_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop_wt_comm, by = commcode]
-  fwrite(commune_df, glue("output/ttimes/clin_per_{scale[i]}_commune.csv"))
+  fwrite(commune_df, glue("output/ttimes/armc_per_{scale[i]}_commune.csv"))
 }
 
 # Save session info

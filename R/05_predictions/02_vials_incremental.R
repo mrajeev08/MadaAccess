@@ -3,14 +3,14 @@
 #' Details: Pulling in district and commune estimates of travel times as clinics are added 
 # ------------------------------------------------------------------------------------------------ #
 
-#sub_cmd=-t 12 -n 30 -mem 3000 -sp "./R/05_predictions/02_vials_incremental.R" -jn "vials" -wt 5m -n@
+#sub_cmd=-t 12 -n 30 -mem 3000 -sp "./R/05_predictions/02_vials_incremental.R" -jn vials -wt 5m -n@
 
 # Init MPI Backend
 library(doMPI)
 cl <- startMPIcluster()
 clusterSize(cl) # this just tells you how many you've got
 registerDoMPI(cl)
-Sys.time()
+start <- Sys.time()
 
 # Libraries and scripts
 library(doParallel)
@@ -30,41 +30,18 @@ scenario_loop <- unique(fread("output/ttimes/commune_maxcatch.csv")$lookup)
 colnames_max <- colnames(fread("output/ttimes/commune_maxcatch.csv"))
 colnames_all <- colnames(fread("output/ttimes/commune_allcatch.csv"))
 
-# Get model means for commune and district models
-model_ests <- read.csv("output/mods/estimates_adj_OD.csv")
-model_ests %>%
-  select(params, Mean, pop_predict, intercept, data_source, scale) %>%
-  spread(key = params, value = Mean, fill = 0) %>%
-  filter(pop_predict == "flatPop") -> model_means
-model_means <- bind_rows(filter(model_means, data_source == "National", scale == "District",
-                                intercept == "random"), 
-                         filter(model_means, data_source == "Moramanga"))
-model_ests %>%
-  select(params, sd_adj, pop_predict, intercept, data_source, scale) %>%
-  spread(key = params, value = sd_adj, fill = 0) %>%
-  filter(pop_predict == "flatPop") -> model_sds_adj
-model_ests %>%
-  select(params, SD, pop_predict, intercept, data_source, scale) %>%
-  spread(key = params, value = SD, fill = 0) %>%
-  filter(pop_predict == "flatPop") -> model_sds_unadj
-model_sds <- bind_rows(filter(model_sds_unadj, data_source == "National", scale == "District",
-                              intercept == "random"), filter(model_sds_adj, 
-                                                             data_source == "Moramanga"))
-
 # Vials given commune/district ttimes -------------------------------------------------------
-
-# make df with the lookup + scale (reverse vec so big ones at end don't slow things down)
-lookup <- expand.grid(loop = rev(scenario_loop), scale = c("Commune", "District"))
+# make df with the lookup + mod pars (reverse vec so big ones at end don't slow things down)
+lookup <- expand.grid(loop = rev(scenario_loop), scale = c("Commune", "District"), 
+                      pop_predict = "flatPop", intercept = "fixed", data_source = "National", 
+                      OD = TRUE)
 
 multicomb <- function(x, ...) {
   mapply(rbind, x, ..., SIMPLIFY = FALSE)
 }
 
 foreach(j = iter(lookup, by = "row"), .combine = multicomb, 
-        .packages = c('data.table', 'foreach'), .options.RNG = 2687) %dorng% {
-          
-          pars <- model_means[model_means$scale == j$scale, ]
-          sds <- model_sds[model_sds$scale == j$scale, ]
+        .packages = c('data.table', 'foreach', "glue"), .options.RNG = 2687) %dorng% {
           
           # read in max and all catch
           comm <- fread(cmd = paste("grep -w ", j$loop, 
@@ -82,15 +59,21 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
             ttimes <- comm$ttimes_wtd_dist/60
           }
           
+          posts <- as.data.frame(get.samps(pop_predict = j$pop_predict, 
+                                           data_source = j$data_source,
+                                           intercept = j$intercept, 
+                                           scale = j$scale, suff = ifelse(j$OD == TRUE, "_OD", ""),
+                                           parent_dir = "output/mods/samps/", nsims = 1000))
+          
           bite_mat <- predict.bites(ttimes = ttimes, pop = comm$pop, 
                                     catch = comm$catchment, names = comm$commcode, 
-                                    beta_ttimes = pars$beta_ttimes, beta_ttimes_sd = sds$beta_ttimes,
-                                    beta_0 = pars$beta_0, beta_0_sd = sds$beta_0, 
-                                    beta_pop = 0, beta_pop_sd = sds$beta_pop, 
-                                    sigma_0 = pars$sigma_0, sigma_0_sd = sds$sigma_0, known_alphas = NA, 
-                                    pop_predict = pars$pop_predict, intercept = pars$intercept, 
-                                    trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc",
-                                    dist = TRUE)
+                                    beta_ttimes = posts$beta_ttimes, beta_0 = posts$beta_0, 
+                                    beta_pop = posts$beta_pop,
+                                    sigma_e = posts$sigma_e, sigma_0 = posts$sigma_0,
+                                    known_alphas = NA, known_catch = FALSE,
+                                    pop_predict = j$pop_predict, intercept = j$intercept, 
+                                    nsims = 1000, pred_type = "exp", par_type = "posterior", 
+                                    OD = j$OD)
           
           bites <- data.table(commcode = comm$commcode, scenario = comm$scenario,
                               bite_mat)
@@ -180,7 +163,7 @@ fwrite(prop_preds, "output/preds/catch_props.csv")
 fwrite(natl_preds, "output/preds/catch_preds_natl.csv")
 # Close out
 file_path <- "R/05_predictions/02_vials.R"
-out.session(path = file_path, filename = "log_cluster.csv")
+out.session(path = file_path, filename = "log_cluster.csv", start = start)
 
 # Parse these from bash for where to put things
 syncto <- "~/Documents/Projects/MadaAccess/output/preds/"

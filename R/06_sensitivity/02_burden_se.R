@@ -2,15 +2,14 @@
 #' Getting sensitivity to parameter assumptions for burden & impact of expanding access                          
 # ------------------------------------------------------------------------------------------------ #
 
-# check seff to see how much mem I should get ~ 4 gb or default?
-#sub_cmd=-t 12 -n 30 -mem 4000 -sp "./R/06_sensitivity/02_burden_se.R" -jn "burden_se" -wt 5m -n@
+#sub_cmd=-t 12 -n 30 -mem 4000 -sp "./R/06_sensitivity/02_burden_se.R" -jn burden_se -wt 5m -n@
 
 # Init MPI Backend
 library(doMPI)
 cl <- startMPIcluster()
 clusterSize(cl) # this just tells you how many you've got
 registerDoMPI(cl)
-Sys.time()
+start <- Sys.time()
 
 # Set up ------------------------------------------------------------------------------------
 library(data.table)
@@ -59,10 +58,11 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
           bite_mat <- predict.bites(ttimes = ttimes, pop = comm$pop, 
                                     catch = comm$catchment, names = comm$commcode, 
                                     beta_ttimes = j$beta_ttimes, beta_0 = j$beta_0, 
-                                    beta_pop = 0, sigma_0 = j$sigma_0, known_alphas = NA, 
-                                    pop_predict = "flatPop", intercept = "random", 
-                                    trans = 1e5, known_catch = FALSE, nsims = 1000, type = "inc",
-                                    dist = FALSE)
+                                    beta_pop = j$beta_pop, sigma_e = j$sigma_e, sigma_0 = j$sigma_0,
+                                    known_alphas = NA, OD = j$OD,
+                                    pop_predict = j$pop_predict, intercept = j$intercept, 
+                                    trans = 1e5, known_catch = FALSE, nsims = 1000,  
+                                    par_type = "point_est", pred_type =  "exp")
           
           all_mats <-  predict.deaths(bite_mat, pop = comm$pop,
                                       p_rab_min = j$p_rab_min, p_rab_max = j$p_rab_max,
@@ -124,7 +124,7 @@ fwrite(burden_se[["natl"]], "output/sensitivity/burden_addclinics_se.gz")
 
 # Close out
 file_path <- "R/06_sensitivity/03_burden_se.R"
-out.session(path = file_path, filename = "log_cluster.csv")
+out.session(path = file_path, filename = "log_cluster.csv", start = start)
 
 # Parse these from bash for where to put things
 syncto <- "~/Documents/Projects/MadaAccess/output/sensitivity/"
@@ -133,4 +133,3 @@ syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/burden*
 closeCluster(cl)
 mpi.quit()
 print("Done remotely:)")
-Sys.time()
