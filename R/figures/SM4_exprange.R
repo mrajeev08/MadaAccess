@@ -3,11 +3,10 @@
 #' Details: Pulling in district and commune estimates of travel times as clinics are added 
 # ------------------------------------------------------------------------------------------------ #
 
-# Set up ----------------------------------------------------------------------------------
+# Set up 
 library(data.table)
 library(tidyverse)
 library(cowplot)
-source("R/functions/predict_functions.R")
 source("R/functions/out.session.R")
 select <- dplyr::select
 
@@ -35,8 +34,8 @@ hdr_from_inc(inc = 76)
 hdr_from_inc(inc = 110)
 
 # How to show relationship between these things ...
-var_df <- expand.grid(hdr_val = seq(2, 40, by = 1), p_exp =  c(0.2, 0.38, 0.5), 
-            dog_inc =  seq(0.005, 0.025, by = 0.001))
+var_df <- expand.grid(hdr_val = seq(2, 40, by = 1), p_exp =  0.38, 
+            dog_inc =  seq(0.005, 0.02, by = 0.001))
 var_df %>%
   mutate(exp_inc = inc_from_hdr(hdr = hdr_val, p_exp = p_exp, dog_inc = dog_inc)) -> inc_exps
 inc_labs <- as_labeller(c(`0.38`= "p[exp] == 0.38", `0.2` = "p[exp] == 0.2", `0.5` = "p[exp] == 0.5"), 
@@ -47,8 +46,8 @@ S4.1_exprange <- ggplot(data = inc_exps, aes(x = hdr_val, y = dog_inc,
                                        labels = c("1 - 15", "15 - 42", "42 - 76", "76 - 110", "110 +")), 
                             color = ifelse(exp_inc > 42 & exp_inc < 110, "red", NA))) +
   geom_tile() +
-  geom_hline(yintercept = 0.01, color = "darkred") +
-  geom_vline(xintercept = c(5, 25)) +
+  geom_hline(yintercept = 0.01, color = "red") +
+  geom_vline(xintercept = c(5, 25), linetype = 2) +
   geom_vline(xintercept = round(mora_hdrs), linetype = 2, color = "grey50") +
   scale_fill_brewer(name = "Human exposures \n per 100k") +
   labs(x = "Human:dog ratio", y = "Dog rabies incidence (annual)") +

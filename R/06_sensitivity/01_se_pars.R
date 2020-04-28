@@ -11,37 +11,22 @@ select <- dplyr::select
 source("R/functions/out.session.R")
 
 # Get model means for commune and district models
-model_ests <- read.csv("output/mods/estimates_adj_OD.csv")
+model_ests <- read.csv("output/mods/estimates.csv")
 model_ests %>%
-  select(params, Mean, pop_predict, intercept, data_source, scale) %>%
-  spread(key = params, value = Mean, fill = 0) %>%
-  filter(pop_predict == "flatPop") -> model_means
-model_means <- bind_rows(filter(model_means, data_source == "National", scale == "District",
-                                intercept == "random"), 
-                         filter(model_means, data_source == "Moramanga"))
-model_ests %>%
-  select(params, sd_adj, pop_predict, intercept, data_source, scale) %>%
-  spread(key = params, value = sd_adj, fill = 0) %>%
-  filter(pop_predict == "flatPop") -> model_sds_adj
-model_ests %>%
-  select(params, SD, pop_predict, intercept, data_source, scale) %>%
-  spread(key = params, value = SD, fill = 0) %>%
-  filter(pop_predict == "flatPop") -> model_sds_unadj
-model_sds <- bind_rows(filter(model_sds_unadj, data_source == "National", scale == "District",
-                                  intercept == "random"), filter(model_sds_adj, 
-                                                                 data_source == "Moramanga"))
+  filter(pop_predict == "flatPop", OD == TRUE, 
+         intercept == "fixed", data_source == "National") %>%
+  mutate(mod_id = as.character(interaction(pop_predict, OD, intercept, data_source, scale))) -> model_ests
 
 # Univariate sensitivity ---------------------------------------------------------------------
-foreach(means = iter(model_means, by = "row"), sds = iter(model_sds, by = "row"), 
-        .combine = rbind) %do% {
-          
+foreach(pars = split(model_ests, model_ests$mod_id), .combine = rbind) %do% {
+
   base <- data.table(exp_min = 15/1e5, exp_max = 76/1e5, p_rab_min = 0.2, p_rab_max = 0.6,
                      rho_max = 0.98, p_death = 0.16, 
-                     sigma_0 = means$sigma_0,
-                     beta_ttimes = means$beta_ttimes, 
-                     beta_0 = means$beta_0)
+                     sigma_e = pars$Mean[pars$params == "sigma_e"],
+                     beta_ttimes = pars$Mean[pars$params == "beta_ttimes"], 
+                     beta_0 = pars$Mean[pars$params == "beta_0"])
   
-  vary <-  c("human_exp", "p_rabid", "rho_max", "p_death", "sigma_0", "beta_ttimes", "beta_0")
+  vary <-  c("human_exp", "p_rabid", "rho_max", "p_death", "sigma_e", "beta_ttimes", "beta_0")
   direction <- c("min", "max")
   se_pars <- expand_grid(base, vary, direction)
   
@@ -61,19 +46,20 @@ foreach(means = iter(model_means, by = "row"), sds = iter(model_sds, by = "row")
                                vary == "p_death" & direction == "max" ~ 0.20, 
                                vary != "p_death" ~ p_death),
            beta_0 = case_when(vary == "beta_0" & 
-                                direction == "min" ~ means$beta_0 - 1.96*sds$beta_0, 
+                                direction == "min" ~ pars$quant_2.5[pars$params == "beta_0"], 
                                vary == "beta_0" & 
-                                direction == "max" ~ means$beta_0 + 1.96*sds$beta_0, 
-                               vary != "beta_0" ~ means$beta_0),
+                                direction == "max" ~ pars$quant_97.5[pars$params == "beta_0"], 
+                               vary != "beta_0" ~ pars$Mean[pars$params == "beta_0"]),
            beta_ttimes = case_when(vary == "beta_ttimes" & 
-                                direction == "min" ~ means$beta_ttimes - 1.96*sds$beta_ttimes, 
+                                direction == "min" ~ pars$quant_2.5[pars$params == "beta_ttimes"], 
                               vary == "beta_ttimes" & 
-                                direction == "max" ~ means$beta_ttimes + 1.96*sds$beta_ttimes, 
-                              vary != "beta_ttimes" ~ means$beta_ttimes), 
-           sigma_0 = case_when(vary == "sigma_0" & direction == "min" ~ means$sigma_0 - 1.96*sds$sigma_0,
-                               vary == "sigma_0" & direction == "max" ~ means$sigma_0 + 1.96*sds$sigma_0,
-                               vary != "sigma_0" ~ means$sigma_0),
-           scale = means$scale, data_source = means$data_source) -> se_pars
+                                direction == "max" ~ pars$quant_97.5[pars$params == "beta_ttimes"], 
+                              vary != "beta_ttimes" ~ pars$Mean[pars$params == "beta_ttimes"]), 
+           sigma_e = case_when(vary == "sigma_e" & direction == "min" ~ pars$quant_2.5[pars$params == "sigma_e"],
+                               vary == "sigma_e" & direction == "max" ~ pars$quant_97.5[pars$params == "sigma_e"],
+                               vary != "sigma_e" ~ pars$Mean[pars$params == "sigma_e"]),
+           scale = pars$scale[1], data_source = pars$data_source[1], intercept = pars$intercept[1], 
+           pop_predict = pars$pop_predict[1], OD = pars$OD[1]) -> se_pars
 } -> se_pars
 
 write.csv(se_pars, "output/sensitivity/se_pars.csv", row.names = FALSE)

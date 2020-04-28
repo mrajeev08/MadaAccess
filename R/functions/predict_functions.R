@@ -213,14 +213,14 @@ constrained_inc <- function(slope, pop, max, min){
 }
 
 #' Helper function to simulate vials
-#' @details This function takes the number of reported bites annually, and samples reporting dates 
+#' @details This function takes the average number of reported bites annually, and samples reporting dates 
 #' and subsequent follow-up dates (on days 3 + 7 per the new abridged regimen)
 #' to estimate vials based on sharing of vials (2 patients per vial on a given day)
 #' @param x numeric number of bites reported in a given year
-#' @return Vector of scaled incidence by pop.
+#' @return List of simulated annual vial demand and average daily throughput.
 #' @section Dependencies: None
 get.vials <- function(x) {
-  day0 <- floor(runif(x, min = 1, max = 365))
+  day0 <- floor(runif(rpois(1, x), min = 1, max = 365))
   days <- tabulate(c(day0, day0 + 3, day0 + 7))
   return(list(vials = sum(ceiling(days/2)), 
               throughput = mean(days)))
