@@ -13,6 +13,7 @@ library(data.table)
 library(lubridate)
 library(cowplot)
 library(rgeos)
+library(ggsn)
 select <- dplyr::select
 
 # Read in raw data (not processed)
@@ -147,7 +148,11 @@ mada_map_A <- ggplot() +
   labs(tag = "A") +
   theme_minimal_hgrid() +
   theme_map() +
-  coord_quickmap(clip = "off")
+  coord_quickmap(clip = "off") +
+  north(data = gg_district, anchor = c(x = 52, y = -14.5), symbol = 9) +
+  scalebar(data = gg_district, dist = 100, dist_unit = "km",
+           transform = TRUE, model = "WGS84", anchor = c(x = 52, y = -25), 
+           height = 0.01)
 
 # Mapping raw data: Moramanga at commune level --------------------------------------------------
 moramanga %>%
@@ -239,7 +244,11 @@ mora_map_B <- ggplot() +
   theme_minimal_hgrid() +
   theme_map() +
   theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) +
-  coord_quickmap(clip = "off")
+  coord_quickmap(clip = "off") +
+  north(data = gg_district, anchor = c(x = 49.5, y = -17.5), symbol = 9, scale = 0.02) +
+  scalebar(data = gg_district, dist = 20, dist_unit = "km",
+           transform = TRUE, model = "WGS84", anchor = c(x = 49.5, y = -19.75), 
+           height = 0.005, st.dist = 0.005)
 
 # Inset of Mora catchment in Mada --------------------------------------------------------------
 mora_catch <- mada_communes[mada_communes$catchment == "Moramanga", ]

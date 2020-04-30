@@ -132,16 +132,16 @@ max_props$vary <- factor(max_props$vary,
                          levels = rev(c("beta_ttimes", "beta_0", "sigma_e", "rho_max", 
                                         "p_rabid", "p_death", "human_exp")))
 addARMC_A <- ggplot(data = filter(max_props, name == "deaths_mean"), 
-                    aes(x = vary, y = (1 - value)*100, color = scale, fill = scale)) +
+                    aes(x = vary, y = value, color = scale, fill = scale)) +
   geom_ribbon(aes(ymax = max, ymin = min), color = NA, alpha = 0.25) + 
   geom_point(position = position_dodge(width = 0.25)) +
-  geom_errorbar(aes(ymax = (1 - max)*100, ymin = (1 - min)*100), 
+  geom_errorbar(aes(ymax = max, ymin = min), 
                 position = position_dodge(width = 0.25)) +
   scale_x_discrete(labels = par_labs) +
   scale_color_manual(values = model_cols, labels = scale_labs, aesthetics = c("color", "fill"),
                      name = "Scale") +
   coord_flip() +
-  labs(y = "% reduction in deaths \n nationally" , x = "Parameter", tag = "A") +
+  labs(y = "Propotion of deaths \n compared to baseline" , x = "Parameter", tag = "A") +
   theme_minimal_grid()
 
 # As each clinic is added --------------------------------------------------------------
@@ -159,13 +159,13 @@ add_props$vary <- fct_recode(add_props$vary,
 
 addARMC_B <- ggplot(data = filter(add_props, name == "deaths_mean", 
                                   !(scenario %in% c("max", "armc_per_dist", "armc_per_comm"))), 
-       aes(x = scenario_num, y = (1 - value)*100, color = scale)) +
+       aes(x = scenario_num, y = value, color = scale)) +
   geom_line(alpha = 0.75) +
-  geom_ribbon(aes(ymax = (1 - min)*100, ymin = (1 - max)*100, fill = scale), color = NA, alpha = 0.25) +
+  geom_ribbon(aes(ymax = min, ymin = max, fill = scale), color = NA, alpha = 0.25) +
   geom_pointrange(data = filter(add_props, name == "deaths_mean",
                                 scenario %in% c("max", "armc_per_dist", "armc_per_comm")),
-                  aes(x = scenario_num, y = (1 - value)*100, 
-                      ymin = (1 - min)*100, ymax = (1 - max)*100, color = scale, shape = scenario),
+                  aes(x = scenario_num, y = value, 
+                      ymin = min, ymax = max, color = scale, shape = scenario),
                   position = position_dodge(width = 50)) +
   scale_color_manual(values = model_cols, aesthetics = c("color", "fill"),
                      labels = scale_labs, guide = "none") +
@@ -178,7 +178,7 @@ addARMC_B <- ggplot(data = filter(add_props, name == "deaths_mean",
                                   "armc_per_dist" = "1 per district\n (+ 83)",
                                   "armc_per_comm" = "1 per commune\n (+ 1375)"), 
                        name = "Additional\n scenarios") + 
-  labs(x = "", y = "% reduction in deaths \n nationally",
+  labs(x = "", y = "Propotion of deaths \n compared to baseline",
        tag = "B") +
   coord_cartesian(clip = "off") +
   theme_minimal_hgrid() +

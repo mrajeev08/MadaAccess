@@ -30,12 +30,12 @@ mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 # Communes
 pop <- mada_communes$pop - min(mada_communes$pop)
 pop <- pop[order(pop, decreasing = FALSE)]
-incidence_max <- 110/1e5
+incidence_max <- 76/1e5
 incidence_min <- 15/1e5
 pos_scale <- seq(incidence_min, incidence_max, length.out = length(pop))
 neg_scale <- seq(incidence_max, incidence_min, length.out = length(pop))
-pos <- lm(pos_scale ~ 0 + pop, offset=rep(10/1e5, length(pop)))
-neg <- lm(neg_scale ~ 0 + pop, offset=rep(110/1e5, length(pop)))
+pos <- lm(pos_scale ~ 0 + pop, offset=rep(15/1e5, length(pop)))
+neg <- lm(neg_scale ~ 0 + pop, offset=rep(76/1e5, length(pop)))
 neg_comm <- data.table(scaling = "neg", sfactor = neg$coefficients[1], 
                        scale = "Commune", type = "---", trans = min(mada_communes$pop))
 pos_comm <- data.table(scaling = "pos", sfactor = pos$coefficients[1], 
@@ -46,8 +46,8 @@ pop <- mada_districts$pop - min(mada_districts$pop)
 pop <- pop[order(pop, decreasing = FALSE)]
 pos_scale <- seq(incidence_min, incidence_max, length.out = length(pop))
 neg_scale <- seq(incidence_max, incidence_min, length.out = length(pop))
-pos <- lm(pos_scale ~ 0 + pop, offset=rep(10/1e5, length(pop)))
-neg <- lm(neg_scale ~ 0 + pop, offset=rep(110/1e5, length(pop)))
+pos <- lm(pos_scale ~ 0 + pop, offset=rep(15/1e5, length(pop)))
+neg <- lm(neg_scale ~ 0 + pop, offset=rep(76/1e5, length(pop)))
 neg_dist <- data.table(scaling = "neg", sfactor = neg$coefficients[1], 
                        scale = "District", type = "---", trans = min(mada_districts$pop))
 pos_dist <- data.table(scaling = "pos", sfactor = pos$coefficients[1], 
@@ -76,15 +76,15 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
           comm <- fread(cmd = paste("grep -w ", j$loop, 
                                     " output/ttimes/commune_maxcatch.csv", 
                                     sep = ""), col.names = colnames_max)
-          comm_all <- fread(cmd = paste("grep -w ", j$loop, 
-                                        " output/ttimes/commune_allcatch.csv", 
-                                        sep = ""), col.names = colnames_all)
+          
           if(j$scale == "Commune") {
             ttimes <- comm$ttimes_wtd/60
+            comm$scale_pop <- comm$pop
           } 
           
           if(j$scale == "District") {
             ttimes <- comm$ttimes_wtd_dist/60
+            comm[, scale_pop := sum(pop), by = "distcode"]
           }
           
           posts <- as.data.frame(get.samps(pop_predict = j$pop_predict, 
@@ -103,42 +103,60 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
                                     trans = 1e5, known_catch = FALSE, nsims = 1000,  
                                     par_type = "posterior", pred_type =  "exp")
           
-          inc_scaled <- constrained_inc(slope = j$sfactor, pop = comm$pop/j$trans, 
-                                        max = 110/1e5, min = 15/1e5)
+          inc_scaled <- constrained_inc(slope = j$sfactor, pop = comm$scale_pop - j$trans, 
+                                        max = 76/1e5, min = 15/1e5)
           
           all_mats <-  predict.deaths(bite_mat, pop = comm$pop,
                                       p_rab_min = 0.2, p_rab_max = 0.6,
                                       rho_max = 0.98, exp_scaled = inc_scaled,
-                                      prob_death = 0.16, dist = "triangle", inc = "scaled")
+                                      prob_death = 0.16, dist = "triangle")
           
           all_mats <- c(list(bites = bite_mat), all_mats)
           
-          foreach(i = 1:length(all_mats), .combine = 'cbind') %do% {
-            mat <- all_mats[[i]]
+          natl_mats <- all_mats[c("bites", "deaths", "averted")]
+          
+          foreach(i = 1:length(natl_mats), .combine = 'cbind') %do% {
+            mat <- natl_mats[[i]]
             labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
-            mean <- rowMeans(mat, na.rm = TRUE) # mean for each row = admin unit
-            sd <- apply(mat, 1, sd, na.rm = TRUE)
-            upper <- apply(mat, 1, quantile, 0.975)
-            lower <- apply(mat, 1, quantile, 0.025)
+            totals <- colSums(mat, na.rm = TRUE) # sums at natl level
+            mean <- mean(totals)
+            upper <- quantile(totals, prob = 0.975)
+            lower <- quantile(totals, prob = 0.025)
             out <- data.table(mean, upper, lower)
             names(out) <- labels
             out
-          } -> admin_comm
+          } -> natl_preds
           
-          admin_comm <- data.table(names = comm$commcode, scenario = comm$scenario,
-                                   ttimes = ttimes, pop = comm$pop, 
-                                   catch = comm$catchment, j, 
-                                   admin_comm)
+          natl_preds <- data.table(scenario = comm$scenario[1], scale = j$scale, 
+                                   scaling = j$scaling, data_source = j$data_source,
+                                   natl_preds)
           
-          admin_base <- admin_comm[scenario == 0] 
-
-          admin_comm %>%
-            group_by(scenario) %>%
-            summarize_at(vars(bites_mean:averted_lower, pop), sum, na.rm = TRUE) -> natl_preds
+          # only save the baseline preds @ the admin level
+          if (j$loop == "scenario_0") {
+            
+            foreach(i = 1:length(all_mats), .combine = 'cbind') %do% {
+              mat <- all_mats[[i]]
+              labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
+              mean <- rowMeans(mat, na.rm = TRUE) # mean for each row = admin unit
+              upper <- apply(mat, 1, quantile, prob = 0.975)
+              lower <- apply(mat, 1, quantile, prob = 0.025)
+              out <- data.table(mean, upper, lower)
+              names(out) <- labels
+              out
+            } -> admin_preds
+            
+            admin_preds <- data.table(names = comm$commcode,
+                                      ttimes = ttimes, pop = comm$pop, 
+                                      catch = comm$catchment, scenario = comm$scenario, 
+                                      scale = j$scale, 
+                                      scaling = j$scaling, data_source = j$data_source,
+                                      admin_preds, exp_scaled = inc_scaled)
+            
+          } else {
+            admin_preds <- NULL
+          }
           
-          natl_preds <- data.table(natl_preds, j)
-          
-          list(base = admin_base, natl = natl_preds)
+          list(base = admin_preds, natl = natl_preds)
           
     } -> burden_scaled_se
 

@@ -207,8 +207,8 @@ predict.deaths <- function(bite_mat, pop, p_rab_min = 0.2, p_rab_max = 0.6, p_ra
 constrained_inc <- function(slope, pop, max, min){
   intercept <- ifelse(slope > 0, min, max)
   inc <- slope*pop + intercept
-  inc[inc >= max] <- max
-  inc[inc <= min] <- min
+  inc[inc > max] <- max
+  inc[inc < min] <- min
   return(inc)
 }
 

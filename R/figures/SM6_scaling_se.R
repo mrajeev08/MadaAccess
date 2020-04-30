@@ -31,7 +31,7 @@ pop_vals <- seq(1000, 1e6, by = 10)
 foreach(j = iter(scaling_df, by = "row"), .combine = rbind) %do% {
   inc_scaled <- constrained_inc(slope = j$sfactor,
                                 pop = pop_vals - j$trans, 
-                                max = 110/1e5, min = 15/1e5)
+                                max = 76/1e5, min = 15/1e5)
   out <- data.table(pop = pop_vals, inc_scaled, j)
 } -> inc_scaled_rel
 
@@ -49,7 +49,7 @@ foreach(j = iter(scaling_df, by = "row"), .combine = rbind) %do% {
   
   inc_scaled <- constrained_inc(slope = j$sfactor, 
                                 pop = pop - j$trans, 
-                                max = 110/1e5, min = 15/1e5)
+                                max = 76/1e5, min = 15/1e5)
   out <- data.table(names, pop, inc_scaled, j)
 } -> inc_scaled_admin
 
@@ -83,7 +83,7 @@ neg_map <- ggplot(data = filter(gg_all, scaling == "neg")) +
                    fill = scale),
                color = NA) +
   scale_fill_manual(values = model_cols, guide = "none") +
-  scale_alpha_continuous(range = c(0.15, 1), breaks = c(0, 15, 25, 50, 110), 
+  scale_alpha_continuous(range = c(0.15, 1), breaks = c(0, 15, 25, 50, 76), 
                          name = "Exposures \n per 100k", 
                          guide = guide_legend(override.aes = list(fill = "#0B775E"))) +
   facet_grid(scaling ~ scale, labeller = labeller(scaling = scaling_labs)) +
@@ -108,7 +108,7 @@ pos_map <- ggplot(data = filter(gg_all, scaling == "pos")) +
                    fill = scale),
                color = NA) +
   scale_fill_manual(values = model_cols, guide = "none") +
-  scale_alpha_continuous(range = c(0.15, 1), breaks = c(0, 15, 25, 50, 110), 
+  scale_alpha_continuous(range = c(0.15, 1), breaks = c(0, 15, 25, 50, 76), 
                          name = "Exposures \n per 100k", 
                          guide = guide_legend(override.aes = list(fill = "#35274A"))) +
   facet_grid(scaling ~ scale, labeller = labeller(scaling = scaling_labs)) +
@@ -151,17 +151,14 @@ baseline %>%
 # order them correctly
 base_se$scaling <- factor(base_se$scaling, levels = c("neg", "base", "pos"))
 base_scaling_A <- ggplot(data = base_se, 
-                      aes(x = ttimes, y = deaths_mean/pop*1e5, color = scale, 
-                          fill = scale,
+                      aes(x = ttimes, color = scale, y = deaths_mean/pop*1e5, 
                           group = interaction(scale, scaling), shape = scaling)) +
-  geom_point() +
-  geom_ribbon(aes(ymin = deaths_lower/pop*1e5, ymax = deaths_upper/pop*1e5),
-                  alpha = 0.5, size = 0.1, color = NA) +
-  facet_grid(~ scale, scales = "free_x") + 
-  scale_color_manual(values = model_cols, labels = scale_labs, aesthetics = c("color", "fill"),
-                     name = "Scale") +
-  scale_shape_discrete(labels = scaling_labs, name = "Scaling \n of incidence", 
-                       solid = FALSE) +
+  geom_pointrange(aes(ymin = deaths_lower/pop*1e5, ymax = deaths_upper/pop*1e5),
+                   alpha = 0.5, size = 0.1, fatten = 10) +
+  facet_grid(rows = "scale", scales = "free_x") + 
+  scale_color_manual(values = model_cols, labels = scale_labs, name = "Scale") +
+  scale_shape_manual(values = c(6, 1, 2), 
+                     labels = scaling_labs, name = "Scaling \n of incidence") +
   theme_minimal_hgrid() +
   labs(x = "Travel times (hrs)", y = "Deaths per 100k", tag = "A") +
   theme(strip.text.y = element_blank())
@@ -205,27 +202,26 @@ add_se %>%
          deaths_lower = deaths_lower/deaths_lower[1]) -> add_props
 add_se$scaling <- factor(add_se$scaling, levels = c("neg", "base", "pos"))
 
-add_scaling_B <- ggplot(data = filter(add_se, 
+add_scaling_B <- ggplot(data = filter(add_props, 
                                       !(scenario %in% c("max", "armc_per_comm", 
                                                                     "armc_per_dist"))), 
                          aes(x = scenario_num, y = deaths_mean, 
                              color = scale, fill = scale, shape = scaling)) +
-  geom_point(alpha = 0.75) +
-  geom_ribbon(aes(ymin = deaths_lower, ymax = deaths_upper), alpha = 0.5) +
-  geom_pointrange(data = filter(add_se, 
+  geom_pointrange(aes(ymin = deaths_lower, ymax = deaths_upper), alpha = 0.25, 
+                  size = 0.1, fatten = 10) +
+  geom_pointrange(data = filter(add_props, 
                                 scenario %in% c("max", "armc_per_comm", 
                                                             "armc_per_dist")),
                   aes(x = scenario_num, y = deaths_mean, ymin = deaths_lower, 
                       ymax = deaths_upper, shape = scaling),
                   position = position_dodge(width = 50), show.legend = FALSE) +
-  facet_grid(scaling ~ scale, scales = "free", labeller = labeller(scaling = scaling_labs)) + 
+  facet_grid(rows = "scale", labeller = labeller(scaling = scaling_labs)) + 
   scale_color_manual(values = model_cols, labels = scale_labs, aesthetics = c("color", "fill"),
                      name = "Scale", guide = "none",) +
-  scale_shape_discrete(labels = scaling_labs, name = "Scaling \n of incidence", 
-                       solid = FALSE) +
-  scale_linetype_discrete(labels = scaling_labs, name = ) +
+  scale_shape_manual(values = c(6, 1, 2), 
+                     labels = scaling_labs, name = "Scaling \n of incidence") +
   theme_minimal_grid() +
-  labs(x = "# Additional ARMC", y = "Total deaths (national)", tag = "B") +
+  labs(x = "# Additional ARMC", y = "Proportion of deaths \n compared to baseline", tag = "B") +
   theme(strip.text.y = element_blank())
 
 
