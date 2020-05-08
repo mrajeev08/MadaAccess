@@ -4,6 +4,8 @@
 #' Given the 31 existing clinics in the country
 # ------------------------------------------------------------------------------------------------ #
 
+start <- Sys.time()
+
 # Set-up --------------------------------------------------------------------------------------
 library(rgdal)
 library(raster)
@@ -14,6 +16,8 @@ library(iterators)
 library(data.table)
 library(dplyr)
 library(lubridate)
+library(rgeos) # for dissolving the admin units
+library(rmapshaper)
 
 # Source
 source("R/functions/ttime_functions.R")
@@ -22,24 +26,44 @@ source("R/functions/out.session.R")
 # Load in GIS files
 mada_districts <- readOGR("data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
 mada_communes <- readOGR("data/raw/shapefiles/communes/mdg_admbnda_adm3_BNGRC_OCHA_20181031.shp")
+ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
 
+# Fix up shapefiles ------------------------------------------------------
+# Get distcodes for both admin levels
+mada_districts$distcode <- substring(as.character(mada_districts$ADM2_PCODE), 1, 7)
+mada_communes$distcode <- substring(as.character(mada_communes$ADM2_PCODE), 1, 7)
+
+# Dissolving districts for Tana to one district: Antananarivo Renivohitra 
+districts_dissolved <- gUnaryUnion(mada_districts, id = mada_districts$distcode)
+districts_to_merge <- mada_districts@data[6:nrow(mada_districts@data), ]
+districts_to_merge$ADM2_EN <- recode(districts_to_merge$ADM2_EN, 
+                                     `6e Arrondissement` = "Antananarivo Renivohitra")
+row.names(districts_dissolved) <- as.character(1:nrow(districts_to_merge))
+row.names(districts_to_merge) <- as.character(1:nrow(districts_to_merge))
+mada_districts <- SpatialPolygonsDataFrame(districts_dissolved, districts_to_merge)
+
+# Fix mada commune names as well for Tana
+mada_communes$ADM2_EN <- as.character(mada_communes$ADM2_EN)
+mada_communes$ADM2_EN[mada_communes$distcode == "MG11101"] <- "Antananarivo Renivohitra"
+
+# Get the minimum ttimes for each clinic ------------------------------------------------------
 # Load in rasters
 pop1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
+prop_pop <- pop1x1/sum(values(pop1x1), na.rm = TRUE)
+
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
 # Get candidate points as matrix
 ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
 point_mat_base <- as.matrix(dplyr::select(ctar_metadata, x = LONGITUDE, y = LATITUDE))
 
-# Get the minimum ttimes for each clinic ------------------------------------------------------
 # takes ~ 6 seconds per point
 cl <- makeCluster(3)
 registerDoParallel(cl)
 
 system.time ({
   foreach(points = iter(point_mat_base, by = "row"),
-          .packages = c("raster", "gdistance", "data.table"), 
-          .export = c("get.ttimes")) %dopar% {
+          .packages = c("raster", "gdistance", "data.table")) %dopar% {
             ttimes <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
                                  coords = points, trans_matrix_exists = TRUE,
                                  filename_trans = "data/processed/rasters/trans_gc_masked.rds")
@@ -48,99 +72,136 @@ system.time ({
 
 stopCluster(cl) 
 
-# stack it
-stacked_ttimes <- do.call("stack", stacked_ttimes)
-stacked_ttimes <- raster::as.matrix(stacked_ttimes)
+# write the brick
+bricked <- brick(stacked_ttimes)
+names(bricked) <- 1:31
+writeRaster(bricked, filename = "output/ttimes/candidates/candmat_cand1_cand31.tif",
+            overwrite = TRUE, options = c("INTERLEAVE=BAND", "COMPRESS=LZW"))    
 
-# to save memory filter out NAs
-# these will always be NAs as the input friction masked values are NA
-stacked_ttimes <- stacked_ttimes[!is.na(getValues(friction_masked)), ] 
+# Get minimum travel times and write out to tiff
+ttimes_base <- min(bricked, na.rm = TRUE)
+catchment <- which.min(bricked)
 
-# write baseline matrix out 
-fwrite(stacked_ttimes, "output/ttimes/baseline_matrix.gz") 
+writeRaster(ttimes_base, "output/ttimes/base_ttimes.tif", 
+             overwrite = TRUE, options = c("INTERLEAVE=BAND", "COMPRESS=LZW"))
 
-# Get the catchment and ttimes for each grid cell
-catchment <- apply(stacked_ttimes, 1, which.min) # row id from ctar metadata
-ttimes <- apply(stacked_ttimes, 1, min, na.rm = TRUE)
-catchment[is.infinite(ttimes)] <- NA
-ttimes[is.infinite(ttimes)] <- NA # no path (some island cells, etc.)
+# Get vals by  districts/communes -------------------------------------------
+# extract row # of shapefiles to the raster (takes ~ 6 min, so only do this if not already done!)
+if(!file.exists("output/ttimes/district_id.tif")) {
+  district_id <- rasterize(mada_districts, friction_masked)
+  writeRaster(district_id, "output/ttimes/district_id.tif",
+              overwrite = TRUE, options = c("INTERLEAVE=BAND", "COMPRESS=LZW"))
+} else {
+  district_id <- raster("output/ttimes/district_id.tif")
+}
 
-# Match grid cells to commune & district ids --------------------------------------------------
-# extract row # of shapefiles to the raster (takes ~ 6 min)
-district_id <- getValues(rasterize(mada_districts, 
-                                  friction_masked))[!is.na(getValues(friction_masked))]
-commune_id <- getValues(rasterize(mada_communes, 
-                                 friction_masked))[!is.na(getValues(friction_masked))]
+if(!file.exists("output/ttimes/commune_id.tif")) {
+  commune_id <- rasterize(mada_communes, friction_masked)
+  writeRaster(commune_id, "output/ttimes/commune_id.tif",
+              overwrite = TRUE, options = c("INTERLEAVE=BAND", "COMPRESS=LZW"))
+} else {
+  commune_id <- raster("output/ttimes/commune_id.tif")
+}
 
-# Baseline dataframe at grid level with ttimes + pop
-baseline_df <- data.table(matchcode = mada_districts$ADM2_PCODE[district_id], 
-                          commcode = mada_communes$ADM3_PCODE[commune_id], 
-                          pop = getValues(pop1x1)[!is.na(getValues(friction_masked))], 
-                          ttimes, catchment)
-
-# Match to distcode where all Tana polygons are 1 district
-mada_districts$distcode <- substring(as.character(mada_districts$ADM2_PCODE), 1, 7) 
-baseline_df$distcode <- mada_districts$distcode[match(baseline_df$matchcode, 
-                                                      mada_districts$ADM2_PCODE)]
+base_df <- data.table(distcode = mada_districts$distcode[values(district_id)], 
+                      commcode = mada_communes$ADM3_PCODE[values(commune_id)], 
+                      pop = values(pop1x1), prop_pop = values(prop_pop),
+                      ttimes = values(ttimes_base), catchment = values(catchment))
 
 # Fix Nosy Komba so it has max ttimes in mainland Nosy Be & catchment of Nosy Be
 # Only other island and so not always adding to this place first!
-baseline_df[commcode == "MG71718002"]$ttimes <- max(baseline_df[distcode == "MG71718"]$ttimes, 
+base_df[commcode == "MG71718002"]$ttimes <- max(base_df[distcode == "MG71718"]$ttimes, 
                                                     na.rm = TRUE)
-baseline_df[commcode == "MG71718002"]$catchment <- baseline_df[distcode == "MG71718"]$catchment[1]
+base_df[commcode == "MG71718002"]$catchment <- base_df[distcode == "MG71718"]$catchment[1]
 
-# sum by commune + district
-baseline_df[, prop_pop := pop/sum(pop, na.rm = TRUE)]
-baseline_df[, pop_dist := sum(pop, na.rm = TRUE), by = distcode]
-baseline_df[, pop_comm := sum(pop, na.rm = TRUE), by = commcode]
-
-fwrite(baseline_df, "output/ttimes/baseline_grid.gz") # compress to save space
-
-# Get weighted ttimes by pop for districts/communes -------------------------------------------
-
-# deal with NAs
-base_to_agg <- baseline_df[!is.na(ttimes)]
-base_to_agg[, pop_wt_dist := sum(pop, na.rm = TRUE), by = distcode]
-base_to_agg[, pop_wt_comm := sum(pop, na.rm = TRUE), by = commcode]
+# pop summed by commune + district
+base_df[, c("pop_dist", "pop_wt_dist") := .(sum(pop, na.rm = TRUE),
+                                            sum(pop[!is.na(ttimes)], na.rm = TRUE)), by = distcode]
+base_df[, c("pop_comm", "pop_wt_comm") := .(sum(pop, na.rm = TRUE),
+                                            sum(pop[!is.na(ttimes)], na.rm = TRUE)), by = commcode]
 
 # District
 district_df <-
-  base_to_agg[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
+  base_df[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
                   ttimes_un = sum(ttimes, na.rm = TRUE),
                   ncells = .N,
                   prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_dist[1], 
-                  pop_wt_dist = pop_wt_dist[1], pop = pop_dist[1],
+                  pop_wt_dist = pop_wt_dist[1], 
+                  pop_dist = pop_dist[1],
                   scenario = 0), 
               by = .(distcode, catchment)] # first by catchment to get the max catch
 district_df[, c("ttimes_wtd", 
                 "ttimes_un") := .(sum(ttimes_wtd, na.rm = TRUE)/pop_wt_dist,
                                   sum(ttimes_un, na.rm = TRUE)/sum(ncells, na.rm = TRUE)), 
                                   by = distcode] # then by district
-fwrite(district_df, "output/ttimes/baseline_district.csv")
+district_df <- district_df[!is.na(catchment)]
+district_maxcatch <- district_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
+                                     by = .(distcode, scenario)]
+fwrite(district_df, "output/ttimes/district_allcatch.gz")
+fwrite(district_maxcatch, "output/ttimes/district_maxcatch.gz")
 
 # Commune
 commune_df <-
-  base_to_agg[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
-                  ttimes_un = sum(ttimes, na.rm = TRUE),
-                  ncells = .N,
-                  prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_comm[1], 
-                  pop_wt_comm = pop_wt_comm[1], pop = pop_comm[1],
-                  scenario = 0), 
-              by = .(commcode, catchment)] # first by catchment to get the max catch
+  base_df[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
+              ttimes_un = sum(ttimes, na.rm = TRUE),
+              ncells = .N,
+              prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_comm[1], 
+              pop_wt_comm = pop_wt_comm[1], 
+              pop_comm = pop_comm[1],
+              scenario = 0), 
+          by = .(commcode, catchment)] # first by catchment to get the max catch
 commune_df[, c("ttimes_wtd", 
                 "ttimes_un") := .(sum(ttimes_wtd, na.rm = TRUE)/pop_wt_comm,
                                   sum(ttimes_un, na.rm = TRUE)/sum(ncells, na.rm = TRUE)), 
-            by = commcode] # then by district
-fwrite(commune_df, "output/ttimes/baseline_commune.csv")
+            by = commcode] # then by commune
+commune_df <- commune_df[!is.na(catchment)]
+commune_maxcatch <- commune_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
+                                 by = .(commcode, scenario)]
+fwrite(commune_df, "output/ttimes/commune_allcatch.gz")
+fwrite(commune_maxcatch, "output/ttimes/commune_maxcatch.gz")
 
-# Get raster of baseline ttimes ---------------------------------------------------------------
-# Also quick comparison check: should generate the same min estimates as the ttimes layer above
-ttimes_comp <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
-                          coords = point_mat_base, trans_matrix_exists = TRUE,
-                          filename_trans = "data/processed/rasters/trans_gc_masked.rds")
-writeRaster(ttimes_comp, "output/ttimes/base_ttimes.tif", overwrite = TRUE)
-ttimes_comp <- getValues(ttimes_comp)[!is.na(getValues(friction_masked))]
-sum(ttimes - ttimes_comp, na.rm = TRUE) # should ~ 0
+# Make shapefiles -----------------------------------------------------------------------------
+district_maxcatch$id_ctar <- ctar_metadata$id_ctar[district_maxcatch$catchment] # by row number
+district_maxcatch$catchment <- ctar_metadata$CTAR[district_maxcatch$catchment] # by row number
+mada_districts@data <- district_maxcatch[mada_districts@data, on = "distcode"]
+
+# Do the same for commune level
+commune_maxcatch$id_ctar <- ctar_metadata$id_ctar[commune_maxcatch$catchment] # by row number
+commune_maxcatch$catchment <- ctar_metadata$CTAR[commune_maxcatch$catchment] # by row number
+mada_communes@data <- commune_maxcatch[mada_communes@data, on = c("commcode" = "ADM3_PCODE")] # join
+
+# Get centroid longitude and latitude (for plotting)
+mada_districts$long_cent <- coordinates(mada_districts)[, 1]
+mada_districts$lat_cent <- coordinates(mada_districts)[, 2]
+mada_communes$long_cent <- coordinates(mada_communes)[, 1]
+mada_communes$lat_cent <-  coordinates(mada_communes)[, 2]
+
+# Clean up names
+# NOTE: var names have to be <= 10 characters long for ESRI shapefile output
+mada_districts@data %>%
+  dplyr::select(distcode, district = ADM2_EN, pop = pop_dist, long_cent, lat_cent, ttimes_wtd, ttimes_un,
+                catchment,
+                id_ctar, pop_catch = prop_pop_catch) -> mada_districts@data
+
+mada_communes@data %>%
+  dplyr::select(distcode, district = ADM2_EN, commcode, commune = ADM3_EN, pop = pop_comm, 
+                long_cent, lat_cent, ttimes_wtd, ttimes_un, catchment, id_ctar,
+                pop_catch = prop_pop_catch) -> mada_communes@data
+
+# Write out the shapefiles (overwrite) 
+writeOGR(mada_communes, dsn = "data/processed/shapefiles", layer = "mada_communes", 
+         driver = "ESRI Shapefile", overwrite_layer = TRUE)
+writeOGR(mada_districts, dsn = "data/processed/shapefiles", layer = "mada_districts", 
+         driver = "ESRI Shapefile", overwrite_layer = TRUE)
+
+# Also simplified shapefiles for easier plotting 
+mada_districts <- rmapshaper::ms_simplify(mada_districts)
+mada_communes <- rmapshaper::ms_simplify(mada_communes)
+writeOGR(mada_districts, "data/processed/shapefiles", layer = "mada_districts_simple", 
+         driver = "ESRI Shapefile", overwrite_layer = TRUE)
+writeOGR(mada_communes, "data/processed/shapefiles", layer = "mada_communes_simple", 
+         driver = "ESRI Shapefile", overwrite_layer = TRUE)
 
 # Saving session info
-out.session(path = "R/01_gis/04_run_baseline.R", filename = "output/log_local.csv")
+out.session(path = "R/01_gis/04_run_baseline.R", filename = "output/log_local.csv", 
+            start = start)
