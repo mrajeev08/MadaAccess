@@ -41,29 +41,28 @@ burden_preds %>%
   summarize(natl_inc = sum(deaths_mean, na.rm = TRUE)/sum(pop, na.rm = TRUE)*1e5) -> natl_inc
 
 # Colors and labs
-scale_levs <- c("Commune", "District")
-scale_labs <- c("Commune (Moramanga)", "District (National)")
+scale_labs <- c("Commune", "District")
 model_cols <- c("darkgrey", "black")
-names(scale_labs) <- scale_levs 
-names(model_cols) <- scale_levs
+names(scale_labs) <- scale_labs
+names(model_cols) <- scale_labs
 
 compare_burden <- ggplot() +
   geom_hline(data = natl_inc, aes(yintercept = natl_inc, color = scale), linetype = 1, 
              alpha = 0.75, size = 1.2) +
   geom_point(data = burden_to_plot, 
-             aes(x = reorder(distcode, ttimes), y = deaths_mean/pop*1e5, 
-                 fill = ttimes, shape = scale, alpha = scale,
-                 size = scale, color = scale, stroke = 1.1)) +
+                  aes(x = reorder(distcode, ttimes), y = deaths_mean/pop*1e5, 
+                      fill = ttimes, shape = scale, alpha = scale,
+                      size = scale, color = scale, stroke = 1.1)) +
   scale_fill_viridis_c(option = "viridis", direction = 1,
                       name = "Travel times \n (hrs)", limits=c(0, 15), oob = scales::squish)  +
   scale_shape_manual(values = c(22, 23), labels = scale_labs,
-                     name = "Model scale (data)") +
+                     name = "Scale") +
   scale_alpha_manual(values = c(0.85, 1), labels = scale_labs,
-                     name = "Model scale (data)") +
+                     name = "Scale") +
   scale_size_manual(values = c(2.5, 3.5), labels = scale_labs, 
-                    name = "Model scale (data)") +
+                    name = "Scale") +
   scale_color_manual(values = model_cols, labels = scale_labs, 
-                     name = "Model scale (data)") +
+                     name = "Scale") +
   labs(x = "Districts (ordered by \n increasing travel times)", 
        y = "Predicted incidence of \n deaths per 100k", tag = "A") +
   theme_minimal_hgrid() +

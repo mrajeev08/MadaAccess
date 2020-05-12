@@ -230,7 +230,8 @@ all_samps_se %>%
   mutate(Parameter = fct_recode(Parameter, `beta[t]` = "beta_ttimes", `beta[0]` = "beta_0",
                                 `sigma[e]` = "sigma_e"), 
          rep_cutoff = gsub("[^0-9]", "", all_samps_se$filenames), 
-         rep_cutoff = ifelse(rep_cutoff == "", Inf, rep_cutoff)) -> all_samps_se
+         rep_cutoff = fct_relevel(fct_recode(rep_cutoff, `Uncorrected` = "", `15 days` = "15",
+                                 `7 days` = "7"), "7 days", "15 days", "Uncorrected")) -> all_samps_se
 
 ggplot(data = filter(all_samps_se, !(grepl("alpha", Parameter))), aes(x = scale, y = value, 
            fill = scale)) +
@@ -239,8 +240,7 @@ ggplot(data = filter(all_samps_se, !(grepl("alpha", Parameter))), aes(x = scale,
   scale_x_discrete(labels = NULL) +
   labs(x = "", y = "Posterior estimates") +
   facet_grid(Parameter ~ rep_cutoff, scales = "free_y", 
-             labeller = labeller(rep_cutoff = cutoff_labs,
-                                 Parameter = label_parsed)) +
+             labeller = labeller(Parameter = label_parsed)) +
   theme_minimal_hgrid() +
   theme(panel.background = element_rect(color = "NA", size = 1.2, fill = "grey92"),
         panel.grid = element_line(color = "white", size = 0.5)) -> posts_rep_se

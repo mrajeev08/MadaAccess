@@ -7,13 +7,12 @@
 #'   it takes approximately 10 hours
 # ------------------------------------------------------------------------------------------------ #
 
-#sub_cmd=-sn -t 12 -n 18 -mem 4500 -sp "./R/04_addclinics/02_ttimes_added.R" -jn addclinics -wt 5m -n@
+#sub_cmd=-sn -t 12 -n 15 -sp "./R/04_addclinics/02_ttimes_added.R" -jn addclinics -wt 5m -n@
   
 # set up cluster on single node with do Parallel
-library(doParallel) 
-cl <- makeCluster(18)
+library(doParallel)
+cl <- makeCluster(15)
 registerDoParallel(cl)
-getDoParWorkers()
 start <- Sys.time()
 
 # Libraries
@@ -21,22 +20,25 @@ library(foreach)
 library(tidyverse)
 library(iterators)
 library(data.table)
+library(raster)
 
 # Source
 source("R/functions/out.session.R")
 source("R/functions/ttime_functions.R")
 
-# Pull in candidates
-cand_mat <- fread("/scratch/gpfs/mrajeev/output/ttimes/candidate_matrix.gz") # this is a huge file!
+# baseline rasters 
+base_df <- fread("output/ttimes/base_df.gz")
+
+# Pull in candidates & figure out which files they're in
 csb2 <- fread("data/processed/clinics/csb2.csv")
+brick_dt <- get.bricks(brick_dir = "output/ttimes/candidates")
+csb2 <- brick_dt[csb2, on = "clinic_id"]
+csb2[, band := (clinic_id - min + 1)]
 
-## Baseline df
-base_df <- fread("output/ttimes/baseline_grid.gz")
-
-## Do the candidates
-system.time ({
-  add.armc(base_df = base_df, clinic_names = csb2$clinic_id, clinic_catchmat = cand_mat, 
-           max_clinics = ncol(cand_mat), thresh_ttimes = 3*60, thresh_prop = 1e-4, 
+# Do the candidates
+system.time({
+  add.armc(base_df = base_df, cand_df = csb2, max_clinics = nrow(csb2), 
+           thresh_ttimes = 3*60, thresh_prop = 1e-4, 
            dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics_")
 })
 
@@ -47,5 +49,5 @@ syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/add
 # Close out
 file_path <- "R/04_addclinics/02_ttimes_added.R"
 out.session(path = file_path, filename = "log_cluster.csv", start = start)
-print("Done remotely:)")
 stopCluster(cl)
+print("Done remotely:)")

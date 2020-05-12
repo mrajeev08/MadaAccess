@@ -3,7 +3,7 @@
 #' Pulling in district and commune estimates of travel times as clinics are added 
 # ------------------------------------------------------------------------------------------------ #
 
-start <- start()
+start <- Sys.time()
 
 # Libraries and packages
 library(data.table)
@@ -83,6 +83,14 @@ point_mat_all %>%
                               !is.na(prop_pop) ~ prop_pop),
          step_added = case_when(is.na(step_added) & clinic_id < 32 ~ 0,
                                 !is.na(step_added) ~ as.numeric(step_added))) -> point_mat_all
+pts <- SpatialPoints(cbind(point_mat_all$long, point_mat_all$lat), 
+                     proj4string = 
+                       CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+point_mat_all$commcode_ctar <- over(pts, mada_communes)$commcode
+point_mat_all$commname_ctar <- over(pts, mada_communes)$commune
+point_mat_all$distcode_ctar <- over(pts, mada_communes)$distcode
+point_mat_all$distcode_ctar <- over(pts, mada_communes)$district
+write.csv(point_mat_all, "output/stats/clinics_added.csv")
 
 gg_commune <- fortify(mada_communes, region = "commcode")
 

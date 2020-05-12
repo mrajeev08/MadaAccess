@@ -21,7 +21,7 @@ max_added <- max(as.numeric(natl_preds_seq$scenario))
 max_total <- max_added + 200
 natl_preds_sep %>%
   mutate(scenario_num = case_when(scenario == "max" ~ max_added + 200, 
-                              scenario == "armc_per_dist" ~ 114,
+                              scenario == "armc_per_dist" ~ 83,
                               scenario == "armc_per_comm" ~ max_added + 150),
          scenario = fct_relevel(scenario, "armc_per_dist", "armc_per_comm", "max")) -> natl_preds_sep
 

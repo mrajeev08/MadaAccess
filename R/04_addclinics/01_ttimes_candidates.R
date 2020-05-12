@@ -1,9 +1,7 @@
 # ------------------------------------------------------------------------------------------------ #
 #' Getting travel times for each grid cell for each clinic
-#' Code should be run in parallel and final dataset requires a lot of memory! ~ 10 GB
-#' Split up clinics or work with fewer clinics if there are memory limitations
-#'   with three cores, it takes approximately 120 minutes on MacOS with 16 GB 1867 MHz DDR3 and
-#'   2.9 GHz Intel Core i5
+#' Code should be run in parallel and data is split to make easier to work with/store
+#' Adjust the chunksize option based on memory limitations
 # ------------------------------------------------------------------------------------------------ #
 
 #sub_cmd=-t 12 -n 31 -sp "./R/04_addclinics/01_ttimes_candidates.R" -jn candidates -wt 2m -n@
@@ -24,7 +22,6 @@ library(gdistance)
 library(iterators)
 library(data.table)
 library(glue)
-library(fst)
 
 # Source scripts
 source("R/functions/out.session.R")
@@ -37,43 +34,41 @@ ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
 # candidate points
-# filter out existing csbs and also write out to file!
-csbs <- read.csv("data/processed/clinics/csb2.csv")
+csbs <- fread("data/processed/clinics/csb2.csv")
+clin_per_comm <- fread("data/processed/clinics/clinic_per_comm.csv")
+clin_per_comm <- clin_per_comm[!(clinic_id %in% csbs$clinic_id) & clinic_id > 31][, pop_dens := NULL]
+csbs <- rbind(csbs, clin_per_comm)
+setorder(csbs, clinic_id) # make sure they're in the right order
 point_mat_candidates <- as.matrix(select(csbs, long, lat))
 rownames(point_mat_candidates) <- csbs$clinic_id
-baseline_df <- fread("output/ttimes/baseline_grid.gz")
-out_dir <- "/scratch/gpfs/mrajeev/output/ttimes/candidates/"
+
+out_dir <- "output/ttimes/candidates/"
 
 if(!dir.exists(out_dir)) dir.create(out_dir)
 
-# Depends on # of files you want--lets aim for 16
-# Alternatively do the chunks in parallel and you get 30 files (which one is faster/has manageable file sizes?)
-# Use fst!
-
 system.time ({
   foreach(point_sub = iter(point_mat_candidates, by = "row", chunksize = 25),    
-          .packages = c("raster", "gdistance", "fst", 
-                        "data.table", "glue")) %dopar% {
-    foreach(points = iter(point_sub, by = "row"), .combine = stack) %do% {
+          .packages = c("raster", "gdistance", "glue")) %dopar% {
+            
+    foreach(points = iter(point_sub, by = "row")) %do% {
               
       ttimes <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
                            coords = points, trans_matrix_exists = TRUE,
                            filename_trans = "data/processed/rasters/trans_gc_masked.rds")
       
     } -> stacked_ttimes
-    
-    stacked_ttimes <- raster::as.matrix(stacked_ttimes)
-    stacked_ttimes <- stacked_ttimes[!is.na(getValues(friction_masked)), ]
-    colnames(stacked_ttimes) <- rownames(point_sub)
-    file_name <- glue("candmat_cand{rownames(point_sub)[1]}_cand{rownames(point_sub)[nrow(point_sub)]}.gz")
-    write_fst(data.table(stacked_ttimes), paste0(out_dir, file_name)) 
-    
+
+    stacked_ttimes <- brick(stacked_ttimes)
+    names(stacked_ttimes) <- rownames(point_sub)
+    file_name <- glue("candmat_cand{rownames(point_sub)[1]}_cand{rownames(point_sub)[nrow(point_sub)]}.tif")
+    writeRaster(stacked_ttimes, filename = paste0(out_dir, file_name),
+                overwrite = TRUE, options = c("INTERLEAVE=BAND", "COMPRESS=LZW"))    
   }
 })
 
 # Parse these from bash for where to put things
 syncto <- "~/Documents/Projects/MadaAccess/output/ttimes/"
-syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/candidates"
+syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/mrajeev/output/ttimes/candidates"
 
 file_path <- "R/04_addclinics/01_ttimes_candidates.R"
 

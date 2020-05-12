@@ -249,7 +249,8 @@ vial_se_B <- ggplot(data = filter(vials_se, name == "vials_mean",
                                   "armc_per_dist" = "1 per district\n (+ 83)",
                                   "armc_per_comm" = "1 per commune\n (+ 1375)"), 
                        name = "Additional\n scenarios") + 
-  facet_grid(vary ~ scale, scales = "free_x") +
+  facet_grid(vary ~ scale, scales = "free_x", 
+             labeller = labeller(scale = c("Commune" = "", "District" = ""), vary = label_parsed)) +
   labs(x = "# Additional ARMC", y = "Increase in vial demand (national)",
        tag = "B") +
   coord_cartesian(clip = "off") +
