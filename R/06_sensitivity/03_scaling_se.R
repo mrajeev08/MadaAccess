@@ -76,6 +76,9 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
           comm <- fread(cmd = paste("grep -w ", j$loop, 
                                     " output/ttimes/commune_maxcatch.csv", 
                                     sep = ""), col.names = colnames_max)
+          comm_all <- fread(cmd = paste("grep -w ", j$loop, 
+                                        " output/ttimes/commune_allcatch.csv", 
+                                        sep = ""), col.names = colnames_all)
           
           if(j$scale == "Commune") {
             ttimes <- comm$ttimes_wtd/60

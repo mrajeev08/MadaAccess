@@ -159,6 +159,7 @@ add_props$vary <- fct_recode(add_props$vary,
 
 addARMC_B <- ggplot(data = filter(add_props, name == "deaths_mean", 
                                   !(scenario %in% c("max", "armc_per_dist", "armc_per_comm"))), 
+<<<<<<< HEAD
        aes(x = scenario_num, y = value, color = scale)) +
   geom_line(alpha = 0.75) +
   geom_ribbon(aes(ymax = min, ymin = max, fill = scale), color = NA, alpha = 0.25) +
@@ -166,6 +167,13 @@ addARMC_B <- ggplot(data = filter(add_props, name == "deaths_mean",
                                 scenario %in% c("max", "armc_per_dist", "armc_per_comm")),
                   aes(x = scenario_num, y = value, 
                       ymin = min, ymax = max, color = scale, shape = scenario),
+       aes(x = scenario_num, y = (1 - value)*100, color = scale)) +
+  geom_line(alpha = 0.75) +
+  geom_ribbon(aes(ymax = (1 - min)*100, ymin = (1 - max)*100, fill = scale), color = NA, alpha = 0.25) +
+  geom_pointrange(data = filter(add_props, name == "deaths_mean",
+                                scenario %in% c("max", "armc_per_dist", "armc_per_comm")),
+                  aes(x = scenario_num, y = (1 - value)*100, 
+                      ymin = (1 - min)*100, ymax = (1 - max)*100, color = scale, shape = scenario),
                   position = position_dodge(width = 50)) +
   scale_color_manual(values = model_cols, aesthetics = c("color", "fill"),
                      labels = scale_labs, guide = "none") +

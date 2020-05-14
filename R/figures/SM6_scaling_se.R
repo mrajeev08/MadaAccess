@@ -200,6 +200,7 @@ add_se %>%
   mutate(deaths_mean = deaths_mean/deaths_mean[1],
          deaths_upper = deaths_upper/deaths_upper[1],
          deaths_lower = deaths_lower/deaths_lower[1]) -> add_props
+
 add_se$scaling <- factor(add_se$scaling, levels = c("neg", "base", "pos"))
 
 add_scaling_B <- ggplot(data = filter(add_props, 
@@ -223,7 +224,6 @@ add_scaling_B <- ggplot(data = filter(add_props,
   theme_minimal_grid() +
   labs(x = "# Additional ARMC", y = "Proportion of deaths \n compared to baseline", tag = "B") +
   theme(strip.text.y = element_blank())
-
 
 # fig S6.5
 S6.5_scaling_se <- (base_scaling_A / add_scaling_B) + plot_layout(heights = c(1.5, 2), guides = "collect")
