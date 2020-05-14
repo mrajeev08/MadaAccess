@@ -20,6 +20,7 @@ library(foreach)
 library(tidyverse)
 library(gdistance)
 library(iterators)
+library(foreach)
 library(data.table)
 library(glue)
 
@@ -42,14 +43,14 @@ setorder(csbs, clinic_id) # make sure they're in the right order
 point_mat_candidates <- as.matrix(select(csbs, long, lat))
 rownames(point_mat_candidates) <- csbs$clinic_id
 
-out_dir <- "output/ttimes/candidates/"
+out_dir <- "/scratch/gpfs/mrajeev/output/ttimes/candidates/"
 
 if(!dir.exists(out_dir)) dir.create(out_dir)
 
 system.time ({
   foreach(point_sub = iter(point_mat_candidates, by = "row", chunksize = 25),    
-          .packages = c("raster", "gdistance", "glue")) %dopar% {
-            
+          .packages = c("raster", "gdistance", "glue", "foreach", "iterators")) %dopar% {
+    
     foreach(points = iter(point_sub, by = "row")) %do% {
               
       ttimes <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
@@ -68,7 +69,7 @@ system.time ({
 
 # Parse these from bash for where to put things
 syncto <- "~/Documents/Projects/MadaAccess/output/ttimes/"
-syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/mrajeev/output/ttimes/candidates"
+syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/candidates"
 
 file_path <- "R/04_addclinics/01_ttimes_candidates.R"
 

@@ -7,7 +7,7 @@
 #'   it takes approximately 10 hours
 # ------------------------------------------------------------------------------------------------ #
 
-#sub_cmd=-sn -t 12 -n 15 -sp "./R/04_addclinics/02_ttimes_added.R" -jn addclinics -wt 5m -n@
+#sub_cmd=-sn -t 12 -n 10 -sp "./R/04_addclinics/02_ttimes_added.R" -jn addclinics -wt 5m -n@
   
 # set up cluster on single node with do Parallel
 library(doParallel)
@@ -31,7 +31,7 @@ base_df <- fread("output/ttimes/base_df.gz")
 
 # Pull in candidates & figure out which files they're in
 csb2 <- fread("data/processed/clinics/csb2.csv")
-brick_dt <- get.bricks(brick_dir = "output/ttimes/candidates")
+brick_dt <- get.bricks(brick_dir = "/scratch/gpfs/mrajeev/output/ttimes/candidates")
 csb2 <- brick_dt[csb2, on = "clinic_id"]
 csb2[, band := (clinic_id - min + 1)]
 

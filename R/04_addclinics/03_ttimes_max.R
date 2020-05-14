@@ -1,86 +1,106 @@
 # ------------------------------------------------------------------------------------------------ #
-#' Getting max ttimes (i.e. if all CSB IIs in Mada have a clinic)
-#' Can run this locally (takes ~ 20 minutes)
+#' Getting other scenarios (i.e. given all csbs, 1 per district, 1 per commune)
 # ------------------------------------------------------------------------------------------------ #
 
+#sub_cmd=-sn -t 12 -n 5 -sp "./R/04_addclinics/02_ttimes_added.R" -jn addclinics -wt 5m -n@
+
+# set up cluster on single node with do Parallel
+library(doParallel)
+cl <- makeCluster(detectCores())
+registerDoParallel(cl)
 start <- Sys.time()
 
 # Libraries
 library(rgdal)
 library(raster)
-library(foreach)
 library(tidyverse)
 library(gdistance)
-library(iterators)
-library(doParallel)
 library(data.table)
+library(foreach)
+library(iterators)
 
 # Source
 source("R/functions/out.session.R")
 source("R/functions/ttime_functions.R")
 
-# Load in GIS files 
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
-pop1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
-ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
-friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
+# all candidate points
+ctar_metadata <- fread("data/processed/clinics/ctar_metadata.csv")
+csbs <- fread("data/processed/clinics/csb2.csv")
+clin_per_comm <- fread("data/processed/clinics/clinic_per_comm.csv")
+clin_per_dist <- fread("data/processed/clinics/clinic_per_dist.csv")
+base_df <- fread("output/ttimes/base_df.gz")
+mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")@data
 
-# candidate points
-csbs <- read.csv("data/processed/clinics/csb2.csv", stringsAsFactors = FALSE)
-point_mat_all <- as.matrix(rbind(dplyr::select(csbs, long, lat),
-                           dplyr::select(ctar_metadata, long = LONGITUDE, lat = LATITUDE)))
+# Match up with which file & band
+brick_dt <- get.bricks(brick_dir = "output/ttimes/candidates")
 
-# Max raster
-ttimes_max <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
-                          coords = point_mat_all, trans_matrix_exists = TRUE,
-                          filename_trans = "data/processed/rasters/trans_gc_masked.rds")
-writeRaster(ttimes_max, "output/ttimes/max_ttimes.tif", overwrite = TRUE)
+# Other scenarios ----------------------------------------------------------------------
+# Max (with all csb2s) 
+csbs <- brick_dt[csbs, on = "clinic_id"]
+max_stats <- update.base(base_df = base_df, cand_df = csbs, nsplit = 3)
+max_dist <- aggregate.admin(base_df = max_stats, admin = "distcode", scenario = "armc_per_dist")
+max_dist_maxcatch <- get.maxcatch(max_dist, admin = "distcode")
+max_comm <- aggregate.admin(base_df = max_stats, admin = "commcode", scenario = "max")
+max_comm_maxcatch <- get.maxcatch(max_comm, admin = "commcode")
 
-# Max at grid level to get district/comm dataframes (inlcude baseline CTAR too!)
-cand_mat <- fread("output/ttimes/candidate_matrix.gz") # locally
-cand_mat <- as.matrix(cand_mat)
-base_mat <- as.matrix(fread("output/ttimes/baseline_matrix.gz"))
-cand_mat <- cbind(base_mat, cand_mat)
-max_catches <- apply(cand_mat, 1, which.min)
-max_times <- apply(cand_mat, 1, min, na.rm = TRUE)
-max_catches[is.infinite(max_times)] <- NA
-max_times[is.infinite(max_times)] <- NA # no path (some island cells, etc.)
+# One clinic per district 
+clin_per_dist <- brick_dt[clin_per_dist, on = "clinic_id"]
+armc_per_dist <- update.base(base_df = base_df, cand_df = clin_per_dist, nsplit = 3)
+per_dist_dist <- aggregate.admin(base_df = armc_per_dist, admin = "distcode", 
+                                 scenario = "armc_per_dist")
+per_dist_dist_maxcatch <- get.maxcatch(per_dist_dist, admin = "distcode")
+per_dist_comm <- aggregate.admin(base_df = armc_per_dist, admin = "commcode", 
+                                 scenario = "armc_per_dist")
+per_dist_comm_maxcatch <- get.maxcatch(per_dist_comm, admin = "commcode")
 
-# Get df with district and commune ids and aggregate accordingly
-max_df <- fread("output/ttimes/baseline_grid.gz")
+# One per commune 
+clin_per_comm <- brick_dt[clin_per_comm, on = "clinic_id"]
+armc_per_comm <- update.base(base_df = base_df, cand_df = clin_per_comm, nsplit = 3)
+per_comm_dist <- aggregate.admin(base_df = armc_per_comm, admin = "distcode", 
+                                 scenario = "armc_per_comm")
+per_comm_dist_maxcatch <- get.maxcatch(per_comm_dist, admin = "distcode")
+per_comm_comm <- aggregate.admin(base_df = armc_per_comm, admin = "commcode", 
+                                 scenario = "armc_per_comm")
+per_comm_comm_maxcatch <- get.maxcatch(per_comm_comm, admin = "commcode")
 
-# Use max ones because only if no clinic possible to be added will it be Inf
-max_df[, c("ttimes", "catchment") := .(max_times, max_catches)]
-fwrite(max_df, "output/ttimes/max_grid.gz") # compress to save space
+# Merge all scenarios ----------------------------------------------------------------------
+# For all catchments
+district_df <- fread("output/ttimes/addclinics_district_allcatch.gz")
+district_df_all <- rbind(district_df, max_dist, per_dist_dist, per_comm_dist, fill = TRUE)
+
+commune_df <- fread("output/ttimes/addclinics_commune_allcatch.gz")
+commune_df_all <- rbind(commune_df, max_comm, per_dist_comm, per_comm_comm, fill = TRUE)
+
+# For max catchments
+district_maxcatch <- fread("output/ttimes/addclinics_district_maxcatch.gz")
+district_max_all <- rbind(district_maxcatch, per_dist_dist_maxcatch, per_comm_dist_maxcatch,
+                          max_dist_maxcatch, fill = TRUE)
+
+commune_maxcatch <- fread("output/ttimes/addclinics_commune_maxcatch.gz")
+commune_max_all <- rbind(commune_maxcatch, per_dist_dist_maxcatch, per_comm_comm_maxcatch, 
+                     max_comm_maxcatch, fill = TRUE)
+
+# Get district ttimes for communes --------------------------------------------------------
+# Match district ttimes to commune ids to get uniform expectations of bite inc across district
+commune_df_all$distcode <- mada_communes$distcode[match(commune_df_all$commcode, 
+                                                          mada_communes$commcode)]
+district_merge <- district_max_all[, c("distcode", "ttimes_wtd", "scenario"), 
+                                    with = FALSE][, setnames(.SD, "ttimes_wtd", "ttimes_wtd_dist")]
+commune_df_all <- commune_df_all[district_merge, on = c("scenario", "distcode")]
+commune_max_all <- commune_max_all[district_merge, on = c("scenario", "distcode")]
 
 
-# Get weighted ttimes by pop for districts/communes -------------------------------------------
+# Write files out (compressed to reduce file sizes!) ------------------------------------------
+fwrite(commune_df_all, "output/ttimes/commune_allcatch.gz")
+fwrite(district_df_all, "output/ttimes/district_allcatch.gz")
+fwrite(commune_max_all, "output/ttimes/commune_maxcatch.gz")
+fwrite(district_max_all, "output/ttimes/district_maxcatch.gz")
 
-# Remove NA catchments
-# deal with NAs
-max_to_agg <- max_df[!is.na(ttimes)]
-max_to_agg[, pop_wt_dist := sum(pop, na.rm = TRUE), by = distcode]
-max_to_agg[, pop_wt_comm := sum(pop, na.rm = TRUE), by = commcode]
-
-# District
-district_df <-
-  max_to_agg[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
-              prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_dist[1], 
-              pop_wt_dist = pop_wt_dist[1], pop = pop_dist[1],
-              scenario = "max"), 
-          by = .(distcode, catchment)]
-district_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop_wt_dist, by = distcode]
-fwrite(district_df, "output/ttimes/max_district.csv")
-
-commune_df <-
-  max_to_agg[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE),
-              prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_comm[1], 
-              pop_wt_comm = pop_wt_comm[1], pop = pop_comm[1],
-              scenario = "max"), 
-          by = .(commcode, catchment)]
-commune_df[, ttimes_wtd := sum(ttimes_wtd, na.rm = TRUE)/pop_wt_comm, by = commcode]
-fwrite(commune_df, "output/ttimes/max_commune.csv")
+# Write out the commune files with a look up var for predictions
+commune_df_all$lookup <- paste("scenario", commune_df_all$scenario, sep = "_")
+fwrite(commune_df_all, "output/ttimes/commune_df_all.csv")
+commune_max_all$lookup <- paste("scenario", commune_max_all$scenario, sep = "_")
+fwrite(commune_maxcatch, "output/ttimes/commune_maxcatch.csv")
 
 # Save session info
 out.session(path = "R/04_addclinics/03_ttimes_max.R", filename = "output/log_local.csv", 

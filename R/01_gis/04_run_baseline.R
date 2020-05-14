@@ -114,49 +114,17 @@ base_df[commcode == "MG71718002"]$ttimes <- max(base_df[distcode == "MG71718"]$t
 base_df[commcode == "MG71718002"]$catchment <- base_df[distcode == "MG71718"]$catchment[1]
 fwrite(base_df, "output/ttimes/base_df.gz")
 
-# pop summed by commune + district
-base_df[, c("pop_dist", "pop_wt_dist") := .(sum(pop, na.rm = TRUE),
-                                            sum(pop[!is.na(ttimes)], na.rm = TRUE)), by = distcode]
-base_df[, c("pop_comm", "pop_wt_comm") := .(sum(pop, na.rm = TRUE),
-                                            sum(pop[!is.na(ttimes)], na.rm = TRUE)), by = commcode]
-
 # District
-district_df <-
-  base_df[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
-                  ttimes_un = sum(ttimes, na.rm = TRUE),
-                  ncells = .N,
-                  prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_dist[1], 
-                  pop_wt_dist = pop_wt_dist[1], 
-                  pop_dist = pop_dist[1],
-                  scenario = 0), 
-              by = .(distcode, catchment)] # first by catchment to get the max catch
-district_df[, c("ttimes_wtd", 
-                "ttimes_un") := .(sum(ttimes_wtd, na.rm = TRUE)/pop_wt_dist,
-                                  sum(ttimes_un, na.rm = TRUE)/sum(ncells, na.rm = TRUE)), 
-                                  by = distcode] # then by district
-district_df <- district_df[!is.na(catchment)]
+district_df <- aggregate.admin(base_df = base_df, admin = "distcode", scenario = 0)
 district_maxcatch <- district_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
-                                     by = .(distcode, scenario)]
+                                 by = .(distcode, scenario)]
 fwrite(district_df, "output/ttimes/base_district_allcatch.gz")
 fwrite(district_maxcatch, "output/ttimes/base_district_maxcatch.gz")
 
 # Commune
-commune_df <-
-  base_df[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
-              ttimes_un = sum(ttimes, na.rm = TRUE),
-              ncells = .N,
-              prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_comm[1], 
-              pop_wt_comm = pop_wt_comm[1], 
-              pop_comm = pop_comm[1],
-              scenario = 0), 
-          by = .(commcode, catchment)] # first by catchment to get the max catch
-commune_df[, c("ttimes_wtd", 
-                "ttimes_un") := .(sum(ttimes_wtd, na.rm = TRUE)/pop_wt_comm,
-                                  sum(ttimes_un, na.rm = TRUE)/sum(ncells, na.rm = TRUE)), 
-            by = commcode] # then by commune
-commune_df <- commune_df[!is.na(catchment)]
+commune_df <- aggregate.admin(base_df = base_df, admin = "commcode", scenario = 0)
 commune_maxcatch <- commune_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
-                                 by = .(commcode, scenario)]
+                               by = .(commcode, scenario)]
 fwrite(commune_df, "output/ttimes/base_commune_allcatch.gz")
 fwrite(commune_maxcatch, "output/ttimes/base_commune_maxcatch.gz")
 
@@ -179,12 +147,11 @@ mada_communes$lat_cent <-  coordinates(mada_communes)[, 2]
 # Clean up names
 # NOTE: var names have to be <= 10 characters long for ESRI shapefile output
 mada_districts@data %>%
-  dplyr::select(distcode, district = ADM2_EN, pop = pop_dist, long_cent, lat_cent, ttimes_wtd, ttimes_un,
-                catchment,
-                id_ctar, pop_catch = prop_pop_catch) -> mada_districts@data
+  dplyr::select(distcode, district = ADM2_EN, pop = pop_admin, long_cent, lat_cent, ttimes_wtd, 
+                ttimes_un, catchment, id_ctar, pop_catch = prop_pop_catch) -> mada_districts@data
 
 mada_communes@data %>%
-  dplyr::select(distcode, district = ADM2_EN, commcode, commune = ADM3_EN, pop = pop_comm, 
+  dplyr::select(distcode, district = ADM2_EN, commcode, commune = ADM3_EN, pop = pop_admin, 
                 long_cent, lat_cent, ttimes_wtd, ttimes_un, catchment, id_ctar,
                 pop_catch = prop_pop_catch) -> mada_communes@data
 

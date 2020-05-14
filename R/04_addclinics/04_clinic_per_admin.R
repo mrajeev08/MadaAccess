@@ -3,6 +3,9 @@
 #' Can run this locally (takes ~ 30 minutes)
 # ------------------------------------------------------------------------------------------------ #
 
+# ALSO DO THE MAX ONES HERE! (APPEND RATHER THAN SAVE SEPARATELY)
+# MAKE ONE SCRIPT/FUNCTION FOR DOING ALTERNATE SCENARIOS (i.e. by matching to partitioned files etc)
+
 start <- Sys.time()
 
 # Libraries
@@ -57,6 +60,9 @@ base_mat <- as.matrix(fread("output/ttimes/baseline_matrix.gz"))
 cand_mat <- cbind(base_mat, cand_mat)
 
 scale <- c("dist", "comm")
+
+# For each file (get the val & col id) (bind & output as data.table)
+# Keep the real min 
 
 foreach(i = 1:length(scale)) %do% {
   

@@ -80,9 +80,7 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #' @section Dependencies:
 #'     Packages: data.table, foreach
 
-
 # Pass through base df, otherwise you need all the vectors!
-
 add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, 
                      thresh_prop, dir_name, overwrite = TRUE) {
   
@@ -98,8 +96,6 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes,
       
       print(i)
       
-      if(i == 27) browser()
-      
       foreach(j = 1:nrow(cand_df), .combine = c, .packages = "raster") %dopar% {
                   cand_ttimes <- values(cand_list[[j]])
                   prop <- sum(base_df$prop_pop[which(cand_ttimes < base_df$ttimes & 
@@ -110,57 +106,27 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes,
       clin_chosen <- cand_df[which.max(sum_prop), ]
       prop_pop <- max(sum_prop[!is.infinite(sum_prop)], na.rm = TRUE)
       prop_df <- data.table(scenario = i, clin_chosen, prop_pop)
-      new_ttimes <- values(cand_list[[which.max(sum_prop)]]) # add directly to base_df
-      
-      # If ttimes improved then, new ttimes replaces the baseline and catchment
-      base_df[, c('ttimes', 'catchment') := .(fifelse(new_ttimes < ttimes & !is.na(new_ttimes), 
-                                                      new_ttimes, ttimes), 
-                                              fifelse(new_ttimes < ttimes & !is.na(new_ttimes), 
-                                                          clin_chosen$clinic_id, catchment))]
+      new_ttimes <- values(cand_list[[which.max(sum_prop)]]) # add to base_df
       
       # Take out the max ones and any below ttime + pop thresholds
       remove <- unique(c(which.max(sum_prop), which(sum_prop == 0), which(sum_prop < thresh_prop)))
       cand_df <- cand_df[-remove, ]
       cand_list <- cand_list[-remove] 
       
-      # Make sure correct denominator
-      base_df[, pop_wt_dist := sum(pop[!is.na(ttimes)], na.rm = TRUE), by = distcode]
-      base_df[, pop_wt_comm := sum(pop[!is.na(ttimes)], na.rm = TRUE), by = commcode]
-      
-      # create district and commune dataframes
-      # District
-      district_df <-
-        base_df[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
-                    ttimes_un = sum(ttimes, na.rm = TRUE),
-                    ncells = .N,
-                    prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_dist[1], 
-                    pop_wt_dist = pop_wt_dist[1], 
-                    pop_dist = pop_dist[1],
-                    scenario = i), 
-                by = .(distcode, catchment)] # first by catchment to get the max catch
-      district_df[, c("ttimes_wtd", 
-                      "ttimes_un") := .(sum(ttimes_wtd, na.rm = TRUE)/pop_wt_dist,
-                                        sum(ttimes_un, na.rm = TRUE)/sum(ncells, na.rm = TRUE)), 
-                  by = distcode] # then by district
-      district_df <- district_df[!is.na(catchment)]
+      # Aggregating to district & commune
+      # If ttimes improved then, new ttimes replaces the baseline and catchment
+      base_df[, c('ttimes', 'catchment') := 
+                .(fifelse((new_ttimes < ttimes & !is.na(new_ttimes)) |
+                            (!is.na(new_ttimes) & is.na(ttimes)), new_ttimes, ttimes), 
+                  fifelse((new_ttimes < ttimes & !is.na(new_ttimes)) |
+                            (!is.na(new_ttimes) & is.na(ttimes)), clin_chosen$clinic_id, catchment))]
+  
+      district_df <- aggregate.admin(base_df = base_df, admin = "distcode", scenario = i)
       district_maxcatch <- district_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
                                        by = .(distcode, scenario)]
       
       # Commune
-      commune_df <-
-        base_df[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE), 
-                    ttimes_un = sum(ttimes, na.rm = TRUE),
-                    ncells = .N,
-                    prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt_comm[1], 
-                    pop_wt_comm = pop_wt_comm[1], 
-                    pop_comm = pop_comm[1],
-                    scenario = i), 
-                by = .(commcode, catchment)] # first by catchment to get the max catch
-      commune_df[, c("ttimes_wtd", 
-                     "ttimes_un") := .(sum(ttimes_wtd, na.rm = TRUE)/pop_wt_comm,
-                                       sum(ttimes_un, na.rm = TRUE)/sum(ncells, na.rm = TRUE)), 
-                 by = commcode] # then by commune
-      commune_df <- commune_df[!is.na(catchment)]
+      commune_df <- aggregate.admin(base_df = base_df, admin = "commcode", scenario = i)
       commune_maxcatch <- commune_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
                                      by = .(commcode, scenario)]
       
@@ -188,8 +154,7 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes,
 }
 
 # Get grid cell catchments for set of clinics ------------------------------------------------
-
-get.catches <- function(cand_df, nsplit = 2) {
+update.base <- function(cand_df, base_df, nsplit = 2) {
   
   # Pull in references to files (that way not as big!)
   cand_list <- vector("list", nrow(cand_df))
@@ -207,18 +172,20 @@ get.catches <- function(cand_df, nsplit = 2) {
     mapply(cbind, x, ..., SIMPLIFY = FALSE)
   }
   
-  foreach(sub = iter(out),
+  foreach(i = 1:length(out),
           .packages = c("raster", "data.table"), .combine = multicomb) %dopar% {
-            
+          
+          sub <- out[[i]]
           cand_ttimes <- values(sub[[1]])
-          cand_catch <- rep(names(sub)[1], length(cand_ttimes))
+          cand_catch <- ifelse(!is.na(cand_ttimes), names(sub)[1], NA)
             
           for(j in 2:length(sub)) {
             cand_comp <- values(sub[[j]])
-            cand_catch <- fifelse(cand_comp < cand_ttimes & !is.na(cand_comp), names(sub)[j], 
+            cand_catch <- fifelse((cand_comp < cand_ttimes & !is.na(cand_comp)) |
+                                  (!is.na(cand_comp) & is.na(cand_ttimes)), names(sub)[j], 
                                   cand_catch)
-            cand_ttimes <- fifelse(cand_comp < cand_ttimes & !is.na(cand_comp), 
-                                   cand_comp, cand_ttimes)
+            cand_ttimes <- fifelse((cand_comp < cand_ttimes & !is.na(cand_comp)) |
+                                     (!is.na(cand_comp) & is.na(cand_ttimes)), cand_comp, cand_ttimes)
           }
           list(catches = cand_catch, ttimes = cand_ttimes)
   } -> catches
@@ -231,13 +198,31 @@ get.catches <- function(cand_df, nsplit = 2) {
   for(i in 2:ncol(min_ttimes)) {
     cand_comp <- min_ttimes[, i]
     cand_catch_comp <- min_catches[, i]
-    cand_catch <- fifelse(cand_comp < cand_ttimes & !is.na(cand_comp), cand_catch_comp, cand_catch)
-    cand_ttimes <- fifelse(cand_comp < cand_ttimes & !is.na(cand_comp), cand_comp, cand_ttimes)
+    cand_catch <- fifelse((cand_comp < cand_ttimes & !is.na(cand_comp)) |
+                            (!is.na(cand_comp) & is.na(cand_ttimes)), cand_catch_comp, cand_catch)
+    cand_ttimes <- fifelse((cand_comp < cand_ttimes & !is.na(cand_comp)) |
+                             (!is.na(cand_comp) & is.na(cand_ttimes)), cand_comp, cand_ttimes)
   }
   
-  cand_catch[is.na(cand_ttimes)] <- NA
+  cand_catch <- as.numeric(cand_catch)
   
-  return(list(ttimes = cand_ttimes, catches = cand_catch))
+  base_df[, c('ttimes', 'catchment') := 
+            .(fifelse((cand_ttimes < ttimes & !is.na(cand_ttimes)) |
+                        (!is.na(cand_ttimes) & is.na(ttimes)), cand_ttimes, ttimes), 
+              fifelse((cand_ttimes < ttimes & !is.na(cand_ttimes)) |
+                        (!is.na(cand_ttimes) & is.na(ttimes)), cand_catch, catchment))]
+  
+  return(base_df)
+}
+
+
+# Get max catch -------------------------------------------------------------------------------
+
+get.maxcatch <- function(admin_df, admin = "distcode") {
+  admin_df <- admin_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
+                                 by = .(get(admin), scenario)]
+  setnames(admin_df, "get", admin)
+  return(admin_df)
 }
 
 
@@ -249,18 +234,20 @@ get.bricks <- function(brick_dir = "output/ttimes/candidates") {
   foreach(i = iter(bricks), .combine = rbind) %do% {
     cands <- as.numeric(gsub("[.a-z]", "", grep("cand[0-9]", unlist(strsplit(i, "_")),  
                                                 value = TRUE)))
-    data.table(clinic_id = min(cands):max(cands), candfile = i, min = min(cands), max = max(cands))
+    out <- data.table(clinic_id = min(cands):max(cands), candfile = i, min = min(cands), 
+                      max = max(cands))
+    out[, band := (clinic_id - min + 1)]
+    out
   } -> brick_dt
   
   return(brick_dt)
 }
 
 # Separate function for aggregate to admin ----------------------------------------------------
-aggregate.admin <- function(base_df, admin = "distcode") {
-  base_df <- fread("output/ttimes/base_df.gz")
+aggregate.admin <- function(base_df, admin = "distcode", scenario) {
 
-  base_df[, c("pop_admin", "pop_wt") := .(sum(pop, na.rm = TRUE),
-                                              sum(pop[!is.na(ttimes)], na.rm = TRUE)), 
+  base_df[, c("pop_admin", "pop_wt") := 
+            .(sum(pop, na.rm = TRUE), sum(pop[!is.na(ttimes)], na.rm = TRUE), scenario), 
           by = get(admin)]
   
   admin_df <-
@@ -270,11 +257,15 @@ aggregate.admin <- function(base_df, admin = "distcode") {
                 prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt[1],
                 pop_wt = pop_wt[1],
                 pop_admin = pop_admin[1]),
-            by = .(get(admin), catchment)] # first by catchment to get the max catch
-  admin_df[, c("ttimes_wtd",
-                  "ttimes_un") := .(sum(ttimes_wtd, na.rm = TRUE)/pop_wt,
-                                    sum(ttimes_un, na.rm = TRUE)/sum(ncells, na.rm = TRUE)),
-              by = get] # then by district
+            by = .(get(admin), catchment)] # first by catchment 
+  admin_df[, c("ttimes_wtd", "ttimes_un", "scenario") := 
+             .(sum(ttimes_wtd, na.rm = TRUE)/pop_wt, 
+               sum(ttimes_un, na.rm = TRUE)/sum(ncells, na.rm = TRUE),
+               scenario), by = get] # then by district
+  
   admin_df <- admin_df[!is.na(catchment)]
+  
+  setnames(admin_df, "get", admin)
+  
   return(admin_df)
 }
