@@ -20,6 +20,7 @@ library(doRNG)
 library(iterators)
 library(tidyverse)
 library(triangle)
+library(glue)
 source("R/functions/out.session.R")
 source("R/functions/predict_functions.R")
 select <- dplyr::select
@@ -61,7 +62,7 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
                                            scale = j$scale, suff = ifelse(j$OD == TRUE, "_OD", ""),
                                            parent_dir = "output/mods/samps/", nsims = 1000))
           
-          bite_mat <- predict.bites(ttimes = ttimes, pop = comm$pop, 
+          bite_mat <- predict.bites(ttimes = ttimes, pop = comm$pop_admin, 
                                     catch = comm$catchment, names = comm$commcode, 
                                     beta_ttimes = posts$beta_ttimes, beta_0 = posts$beta_0, 
                                     beta_pop = posts$beta_pop,
@@ -71,7 +72,7 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
                                     nsims = 1000, pred_type = "exp", par_type = "posterior", 
                                     OD = j$OD)
           
-          all_mats <-  predict.deaths(bite_mat, pop = comm$pop,
+          all_mats <-  predict.deaths(bite_mat, pop = comm$pop_admin,
                                       p_rab_min = 0.2, p_rab_max = 0.6,
                                       rho_max = 0.98, exp_min = 15/1e5, exp_max = 76/1e5,
                                       prob_death = 0.16, dist = "triangle")
@@ -107,7 +108,7 @@ foreach(j = iter(lookup, by = "row"), .combine = multicomb,
                                   data_source = j$data_source, natl_preds)
           
           admin_preds <- data.table(names = comm$commcode,
-                                   ttimes = ttimes, pop = comm$pop, 
+                                   ttimes = ttimes, pop = comm$pop_admin, 
                                    catch = comm$catchment, scenario = comm$scenario, 
                                    scale = j$scale, data_source = j$data_source,
                                    admin_preds)

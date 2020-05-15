@@ -93,15 +93,15 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes,
   for (i in 1:max_clinics) {
     
     if (nrow(cand_df) > 0) {
-      
-      print(i)
-      
+
       foreach(j = 1:nrow(cand_df), .combine = c, .packages = "raster") %dopar% {
-                  cand_ttimes <- values(cand_list[[j]])
-                  prop <- sum(base_df$prop_pop[which(cand_ttimes < base_df$ttimes & 
-                                               base_df$ttimes > thresh_ttimes)], na.rm = TRUE)
+              cand_ttimes <- values(cand_list[[j]])
+              inds <- which(cand_ttimes < base_df$ttimes & base_df$ttimes >= thresh_ttimes)
+              prop_wtd <- sum(base_df$prop_pop[inds] * # pop affected
+                              ((base_df$ttimes[inds] - cand_ttimes[inds])/base_df$ttimes[inds]), 
+                              na.rm = TRUE) # weighted by reduction 
       } -> sum_prop
-      
+  
       # In case all admin units go below the threshold: stop adding
       clin_chosen <- cand_df[which.max(sum_prop), ]
       prop_pop <- max(sum_prop[!is.infinite(sum_prop)], na.rm = TRUE)
@@ -144,6 +144,10 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes,
         fwrite(commune_maxcatch,  paste0(dir_name, "commune_maxcatch.gz"), append = TRUE)
         fwrite(prop_df, paste0(dir_name, "prop_df.csv"), append = TRUE)
       }
+
+      print(paste(i, "clinic added:", clin_chosen$district, "District", clin_chosen$commune, 
+                  "Commune"))
+            
     } else {
       break
     }
@@ -155,6 +159,8 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes,
 
 # Get grid cell catchments for set of clinics ------------------------------------------------
 update.base <- function(cand_df, base_df, nsplit = 2) {
+  
+  base <- copy(base_df)
   
   # Pull in references to files (that way not as big!)
   cand_list <- vector("list", nrow(cand_df))
@@ -206,13 +212,13 @@ update.base <- function(cand_df, base_df, nsplit = 2) {
   
   cand_catch <- as.numeric(cand_catch)
   
-  base_df[, c('ttimes', 'catchment') := 
+  base[, c('ttimes', 'catchment') := 
             .(fifelse((cand_ttimes < ttimes & !is.na(cand_ttimes)) |
                         (!is.na(cand_ttimes) & is.na(ttimes)), cand_ttimes, ttimes), 
               fifelse((cand_ttimes < ttimes & !is.na(cand_ttimes)) |
                         (!is.na(cand_ttimes) & is.na(ttimes)), cand_catch, catchment))]
   
-  return(base_df)
+  return(base)
 }
 
 
@@ -245,13 +251,13 @@ get.bricks <- function(brick_dir = "output/ttimes/candidates") {
 
 # Separate function for aggregate to admin ----------------------------------------------------
 aggregate.admin <- function(base_df, admin = "distcode", scenario) {
-
-  base_df[, c("pop_admin", "pop_wt") := 
+  base <- copy(base_df)
+  base[, c("pop_admin", "pop_wt") := 
             .(sum(pop, na.rm = TRUE), sum(pop[!is.na(ttimes)], na.rm = TRUE), scenario), 
           by = get(admin)]
   
   admin_df <-
-    base_df[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE),
+    base[, .(ttimes_wtd = sum(ttimes * pop, na.rm = TRUE),
                 ttimes_un = sum(ttimes, na.rm = TRUE),
                 ncells = .N,
                 prop_pop_catch = sum(pop, na.rm = TRUE)/pop_wt[1],
