@@ -13,7 +13,6 @@ start <- Sys.time()
 
 # Set up ------------------------------------------------------------------------------------
 library(data.table)
-library(magrittr)
 library(foreach)
 library(doRNG)
 library(iterators)
@@ -21,109 +20,47 @@ library(tidyverse)
 library(triangle)
 source("R/functions/out.session.R")
 source("R/functions/predict_functions.R")
+source("R/functions/batch_functions.R")
 select <- dplyr::select
 
 # Set-up these two vectors for reading in data using cmd line args
 scenario_loop <- unique(fread("output/ttimes/commune_maxcatch.csv")$lookup)
-colnames <- colnames(fread("output/ttimes/commune_maxcatch.csv"))
-
-# Bring in sensitivity parameters
 se_pars <- fread("output/sensitivity/se_pars.csv")
 
-# make df with the lookup + scale
 # reverse so bigger dfs don't slow everything down
 lookup <- expand_grid(loop = rev(scenario_loop), se_pars)
 
-multicomb <- function(x, ...) {
-  mapply(rbind, x, ..., SIMPLIFY = FALSE)
-}
-
-# All predictions -----------------------------------------------------------------------
-foreach(j = iter(lookup, by = "row"), .combine = multicomb, 
-        .packages = c('data.table', 'foreach', "triangle"), .options.RNG = 2677) %dorng% {
-          
-          # read in max and all catch
-          comm <- fread(cmd = paste("grep -w ", j$loop, 
-                                    " output/ttimes/commune_maxcatch.csv", 
-                                    sep = ""), col.names = colnames)
-          
-          if(j$scale == "Commune") {
-            ttimes <- comm$ttimes_wtd/60
-          } 
-          
-          if(j$scale == "District") {
-            ttimes <- comm$ttimes_wtd_dist/60
-          }
-          
-          bite_mat <- predict.bites(ttimes = ttimes, pop = comm$pop, 
-                                    catch = comm$catchment, names = comm$commcode, 
-                                    beta_ttimes = j$beta_ttimes, beta_0 = j$beta_0, 
-                                    beta_pop = j$beta_pop, sigma_e = j$sigma_e, sigma_0 = j$sigma_0,
-                                    known_alphas = NA, OD = j$OD,
-                                    pop_predict = j$pop_predict, intercept = j$intercept, 
-                                    trans = 1e5, known_catch = FALSE, nsims = 1000,  
-                                    par_type = "point_est", pred_type =  "exp")
-          
-          all_mats <-  predict.deaths(bite_mat, pop = comm$pop,
-                                      p_rab_min = j$p_rab_min, p_rab_max = j$p_rab_max,
-                                      rho_max = j$rho_max, exp_min = j$exp_min, exp_max = j$exp_max,
-                                      prob_death = j$p_death, dist = "triangle")
-          
-          all_mats <- c(list(bites = bite_mat), all_mats)
-          
-          natl_mats <- all_mats[c("bites", "deaths", "averted")]
-          
-          foreach(i = 1:length(natl_mats), .combine = 'cbind') %do% {
-            mat <- natl_mats[[i]]
-            labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
-            totals <- colSums(mat, na.rm = TRUE) # sums at natl level
-            mean <- mean(totals)
-            upper <- quantile(totals, prob = 0.975)
-            lower <- quantile(totals, prob = 0.025)
-            out <- data.table(mean, upper, lower)
-            names(out) <- labels
-            out
-          } -> natl_preds
-          
-          natl_preds <- data.table(scenario = comm$scenario[1], scale = j$scale, 
-                                   data_source = j$data_source, vary = j$vary, 
-                                   direction = j$direction, natl_preds)
-          
-          # only save the baseline preds @ the admin level
-          if (j$loop == "scenario_0") {
-            
-            foreach(i = 1:length(all_mats), .combine = 'cbind') %do% {
-              mat <- all_mats[[i]]
-              labels <- paste0(names(all_mats)[i], "_", c("mean", "upper", "lower"))
-              mean <- rowMeans(mat, na.rm = TRUE) # mean for each row = admin unit
-              upper <- apply(mat, 1, quantile, prob = 0.975)
-              lower <- apply(mat, 1, quantile, prob = 0.025)
-              out <- data.table(mean, upper, lower)
-              names(out) <- labels
-              out
-            } -> admin_preds
-            
-            admin_preds <- data.table(names = comm$commcode,
-                                      ttimes = ttimes, pop = comm$pop, 
-                                      catch = comm$catchment, scenario = comm$scenario, 
-                                      scale = j$scale, data_source = j$data_source, vary = j$vary, 
-                                      direction = j$direction, 
-                                      admin_preds)
-            
-          } else {
-            admin_preds <- NULL
-          }
-    
-          list(base = admin_preds, natl = natl_preds)
-          
-  } -> burden_se
+# Do burden -----------------------------------------------------------------
+all_preds <- run_scenarios(lookup = lookup, pred_type = "burden", 
+                           par_type = "point_est", scaled = FALSE, directory = "output/ttimes/",
+                           colnames_max = colnames(fread("output/ttimes/commune_maxcatch.csv")), 
+                           colnames_all = colnames(fread("output/ttimes/commune_allcatch.csv")),
+                           colnames_j = c("scale", "data_source", "vary", "direction"), 
+                           admin_to_keep = "scenario_0", 
+                           multicomb = function(x, ...) { mapply(rbind, x, ..., SIMPLIFY = FALSE)}, 
+                           rng_seed = 2342, sims = 1000)
 
 # Write out data
-fwrite(burden_se[["base"]], "output/sensitivity/burden_baseline_se.gz") 
-fwrite(burden_se[["natl"]], "output/sensitivity/burden_addclinics_se.gz") 
+fwrite(all_preds$admin_preds, "output/sensitivity/burden_baseline_se.gz") 
+fwrite(all_preds$natl_preds, "output/sensitivity/burden_addclinics_se.gz") 
+
+# Do vials -----------------------------------------------------------------
+lookup <- filter(lookup, grepl("beta|sigma", vary))
+vial_se_pars <- fread("output/sensitivity/se_pars.csv")[grep("beta|sigma", vary)]
+
+all_preds <- run_scenarios(lookup = lookup, pred_type = "vials", 
+                           par_type = "point_est", scaled = FALSE, catch_keep = FALSE,
+                           directory = "output/ttimes/",
+                           colnames_max = colnames(fread("output/ttimes/commune_maxcatch.csv")), 
+                           colnames_all = colnames(fread("output/ttimes/commune_allcatch.csv")),
+                           colnames_j = c("scale", "data_source", "vary", "direction"), 
+                           admin_to_keep = NULL, 
+                           multicomb = function(x, ...) { mapply(rbind, x, ..., SIMPLIFY = FALSE)}, 
+                           rng_seed = 2342, sims = 1000)
+fwrite(all_preds$natl_preds, "output/sensitivity/vials_se.gz")
 
 # Close out
-file_path <- "R/06_sensitivity/03_burden_se.R"
+file_path <- "R/05_predictions/02_preds_se.R"
 out.session(path = file_path, filename = "log_cluster.csv", start = start)
 
 # Parse these from bash for where to put things

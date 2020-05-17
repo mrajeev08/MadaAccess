@@ -81,7 +81,7 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #'     Packages: data.table, foreach
 
 # Pass through base df, otherwise you need all the vectors!
-add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, 
+add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, rank_metric, 
                      base_scenario = 0, overwrite = TRUE) {
   
   # Pull in references to files (that way not as big!)
@@ -90,18 +90,23 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name,
     cand_list[[j]] <- raster(cand_df$candfile[j], band = cand_df$band[j])
   }
   
+  # Dummy sum prop to be replaced inside loop
+  sum_prop <- 0
+  
   for (i in 1:max_clinics) {
     
     if (nrow(cand_df) > 0) {
-
-      foreach(j = 1:nrow(cand_df), .combine = c, .packages = "raster") %dopar% {
-              cand_ttimes <- values(cand_list[[j]])
-              inds <- which(cand_ttimes < base_df$ttimes & base_df$ttimes >= thresh_ttimes
-                            & !is.na(base_df$prop_pop))
-              prop_wtd <- sum(base_df$prop_pop[inds] * # pop affected
-                              ((base_df$ttimes[inds] - cand_ttimes[inds])/base_df$ttimes[inds]), 
-                              na.rm = TRUE) # weighted by reduction 
-      } -> sum_prop
+      
+      # If no candidates that would shift travel times above the threshold
+      # Then adjust threshold down
+      while(sum(sum_prop, na.rm = TRUE) == 0) {
+        foreach(j = 1:nrow(cand_df), .combine = c, .packages = "raster") %dopar% {
+          cand_ttimes <- values(cand_list[[j]])
+          rank_metric(base_df, cand_ttimes)
+        } -> sum_prop
+        
+        if(sum(sum_prop, na.rm = TRUE) == 0) thresh_ttimes <- 0.75*thresh_ttimes
+      }
   
       # In case all admin units go below the threshold: stop adding
       clin_chosen <- cand_df[which.max(sum_prop), ]
@@ -109,10 +114,9 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name,
       prop_df <- data.table(scenario = i + base_scenario, clin_chosen, prop_pop)
       new_ttimes <- values(cand_list[[which.max(sum_prop)]]) # add to base_df
       
-      # Take out the max ones and any below ttime + pop thresholds
-      remove <- unique(c(which.max(sum_prop), which(sum_prop == 0)))
-      cand_df <- cand_df[-remove, ]
-      cand_list <- cand_list[-remove] 
+      # Take out the max one
+      cand_df <- cand_df[-which.max(sum_prop), ]
+      cand_list <- cand_list[-which.max(sum_prop)] 
       
       # Aggregating to district & commune
       # If ttimes improved then, new ttimes replaces the baseline and catchment
@@ -155,6 +159,33 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name,
   }
   
   # No return just the base_df in the global environment is changed now
+}
+
+# Helpers for ranking clinics (should take base_df & cand_ttimes as values)
+prop_wtd <- function(base_df, cand_ttimes) {
+  
+  inds <- which(cand_ttimes < base_df$ttimes & base_df$ttimes >= thresh_ttimes
+                & !is.na(base_df$prop_pop))
+  
+  sum(base_df$prop_pop[inds] * # pop affected
+                  ((base_df$ttimes[inds] - cand_ttimes[inds])/base_df$ttimes[inds]), 
+                na.rm = TRUE) # weighted by reduction 
+}
+
+prop <- function(base_df, cand_ttimes) {
+  
+  inds <- which(cand_ttimes < base_df$ttimes & base_df$ttimes >= thresh_ttimes
+                & !is.na(base_df$prop_pop))
+  
+  sum(base_df$prop_pop[inds], na.rm = TRUE) # prop pop only
+}
+
+mean_tt <- function(base_df, cand_ttimes) {
+  
+  inds <- which(cand_ttimes < base_df$ttimes & base_df$ttimes >= thresh_ttimes
+                & !is.na(base_df$prop_pop))
+  
+  mean(base_df$ttimes[inds] - cand_ttimes[inds], na.rm = TRUE) # prop pop only 
 }
 
 # Get grid cell catchments for set of clinics ------------------------------------------------

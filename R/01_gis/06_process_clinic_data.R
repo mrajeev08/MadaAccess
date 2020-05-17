@@ -15,7 +15,7 @@ select <- dplyr::select
 # data
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
-ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
+ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
 csbs <- read.csv("data/raw/csbs.csv", stringsAsFactors = FALSE)
 
 # get clinic commcodes & distcodes
@@ -64,23 +64,14 @@ csb2 %>%
   filter(pop_dens == max(pop_dens, na.rm = TRUE)) %>%
   filter(clinic_id == min(clinic_id)) -> clinic_per_dist # only pick 1 clinic per district
 
-# 1 per commune
+# 1 per commune for any that don't yet have one
 csb2 %>%
-  filter(!(commcode %in% ctar_metadata$commcode)) %>% # filter out any communes with a ctar
+  filter(!(commcode %in% c(ctar_metadata$commcode, clinic_per_dist$commcode))) %>% # filter out any communes with a ctar
   group_by(commcode) %>%
   filter(pop_dens == max(pop_dens, na.rm = TRUE)) %>%
   filter(clinic_id == min(clinic_id)) -> clinic_per_comm
 
-# bind to existing ctar points  
-ctar_metadata %>%
-  select(distcode, district, commcode, commune, lat, long) %>%
-  mutate(pop_dens = extract(pop_1x1, ctar_coords), 
-         clinic_id = 1:nrow(.)) -> ctar_to_bind
-
-clinic_per_dist <- bind_rows(clinic_per_dist, ctar_to_bind)
-clinic_per_comm <- bind_rows(clinic_per_comm, ctar_to_bind)  
-
-# for those that commune that don't have a clinic, look at all the other public clinics
+# for those commune that don't have a clinic, look at all the other public csb 1
 missing_comms <- mada_communes$commcode[!(mada_communes$commcode %in% clinic_per_comm$commcode)]
 
 csbs %>% 
@@ -100,7 +91,7 @@ csb1 %>%
   ungroup() %>%
   mutate(clinic_id = max(csb2$clinic_id) + 1:nrow(.)) %>%
   bind_rows(clinic_per_comm) ->  clinic_per_comm
-  
+
 write.csv(clinic_per_comm, "data/processed/clinics/clinic_per_comm.csv", row.names = FALSE)
 write.csv(clinic_per_dist, "data/processed/clinics/clinic_per_dist.csv", row.names = FALSE)
 write.csv(ctar_metadata, "data/processed/clinics/ctar_metadata.csv", row.names = FALSE)

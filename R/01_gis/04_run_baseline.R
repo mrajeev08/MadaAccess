@@ -26,7 +26,7 @@ source("R/functions/out.session.R")
 # Load in GIS files
 mada_districts <- readOGR("data/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp")
 mada_communes <- readOGR("data/raw/shapefiles/communes/mdg_admbnda_adm3_BNGRC_OCHA_20181031.shp")
-ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
+ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
 
 # Fix up shapefiles ------------------------------------------------------
 # Get distcodes for both admin levels
@@ -54,8 +54,7 @@ prop_pop <- pop1x1/sum(values(pop1x1), na.rm = TRUE)
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
 # Get candidate points as matrix
-ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
-point_mat_base <- as.matrix(dplyr::select(ctar_metadata, x = long, y = lat))
+point_mat_base <- as.matrix(dplyr::select(ctar_metadata, x = LONGITUDE, y = LATITUDE))
 
 # takes ~ 6 seconds per point
 cl <- makeCluster(3)

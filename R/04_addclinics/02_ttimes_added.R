@@ -7,7 +7,7 @@
 #'   it takes approximately 10 hours
 # ------------------------------------------------------------------------------------------------ #
 
-#sub_cmd=-sn -t 12 -n 10 -sp "./R/04_addclinics/02_ttimes_added.R" -jn addclinics -wt 5m -n@
+#sub_cmd=-sn -t 12 -n 15 -sp "./R/04_addclinics/02_ttimes_added.R" -jn addclinics -wt 5m -n@
   
 # set up cluster on single node with do Parallel
 library(doParallel)
@@ -29,17 +29,26 @@ source("R/functions/ttime_functions.R")
 # baseline rasters 
 base_df <- fread("output/ttimes/base_df.gz")
 
-# Pull in candidates & figure out which files they're in
-csb2 <- fread("data/processed/clinics/csb2.csv")
+# Add one per district first
+clin_per_dist <- fread("data/processed/clinics/clinic_per_dist.csv")
 brick_dt <- get.bricks(brick_dir = "/scratch/gpfs/mrajeev/output/ttimes/candidates")
-csb2 <- brick_dt[csb2, on = "clinic_id"]
-csb2[, band := (clinic_id - min + 1)]
+clin_per_dist <- brick_dt[clin_per_dist, on = "clinic_id"]
 
-# Do the candidates
 system.time({
-  add.armc(base_df = base_df, cand_df = csb2, max_clinics = nrow(csb2), 
-           thresh_ttimes = 3*60, thresh_prop = 1e-4, 
-           dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics_")
+  add.armc(base_df = base_df, cand_df = clin_per_dist, max_clinics = nrow(clin_per_dist), 
+           thresh_ttimes = 3*60, dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics_", 
+           base_scenario = 0, overwrite = TRUE)
+})
+
+# Then add one per commune
+clin_per_comm <- fread("data/processed/clinics/clinic_per_comm.csv")
+brick_dt <- get.bricks(brick_dir = "/scratch/gpfs/mrajeev/output/ttimes/candidates")
+clin_per_comm <- brick_dt[clin_per_comm, on = "clinic_id"]
+
+system.time({
+  add.armc(base_df = base_df, cand_df = clin_per_comm, max_clinics = nrow(clin_per_comm), 
+           thresh_ttimes = 3*60, dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics_", 
+           base_scenario = nrow(clin_per_dist), overwrite = FALSE) # so will append to previous run
 })
 
 # Parse these from bash for where to put things

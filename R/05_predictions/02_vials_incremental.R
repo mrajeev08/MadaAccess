@@ -161,6 +161,7 @@ natl_preds <- preds[["natl_preds"]]
 fwrite(catch_preds, "output/preds/catch_preds.gz")
 fwrite(prop_preds, "output/preds/catch_props.csv")
 fwrite(natl_preds, "output/preds/catch_preds_natl.csv")
+
 # Close out
 file_path <- "R/05_predictions/02_vials.R"
 out.session(path = file_path, filename = "log_cluster.csv", start = start)
