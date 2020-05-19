@@ -80,7 +80,7 @@ writeRaster(bricked, filename = "output/ttimes/candidates/candmat_cand1_cand31.t
 # Get minimum travel times and write out to tiff
 ttimes_base <- min(bricked, na.rm = TRUE)
 catchment <- which.min(bricked)
-writeRaster(ttimes_base, "output/ttimes/base_ttimes.tif", 
+writeRaster(ttimes_base, "output/ttimes/base/ttimes.tif", 
              overwrite = TRUE, options = c("INTERLEAVE=BAND", "COMPRESS=LZW"))
 
 # Get vals by  districts/communes -------------------------------------------
@@ -111,21 +111,21 @@ base_df <- data.table(distcode = mada_districts$distcode[values(district_id)],
 base_df[commcode == "MG71718002"]$ttimes <- max(base_df[distcode == "MG71718"]$ttimes, 
                                                     na.rm = TRUE)
 base_df[commcode == "MG71718002"]$catchment <- base_df[distcode == "MG71718"]$catchment[1]
-fwrite(base_df, "output/ttimes/base_df.gz")
+fwrite(base_df, "output/ttimes/base/grid_df.gz")
 
 # District
 district_df <- aggregate.admin(base_df = base_df, admin = "distcode", scenario = 0)
 district_maxcatch <- district_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
                                  by = .(distcode, scenario)]
-fwrite(district_df, "output/ttimes/base_district_allcatch.gz")
-fwrite(district_maxcatch, "output/ttimes/base_district_maxcatch.gz")
+fwrite(district_df, "output/ttimes/base/district_allcatch.gz")
+fwrite(district_maxcatch, "output/ttimes/base/district_maxcatch.gz")
 
 # Commune
 commune_df <- aggregate.admin(base_df = base_df, admin = "commcode", scenario = 0)
 commune_maxcatch <- commune_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
                                by = .(commcode, scenario)]
-fwrite(commune_df, "output/ttimes/base_commune_allcatch.gz")
-fwrite(commune_maxcatch, "output/ttimes/base_commune_maxcatch.gz")
+fwrite(commune_df, "output/ttimes/base/commune_allcatch.gz")
+fwrite(commune_maxcatch, "output/ttimes/base/commune_maxcatch.gz")
 
 # Make shapefiles -----------------------------------------------------------------------------
 district_maxcatch$id_ctar <- ctar_metadata$id_ctar[district_maxcatch$catchment] # by row number

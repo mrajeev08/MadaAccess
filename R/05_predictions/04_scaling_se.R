@@ -2,7 +2,7 @@
 #' Scaling of incidence and how this might drive burden                          
 # ------------------------------------------------------------------------------------------------ #
 
-#sub_cmd=-t 12 -n 30 -mem 4000 -sp "./R/06_sensitivity/03_scaling_se.R" -jn scaling_se -wt 5m -n@
+#sub_cmd=-t 12 -n 30 -mem 4000 -sp "./R/05_predictions/04_scaling_se.R" -jn scaling_se -wt 5m -n@
 
 # Init MPI Backend
 library(doMPI)
@@ -78,7 +78,7 @@ fwrite(all_preds$admin_preds, "output/sensitivity/burden_baseline_scaled.gz")
 fwrite(all_preds$natl_preds, "output/sensitivity/burden_addclinics_scaled.gz") 
 
 # Close out
-file_path <- "R/05_predictions/03_scaling_se.R"
+file_path <- "R/05_predictions/04_scaling_se.R"
 out.session(path = file_path, filename = "log_cluster.csv", start = start)
 
 # Parse these from bash for where to put things

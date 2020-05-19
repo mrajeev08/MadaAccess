@@ -18,13 +18,19 @@ run_scenarios <- function(lookup, directory = "output/ttimes/", pred_type = c("v
                           rng_seed = 23481, sims = 1000) {
   
   foreach(j = iter(lookup, by = "row"), .combine = multicomb, 
-          .packages = c('data.table', 'foreach', "triangle"), .options.RNG = rng_seed) %dorng% {
+          .packages = c('data.table', 'foreach', "triangle", "glue"), .options.RNG = rng_seed,
+          .export = c('get.samps', "predict.bites", "predict.deaths", "summarize_mats", 
+                      "constrained_inc", "get.vials")) %dorng% { # have to export funcs when in function
             
             # read in data
-            comm <- fread(cmd = paste("grep -w ", j$loop, " ", directory, "commune_maxcatch.csv", 
+            comm <- fread(cmd = paste("grep -w ", j$loop, " ", directory, "/commpreds_max.csv", 
                                       sep = ""), col.names = colnames_max)
             
-            ttimes <- ifelse(j$scale == "District", comm$ttimes_wtd_dist/60, comm$ttimes_wtd/60)
+            if(j$scale == "District") {
+              ttimes <- comm$ttimes_wtd_dist/60 
+            } else {
+              ttimes <- comm$ttimes_wtd/60
+            }
             
             # first do bite preds
             if(par_type == "posterior") {
@@ -94,7 +100,7 @@ run_scenarios <- function(lookup, directory = "output/ttimes/", pred_type = c("v
             if("vials" %in% pred_type) {
               
               comm_all <- fread(cmd = paste("grep -w ", j$loop, " ", directory, 
-                                            "commune_allcatch.csv", sep = ""), 
+                                            "/commpreds_all.csv", sep = ""), 
                                 col.names = colnames_all)
               
               bites <- data.table(commcode = comm$commcode, scenario = comm$scenario,
@@ -181,7 +187,7 @@ run_scenarios <- function(lookup, directory = "output/ttimes/", pred_type = c("v
   
 }
 
-#' Helpers for processing matrices
+#' Helper for processing matrices
 #' Description
 #' Details
 #' @param Paramters

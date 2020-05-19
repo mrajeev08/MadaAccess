@@ -65,6 +65,6 @@ foreach(pars = split(model_ests, model_ests$mod_id), .combine = rbind) %do% {
 write.csv(se_pars, "output/sensitivity/se_pars.csv", row.names = FALSE)
 
 # Saving session info
-out.session(path = "R/06_sensitivity/03_burden_se_pars.R", filename = "output/log_local.csv")
+out.session(path = "R/05_predictions/02_se_pars.R", filename = "output/log_local.csv")
 
 

@@ -3,7 +3,7 @@
 #' Details: Pulling in district and commune estimates of travel times as clinics are added 
 # ------------------------------------------------------------------------------------------------ #
 
-#sub_cmd=-t 12 -n 30 -mem 4000 -sp "./R/05_predictions/01_burden_incremental.R" -jn burden -wt 5m -n@
+#sub_cmd=-t 12 -n 30 -mem 4000 -sp "./R/05_predictions/01_preds_incremental.R" -jn preds -wt 5m -n@
 
 # Init MPI Backend
 library(doMPI)

@@ -2,7 +2,7 @@
 #' Getting sensitivity to parameter assumptions for burden & impact of expanding access                          
 # ------------------------------------------------------------------------------------------------ #
 
-#sub_cmd=-t 12 -n 30 -mem 4000 -sp "./R/06_sensitivity/02_burden_se.R" -jn burden_se -wt 5m -n@
+#sub_cmd=-t 12 -n 30 -mem 4000 -sp "./R/05_predictions/03_preds_se.R" -jn preds_se -wt 5m -n@
 
 # Init MPI Backend
 library(doMPI)
@@ -60,7 +60,7 @@ all_preds <- run_scenarios(lookup = lookup, pred_type = "vials",
 fwrite(all_preds$natl_preds, "output/sensitivity/vials_se.gz")
 
 # Close out
-file_path <- "R/05_predictions/02_preds_se.R"
+file_path <- "R/05_predictions/03_preds_se.R"
 out.session(path = file_path, filename = "log_cluster.csv", start = start)
 
 # Parse these from bash for where to put things

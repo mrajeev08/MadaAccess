@@ -27,33 +27,42 @@ source("R/functions/out.session.R")
 source("R/functions/ttime_functions.R")
 
 # baseline rasters 
-base_df <- fread("output/ttimes/base_df.gz")
+base_df <- fread("output/ttimes/base/grid_df.gz")
+brick_dt <- get.bricks(brick_dir = "/scratch/gpfs/mrajeev/output/ttimes/candidates")
 
 # Add one per district first
 clin_per_dist <- fread("data/processed/clinics/clinic_per_dist.csv")
-brick_dt <- get.bricks(brick_dir = "/scratch/gpfs/mrajeev/output/ttimes/candidates")
 clin_per_dist <- brick_dt[clin_per_dist, on = "clinic_id"]
+
+prop <- function(base_df, cand_ttimes, thresh_ttimes) {
+  
+  inds <- which(cand_ttimes < base_df$ttimes & base_df$ttimes >= thresh_ttimes
+                & !is.na(base_df$prop_pop))
+  
+  sum(base_df$prop_pop[inds], na.rm = TRUE) # prop pop only
+}
 
 system.time({
   add.armc(base_df = base_df, cand_df = clin_per_dist, max_clinics = nrow(clin_per_dist), 
-           thresh_ttimes = 3*60, dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics_", 
-           base_scenario = 0, overwrite = TRUE)
+           rank_metric = prop,
+           thresh_ttimes = 3*60, dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics", 
+           base_scenario = 0, overwrite = TRUE, random = FALSE)
 })
 
 # Then add one per commune
 clin_per_comm <- fread("data/processed/clinics/clinic_per_comm.csv")
-brick_dt <- get.bricks(brick_dir = "/scratch/gpfs/mrajeev/output/ttimes/candidates")
 clin_per_comm <- brick_dt[clin_per_comm, on = "clinic_id"]
 
 system.time({
-  add.armc(base_df = base_df, cand_df = clin_per_comm, max_clinics = nrow(clin_per_comm), 
-           thresh_ttimes = 3*60, dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics_", 
-           base_scenario = nrow(clin_per_dist), overwrite = FALSE) # so will append to previous run
+  add.armc(base_df = base_df, cand_df = clin_per_comm, max_clinics = nrow(clin_per_comm),
+           rank_metric = prop,
+           thresh_ttimes = 3*60, dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics",
+           base_scenario = nrow(clin_per_dist), overwrite = FALSE, random = FALSE) # so will append to previous run
 })
 
 # Parse these from bash for where to put things
 syncto <- "~/Documents/Projects/MadaAccess/output/ttimes/"
-syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/addclinics*"
+syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/addclinics"
 
 # Close out
 file_path <- "R/04_addclinics/02_ttimes_added.R"
