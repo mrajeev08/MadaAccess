@@ -3,6 +3,9 @@
 #' Looking at prop of bites reporting within catchment
 # ------------------------------------------------------------------------------------------------ #
 
+source("R/functions/out.session.R")
+start <- Sys.time()
+
 # Libraries
 library(tidyverse)
 library(rgdal)
@@ -169,5 +172,5 @@ figS2.2_vialcomps <-
 ggsave("figs/supplementary/S2.2_vialcomps.jpeg", figS2.2_vialcomps, device = "jpeg", height = 8, width = 10)
 
 #' Saving session info
-out.session(path = "R/figures/SM2_bitedata.R", filename = "output/log_local.csv")
+out.session(path = "R/figures/SM2_bitedata.R", filename = "output/log_local.csv", start = start)
 

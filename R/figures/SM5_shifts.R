@@ -4,6 +4,7 @@
 # ------------------------------------------------------------------------------------------------ #
 
 start <- Sys.time()
+source("R/functions/out.session.R")
 
 # Libraries and packages
 library(data.table)
@@ -19,48 +20,35 @@ library(gdistance)
 library(foreach)
 select <- dplyr::select
 source("R/functions/ttime_functions.R")
-source("R/functions/out.session.R")
 
 # Pull in data
 ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
-csbs <- read.csv("data/processed/clinics/csb2.csv", stringsAsFactors = FALSE)
+csbs <- fread("data/processed/clinics/csb2.csv")
 
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
 
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
-base_times <- raster("output/ttimes/base_ttimes.tif")
+base_times <- raster("output/ttimes/base/ttimes.tif")
 pop_1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
 
-clins_per_comm <- nrow(read.csv("data/processed/clinics/clinic_per_comm.csv"))
-prop_df <- fread("output/ttimes/addclinics_prop_df.csv")
-max_added <- nrow(prop_df)
-max_csb <- nrow(csbs)
-scenario_labs <- c("Baseline\n (N = 31)", glue("1 per district\n (+ {114 - 31})"), "+ 200", "+ 400", 
-                   "+ 600", glue("+ {max_added}"), 
-                   glue("1 per commune\n (+ {clins_per_comm - 31})"),
-                   glue("All CSB II\n (+ {max_csb})"))
-scenario_levs <- c(0, 114.5, 200, 400, 600, max_added, max_added + 150.5, max_added + 200)
-names(scenario_labs) <- scenario_levs
-
 # Commune/District preds
-commune_maxcatch <- fread("output/ttimes/commune_maxcatch.gz")
-commune_maxcatch %>%
-  mutate(scenario_num = 
-           case_when(!(scenario %in% c("max", "armc_per_dist", "armc_per_comm")) ~ as.numeric(scenario),
-                     scenario == "max" ~ max_added + 200, scenario == "armc_per_comm" ~ max_added + 150.5,
-                     scenario == "armc_per_dist" ~ 114.5)) -> commune_maxcatch
-district_maxcatch <- fread("output/ttimes/district_maxcatch.gz")
-district_maxcatch %>%
-  mutate(scenario_num = 
-           case_when(!(scenario %in% c("max", "armc_per_dist", "armc_per_comm")) ~ as.numeric(scenario),
-                     scenario == "max" ~ max_added + 200, scenario == "armc_per_comm" ~ max_added + 150.5,
-                     scenario == "armc_per_dist" ~ 114.5)) -> district_maxcatch
-
-# Single catchment
+commune_maxcatch <- fread("output/ttimes/addclinics/commpreds_max.csv")
+district_maxcatch <- fread("output/ttimes/addclinics/distpreds_max.gz")
 district_maxcatch$scale <- "District"
 commune_maxcatch$scale <- "Commune"
 scenario_to_plot <- rbind(data.table(district_maxcatch), data.table(commune_maxcatch), fill = TRUE)
+
+# Added clinics & steps
+clins_per_comm <- nrow(read.csv("data/processed/clinics/clinic_per_comm.csv"))
+clins_ranked <- fread("output/ttimes/addclinics/clinics_ranked.csv")
+max_added <- sort(unique(commune_maxcatch$scenario), decreasing = TRUE)[2]
+max_csb <- max(commune_maxcatch$scenario)
+scenario_labs <- c("Baseline\n (N = 31)", glue("1 per district\n (+ {114 - 31})"), "+ 200", 
+                   "+ 600", glue("1 per commune\n (+ {clins_per_comm - 31})"),
+                   glue("All addtl CSB II\n (+ {max_csb})"))
+scenario_levs <- c(0, 114 - 31, 200, 600, max_added, max_csb)
+names(scenario_labs) <- scenario_levs
 
 # Scale
 scale_levs <- c("Commune", "District")
@@ -69,68 +57,110 @@ model_cols <- c("#0B775E", "#35274A")
 names(scale_labs) <- scale_levs 
 names(model_cols) <- scale_levs
 
+# Which metric ------------------------------------------------------------------------------
+tests <- fread("output/ttimes/tests/test_preds.csv")
+tests %>%
+  mutate(type = case_when(grepl("random", metric) ~ "random",
+                          !grepl("random", metric) ~ metric)) -> tests
+mets <- c("Mean travel times", "Proportion of pop", "Proportion of pop x \n mean travel times", 
+          "Random")
+names(mets) <- c("mean_tt", "prop", "prop_wtd", "random")
+
+ggplot(data = tests, 
+       aes(x = as.numeric(scenario), y = deaths_mean, color = type, linetype = type,
+           group = metric), alpha = 0.5) +
+  geom_line() +
+  scale_color_manual(values = c('#66c2a5','#fc8d62','#e78ac3', '#8da0cb'),
+                     labels = mets, name = "Rank metric") +
+  scale_linetype(labels = mets, name = "Rank metric") +
+  labs(x = "# Additional ARMC", y = "Average annual deaths") +
+  facet_wrap(~ scale, ncol = 1) +
+  theme_minimal_hgrid() +
+  theme(panel.background = element_rect(fill = "gray92"), 
+        panel.grid.major = element_line(color = "white")) -> S5.1_tests
+  
+
+ggsave("figs/supplementary/S5.1_tests.jpeg", S5.1_tests, width = 6, height = 8)
+
+
 # Clinics added ------------------------------------------------------------------------------
-prop_df$step_added <- 1:nrow(prop_df)
-
-# candidate points
-point_mat_all <- rbind(dplyr::select(ctar_metadata, long = LONGITUDE, lat = LATITUDE, clinic_id),
-                       dplyr::select(csbs, long, lat, clinic_id))
-
-point_mat_all %>%
-  left_join(prop_df) %>%
-  mutate(prop_pop = case_when(is.na(prop_pop) & clinic_id < 32 ~ 0,
-                              is.na(prop_pop) & clinic_id > 32 ~ 1e-12,
-                              !is.na(prop_pop) ~ prop_pop),
-         step_added = case_when(is.na(step_added) & clinic_id < 32 ~ 0,
-                                !is.na(step_added) ~ as.numeric(step_added))) -> point_mat_all
-pts <- SpatialPoints(cbind(point_mat_all$long, point_mat_all$lat), 
-                     proj4string = 
-                       CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-point_mat_all$commcode_ctar <- over(pts, mada_communes)$commcode
-point_mat_all$commname_ctar <- over(pts, mada_communes)$commune
-point_mat_all$distcode_ctar <- over(pts, mada_communes)$distcode
-point_mat_all$distcode_ctar <- over(pts, mada_communes)$district
-write.csv(point_mat_all, "output/stats/clinics_added.csv")
-
 gg_commune <- fortify(mada_communes, region = "commcode")
+natl_preds <- fread("output/preds/natl_preds.gz")
+natl_preds %>%
+  filter(scale == "Commune") %>%
+  mutate(scenario = as.numeric(scenario)) %>%
+  arrange(scenario) %>%
+  mutate(smoothed_deaths = predict(loess(deaths_mean ~ scenario, degree = 2, span = 0.1), 
+                                   new_data = scenario),
+         prop_reduction = smoothed_deaths/smoothed_deaths[scenario == 0], 
+         addtl_reduction = lag(prop_reduction) - prop_reduction) %>%
+  select(addtl_reduction, scenario, smoothed_deaths, deaths_mean, deaths_lower, deaths_upper) %>%
+  right_join(clins_ranked) -> clins_ranked
 
-S5.1_ARMCadded <- ggplot() +
+step_cols <- rev(c('#deebf7','#c6dbef','#9ecae1','#6baed6','#4292c6','#2171b5'))
+step_breaks <- c(0, 83, 200, 400, 800, 1000, max_added)
+step_labs <- c("+ 1 - 83", "+ 84 - 200", "+ 201 - 400", "+ 401 - 600", "+ 601 - 1200", 
+                glue("+ 1201 - {max_added}"))
+names(step_cols) <- step_labs
+
+ggplot() +
   geom_polygon(data = gg_commune, aes(x = long, y = lat, group = group), fill = "black") +
-  geom_point(data = filter(point_mat_all, is.na(step_added)),
-             aes(x = long, y = lat), color = "white",
-             alpha = 0.5, shape = 3) +
-  geom_point(data = filter(point_mat_all, step_added > 0),
-             aes(x = long, y = lat, size = prop_pop, fill = step_added), color = "grey50", 
+  geom_point(data = clins_ranked,
+             aes(x = long, y = lat, size = addtl_reduction, 
+                 fill = cut(scenario, breaks = step_breaks, labels = step_labs)), color = "grey50", 
              alpha = 0.75, shape = 21) +
-  geom_point(data = filter(point_mat_all, step_added == 0),
+  geom_point(data = ctar_metadata,
              aes(x = long, y = lat), shape = 3, size = 2, stroke = 1.2, color = "white") +
+  geom_point(data = csbs[!(clinic_id %in% clins_ranked$clinic_id)],
+             aes(x = long, y = lat), alpha = 0.5, shape = 3, color = "white") +
+  scale_fill_manual(values = step_cols, na.translate = FALSE, name = "Step clinic added",
+                    drop = FALSE) +
+  scale_size_continuous(name = "Average reduction \n in burden") +
   coord_quickmap() +
-  scale_fill_distiller(trans = "sqrt", direction = -1, palette = "PuRd", na.value = "grey50",
-                       breaks = c(1, 100, 200, 400, max(point_mat_all$step_added, na.rm = TRUE)),
-                       labels = c(1, 100, 300, 400, "720 (max added)"),
-                                  name = "Step clinic added") +
-  scale_size_continuous(name = "Proportion of pop \n for which travel times reduced)") +
-  theme_map()
+  theme_map() +
+  guides(fill = guide_legend(override.aes = list(size = 3))) -> S5.2_map
 
-ggsave("figs/supplementary/S5.1_ARMCadded.jpeg", S5.1_ARMCadded, width = 6, height = 8)
+ggplot(data = clins_ranked, aes(x = scenario)) +
+  geom_line(aes(y = deaths_mean), color = "#0B775E") +
+  geom_line(aes(y = smoothed_deaths), color = "#0B775E", 
+            size = 4, alpha = 0.5) +
+  labs(x = "# Additional ARMC", y = "Average annual deaths \n (smoothed)") +
+  theme_minimal_hgrid() +
+  theme(panel.background = element_rect(fill = "gray92"), 
+        panel.grid.major = element_line(color = "white")) -> S5.2_inset
+
+layout <- c(
+  patchwork::area(t = 1, l = 1, b = 5, r = 5),
+  patchwork::area(t = 4, l = 5, b = 4, r = 5), 
+  patchwork::area(t = 1, l = 5, r = 5, b = 3)
+)
+
+S5.2_map + S5.2_inset + guide_area() +
+  plot_layout(design = layout, guides = "collect") +
+  theme(plot.margin = margin(25, 25, 10, 0)) -> S5.2_ARMCadded
+
+
+ggsave("figs/supplementary/S5.2_ARMCadded.jpeg", S5.2_ARMCadded, width = 8, height = 8)
 
 # Plots of how ttimes change ----------------------------------------------------------------
 gg_commune <- fortify(mada_communes, region = "commcode")
 gg_district <- fortify(mada_districts, region = "distcode")
 
 scenario_to_plot %>%
-  filter(scenario_num %in% scenario_levs, 
+  filter(as.numeric(scenario) %in% scenario_levs, 
          scale == "District") %>%
-  pivot_wider(id_cols = distcode, names_from = scenario_num, values_from = ttimes_wtd) %>%
+  pivot_wider(id_cols = distcode, names_from = scenario, values_from = ttimes_wtd) %>%
   right_join(gg_district, by = c("distcode" = "id")) %>%
-  pivot_longer(2:(length(scenario_levs) + 1), names_to = "scenario") -> gg_district_plot
+  pivot_longer(as.character(scenario_levs), names_to = "scenario") %>%
+  mutate(scenario = as.numeric(scenario)) -> gg_district_plot
 
 scenario_to_plot %>%
-  filter(scenario_num %in% scenario_levs, 
+  filter(as.numeric(scenario) %in% scenario_levs, 
          scale == "Commune") %>%
-  pivot_wider(id_cols = commcode, names_from = scenario_num, values_from = ttimes_wtd) %>%
+  pivot_wider(id_cols = commcode, names_from = scenario, values_from = ttimes_wtd) %>%
   right_join(gg_commune, by = c("commcode" = "id")) %>%
-  pivot_longer(2:(length(scenario_levs) + 1), names_to = "scenario") -> gg_commune_plot
+  pivot_longer(as.character(scenario_levs), names_to = "scenario") %>%
+  mutate(scenario = as.numeric(scenario)) -> gg_commune_plot
 
 ttime_cols <- c('#fff7f3','#fde0dd','#fcc5c0','#fa9fb5','#f768a1','#dd3497','#ae017e','#7a0177')
 ttime_breaks <- c(-0.1, 1, 2, 4, 6, 8, 10, 12, Inf)
@@ -138,65 +168,35 @@ ttime_labs <- c("< 1", "< 2", "< 4", "< 6", "< 8", "< 10", "< 15", "15 +")
 names(ttime_cols) <- ttime_labs
 
 # Getting ttime rasters
-commune_maxcatch %>%
-  group_by(clinic_added) %>%
-  summarize(when_added = min(scenario_num)) %>%
-  right_join(csbs, by = c("clinic_added" = "clinic_id")) %>%
-  mutate(when_added = ifelse(is.na(when_added), max_added + 200, when_added)) -> when_added
-ctar_metadata %>%
-  select(CTAR, lat = LATITUDE, long = LONGITUDE, commcode, distcode) %>%
-  mutate(clinic_added = 1:31, when_added = 0) %>%
-  bind_rows(when_added) -> all_added
-steps <- c(0, 200, 400, 600, max_added, max_added + 200)
-all_times <- base_times
-all_pts <- filter(all_added, when_added == 0)
-all_pts$scenario <- 0
+base_pts <- select(ctar_metadata, lat, long, clinic_id)
+base_pts$scenario <- 0
+all_pts <- rbind(base_pts, select(clins_ranked, lat, long, clinic_id, scenario))
+scenario_pts <- base_pts
 
-foreach(i = 1:length(steps), .combine = 'bind_rows') %do% {
-  print(i)
-  pts <- filter(all_added, when_added <= steps[i])
-  pts$scenario <- steps[i]
+foreach(i = 1:length(scenario_levs), .combine = 'bind_rows') %do% {
+  pts <- filter(all_pts, scenario <= scenario_levs[i])
+  pts$scenario <- scenario_levs[i]
   point_mat_base <- as.matrix(dplyr::select(pts, Y_COORD = long, X_COORD = lat))
   ttimes <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
                        coords = point_mat_base, trans_matrix_exists = TRUE,
                        filename_trans = "data/processed/rasters/trans_gc_masked.rds")
   names(ttimes) <- "ttimes"
   ttimes_df <- as.data.frame(ttimes, xy = TRUE)
-  ttimes_df$scenario <- steps[i]
+  ttimes_df$scenario <- scenario_levs[i]
   ttimes_df$pop <- getValues(pop_1x1)
-  all_pts <- bind_rows(all_pts, pts)
+  scenario_pts <- bind_rows(scenario_pts, pts)
   ttimes_df
 } -> all_times_df
 
-# special scenarios
-clin_per_comm <- raster("output/ttimes/clin_per_comm_ttimes.tif")
-names(clin_per_comm) <- "ttimes"
-clin_per_comm <- as.data.frame(clin_per_comm, xy = TRUE)
-clin_per_comm$scenario <- max_added + 150.5
-clin_per_comm$pop <- getValues(pop_1x1)
-clin_per_dist <- raster("output/ttimes/clin_per_dist_ttimes.tif")
-names(clin_per_dist) <- "ttimes"
-clin_per_dist <- as.data.frame(clin_per_dist, xy = TRUE)
-clin_per_dist$scenario <- 114.5
-clin_per_dist$pop <- getValues(pop_1x1)
-
-pts_per_comm <- read.csv("data/processed/clinics/clinic_per_comm.csv")
-pts_per_comm$scenario <- max_added + 150.5
-pts_per_dist<- read.csv("data/processed/clinics/clinic_per_dist.csv")
-pts_per_dist$scenario <- 114.5
-all_pts <- bind_rows(all_pts, pts_per_comm, pts_per_dist)
-
-all_times_df <- bind_rows(clin_per_dist, clin_per_comm, all_times_df)
-all_times_df$scenario <- factor(all_times_df$scenario)
 all_times_df$ttimes <- ifelse(is.infinite(all_times_df$ttimes), NA, all_times_df$ttimes)
 
-S5.2A <- ggplot() + 
+S5.3A <- ggplot() + 
   geom_raster(data = all_times_df, aes(x = x, y = y, 
                                        fill = cut(ttimes/60, breaks = ttime_breaks, 
                                                   labels = ttime_labs))) + 
   scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
                     drop = FALSE, guide = "none") +
-  geom_point(data = all_pts, aes(x = long, y = lat), color = "grey50", alpha = 0.75,
+  geom_point(data = scenario_pts, aes(x = long, y = lat), color = "grey50", alpha = 0.75,
              shape = ".") +
   facet_wrap(~ scenario, nrow = 1, labeller = as_labeller(scenario_labs)) +
   theme_void() +
@@ -204,26 +204,26 @@ S5.2A <- ggplot() +
   labs(tag = "A") +
   theme(strip.text.x = element_text(hjust = 0.5, margin = margin(0.1, 0.1, 0.1, 0.1, "cm")))
 
-S5.2B <- ggplot() +
+S5.3B <- ggplot() +
   geom_polygon(data = gg_commune_plot, aes(x = long, y = lat, group = group, 
                                            fill = cut(value/60, breaks = ttime_breaks, 
                                                       labels = ttime_labs))) + 
   scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
                     drop = FALSE) +
-  geom_point(data = all_pts, aes(x = long, y = lat), shape = ".", color = "grey50", alpha = 0.75) +  
+  geom_point(data = scenario_pts, aes(x = long, y = lat), shape = ".", color = "grey50", alpha = 0.75) +  
   facet_wrap(~ scenario, nrow = 1, labeller = as_labeller(scenario_labs)) +
   theme_void() +
   coord_cartesian(clip = "off") +
   theme(strip.text.x = element_blank()) +
   labs(tag = "B")  
 
-S5.2C <- ggplot() +
+S5.3C <- ggplot() +
   geom_polygon(data = gg_district_plot, aes(x = long, y = lat, group = group, 
                                             fill = cut(value/60, breaks = ttime_breaks, 
                                                        labels = ttime_labs))) + 
   scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
                     drop = FALSE, guide = "none") +
-  geom_point(data = all_pts, aes(x = long, y = lat), color = "grey50", alpha = 0.75,
+  geom_point(data = scenario_pts, aes(x = long, y = lat), color = "grey50", alpha = 0.75,
              shape = ".") +  
   facet_wrap(~ scenario, nrow = 1, labeller = as_labeller(scenario_labs)) +
   theme_void() +
@@ -231,79 +231,19 @@ S5.2C <- ggplot() +
   theme(strip.text.x = element_blank()) +
   labs(tag = "C")  
 
-S5.2 <- S5.2A / S5.2B / S5.2C
+S5.3 <- S5.3A / S5.3B / S5.3C
 
 # Save as tiff otherwise too slow! 
-ggsave("figs/supplementary/S5.2_map_shifts.tiff", S5.2, height = 8, width = 10, compression = "lzw",
+ggsave("figs/supplementary/S5.3_map_shifts.tiff", S5.3, height = 8, width = 10, compression = "lzw",
        device = "tiff", dpi = 300, type = "cairo")
 
-# Histogram of proportion of people living within x hours ---------------------------------------
-pop_total <- sum(getValues(pop_1x1), na.rm = TRUE)
-all_times_df %>%
-  filter(!is.na(pop), !is.infinite(ttimes), !is.na(ttimes)) %>%
-  mutate(cut_times = cut(ttimes/60, breaks = c(-0.1, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, Inf),
-                         labels = c("0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "6-8", "8-10",
-                                    "10-12", "12-15", "15+"))) %>%
-  group_by(cut_times, scenario) %>%
-  summarize(prop_pop = sum(pop, na.rm = TRUE)/pop_total) -> prop_pop_ttimes
-write.csv(prop_pop_ttimes, "output/stats/prop_pop_ttimes.csv", row.names = FALSE)
-
-S5.3 <- ggplot(data = prop_pop_ttimes, aes(x = cut_times, y = prop_pop)) +
-  geom_col() +
-  ylim(c(0, 0.75)) +
-  labs(x = "Travel times (hrs)", y = "Proportion of population") +
-  facet_wrap(~ scenario, labeller = as_labeller(scenario_labs),
-             nrow = 2) +
-  theme_minimal_hgrid() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-ggsave("figs/supplementary/S5.3_prop_ttimes.jpeg", S5.3, height = 7, width = 8)
-
-# Shifts in proportion of people in single catchment -----------------------------------------
-# Single catchment
-scenario_filtered <- filter(scenario_to_plot, scenario_num %in% scenario_levs)
-ggplot(data = scenario_filtered, aes(x = prop_pop_catch, y = factor(scenario_num), fill = scale)) +
-  geom_density_ridges(alpha = 0.5, color = NA) +
-  scale_color_manual(values = model_cols, labels = scale_labs, name = "Scale") +
-  scale_fill_manual(values = model_cols, labels = scale_labs, name = "Scale") +
-  scale_y_discrete(labels = scenario_labs) +
-  labs(y = "# Additional ARMC", x = "Proportion of population \n in catchment") +
-  theme_minimal_hgrid(color = "grey50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) -> S5.4
-
-ggsave("figs/supplementary/S5.4_prop_catch.jpeg", S5.4, height = 5, width = 7)
-
 # Decreases in ttimes, bite incidence, and reporting ------------------------------------
-scenario_to_plot %>%
-  group_by(scenario_num, scenario, scale) %>%
-  summarize(ttimes_mean = mean(ttimes_wtd/60), 
-            ttimes_lower25 = quantile(ttimes_wtd/60, probs = 0.025),
-            ttimes_upper75 = quantile(ttimes_wtd/60, probs = 0.975)) -> scenario_ttimes
-
-admin_preds <- fread("output/preds/burden_all.gz")
-admin_preds  %>%
-  mutate(scenario_num = case_when(!(scenario %in% c("max", "armc_per_dist", 
-                                                    "armc_per_comm")) ~ as.numeric(scenario),
-                     scenario == "max" ~ max_added + 200, scenario == "armc_per_comm" ~ max_added + 150.5,
-                     scenario == "armc_per_dist" ~ 114.5)) -> admin_preds
-admin_preds %>%   
-  filter(scale != "") %>%
-  group_by(scenario_num, scenario, scale) %>%
-  summarize(reporting_upper75 = quantile(reporting_mean, probs = 0.025),
-            reporting_lower25 = quantile(reporting_mean, probs = 0.975),
-            reporting_mean = mean(reporting_mean), 
-            bites_upper75 = quantile(bites_mean/pop*1e5, probs = 0.025),
-            bites_lower25 = quantile(bites_mean/pop*1e5, probs = 0.975), 
-            bites_mean = mean(bites_mean/pop*1e5), 
-            deaths_upper75 = quantile(deaths_mean/pop*1e5, probs = 0.025),
-            deaths_lower25 = quantile(deaths_mean/pop*1e5, probs = 0.975),
-            deaths_mean = mean(deaths_mean/pop*1e5)) -> trend_preds
-
-preds_filtered <- filter(admin_preds, scenario_num %in% scenario_levs)
+admin_preds <- fread("output/preds/admin_preds.gz")
+admin_preds_filtered <- filter(admin_preds, scenario %in% scenario_levs)
 
 # Shifts in ttimes and bite incidence ------------------------------------
-ttimes_dist <- ggplot(data = preds_filtered, 
-                      aes(x = ttimes, y = as.factor(scenario_num), fill = scale)) +
+ttimes_dist <- ggplot(data = admin_preds_filtered, 
+                      aes(x = ttimes, y = as.factor(scenario), fill = scale)) +
   geom_density_ridges(alpha = 0.5, color = NA) +
   scale_fill_manual(values = model_cols, guide = "none") +
   scale_y_discrete(labels = scenario_labs) +
@@ -311,62 +251,23 @@ ttimes_dist <- ggplot(data = preds_filtered,
   theme_minimal_hgrid(color = "grey50") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-bites_dist <- ggplot(data = preds_filtered, 
-                     aes(x = bites_mean/pop*1e5, y = as.factor(scenario_num), fill = scale)) +
+bites_dist <- ggplot(data = admin_preds_filtered, 
+                     aes(x = bites_mean/pop*1e5, y = as.factor(scenario), fill = scale)) +
   geom_density_ridges(alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, guide = "none") +
+  scale_fill_manual(values = model_cols, name = "Scale") +
   scale_y_discrete(labels = scenario_labs) +
-  labs(y = "# Additional ARMC", x = "Reported bites \n per 100k", tag = "B") +
+  labs(y = "", x = "Reported bites \n per 100k", tag = "B") +
   theme_minimal_hgrid(color = "grey50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), axis.text.y = element_blank())
 
-ttimes_mean <- ggplot(data = filter(scenario_ttimes, !(scenario %in% c("max", "armc_per_comm", 
-                                                                       "armc_per_dist"))), 
-                      aes(x = scenario_num, y = ttimes_mean, color = scale, fill = scale)) +
-  geom_line(size = 1) +
-  geom_ribbon(aes(ymin = ttimes_lower25, ymax = ttimes_upper75), color = NA, alpha = 0.35) +
-  geom_pointrange(data = filter(scenario_ttimes, scenario %in% c("max", "armc_per_comm", 
-                                                            "armc_per_dist")), 
-             aes(x = scenario_num, y = ttimes_mean, ymin = ttimes_lower25, ymax = ttimes_upper75,
-                 color = scale, shape = scenario), position = position_dodge(width = 50)) +
-  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols, guide = "none") +
-  scale_x_continuous(breaks = c(0, 100, 200, 400, max_added, max_added + 200), 
-                     labels = c("Baseline", 100, 200, 400, max_added, "All CSB 2\n (+ 1648)")) +
-  scale_shape_discrete(guide = "none") + 
-  labs(x = "# Additional ARMC", y = "Travel times (hrs)") +
-  theme_minimal_hgrid() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+S5.4 <- (ttimes_dist | bites_dist) 
 
-bites_mean <- ggplot(data = filter(trend_preds, !(scenario %in% c("max", "armc_per_comm", 
-                                                                       "armc_per_dist"))), 
-                      aes(x = scenario_num, y = bites_mean, color = scale, fill = scale)) +
-  geom_line(size = 1) +
-  geom_ribbon(aes(ymin = bites_lower25, ymax = bites_upper75), color = NA, alpha = 0.35) +
-  geom_pointrange(data = filter(trend_preds, scenario %in% c("max", "armc_per_comm", 
-                                                                 "armc_per_dist")), 
-                  aes(x = scenario_num, y = bites_mean, ymin = bites_lower25, ymax = bites_upper75,
-                      color = scale, shape = scenario), position = position_dodge(width = 50)) +
-  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols, name = "Scale") +
-  scale_x_continuous(breaks = c(0, 100, 200, 400, max_added, max_added + 200), 
-                     labels = c("Baseline", 100, 200, 400, max_added, "All CSB 2\n (+ 1648)")) +
-  scale_shape_discrete(labels = c("max" = "All CSB II \n (+ 1648)",
-                                  "armc_per_dist" = "1 per district\n (+ 83)",
-                                  "armc_per_comm" = "1 per commune\n (+ 1375)"), 
-                       name = "Additional\n scenarios") + 
-  labs(x = "# Additional ARMC", y = "Bites per 100k") +
-  theme_minimal_hgrid() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-S5.5A <- (ttimes_dist | ttimes_mean) 
-S5.5B <- (bites_dist | bites_mean) 
-
-S5.5_ttimes_shifts <- S5.5A / S5.5B + plot_layout(guides = "collect") 
-ggsave("figs/supplementary/S5.5_ttimes_shifts.jpeg", S5.5_ttimes_shifts, width = 10, height = 10)
+ggsave("figs/supplementary/S5.4_ttimes_bites.jpeg", S5.4, width = 8, height = 6)
 
 # Shifts in reporting and death incidence ------------------------------------
 reporting_dist <- ggplot() +
-  geom_density_ridges(data = preds_filtered, 
-                      aes(x = reporting_mean, y = as.factor(scenario_num), fill = scale), 
+  geom_density_ridges(data = admin_preds_filtered, 
+                      aes(x = reporting_mean, y = as.factor(scenario), fill = scale), 
                       alpha = 0.5, color = NA) +
   scale_fill_manual(values = model_cols, guide = "none") +
   scale_y_discrete(labels = scenario_labs) +
@@ -376,108 +277,52 @@ reporting_dist <- ggplot() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 deaths_dist <- ggplot() +
-  geom_density_ridges(data = preds_filtered, 
-                      aes(x = deaths_mean/pop*1e5, y = as.factor(scenario_num), fill = scale), 
+  geom_density_ridges(data = admin_preds_filtered, 
+                      aes(x = deaths_mean/pop*1e5, y = as.factor(scenario), fill = scale), 
                       alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, guide = "none") +
+  scale_fill_manual(values = model_cols,  name = "Scale") +
   scale_y_discrete(labels = scenario_labs) +
-  labs(y = "# Additional ARMC", x = "Deaths per 100k", tag = "B") +
+  labs(y = "", x = "Deaths per 100k", tag = "B") +
   theme_minimal_hgrid(color = "grey50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), axis.text.y = element_blank())
 
-reporting_mean <- ggplot(data = filter(trend_preds, !(scenario %in% c("max", "armc_per_comm", 
-                                                  "armc_per_dist"))), 
-                         aes(x = scenario_num, y = reporting_mean, color = scale, fill = scale)) +
-  geom_line(size = 1) +
-  geom_ribbon(aes(ymin = reporting_lower25, ymax = reporting_upper75), color = NA, alpha = 0.35) +
-  geom_pointrange(data = filter(trend_preds, scenario %in% c("max", "armc_per_comm", 
-                                                             "armc_per_dist")), 
-                  aes(x = scenario_num, y = reporting_mean, 
-                      ymin = reporting_lower25, ymax = reporting_upper75, color = scale, 
-                      shape = scenario), position = position_dodge(width = 50)) +
-  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols, name = "Scale") +
-  scale_x_continuous(breaks = c(0, 100, 200, 400, max_added, max_added + 200), 
-                     labels = c("Baseline", 100, 200, 400, max_added, "All CSB 2\n (+ 1648)")) +
-  scale_shape_discrete(guide = "none") + 
-  labs(x = "# Additional ARMC", y = "Reporting") +
-  theme_minimal_hgrid() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-deaths_mean <- ggplot(data = filter(trend_preds, !(scenario %in% c("max", "armc_per_comm", 
-                                                                   "armc_per_dist"))), 
-                      aes(x = scenario_num, y = deaths_mean, color = scale, fill = scale)) +
-  geom_line(size = 1) +
-  geom_ribbon(aes(ymin = deaths_lower25, ymax = deaths_upper75), color = NA, alpha = 0.35) +
-  geom_pointrange(data = filter(trend_preds, scenario %in% c("max", "armc_per_comm", 
-                                                             "armc_per_dist")), 
-                  aes(x = scenario_num, y = deaths_mean, 
-                      ymin = deaths_lower25, ymax = deaths_upper75, color = scale, 
-                      shape = scenario), position = position_dodge(width = 50)) +  
-  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols, name = "Scale") +
-  scale_x_continuous(breaks = c(0, 100, 200, 400, max_added, max_added + 200), 
-                     labels = c("Baseline", 100, 200, 400, max_added, "All CSB 2\n (+ 1648)")) +
-  scale_shape_discrete(labels = c("max" = "All CSB II \n (+ 1648)",
-                                  "armc_per_dist" = "1 per district\n (+ 83)",
-                                  "armc_per_comm" = "1 per commune\n (+ 1375)"), name = "Additional\n scenarios") + 
-  labs(x = "# Additional ARMC", y = "Deaths per 100k") +
-  theme_minimal_hgrid() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-S5.6A <- (reporting_dist | reporting_mean) 
-S5.6B <- (deaths_dist | deaths_mean) 
-S5.6_reporting_shifts <- S5.6A / S5.6B + plot_layout(guides = "collect") 
-ggsave("figs/supplementary/S5.6_reporting_shifts.jpeg", S5.6_reporting_shifts, width = 10, height = 10)
+S5.5 <- (reporting_dist | deaths_dist )
+ggsave("figs/supplementary/S5.5_reporting_shifts.jpeg", S5.5, width = 8, height = 6)
 
 # write out stats
-trend_preds %>%
-  left_join(scenario_ttimes) -> trend_preds
-write.csv(trend_preds, "output/stats/trend_preds.csv", row.names = FALSE)
+admin_preds %>%   
+  group_by(scenario, scale) %>%
+  summarize(ttimes_upper75 = quantile(ttimes, probs = 0.025),
+            ttimes_lower25 = quantile(ttimes, probs = 0.975),
+            ttimes_mean = mean(ttimes), 
+            reporting_upper75 = quantile(reporting_mean, probs = 0.025),
+            reporting_lower25 = quantile(reporting_mean, probs = 0.975),
+            reporting_mean = mean(reporting_mean), 
+            bites_upper75 = quantile(bites_mean/pop*1e5, probs = 0.025),
+            bites_lower25 = quantile(bites_mean/pop*1e5, probs = 0.975), 
+            bites_mean = mean(bites_mean/pop*1e5), 
+            deaths_upper75 = quantile(deaths_mean/pop*1e5, probs = 0.025),
+            deaths_lower25 = quantile(deaths_mean/pop*1e5, probs = 0.975),
+            deaths_mean = mean(deaths_mean/pop*1e5)) -> trend_preds
+write.csv(trend_preds, "output/stats/trends_adminpreds.csv", row.names = FALSE)
 
 # Shifts in clinic stats ----------------------------------------------------------------
-commune_allcatch <- fread("output/ttimes/commune_allcatch.gz")
+commune_allcatch <- fread("output/ttimes/addclinics/commpreds_all.csv")
 commune_allcatch %>%
-  mutate(scenario_num = 
-           case_when(!(scenario %in% c("max", "armc_per_dist", "armc_per_comm")) ~ as.numeric(scenario),
-                     scenario == "max" ~ max_added + 200, scenario == "armc_per_comm" ~ max_added + 150.5,
-                     scenario == "armc_per_dist" ~ 114.5)) %>%
-  group_by(catchment, scenario, scenario_num) %>%
-  summarize(pop_catch = sum(prop_pop_catch*pop)) %>%
+  group_by(catchment, scenario) %>%
+  summarize(pop_catch = sum(prop_pop_catch*pop_admin)) %>%
   mutate(scale = "Commune") -> catch_pops
 
-# Means of catchment pops, throughput, vials
-catch_pops  %>%
-  filter(scale != "") %>%
-  group_by(scenario, scenario_num, scale) %>%
-  summarize(pops_lower = quantile(pop_catch, probs = 0.025),
-            pops_upper = quantile(pop_catch, probs = 0.975),
-            pops_mean = mean(pop_catch)) -> trend_catch_pops
-
 bites_by_catch <- fread("output/preds/catch_preds.gz")
-bites_by_catch %>%
-  mutate(scenario_num = 
-           case_when(!(scenario %in% c("max", "armc_per_dist", "armc_per_comm")) ~ as.numeric(scenario),
-                     scenario == "max" ~ max_added + 200, scenario == "armc_per_comm" ~ max_added + 150.5,
-                     scenario == "armc_per_dist" ~ 114.5)) -> bites_by_catch
-bites_by_catch %>%
-  group_by(scenario, scenario_num, scale) %>%
-  summarize(tp_upper = quantile(tp_mean, probs = 0.975),
-            tp_lower = quantile(tp_mean, probs = 0.025),
-            tp_mean = mean(tp_mean), 
-            vials_upper = quantile(vials_mean, probs = 0.975),
-            vials_lower = quantile(vials_mean, probs = 0.025),
-            vials_mean = mean(vials_mean)) -> catch_means
-catch_trends <- left_join(trend_catch_pops, catch_means)
-write.csv(catch_trends, "output/stats/trend_catches.csv", row.names = FALSE)
 
 # Filtered scenarios
-catch_pops_filtered <- filter(catch_pops, scenario_num %in% scenario_levs)
-bites_by_catch_filtered <- filter(bites_by_catch, 
-                                  scenario_num %in% scenario_levs)
+catch_pops_filtered <- filter(catch_pops, scenario %in% scenario_levs)
+bites_by_catch_filtered <- filter(bites_by_catch, scenario %in% scenario_levs)
 
 # Catchment pops distribution
 catchpop_dist <- ggplot() +
   geom_density_ridges(data = catch_pops_filtered, 
-                      aes(x = pop_catch, y = as.factor(scenario_num), fill = scale), 
+                      aes(x = pop_catch, y = as.factor(scenario), fill = scale), 
                       alpha = 0.5, color = NA) +
   scale_fill_manual(values = model_cols, labels = scale_labs, name = "Scale", guide = "none") +
   scale_y_discrete(labels = scenario_labs) +
@@ -486,30 +331,10 @@ catchpop_dist <- ggplot() +
   theme_minimal_hgrid(color = "grey50") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-catchpop_mean <- ggplot(data = filter(trend_catch_pops, !(scenario %in% c("max", "armc_per_comm", 
-                                                                          "armc_per_dist"))), 
-                        aes(x = scenario_num, y = pops_mean, color = scale, fill = scale)) +
-  geom_line(size = 1) +
-  geom_ribbon(aes(ymin = pops_lower, ymax = pops_upper), color = NA, alpha = 0.35) +
-  geom_pointrange(data = filter(trend_catch_pops, scenario %in% c("max", "armc_per_comm", 
-                                                             "armc_per_dist")), 
-                  aes(ymin = pops_lower, ymax = pops_upper, color = scale, shape = scenario),
-                  position = position_dodge(width = 50)) +
-  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols, guide = "none") +
-  scale_x_continuous(breaks = c(0, 100, 200, 400, max_added, max_added + 200), 
-                     labels = c("Baseline", 100, 200, 400, max_added, "All CSB 2\n (+ 1648)")) +
-  scale_y_continuous(trans = "log", limits = c(1e3, 1e7), breaks = c(1e3, 1e4, 1e5, 1e6)) +
-  scale_shape(guide = "none") +
-  labs(x = "# Additional ARMC", y = "Catchment pop size (average)") +
-  theme_minimal_hgrid() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-catchpop_A <- catchpop_dist | catchpop_mean
-
 # Vials
 vials_dist <- ggplot() +
   geom_density_ridges(data = bites_by_catch_filtered, 
-                      aes(x = vials_mean, y = as.factor(scenario_num), fill = scale), 
+                      aes(x = vials_mean, y = as.factor(scenario), fill = scale), 
                       alpha = 0.5, color = NA) +
   scale_fill_manual(values = model_cols, labels = scale_labs, name = "Scale", 
                     guide = "none") +
@@ -519,139 +344,126 @@ vials_dist <- ggplot() +
   theme_minimal_hgrid(color = "grey50") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-vials_mean <- ggplot(data = filter(catch_means, !(scenario %in% c("max", "armc_per_comm", 
-                                                                  "armc_per_dist"))), 
-                     aes(x = scenario_num, y = vials_mean, color = scale, fill = scale)) +
-  geom_line(size = 1) +
-  geom_ribbon(aes(ymin = vials_lower, ymax = vials_upper), color = NA, alpha = 0.35) +
-  geom_pointrange(data = filter(catch_means, scenario %in% c("max", "armc_per_comm", 
-                                                             "armc_per_dist")),
-                  aes(y = vials_mean, ymin = vials_lower, ymax = vials_upper, color = scale, 
-                      shape = scenario)) +
-  scale_fill_manual(aesthetics =c ("color", "fill"), 
-                    values = model_cols, labels = scale_labs, name = "Scale") +
-  scale_shape_discrete(labels = c("max" = "All CSB II \n (+ 1648)",
-                                  "armc_per_dist" = "1 per district\n (+ 83)",
-                                  "armc_per_comm" = "1 per commune\n (+ 1375)"), name = "Additional\n scenarios") + 
-  scale_x_continuous(breaks = c(0, 100, 200, 400, max_added, max_added + 200), 
-                     labels = c("Baseline", 100, 200, 400, max_added, "All CSB 2\n (+ 1648)")) +
-  labs(x = "# Additional ARMC", y = "Annual clinic vial demand (average)") +
-  theme_minimal_hgrid() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-vials_B <- vials_dist | vials_mean
 
 # Throughput
 tp_dist <- ggplot() +
   geom_density_ridges(data = bites_by_catch_filtered, 
-                      aes(x = tp_mean, y = as.factor(scenario_num), fill = scale), 
+                      aes(x = tp_mean, y = as.factor(scenario), fill = scale), 
                       alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, labels = scale_labs, name = "Scale", 
-                    guide = "none") +
+  scale_fill_manual(values = model_cols, labels = scale_labs, name = "Scale") +
   scale_y_discrete(labels = scenario_labs) +
   scale_x_continuous(trans = "sqrt") +
-  labs(y = "# Additional ARMC", x = "Daily clinic throughput", tag = "C") +
+  labs(y = "", x = "Daily clinic throughput", tag = "C") +
   theme_minimal_hgrid(color = "grey50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), axis.text.y = element_blank())
 
-tp_mean <- ggplot(data = filter(catch_means, !(scenario %in% c("max", "armc_per_comm", 
-                                                               "armc_per_dist"))), 
-                  aes(x = scenario_num, y = tp_mean, color = scale, fill = scale)) +
-  geom_line(size = 1) +
-  geom_ribbon(aes(ymin = tp_lower, ymax = tp_upper), color = NA, alpha = 0.35) +
-  geom_pointrange(data = filter(catch_means, scenario %in% c("max", "armc_per_comm", 
-                                                               "armc_per_dist")),
-                  aes(ymin = tp_lower, ymax = tp_upper, color = scale, shape = scenario)) +
-  scale_color_manual(aesthetics = c("color", "fill"),
-                     values = model_cols, guide = "none") +
-  scale_x_continuous(breaks = c(0, 100, 200, 400, max_added, max_added + 200), 
-                     labels = c("Baseline", 100, 200, 400, max_added, "All CSB 2\n (+ 1648)")) +
-  scale_shape(guide = "none") +
-  scale_y_continuous(trans = "log", breaks = c(0, 0.5, 1, 10, 20, 40, 60)) +
-  labs(x = "# Additional ARMC", y = "Daily clinic throughput (average)") +
-  theme_minimal_hgrid() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+S5.6_clinic_shifts <- catchpop_dist / (vials_dist | tp_dist)
+ggsave("figs/supplementary/S5.6_clinic_shifts.jpeg", S5.6_clinic_shifts, height = 8, width = 8)
 
-tp_C <- tp_dist | tp_mean
+# Catchment stats
+# Means of catchment pops, throughput, vials
+catch_pops  %>%
+  group_by(scenario, scale) %>%
+  summarize(pops_lower = quantile(pop_catch, probs = 0.025),
+            pops_upper = quantile(pop_catch, probs = 0.975),
+            pops_mean = mean(pop_catch)) -> trend_catch_pops
 
-S5.7_clinic_shifts <- catchpop_A / vials_B / tp_C 
-ggsave("figs/supplementary/S5.7_clinic_shifts.jpeg", S5.7_clinic_shifts, height = 12, width = 10)
-
-# Bites by clinics added ----------------------------------------------------------------------
-point_mat_all <- bind_rows(dplyr::select(ctar_metadata, long = LONGITUDE, lat = LATITUDE, clinic_id),
-                       dplyr::select(csbs, long, lat, clinic_id),
-                       pts_per_comm, pts_per_dist)
-pts <- SpatialPoints(cbind(point_mat_all$long, point_mat_all$lat), 
-                     proj4string = 
-                       CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-point_mat_all$commcode_ctar <- over(pts, mada_communes)$commcode
-point_mat_all$distcode_ctar <- over(pts, mada_communes)$distcode
-point_mat_all %>%
-  select(long, lat, clinic_id, commcode_ctar, distcode_ctar) %>%
-  distinct() -> point_mat_all
-
-# Get # of communes/districts with a clinic
 bites_by_catch %>%
-  left_join(point_mat_all,
-            by = c("catchment" = "clinic_id")) -> bites_by_catch # clinic points
-bites_by_catch %>%
-  group_by(scenario, scenario_num, scale) %>%
-  summarize(ncomms = length(unique(commcode_ctar)),
-            ndists = length(unique(distcode_ctar))) -> clinics_per_admin
-fwrite(clinics_per_admin, "output/stats/clinic_per_admin.csv")
+  group_by(scenario, scale) %>%
+  summarize(tp_upper = quantile(tp_mean, probs = 0.975),
+            tp_lower = quantile(tp_mean, probs = 0.025),
+            tp_mean = mean(tp_mean), 
+            vials_upper = quantile(vials_mean, probs = 0.975),
+            vials_lower = quantile(vials_mean, probs = 0.025),
+            vials_mean = mean(vials_mean)) -> catch_means
+catch_trends <- left_join(trend_catch_pops, catch_means)
+write.csv(catch_trends, "output/stats/trend_catches.csv", row.names = FALSE)
 
+# Flows of where bites reported to ----------------------------------------------------------
 # Prop of bites in catchment
-props_by_catch <- fread("output/preds/catch_props.csv")
-props_by_catch %>%
-  mutate(scenario_num = case_when(!(scenario %in% c("max", "armc_per_dist", 
-                                                    "armc_per_comm")) ~ as.numeric(scenario),
-                                  scenario == "max" ~ max_added + 200, scenario == "armc_per_comm" ~ max_added + 150.5,
-                                  scenario == "armc_per_dist" ~ 114.5)) -> props_by_catch
-bites_by_catch <- filter(bites_by_catch, scenario_num %in% scenario_levs)
-props_by_catch <- filter(props_by_catch, scenario_num %in% scenario_levs)
+props_by_catch <- fread("output/preds/prop_preds.gz")
+props_by_catch_filtered <- props_by_catch[scenario %in% scenario_levs]
 
 # left join with props by catch
-clinic_bites <- left_join(bites_by_catch, props_by_catch) # need to make sure this is joined with clinic id as well!
+bites_by_catch_filtered <- left_join(bites_by_catch_filtered, 
+                                     select(scenario_pts, lat, long, clinic_id), 
+                                     by = c("catchment" = "clinic_id"))
+bites_by_catch_filtered$step_added <- clins_ranked$scenario[match(bites_by_catch_filtered$catchment,
+                                                                  clins_ranked$clinic_id)]
+bites_by_catch_filtered %>%
+  mutate(step_added = case_when(is.na(step_added) & catchment < 32  ~ 0, 
+                                is.na(step_added) & scenario == max(scenario) ~ as.numeric(max_csb), 
+                                !is.na(step_added) ~ step_added)) -> bites_by_catch_filtered
+
+clinic_bites <- left_join(bites_by_catch_filtered, props_by_catch_filtered) # need to make sure this is joined with clinic id as well!
 clinic_bites <- left_join(clinic_bites, select(mada_communes@data, commcode, long_cent, lat_cent),
-                            by = c("commcode" = "commcode"))
-clinic_bites$line_size <- clinic_bites$prop_bites*clinic_bites$bites_mean
+                          by = c("commcode" = "commcode"))
+clinic_bites$line_size <- clinic_bites$prop_bites_mean*clinic_bites$bites_mean
 
-# Proportion of bites within admin units ------------------------------------------------------
-clinic_bites$distcode <- substring(clinic_bites$commcode, 1, 7)
-clinic_bites_incomm <- filter(clinic_bites, commcode_ctar == commcode)
-clinic_bites %>%
-  filter(distcode_ctar == distcode) %>%
-  select(bites = line_size, bites_total = bites_mean, distcode, catchment, scale,
-         scenario, scenario_num) %>%
-  group_by(catchment, scenario_num, scale) %>%
-  summarize(prop_bites = sum(bites)/bites_total[1]) -> clinic_bites_indist
+# Get bite incidence @ comm level
+gg_commune <- left_join(select(admin_preds_filtered, names, scenario, scale, pop, bites_mean), gg_commune,
+                        by = c("names" = "id"))
 
-# Commune scale
-prop_comm <- ggplot() +
-  geom_density_ridges(data = clinic_bites_incomm, 
-                      aes(x = prop_bites, y = as.factor(scenario_num), fill = scale), 
-                      alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, guide = "none") +
-  scale_y_discrete(labels = scenario_labs) +
-  scale_x_continuous(limits = c(0, 1.01)) +
-  labs(y = "# Additional ARMC", x = "Proportion of bites \n reported from \n same commune as ARMC", 
-       tag = "A") +
-  theme_minimal_hgrid(color = "grey50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+step_cols <- rev(c('#f7fbff','#deebf7','#c6dbef','#9ecae1','#6baed6','#4292c6','#2171b5','#084594'))
+step_breaks <- c(-1, 0, 83, 200, 400, 800, 1000, max_added, max_csb)
+step_labs <- c("baseline", "+ 1 - 83", "+ 84 - 200", "+ 201 - 400", "+ 401 - 600", "+ 601 - 1200", 
+               glue("+ 1201 - {max_added}"), "All addtl CSB IIs")
+names(step_cols) <- step_labs
 
-prop_dist <- ggplot() +
-  geom_density_ridges(data = clinic_bites_indist, 
-                      aes(x = prop_bites, y = as.factor(scenario_num), fill = scale), 
-                      alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, labels = scale_labs, name = "Scale", guide = "legend") +
-  scale_y_discrete(labels = scenario_labs) +
-  scale_x_continuous(limits = c(0, 1.01)) +
-  labs(y = "", x = "Proportion of bites \n reported from \n same district as ARMC", tag = "B") +
-  theme_minimal_hgrid(color = "grey50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+S5.7_comm <- ggplot() +
+  geom_polygon(data = filter(gg_commune, scale == "Commune"), 
+               aes(x = long, y = lat, group = group, alpha = bites_mean/pop*1e5), 
+               fill = model_cols["Commune"]) +
+  geom_segment(data = filter(clinic_bites, scale == "Commune"),
+               aes(x = long, y = lat, xend = long_cent, yend = lat_cent, 
+                   color = cut(step_added, breaks = step_breaks, labels = step_labs),
+                   size = log(ceiling(prop_bites_mean*bites_mean + 1.1))*0.2),
+               alpha = 0.85) +
+  geom_point(data = filter(bites_by_catch_filtered, scale == "Commune"),
+             aes(x = long, y = lat, size = log(bites_mean + 1.1)*0.4, 
+                 fill = cut(step_added, breaks = step_breaks, labels = step_labs)), color = "black",
+             shape  = 21, alpha = 0.75) +
+  scale_size_identity(breaks = log(c(5, 50, 500, 5000) + 1.1)*0.4, 
+                      labels = c(5, 50, 500, "5000 +"),
+                      name = "Bites reported to clinic", 
+                      guide = guide_legend(override.aes = list(alpha = 0.5, color = "grey50"))) +
+  scale_color_manual(values = step_cols, na.translate = FALSE, name = "Step clinic added",
+                     drop = FALSE, aesthetics = c("color", "fill")) +
+  scale_alpha(name = "Bites per 100k", breaks = c(5, 50, 100, 150)) +
+  coord_quickmap() +
+  facet_wrap(~ scenario, labeller = labeller(scenario = scenario_labs), nrow = 2) +
+  theme_map() +
+  guides(fill = guide_legend(override.aes = list(size = 3))) 
 
-S5.8_prop <- prop_comm / prop_dist + plot_layout(guides = "collect") & theme(plot.margin = margin(0.4, 0.4, 0.4, 0.4, "cm"))
-ggsave("figs/supplementary/S5.8_prop_in_admin.jpeg", S5.8_prop, height = 8, width = 8)
+ggsave("figs/supplementary/S5.7_comm_map.jpeg", S5.7_comm, height = 8, width = 8)
+
+S5.8_dist <- ggplot() +
+  geom_polygon(data = filter(gg_commune, scale == "District"), 
+               aes(x = long, y = lat, group = group, alpha = bites_mean/pop*1e5), 
+               fill = model_cols["District"]) +
+  geom_segment(data = filter(clinic_bites, scale == "District"),
+               aes(x = long, y = lat, xend = long_cent, yend = lat_cent, 
+                   color = cut(step_added, breaks = step_breaks, labels = step_labs),
+                   size = log(ceiling(prop_bites_mean*bites_mean + 1.1))*0.2),
+               alpha = 0.85) +
+  geom_point(data = filter(bites_by_catch_filtered, scale == "District"),
+             aes(x = long, y = lat, size = log(bites_mean + 1.1)*0.4, 
+                 fill = cut(step_added, breaks = step_breaks, labels = step_labs)), color = "black",
+             shape  = 21, alpha = 0.75) +
+  scale_size_identity(breaks = log(c(5, 50, 500, 5000) + 1.1)*0.4, 
+                      labels = c(5, 50, 500, "5000 +"),
+                      name = "Bites reported to clinic", 
+                      guide = guide_legend(override.aes = list(alpha = 0.5, color = "grey50"))) +
+  scale_color_manual(values = step_cols, na.translate = FALSE, name = "Step clinic added",
+                     drop = FALSE, aesthetics = c("color", "fill")) +
+  scale_alpha(name = "Bites per 100k", breaks = c(5, 50, 100, 150)) +
+  coord_quickmap() +
+  facet_wrap(~ scenario, labeller = labeller(scenario = scenario_labs), nrow = 2) +
+  theme_map() +
+  guides(fill = guide_legend(override.aes = list(size = 3))) 
+
+
+ggsave("figs/supplementary/S5.8_dist_map.jpeg", S5.8_dist, height = 8, width = 8)
 
 # Session Info
 out.session(path = "R/SM5_shifts.R", filename = "output/log_local.csv", start = start)

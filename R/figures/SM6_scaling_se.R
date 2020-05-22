@@ -2,6 +2,9 @@
 #' Scaling sensitivity analyses   
 # ------------------------------------------------------------------------------------------------ #
 
+source("R/functions/out.session.R")
+start <- Sys.time()
+
 # Libraries and scripts
 library(data.table)
 library(foreach)
@@ -11,7 +14,6 @@ library(tidyverse)
 library(cowplot)
 library(patchwork)
 library(glue)
-source("R/functions/out.session.R")
 source("R/functions/predict_functions.R")
 
 # Relationship + map for each scale & direction ---------------------------------
@@ -123,10 +125,10 @@ S6.4_scaling_rels <- (neg_A / pos_B) + plot_layout(guides = "collect")
 ggsave("figs/supplementary/S6.4_scaling_rels.jpeg", S6.4_scaling_rels, width = 10, height = 10)
 
 # Baseline deaths mean ----------------------------------------------------------
-baseline <- fread("output/preds/burden_base.gz")
+baseline <- fread("output/preds/admin_preds.gz")[scenario == 0]
 base_scaled <- fread("output/sensitivity/burden_baseline_scaled.gz") 
 add_scaled <- fread("output/sensitivity/burden_addclinics_scaled.gz") 
-add_base <- fread("output/preds/burden_natl.gz")
+add_base <- fread("output/preds/natl_preds.gz")
 
 # Baseline ----------------------------------
 scaling_labs <- c(neg = "Incidence decreases \n with pop", pos = "Incidence increases \n with pop",
@@ -164,17 +166,6 @@ base_scaling_A <- ggplot(data = base_se,
   theme(strip.text.y = element_blank())
 
 # Add ARMC level ----------------------------------
-# Pull in data
-max_added <- nrow(fread("output/ttimes/addclinics_prop_df.csv"))
-max_csb <- nrow(fread("data/processed/clinics/csb2.csv"))
-clins_per_comm <- nrow(read.csv("data/processed/clinics/clinic_per_comm.csv"))
-scenario_labs <- c("Baseline\n (N = 31)", glue("1 per district\n (+ {114 - 31})"), "+ 200", "+ 400", 
-                   "+ 600", glue("+ {max_added}"), 
-                   glue("1 per commune\n (+ {clins_per_comm - 31})"),
-                   glue("All CSB II\n (+ {max_csb})"))
-scenario_levs <- c(0, 114.5, 200, 400, 600, max_added, max_added + 150.5, max_added + 200)
-names(scenario_labs) <- scenario_levs
-
 add_scaled %>%
   pivot_longer(bites_mean:averted_lower) %>%
   filter(grepl("deaths", name)) %>%
@@ -182,7 +173,6 @@ add_scaled %>%
               names_from = name) -> add_summ
 
 add_base %>%
-  filter(scale != "") %>%
   pivot_longer(bites_mean:averted_lower) %>%
   filter(grepl("deaths", name)) %>%
   mutate(scaling = "base") %>%
@@ -191,29 +181,21 @@ add_base %>%
   bind_rows(add_summ) -> add_se
 
 add_se %>%
-  mutate(scenario_num = case_when(!(scenario %in% c("max", "armc_per_dist", "armc_per_comm")) ~ as.numeric(scenario),
-            scenario == "max" ~ max_added + 200, scenario == "armc_per_comm" ~ max_added + 150.5,
-            scenario == "armc_per_dist" ~ 114.5)) -> add_se
-add_se %>%
   group_by(scaling, scale) %>%
-  arrange(scenario_num) %>%
+  arrange(scenario) %>%
   mutate(deaths_mean = deaths_mean/deaths_mean[1],
          deaths_upper = deaths_upper/deaths_upper[1],
          deaths_lower = deaths_lower/deaths_lower[1]) -> add_props
 
 add_se$scaling <- factor(add_se$scaling, levels = c("neg", "base", "pos"))
 
-add_scaling_B <- ggplot(data = filter(add_props, 
-                                      !(scenario %in% c("max", "armc_per_comm", 
-                                                                    "armc_per_dist"))), 
-                         aes(x = scenario_num, y = deaths_mean, 
+add_scaling_B <- ggplot(data = filter(add_props, scenario != max(scenario)), 
+                         aes(x = scenario, y = deaths_mean, 
                              color = scale, fill = scale, shape = scaling)) +
   geom_pointrange(aes(ymin = deaths_lower, ymax = deaths_upper), alpha = 0.25, 
                   size = 0.1, fatten = 10) +
-  geom_pointrange(data = filter(add_props, 
-                                scenario %in% c("max", "armc_per_comm", 
-                                                            "armc_per_dist")),
-                  aes(x = scenario_num, y = deaths_mean, ymin = deaths_lower, 
+  geom_pointrange(data = filter(add_props, scenario == max(scenario)),
+                  aes(x = scenario, y = deaths_mean, ymin = deaths_lower, 
                       ymax = deaths_upper, shape = scaling),
                   position = position_dodge(width = 50), show.legend = FALSE) +
   facet_grid(rows = "scale", labeller = labeller(scaling = scaling_labs)) + 
@@ -230,7 +212,7 @@ S6.5_scaling_se <- (base_scaling_A / add_scaling_B) + plot_layout(heights = c(1.
 ggsave("figs/supplementary/S6.5_scaling_se.jpeg", S6.5_scaling_se, width = 10, height = 10)
 
 # Saving session info
-out.session(path = "R/figures/SM6_scaling_se.R", filename = "output/log_local.csv")
+out.session(path = "R/figures/SM6_scaling_se.R", filename = "output/log_local.csv", start = start)
 
 
 

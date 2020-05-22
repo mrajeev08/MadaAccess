@@ -2,6 +2,9 @@
 #' Main section on travel times 
 # ------------------------------------------------------------------------------------------------ #
 
+start <- Sys.time()
+source("R/functions/out.session.R")
+
 # Set-up
 library(tidyverse)
 library(rgdal)
@@ -16,7 +19,7 @@ source('R/functions/out.session.R')
 ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
-base_times <- raster("output/ttimes/base_ttimes.tif")
+base_times <- raster("output/ttimes/base/ttimes.tif")
 pop1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
@@ -31,11 +34,11 @@ base_df <- as.data.frame(base_times, xy = TRUE)
 
 ttimes_A <- ggplot() + 
   geom_raster(data = base_df, aes(x, y, 
-                                  fill = cut(base_ttimes/60, breaks = ttime_breaks, 
+                                  fill = cut(ttimes/60, breaks = ttime_breaks, 
                                              labels = ttime_labs))) + 
   scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
                     drop = FALSE, na.value = "black") +
-  geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "darkgrey", 
+  geom_point(data = ctar_metadata, aes(x = long, y = lat), color = "darkgrey", 
              shape = 4,
              stroke = 2) +
   theme_map() +
@@ -43,7 +46,7 @@ ttimes_A <- ggplot() +
   coord_quickmap()
 
 # Proportion of pop 
-baseline_df <- fread("output/ttimes/baseline_grid.gz")
+baseline_df <- fread("output/ttimes/base/grid_df.gz")
 baseline_df %>%
   filter(!is.na(pop), !is.infinite(ttimes), !is.na(ttimes)) %>%
   mutate(cut_times = cut(ttimes/60, breaks = ttime_breaks,
@@ -113,4 +116,4 @@ ggsave("figs/main/M2_ttimes.tiff", figM2_ttimes, dpi = 300, height = 10, width =
        compression = "lzw", type = "cairo")
 
 # save session info
-out.session(path = "R/figures/M2_ttimes.R", filename = "output/log_local.csv")
+out.session(path = "R/figures/M2_ttimes.R", filename = "output/log_local.csv", start = start)

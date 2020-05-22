@@ -2,17 +2,19 @@
 #' Univariate sensitivity analyses     
 # ------------------------------------------------------------------------------------------------ #
 
+source("R/functions/out.session.R")
+start <- Sys.time()
+
 # Libraries and scripts
 library(data.table)
 library(tidyverse)
 library(cowplot)
 library(patchwork)
 library(glue)
-source("R/functions/out.session.R")
 
 # Baseline burden (univariate) ----------------------------------------------------------------
 base_se_admin <- fread("output/sensitivity/burden_baseline_se.gz")
-baseline <- fread("output/preds/burden_base.gz")
+baseline <- fread("output/preds/admin_preds.gz")[scenario == 0]
 
 # At national level ----------------------------------------------------------------
 # Labels and colors
@@ -96,18 +98,8 @@ S6.1_base_se <- base_natl_A + base_admin_B + plot_layout(guides = "collect")
 ggsave("figs/supplementary/S6.1_base_se.jpeg", S6.1_base_se, height = 8, width = 10)
 
 # Baseline burden (univariate) ----------------------------------------------------------------
-# Pull in data
-clins_per_comm <- nrow(read.csv("data/processed/clinics/clinic_per_comm.csv")) - 31
-max_added <- nrow(fread("output/ttimes/addclinics_prop_df.csv"))
-max_csb <- nrow(read.csv("data/processed/clinics/csb2.csv", stringsAsFactors = FALSE))
-scenario_labs <- c("Baseline\n (N = 31)", glue("1 per district\n (+ {114 - 31})"), "+ 200", "+ 400", 
-                   "+ 600", glue("+ {max_added}"), 
-                   glue("1 per commune\n (+ {clins_per_comm - 31})"),
-                   glue("All CSB II\n (+ {max_csb})"))
-scenario_levs <- c(0, 114.5, 200, 400, 600, max_added, max_added + 150.5, max_added + 200)
-names(scenario_labs) <- scenario_levs
 add_se <- fread("output/sensitivity/burden_addclinics_se.gz")
-add_base <- fread("output/preds/burden_natl.gz")
+add_base <- fread("output/preds/natl_preds.gz")
 
 add_se %>%
   pivot_longer(bites_mean:averted_lower) %>%
@@ -115,19 +107,16 @@ add_se %>%
 
 add_base %>%
   pivot_longer(bites_mean:averted_lower) %>%
-  left_join(add_summ) %>%
-  mutate(scenario_num = 
-           case_when(!(scenario %in% c("max", "armc_per_dist", "armc_per_comm")) ~ as.numeric(scenario),
-                     scenario == "max" ~ max_added + 200, scenario == "armc_per_comm" ~ max_added + 150.5,
-                     scenario == "armc_per_dist" ~ 114.5)) -> add_se
+  left_join(add_summ) -> add_se
+
 add_se %>%
   group_by(scale, vary, name) %>%
-  arrange(scenario_num) %>%
+  arrange(scenario) %>%
   mutate(value = value/value[1], max = max/max[1], min = min/min[1]) -> add_props
 
 # Max reduction in deaths --------------------------------------------------------------
 add_props %>%
-  filter(scenario_num == max(scenario_num)) -> max_props
+  filter(scenario == max(scenario)) -> max_props
 max_props$vary <- factor(max_props$vary, 
                          levels = rev(c("beta_ttimes", "beta_0", "sigma_e", "rho_max", 
                                         "p_rabid", "p_death", "human_exp")))
@@ -157,35 +146,18 @@ add_props$vary <- fct_recode(add_props$vary,
                                    `p[rabid]` = "p_rabid", `p[death]` = "p_death" ,
                                    `E[i]` = "human_exp")
 
-addARMC_B <- ggplot(data = filter(add_props, name == "deaths_mean", 
-                                  !(scenario %in% c("max", "armc_per_dist", "armc_per_comm"))), 
-<<<<<<< HEAD
-       aes(x = scenario_num, y = value, color = scale)) +
+addARMC_B <- ggplot(data = filter(add_props, name == "deaths_mean", scenario != max(scenario)),
+                    aes(x = scenario, y = value, color = scale)) +
   geom_line(alpha = 0.75) +
   geom_ribbon(aes(ymax = min, ymin = max, fill = scale), color = NA, alpha = 0.25) +
-  geom_pointrange(data = filter(add_props, name == "deaths_mean",
-                                scenario %in% c("max", "armc_per_dist", "armc_per_comm")),
-                  aes(x = scenario_num, y = value, 
-                      ymin = min, ymax = max, color = scale, shape = scenario),
-       aes(x = scenario_num, y = (1 - value)*100, color = scale)) +
-  geom_line(alpha = 0.75) +
-  geom_ribbon(aes(ymax = (1 - min)*100, ymin = (1 - max)*100, fill = scale), color = NA, alpha = 0.25) +
-  geom_pointrange(data = filter(add_props, name == "deaths_mean",
-                                scenario %in% c("max", "armc_per_dist", "armc_per_comm")),
-                  aes(x = scenario_num, y = (1 - value)*100, 
-                      ymin = (1 - min)*100, ymax = (1 - max)*100, color = scale, shape = scenario),
-                  position = position_dodge(width = 50)) +
+  geom_pointrange(data = filter(add_props, scenario == max(scenario), name == "deaths_mean"),
+                  aes(x = scenario, y = value, 
+                      ymin = min, ymax = max, color = scale)) +
   scale_color_manual(values = model_cols, aesthetics = c("color", "fill"),
                      labels = scale_labs, guide = "none") +
   facet_grid(vary ~ scale, scales = "free_x",
              labeller = labeller(scale = c("Commune" = "", "District" = ""), 
                                  vary = label_parsed)) +
-  scale_x_continuous(breaks = c(0, 100, 300, 500, max_added, max_added + 200), 
-                     labels = c("baseline", 100, 300, 500, max_added, "max (1648)")) +
-  scale_shape_discrete(labels = c("max" = "All CSB II \n (+ 1648)",
-                                  "armc_per_dist" = "1 per district\n (+ 83)",
-                                  "armc_per_comm" = "1 per commune\n (+ 1375)"), 
-                       name = "Additional\n scenarios") + 
   labs(x = "", y = "Propotion of deaths \n compared to baseline",
        tag = "B") +
   coord_cartesian(clip = "off") +
@@ -198,20 +170,16 @@ S6.2_addARMC_se <- addARMC_A + addARMC_B + plot_layout(guides = "collect")
 ggsave("figs/supplementary/S6.2_addARMC_se.jpeg", S6.2_addARMC_se, height = 8, width = 10)
 
 # Sensitivity of vials ---------------------------------------------------------------------
-vial_se <- fread("output/sensitivity/natl_vials_se.gz")
-vials_base <- fread("output/preds/catch_preds_natl.csv")
+vials_se <- fread("output/sensitivity/vials_se.gz")
+vials_base <- fread("output/preds/natl_preds.gz")
 
-vial_se %>%
+vials_se %>%
   pivot_longer(vials_mean:vials_lower) %>%
   pivot_wider(id_cols = c(scale, vary, name, scenario), 
-              names_from = direction)-> vials_summ
+              names_from = direction) -> vials_summ
 vials_base %>%
   pivot_longer(vials_mean:vials_lower) %>%
-  left_join(vials_summ) %>%
-  mutate(scenario_num = 
-           case_when(!(scenario %in% c("max", "armc_per_dist", "armc_per_comm")) ~ as.numeric(scenario),
-                     scenario == "max" ~ max_added + 200, scenario == "armc_per_comm" ~ max_added + 150.5,
-                     scenario == "armc_per_dist" ~ 114.5)) -> vials_se
+  left_join(vials_summ) -> vials_se
 
 
 # Vials baseline -----------------------------------------------------------------
@@ -240,23 +208,16 @@ vials_se$vary <- fct_recode(vials_se$vary, `sigma[e]` = "sigma_e", `beta[0]` = "
                             `beta[t]` = "beta_ttimes")
 
 vial_se_B <- ggplot(data = filter(vials_se, name == "vials_mean", 
-                                  !(scenario %in% c("max", "armc_per_dist", "armc_per_comm"))), 
-                    aes(x = scenario_num, y = value, color = scale)) +
+                                  scenario != max(scenario)), 
+                    aes(x = scenario, y = value, color = scale)) +
   geom_line(alpha = 0.75) +
   geom_ribbon(aes(ymax = min, ymin = max, fill = scale), color = NA, alpha = 0.25) +
   geom_pointrange(data = filter(vials_se, name == "vials_mean", 
-                                scenario %in% c("max", "armc_per_dist", "armc_per_comm")),
-                  aes(x = scenario_num, y = value, 
-                      ymin = min, ymax = max, color = scale, shape = scenario),
-                  position = position_dodge(width = 50)) +
+                                scenario == max(scenario)),
+                  aes(x = scenario, y = value, 
+                      ymin = min, ymax = max, color = scale)) +
   scale_color_manual(values = model_cols, aesthetics = c("color", "fill"),
                      labels = scale_labs, guide = "none") +
-  scale_x_continuous(breaks = c(0, 100, 300, 500, max_added, max_added + 200), 
-                     labels = c("baseline", 100, 300, 500, max_added, "max (1648)")) +
-  scale_shape_discrete(labels = c("max" = "All CSB II \n (+ 1648)",
-                                  "armc_per_dist" = "1 per district\n (+ 83)",
-                                  "armc_per_comm" = "1 per commune\n (+ 1375)"), 
-                       name = "Additional\n scenarios") + 
   facet_grid(vary ~ scale, scales = "free_x", 
              labeller = labeller(scale = c("Commune" = "", "District" = ""), vary = label_parsed)) +
   labs(x = "# Additional ARMC", y = "Increase in vial demand (national)",

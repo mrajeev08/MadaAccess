@@ -3,10 +3,10 @@
 #' + sensitivity of model selection to correction for undersubmission of forms
 # ------------------------------------------------------------------------------------------------ #
 
+source("R/functions/out.session.R")
 start <- Sys.time()
 
 # source 
-source("R/functions/out.session.R")
 source("R/functions/nested_facets.R")
 source("R/functions/summarize_samps.R")
 

@@ -2,6 +2,9 @@
 #' SM 1. GIS inputs and comparison to data        
 # ------------------------------------------------------------------------------------------------ #
 
+source("R/functions/out.session.R")
+start <- Sys.time()
+
 # Libraries
 library(data.table)
 library(tidyverse)
@@ -38,7 +41,7 @@ pop_df <- as.data.frame(pop1x1, xy = TRUE)
 
 friction <- ggplot() + 
   geom_raster(data = friction_df, aes(x, y, fill = friction_mada_masked)) +
-  geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "darkgrey", 
+  geom_point(data = ctar_metadata, aes(x = long, y = lat), color = "darkgrey", 
              shape = 4,
              stroke = 2) +
   scale_fill_distiller(palette = "Purples", na.value = "white", direction = -1,
@@ -69,7 +72,7 @@ ggsave("figs/supplementary/S1.1_inputs.jpeg", S1.1_inputs, device = "jpeg", heig
 
 # Raw data: groundtruthing ----------------------------------------------------------------------
 gtruth <- read.csv("output/ttimes/gtruth_ttimes.csv")
-baseline <- fread("output/ttimes/baseline_grid.gz")
+baseline <- fread("output/ttimes/base/grid_df.gz")
 
 # Moramanga self-reported data
 gtruth %>%
@@ -219,7 +222,7 @@ ttimes_district <- ggplot() +
                                                    labels = ttime_labs))) + 
   scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
                     drop = FALSE, na.value = "white") +
-  geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "darkgrey", shape = 4,
+  geom_point(data = ctar_metadata, aes(x = long, y = lat), color = "darkgrey", shape = 4,
              stroke = 2) +
   theme_map() +
   labs(tag = "A") +
@@ -231,7 +234,7 @@ ttimes_commune <- ggplot() +
                                                   labels = ttime_labs))) + 
   scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
                     drop = FALSE, na.value = "white") +
-  geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "darkgrey", shape = 4,
+  geom_point(data = ctar_metadata, aes(x = long, y = lat), color = "darkgrey", shape = 4,
              stroke = 2) +
   theme_map() +
   labs(tag = "B") +
@@ -242,4 +245,4 @@ S1.5_outputs <- (ttimes_district | ttimes_commune) + plot_layout(guides = "colle
 ggsave("figs/supplementary/S1.5_outputs.jpeg", S1.5_outputs, device = "jpeg", height = 10, width = 12)
 
 #' Saving session info
-out.session(path = "R/figures/SM1_basetimes.R", filename = "output/log_local.csv")
+out.session(path = "R/figures/SM1_basetimes.R", filename = "output/log_local.csv", start = start)

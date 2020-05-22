@@ -1,9 +1,12 @@
 # ------------------------------------------------------------------------------------------------ #
 #' Making maps for figure 1 of ctar and patient locations
-#' Details: network style figure for vizualizing where patients are reporting to in each 
+#' network style figure for vizualizing where patients are reporting to in each 
 #' district
 # ------------------------------------------------------------------------------------------------ #
  
+start <- Sys.time()
+source("R/functions/out.session.R")
+
 # Libraries
 library(patchwork)
 library(tidyverse)
@@ -152,7 +155,7 @@ mada_map_A <- ggplot() +
   north(data = gg_district, anchor = c(x = 52, y = -14.5), symbol = 9) +
   scalebar(data = gg_district, dist = 100, dist_unit = "km",
            transform = TRUE, model = "WGS84", anchor = c(x = 52, y = -25), 
-           height = 0.01)
+           height = 0.01, angle = 45, hjust = 1)
 
 # Mapping raw data: Moramanga at commune level --------------------------------------------------
 moramanga %>%
@@ -164,8 +167,8 @@ moramanga %>%
   left_join(select(mada_communes@data, to_long = long_cent, 
                    to_lat = lat_cent, commcode, ctar = catchment)) %>%
   left_join(select(ctar_metadata, ctar = CTAR)) -> comm_pts
-comm_pts$from_long <- ctar_metadata$LONGITUDE[ctar_metadata$CTAR == "Moramanga"]
-comm_pts$from_lat <- ctar_metadata$LATITUDE[ctar_metadata$CTAR == "Moramanga"]
+comm_pts$from_long <- ctar_metadata$long[ctar_metadata$CTAR == "Moramanga"]
+comm_pts$from_lat <- ctar_metadata$lat[ctar_metadata$CTAR == "Moramanga"]
 
 gg_mora <- fortify(mada_communes[mada_communes$catchment == "Moramanga", ], region = "commcode")
 gg_mora %>% 
@@ -197,7 +200,7 @@ mora_district <- fortify(mada_districts[mada_districts$district == "Moramanga", 
 # Get legend
 leg_pts <- get.bezleg(bbox = bbox(mada_communes[bounds, ]), 
                       n_pts = 11, size_vec = c(100, 200, 400, 1600), 
-                      min_size = 5, offset_long = 0.25, offset_lat = -0.1)
+                      min_size = 5, offset_long = 0.25, offset_lat = -0.4)
 leg_pts$ptcol <- case_when(leg_pts$index == 3 ~ "ARMC", 
                            leg_pts$index == 1 ~ "District")
 leg_cols <- c("black", "white")
@@ -245,10 +248,10 @@ mora_map_B <- ggplot() +
   theme_map() +
   theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) +
   coord_quickmap(clip = "off") +
-  north(data = gg_district, anchor = c(x = 49.5, y = -17.5), symbol = 9, scale = 0.02) +
+  north(data = gg_district, anchor = c(x = 49.5, y = -17.48), symbol = 9, scale = 0.02) +
   scalebar(data = gg_district, dist = 20, dist_unit = "km",
-           transform = TRUE, model = "WGS84", anchor = c(x = 49.5, y = -19.75), 
-           height = 0.005, st.dist = 0.005)
+           transform = TRUE, model = "WGS84", anchor = c(x = 49.5, y = -19.9), 
+           height = 0.0025, st.dist = 0.005, angle = 45, hjust = 1)
 
 # Inset of Mora catchment in Mada --------------------------------------------------------------
 mora_catch <- mada_communes[mada_communes$catchment == "Moramanga", ]
@@ -279,4 +282,4 @@ ggsave("figs/main/M3_bitemaps.tiff", figM3_bitemaps, dpi = 300, height = 10, wid
        compression = "lzw", type = "cairo")
 
 # Save session info
-out.session(path = "R/figures/M3_bitemaps.R", filename = "output/log_local.csv")
+out.session(path = "R/figures/M3_bitemaps.R", filename = "output/log_local.csv", start = start)

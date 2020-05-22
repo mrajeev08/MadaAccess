@@ -2,6 +2,9 @@
 #' Sankey diagram for decision tree   
 # ------------------------------------------------------------------------------------------------ #
 
+start <- Sys.time()
+source("R/functions/out.session.R")
+
 # set up
 library(ggplot2)
 library(plotly)
@@ -40,4 +43,4 @@ orca(plot, file = "figs/main/M1/sankey_nolabs.jpeg", height = 500, width = 1000)
 
 # Close out
 file_path <- "R/figures/M1_dtree.R"
-out.session(path = file_path, filename = "output/log_local.csv")
+out.session(path = file_path, filename = "output/log_local.csv", start = start)

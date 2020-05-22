@@ -1,9 +1,9 @@
 # ------------------------------------------------------------------------------------------------ #
 #' Baseline burden predictions      
-#' Details: Predictions of baseline burden at admin level          
 # ------------------------------------------------------------------------------------------------ #
 
 source("R/functions/out.session.R")
+start <- Sys.time()
 
 # libraries
 library(tidyverse)
@@ -13,7 +13,7 @@ library(patchwork)
 library(cowplot)
 
 # Predicted burden
-burden_preds <- fread("output/preds/burden_base.gz")
+burden_preds <- fread("output/preds/admin_preds.gz")[scenario == 0]
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
 ctar_metadata <- fread("data/processed/clinics/ctar_metadata.csv")
@@ -84,7 +84,7 @@ comm_burden <- ggplot() +
   geom_polygon(data = gg_commune_plot,
                aes(x = long, y = lat, group = group, fill = deaths_mean/pop*1e5), 
                color = "white", size = 0.05) +
-  geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "grey50",
+  geom_point(data = ctar_metadata, aes(x = long, y = lat), color = "grey50",
              shape = 4, size = 2, stroke = 1.5) +
   labs(tag = "B") +
   scale_fill_viridis_c(option = "magma", direction = -1, 
@@ -98,7 +98,7 @@ district_burden <- ggplot() +
   geom_polygon(data = gg_district_plot,
                aes(x = long, y = lat, group = group, fill = deaths_mean/pop*1e5), 
                color = "white", size = 0.05) +
-  geom_point(data = ctar_metadata, aes(x = LONGITUDE, y = LATITUDE), color = "grey50",
+  geom_point(data = ctar_metadata, aes(x = long, y = lat), color = "grey50",
              shape = 4, size = 2, stroke = 1.5) +
   labs(tag = "C") +
   scale_fill_viridis_c(option = "magma", direction = -1, 
@@ -107,9 +107,14 @@ district_burden <- ggplot() +
   theme_map() +
   coord_quickmap()
 
-burden_base <- (compare_burden | ((comm_burden / district_burden) + plot_layout(nrow = 2, guides = "collect"))) + plot_layout(widths = c(1, 2))
+burden_base <- (compare_burden | ((comm_burden / district_burden) + 
+                                    plot_layout(nrow = 2, guides = "collect"))) + 
+                plot_layout(widths = c(1, 2))
 ggsave("figs/main/M6_burden_base.jpeg", burden_base, height = 14, width = 10)
 ggsave("figs/main/M6_burden_base.tiff", burden_base, dpi = 300, device = "tiff", height = 12, width = 10, 
        compression = "lzw", type = "cairo")
 
+# Saving session info
+out.session(path = "R/figures/M6_burden.R", filename = "output/log_local.csv",
+            start = start)
 

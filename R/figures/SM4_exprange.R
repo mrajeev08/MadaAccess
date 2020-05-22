@@ -3,11 +3,13 @@
 #' Details: Pulling in district and commune estimates of travel times as clinics are added 
 # ------------------------------------------------------------------------------------------------ #
 
+source("R/functions/out.session.R")
+start <- Sys.time()
+
 # Set up 
 library(data.table)
 library(tidyverse)
 library(cowplot)
-source("R/functions/out.session.R")
 select <- dplyr::select
 
 # From Claire's MSC
@@ -58,6 +60,6 @@ S4.1_exprange <- ggplot(data = inc_exps, aes(x = hdr_val, y = dog_inc,
 ggsave("figs/supplementary/S4.1_exprange.jpeg", S4.1_exprange, height = 8, width = 8)
 
 # Saving session info
-out.session(path = "R/figures/SM4_exprange.R", filename = "output/log_local.csv")
+out.session(path = "R/figures/SM4_exprange.R", filename = "output/log_local.csv", start = start)
 
 

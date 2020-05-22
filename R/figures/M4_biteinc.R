@@ -1,8 +1,10 @@
 # ------------------------------------------------------------------------------------------------ #
-#' Making maps for figure 1 of ctar and patient locations
-#' Details: network style figure for vizualizing where patients are reporting to in each 
-#' district
+#' Estimated bite incidence vs. travel times
+#' For both National & Moramanga Data
 # ------------------------------------------------------------------------------------------------ #
+
+start <- Sys.time()
+source("R/functions/out.session.R")
 
 # Libraries
 library(patchwork)
@@ -90,4 +92,4 @@ all_bites %>%
 write.csv(outliers, "output/stats/outliers.csv")
 
 # Save session info
-out.session(path = "R/figures/M4_biteinc.R", filename = "output/log_local.csv")
+out.session(path = "R/figures/M4_biteinc.R", filename = "output/log_local.csv", start = start)
