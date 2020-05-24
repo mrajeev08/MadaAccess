@@ -38,13 +38,15 @@ max_stats <- update.base(base_df = base_df, cand_df = csbs_max, nsplit = 5)
 
 max_dist <- aggregate.admin(base_df = max_stats, admin = "distcode", 
                             scenario = nrow(csbs_max))
-max_dist_maxcatch <- get.maxcatch(max_dist, admin = "distcode")
+max_dist_maxcatch <- max_dist[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
+                              by = .(distcode, scenario)]
 fwrite(max_dist, "output/ttimes/addclinics/district_allcatch_max.gz")
 fwrite(max_dist_maxcatch, "output/ttimes/addclinics/district_maxcatch_max.gz")
 
 max_comm <- aggregate.admin(base_df = max_stats, admin = "commcode", 
                             scenario = nrow(csbs_max))
-max_comm_maxcatch <- get.maxcatch(max_comm, admin = "commcode")
+max_comm_maxcatch <- max_comm[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
+                              by = .(commcode, scenario)]
 fwrite(max_comm, "output/ttimes/addclinics/commune_allcatch_max.gz")
 fwrite(max_comm_maxcatch, "output/ttimes/addclinics/commune_maxcatch_max.gz")
 

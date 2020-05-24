@@ -57,7 +57,7 @@ scaling_df <- rbind(neg_comm, pos_comm, neg_dist, pos_dist)
 write.csv(scaling_df, "output/sensitivity/scaling.csv", row.names = FALSE)
 
 # Scaled preds --------------------------------------------------------------------------------
-scenario_loop <- unique(fread("output/ttimes/commune_maxcatch.csv")$lookup)
+scenario_loop <- unique(fread("output/ttimes/addclinics/commpreds_max.csv")$lookup)
 
 lookup <- expand_grid(loop = rev(scenario_loop), scaling_df, pop_predict = "flatPop", 
                       data_source = "National", intercept = "fixed", OD = TRUE,
@@ -65,9 +65,9 @@ lookup <- expand_grid(loop = rev(scenario_loop), scaling_df, pop_predict = "flat
                       exp_min = 15/1e5, exp_max = 76/1e5, p_death = 0.16)
 
 all_preds <- run_scenarios(lookup = lookup, pred_type = "burden", 
-                           par_type = "posterior", scaled = TRUE, directory = "output/ttimes/",
-                           colnames_max = colnames(fread("output/ttimes/commune_maxcatch.csv")), 
-                           colnames_all = colnames(fread("output/ttimes/commune_allcatch.csv")),
+                           par_type = "posterior", scaled = TRUE, directory = "output/ttimes/addclinics",
+                           colnames_max = colnames(fread("output/ttimes/addclinics/commpreds_max.csv")), 
+                           colnames_all = colnames(fread("output/ttimes/addclinics/commpreds_all.csv")),
                            colnames_j = c("scale", "data_source", "scaling"), 
                            admin_to_keep = "scenario_0", 
                            multicomb = function(x, ...) { mapply(rbind, x, ..., SIMPLIFY = FALSE)}, 
@@ -83,7 +83,7 @@ out.session(path = file_path, filename = "log_cluster.csv", start = start)
 
 # Parse these from bash for where to put things
 syncto <- "~/Documents/Projects/MadaAccess/output/sensitivity/"
-syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/burden*"
+syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/*"
 
 closeCluster(cl)
 mpi.quit()

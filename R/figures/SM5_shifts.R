@@ -242,49 +242,75 @@ admin_preds <- fread("output/preds/admin_preds.gz")
 admin_preds_filtered <- filter(admin_preds, scenario %in% scenario_levs)
 
 # Shifts in ttimes and bite incidence ------------------------------------
-ttimes_dist <- ggplot(data = admin_preds_filtered, 
-                      aes(x = ttimes, y = as.factor(scenario), fill = scale)) +
-  geom_density_ridges(alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, guide = "none") +
-  scale_y_discrete(labels = scenario_labs) +
-  labs(y = "# Additional ARMC", x = "Travel times (hrs)", tag = "A") +
+ggplot(data = admin_preds_filtered, 
+       aes(y = ttimes, x = as.factor(scenario), color = scale,
+           fill = scale)) +
+  geom_flat_violin(position = position_nudge(x = 0.2, y = 0), adjust = 1,
+                   color = NA, alpha = 0.7) +
+  geom_boxplot(data = admin_preds_filtered, 
+               aes(x = as.factor(scenario), y = ttimes), 
+               outlier.shape = NA, alpha = 0.5, width = 0.15) +  
+  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols, 
+                    guide = "none") +
+  scale_y_continuous(trans = "sqrt") +
+  scale_x_discrete(labels = scenario_labs) +
+  labs(x = "# Additional ARMC", y = "Travel times (hrs)", tag = "A") +
+  coord_flip() +
   theme_minimal_hgrid(color = "grey50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) -> ttimes_dist
 
-bites_dist <- ggplot(data = admin_preds_filtered, 
-                     aes(x = bites_mean/pop*1e5, y = as.factor(scenario), fill = scale)) +
-  geom_density_ridges(alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, name = "Scale") +
-  scale_y_discrete(labels = scenario_labs) +
-  labs(y = "", x = "Reported bites \n per 100k", tag = "B") +
+ggplot(data = admin_preds_filtered, 
+       aes(y = bites_mean/pop*1e5, x = as.factor(scenario), color = scale,
+           fill = scale)) +
+  geom_flat_violin(position = position_nudge(x = 0.2, y = 0), adjust = 1,
+                   color = NA, alpha = 0.7)+
+  geom_boxplot(data = admin_preds_filtered, 
+               aes(x = as.factor(scenario), y = bites_mean/pop*1e5), 
+               outlier.shape = NA, alpha = 0.5, width = 0.15) +  
+  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols) +
+  scale_x_discrete(labels = scenario_labs) +
+  labs(x = "", y = "Reported bites \n per 100k", tag = "B") +
+  coord_flip() +
   theme_minimal_hgrid(color = "grey50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), axis.text.y = element_blank())
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        axis.text.y = element_blank()) -> bites_dist
 
 S5.4 <- (ttimes_dist | bites_dist) 
 
 ggsave("figs/supplementary/S5.4_ttimes_bites.jpeg", S5.4, width = 8, height = 6)
 
 # Shifts in reporting and death incidence ------------------------------------
-reporting_dist <- ggplot() +
-  geom_density_ridges(data = admin_preds_filtered, 
-                      aes(x = reporting_mean, y = as.factor(scenario), fill = scale), 
-                      alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, guide = "none") +
-  scale_y_discrete(labels = scenario_labs) +
-  labs(y = "# Additional ARMC", x = "Reporting", tag = "A") +
-  xlim(c(0, 1)) +
+ggplot(data = admin_preds_filtered, 
+       aes(y = reporting_mean, x = as.factor(scenario), color = scale,
+           fill = scale)) +
+  geom_flat_violin(position = position_nudge(x = 0.2, y = 0), adjust = 1,
+                   color = NA, alpha = 0.7)+
+  geom_boxplot(data = admin_preds_filtered, 
+               aes(x = as.factor(scenario), y = reporting_mean), 
+               outlier.shape = NA, alpha = 0.5, width = 0.15) +  
+  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols, 
+                    guide = "none") +
+  scale_x_discrete(labels = scenario_labs) +
+  labs(x = "# Additional ARMC", y = "Reporting", tag = "A") +
+  coord_flip() +
   theme_minimal_hgrid(color = "grey50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) -> reporting_dist 
 
-deaths_dist <- ggplot() +
-  geom_density_ridges(data = admin_preds_filtered, 
-                      aes(x = deaths_mean/pop*1e5, y = as.factor(scenario), fill = scale), 
-                      alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols,  name = "Scale") +
-  scale_y_discrete(labels = scenario_labs) +
-  labs(y = "", x = "Deaths per 100k", tag = "B") +
+ggplot(data = admin_preds_filtered, 
+       aes(y = deaths_mean/pop*1e5, x = as.factor(scenario), color = scale,
+           fill = scale)) +
+  geom_flat_violin(position = position_nudge(x = 0.2, y = 0), adjust = 1,
+                   color = NA, alpha = 0.7)+
+  geom_boxplot(data = admin_preds_filtered, 
+               aes(x = as.factor(scenario), y = deaths_mean/pop*1e5), 
+               outlier.shape = NA, alpha = 0.5, width = 0.15) +  
+  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols) +
+  scale_x_discrete(labels = scenario_labs) +
+  labs(x = "", y = "Deaths per 100k", tag = "B") +
+  coord_flip() +
   theme_minimal_hgrid(color = "grey50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), axis.text.y = element_blank())
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        axis.text.y = element_blank()) -> deaths_dist 
 
 S5.5 <- (reporting_dist | deaths_dist )
 ggsave("figs/supplementary/S5.5_reporting_shifts.jpeg", S5.5, width = 8, height = 6)
@@ -320,44 +346,61 @@ catch_pops_filtered <- filter(catch_pops, scenario %in% scenario_levs)
 bites_by_catch_filtered <- filter(bites_by_catch, scenario %in% scenario_levs)
 
 # Catchment pops distribution
-catchpop_dist <- ggplot() +
-  geom_density_ridges(data = catch_pops_filtered, 
-                      aes(x = pop_catch, y = as.factor(scenario), fill = scale), 
-                      alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, labels = scale_labs, name = "Scale", guide = "none") +
-  scale_y_discrete(labels = scenario_labs) +
-  scale_x_continuous(trans = "log", breaks = c(100, 1e3, 1e4, 1e5, 1e6)) +
-  labs(y = "# Additional ARMC", x = "Catchment pop size", tag = "A") +
+ggplot(data = catch_pops_filtered, 
+       aes(y = pop_catch, x = as.factor(scenario), color = scale,
+           fill = scale)) +
+  geom_flat_violin(position = position_nudge(x = 0.2, y = 0), adjust = 1,
+                   color = NA, alpha = 0.7)+
+  geom_boxplot(data = catch_pops_filtered, 
+               aes(x = as.factor(scenario), y = pop_catch), 
+               outlier.shape = NA, alpha = 0.5, width = 0.15) +  
+  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols, 
+                    guide = "none") +
+  scale_y_continuous(trans = "log", breaks = c(100, 1e3, 1e4, 1e5, 1e6)) +
+  scale_x_discrete(labels = scenario_labs) +
+  labs(x = "# Additional ARMC", y = "Catchment pop size", tag = "A") +
+  coord_flip() +
   theme_minimal_hgrid(color = "grey50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) -> catchpop_dist
 
 # Vials
-vials_dist <- ggplot() +
-  geom_density_ridges(data = bites_by_catch_filtered, 
-                      aes(x = vials_mean, y = as.factor(scenario), fill = scale), 
-                      alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, labels = scale_labs, name = "Scale", 
+ggplot(data = bites_by_catch_filtered, 
+       aes(y = vials_mean, x = as.factor(scenario), color = scale,
+           fill = scale)) +
+  geom_flat_violin(position = position_nudge(x = 0.2, y = 0), adjust = 1,
+                   color = NA, alpha = 0.7)+
+  geom_boxplot(data = bites_by_catch_filtered, 
+               aes(x = as.factor(scenario), y = vials_mean), 
+               outlier.shape = NA, alpha = 0.5, width = 0.15) +  
+  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols, 
                     guide = "none") +
-  scale_y_discrete(labels = scenario_labs) +
-  scale_x_continuous(trans = "sqrt", limits = c(0, 4e4), breaks = c(100, 1e3, 1e4, 2e4, 4e4)) +
-  labs(y = "# Additional ARMC", x = "Annual clinic vial demand", tag = "B") +
+  scale_y_continuous(trans = "log",
+                     breaks = c(100, 500, 1e4, 5e4, 10e4)) +
+  scale_x_discrete(labels = scenario_labs) +
+  labs(x = "# Additional ARMC", y = "Annual clinic vial demand", tag = "B") +
+  coord_flip() +
   theme_minimal_hgrid(color = "grey50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) -> vials_dist
 
 # Throughput
-tp_dist <- ggplot() +
-  geom_density_ridges(data = bites_by_catch_filtered, 
-                      aes(x = tp_mean, y = as.factor(scenario), fill = scale), 
-                      alpha = 0.5, color = NA) +
-  scale_fill_manual(values = model_cols, labels = scale_labs, name = "Scale") +
-  scale_y_discrete(labels = scenario_labs) +
-  scale_x_continuous(trans = "sqrt") +
-  labs(y = "", x = "Daily clinic throughput", tag = "C") +
+ggplot(data = bites_by_catch_filtered, 
+       aes(y = tp_mean, x = as.factor(scenario), color = scale,
+           fill = scale)) +
+  geom_flat_violin(position = position_nudge(x = 0.2, y = 0), adjust = 1,
+                   color = NA, alpha = 0.7)+
+  geom_boxplot(data = bites_by_catch_filtered, 
+               aes(x = as.factor(scenario), y = tp_mean), 
+               outlier.shape = NA, alpha = 0.5, width = 0.15) +  
+  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols) +
+  scale_y_continuous(trans = "log", breaks = c(0.1, 0.5, 1, 5, 10, 50)) +
+  scale_x_discrete(labels = scenario_labs) +
+  labs(x = "", y = "Daily clinic throughput", tag = "C") +
+  coord_flip() +
   theme_minimal_hgrid(color = "grey50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), axis.text.y = element_blank())
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        axis.text.y = element_blank()) -> tp_dist
 
-S5.6_clinic_shifts <- catchpop_dist / (vials_dist | tp_dist)
+S5.6_clinic_shifts <- catchpop_dist / (vials_dist | tp_dist) + plot_layout(heights = c(1, 2), guides = "collect")
 ggsave("figs/supplementary/S5.6_clinic_shifts.jpeg", S5.6_clinic_shifts, height = 8, width = 8)
 
 # Catchment stats

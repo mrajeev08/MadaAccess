@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------------------------ #
 #' Getting incremental estimates of burden  
-#' Details: Pulling in district and commune estimates of travel times as clinics are added 
+#' Pulling in district and commune estimates of travel times as clinics are added 
 # ------------------------------------------------------------------------------------------------ #
 
 #sub_cmd=-t 12 -n 30 -mem 4000 -sp "./R/05_predictions/01_preds_incremental.R" -jn preds -wt 5m -n@
@@ -26,11 +26,9 @@ source("R/functions/predict_functions.R")
 source("R/functions/batch_functions.R")
 select <- dplyr::select
 
-# Set-up these two vectors for reading in data using cmd line args
-scenario_loop <- unique(fread("output/ttimes/commune_maxcatch.csv")$lookup)
-colnames <- colnames(fread("output/ttimes/commune_maxcatch.csv"))
-
 # Preds given commune/district ttimes -------------------------------------------------------
+scenario_loop <- unique(fread("output/ttimes/addclinics/commpreds_max.csv")$lookup)
+
 # make df with the lookup + mod pars (reverse vec so big ones at end don't slow things down)
 lookup <- expand.grid(loop = rev(scenario_loop), scale = c("Commune", "District"), 
                       pop_predict = "flatPop", intercept = "fixed", data_source = "National", 
@@ -38,9 +36,9 @@ lookup <- expand.grid(loop = rev(scenario_loop), scale = c("Commune", "District"
                       exp_min = 15/1e5, exp_max = 76/1e5, p_death = 0.16)
 
 all_preds <- run_scenarios(lookup = lookup, pred_type = c("vials", "burden"), 
-                           par_type = "posterior", scaled = FALSE, directory = "output/ttimes/",
-                           colnames_max = colnames(fread("output/ttimes/commune_maxcatch.csv")), 
-                           colnames_all = colnames(fread("output/ttimes/commune_allcatch.csv")),
+                           par_type = "posterior", scaled = FALSE, directory = "output/ttimes/addclinics",
+                           colnames_max = colnames(fread("output/ttimes/addclinics/commpreds_max.csv")), 
+                           colnames_all = colnames(fread("output/ttimes/addclinics/commpreds_all.csv")),
                            colnames_j = c("scale", "data_source", "OD"), 
                            admin_to_keep = lookup$loop, # keep all admin ones for burden
                            multicomb = function(x, ...) { mapply(rbind, x, ..., SIMPLIFY = FALSE)}, 

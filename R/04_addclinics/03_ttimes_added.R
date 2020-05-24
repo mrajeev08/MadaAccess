@@ -7,11 +7,11 @@
 #'   it takes approximately 10 hours
 # ------------------------------------------------------------------------------------------------ #
 
-#sub_cmd=-sn -t 12 -n 15 -sp "./R/04_addclinics/02_ttimes_added.R" -jn addclinics -wt 5m -n@
+#sub_cmd=-sn -t 24 -n 10 -sp "./R/04_addclinics/03_ttimes_added.R" -jn addclinics -wt 60m -n@
   
 # set up cluster on single node with do Parallel
 library(doParallel)
-cl <- makeCluster(15)
+cl <- makeCluster(10)
 registerDoParallel(cl)
 start <- Sys.time()
 
@@ -44,7 +44,7 @@ prop <- function(base_df, cand_ttimes, thresh_ttimes) {
 
 system.time({
   add.armc(base_df = base_df, cand_df = clin_per_dist, max_clinics = nrow(clin_per_dist), 
-           rank_metric = prop,
+           rank_metric = prop, thresh_met = 1e-4,
            thresh_ttimes = 3*60, dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics", 
            base_scenario = 0, overwrite = TRUE, random = FALSE)
 })
@@ -56,7 +56,8 @@ clin_per_comm <- brick_dt[clin_per_comm, on = "clinic_id"]
 system.time({
   add.armc(base_df = base_df, cand_df = clin_per_comm, max_clinics = nrow(clin_per_comm),
            rank_metric = prop,
-           thresh_ttimes = 3*60, dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics",
+           thresh_ttimes = 3*60, thresh_met = 1e-4, 
+           dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics",
            base_scenario = nrow(clin_per_dist), overwrite = FALSE, random = FALSE) # so will append to previous run
 })
 
@@ -65,7 +66,7 @@ syncto <- "~/Documents/Projects/MadaAccess/output/ttimes/"
 syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/addclinics"
 
 # Close out
-file_path <- "R/04_addclinics/02_ttimes_added.R"
+file_path <- "R/04_addclinics/03_ttimes_added.R"
 out.session(path = file_path, filename = "log_cluster.csv", start = start)
 stopCluster(cl)
 print("Done remotely:)")

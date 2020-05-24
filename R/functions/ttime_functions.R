@@ -82,7 +82,7 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 
 # Pass through base df, otherwise you need all the vectors!
 add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, rank_metric, 
-                     base_scenario = 0, overwrite = TRUE, random = TRUE) {
+                     base_scenario = 0, thresh_met = 0, overwrite = TRUE, random = TRUE) {
 
   # Pull in references to files (that way not as big!)
   cand_list <- vector("list", nrow(cand_df))
@@ -114,14 +114,15 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, ran
         
         # If no candidates that would shift travel times above the threshold
         # Then adjust threshold down
-        if(sum(ranks, na.rm = TRUE) == 0) thresh_ttimes <- 0.75*thresh_ttimes
+        if( sum(ranks, na.rm = TRUE) == 0 | length(ranks[ranks >= thresh_met]) == 0 ) {
+          thresh_ttimes <- 0.75*thresh_ttimes
+        } 
       }
-      
     }
     
     clin_chosen <- cand_df[which.max(ranks), ]
     metric_val <- max(ranks[!is.infinite(ranks)], na.rm = TRUE)
-    metric_df <- data.table(scenario = i + base_scenario, clin_chosen, metric_val)
+    rank_df <- data.table(scenario = i + base_scenario, clin_chosen, metric_val)
     new_ttimes <- values(cand_list[[which.max(ranks)]]) # add to base_df
     
     # Take out the max one
@@ -151,7 +152,7 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, ran
       fwrite(commune_df,  paste0(dir_name, "/commune_allcatch.gz"))
       fwrite(district_maxcatch, paste0(dir_name, "/district_maxcatch.gz"))
       fwrite(commune_maxcatch,  paste0(dir_name, "/commune_maxcatch.gz"))
-      fwrite(metric_df, paste0(dir_name, "/clinics_ranked.csv"))
+      fwrite(rank_df, paste0(dir_name, "/clinics_ranked.csv"))
     } else {
       fwrite(district_df, paste0(dir_name, "/district_allcatch.gz"), append = TRUE)
       fwrite(commune_df,  paste0(dir_name, "/commune_allcatch.gz"), append = TRUE)
@@ -245,16 +246,19 @@ process_ttimes <- function(dir_name = "output/ttimes/addclinics", include_base =
   
   files <- list.files(dir_name, full.names = TRUE)
   
-  comm_all <- rbindlist(lapply(grep("commune_all", files, value = TRUE), fread), fill = TRUE)
-  comm_max <- rbindlist(lapply(grep("commune_max", files, value = TRUE), fread), fill = TRUE)
-  dist_max <- rbindlist(lapply(grep("district_max", files, value = TRUE), fread), fill = TRUE)
+  comm_all <- rbindlist(lapply(grep("commune_allcatch", files, value = TRUE), fread), fill = TRUE)
+  comm_max <- rbindlist(lapply(grep("commune_maxcatch", files, value = TRUE), fread), fill = TRUE)
+  dist_max <- rbindlist(lapply(grep("district_maxcatch", files, value = TRUE), fread), fill = TRUE)
   
   if(include_base == TRUE) {
     comm_all <- rbind(comm_all, fread(paste0(base_dir, "/", "commune_allcatch.gz")), fill = TRUE)
     comm_max <- rbind(comm_max, fread(paste0(base_dir, "/", "commune_maxcatch.gz")), fill = TRUE)
     dist_max <- rbind(dist_max, fread(paste0(base_dir, "/", "district_maxcatch.gz")), fill = TRUE)
   }
-
+  
+  # Write out the district max
+  fwrite(dist_max, paste0(dir_name, "/distpreds_max.gz"))
+  
   # Get district ttimes for communes --------------------------------------------------------
   dist_merge <- dist_max[, c("distcode", "ttimes_wtd", "scenario"), 
                                      with = FALSE][, setnames(.SD, "ttimes_wtd", "ttimes_wtd_dist")]
@@ -269,23 +273,10 @@ process_ttimes <- function(dir_name = "output/ttimes/addclinics", include_base =
   comm_all$lookup <- paste("scenario", comm_all$scenario, sep = "_")
   comm_max$lookup <- paste("scenario", comm_max$scenario, sep = "_")
   
-  fwrite(comm_all, paste0(dir_name, "/", "commpreds_all.csv"))
-  fwrite(comm_max, paste0(dir_name, "/", "commpreds_max.csv"))
+  fwrite(comm_all, paste0(dir_name, "/commpreds_all.csv"))
+  fwrite(comm_max, paste0(dir_name, "/commpreds_max.csv"))
   
 }
-
-  
-
-
-# Get max catch -------------------------------------------------------------------------------
-
-get.maxcatch <- function(admin_df, admin = "distcode") {
-  admin_df <- admin_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
-                                 by = .(get(admin), scenario)]
-  setnames(admin_df, "get", admin)
-  return(admin_df)
-}
-
 
 # Get brick list ------------------------------------------------------------------------------
 get.bricks <- function(brick_dir = "output/ttimes/candidates") {

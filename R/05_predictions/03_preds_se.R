@@ -24,7 +24,7 @@ source("R/functions/batch_functions.R")
 select <- dplyr::select
 
 # Set-up these two vectors for reading in data using cmd line args
-scenario_loop <- unique(fread("output/ttimes/commune_maxcatch.csv")$lookup)
+scenario_loop <- unique(fread("output/ttimes/addclinics/commpreds_max.csv")$lookup)
 se_pars <- fread("output/sensitivity/se_pars.csv")
 
 # reverse so bigger dfs don't slow everything down
@@ -32,13 +32,14 @@ lookup <- expand_grid(loop = rev(scenario_loop), se_pars)
 
 # Do burden -----------------------------------------------------------------
 all_preds <- run_scenarios(lookup = lookup, pred_type = "burden", 
-                           par_type = "point_est", scaled = FALSE, directory = "output/ttimes/",
-                           colnames_max = colnames(fread("output/ttimes/commune_maxcatch.csv")), 
-                           colnames_all = colnames(fread("output/ttimes/commune_allcatch.csv")),
+                           par_type = "point_est", scaled = FALSE,
+                           directory = "output/ttimes/addclinics",
+                           colnames_max = colnames(fread("output/ttimes/addclinics/commpreds_max.csv")), 
+                           colnames_all = colnames(fread("output/ttimes/addclinics/commpreds_all.csv")),
                            colnames_j = c("scale", "data_source", "vary", "direction"), 
                            admin_to_keep = "scenario_0", 
                            multicomb = function(x, ...) { mapply(rbind, x, ..., SIMPLIFY = FALSE)}, 
-                           rng_seed = 2342, sims = 1000)
+                           rng_seed = 23492, sims = 1000)
 
 # Write out data
 fwrite(all_preds$admin_preds, "output/sensitivity/burden_baseline_se.gz") 
@@ -49,10 +50,10 @@ lookup <- filter(lookup, grepl("beta|sigma", vary))
 vial_se_pars <- fread("output/sensitivity/se_pars.csv")[grep("beta|sigma", vary)]
 
 all_preds <- run_scenarios(lookup = lookup, pred_type = "vials", 
-                           par_type = "point_est", scaled = FALSE, catch_keep = FALSE,
-                           directory = "output/ttimes/",
-                           colnames_max = colnames(fread("output/ttimes/commune_maxcatch.csv")), 
-                           colnames_all = colnames(fread("output/ttimes/commune_allcatch.csv")),
+                           par_type = "point_est", scaled = FALSE, catch_keep = FALSE, 
+                           directory = "output/ttimes/addclinics",
+                           colnames_max = colnames(fread("output/ttimes/addclinics/commpreds_max.csv")), 
+                           colnames_all = colnames(fread("output/ttimes/addclinics/commpreds_all.csv")),
                            colnames_j = c("scale", "data_source", "vary", "direction"), 
                            admin_to_keep = NULL, 
                            multicomb = function(x, ...) { mapply(rbind, x, ..., SIMPLIFY = FALSE)}, 
@@ -65,7 +66,7 @@ out.session(path = file_path, filename = "log_cluster.csv", start = start)
 
 # Parse these from bash for where to put things
 syncto <- "~/Documents/Projects/MadaAccess/output/sensitivity/"
-syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/burden*"
+syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/*"
 
 closeCluster(cl)
 mpi.quit()

@@ -72,7 +72,10 @@ csb2 %>%
   filter(clinic_id == min(clinic_id)) -> clinic_per_comm
 
 # for those commune that don't have a clinic, look at all the other public csb 1
-missing_comms <- mada_communes$commcode[!(mada_communes$commcode %in% clinic_per_comm$commcode)]
+missing_comms <- mada_communes$commcode[!(mada_communes$commcode %in% clinic_per_comm$commcode |
+                                          mada_communes$commcode %in% ctar_metadata$commcode |
+                                          mada_communes$commcode %in% clinic_per_dist$commcode)]
+write.csv(missing_comms, "output/stats/missing_comms.csv")
 
 csbs %>% 
   filter(type != "CSB1", genre_fs != "Priv") %>%

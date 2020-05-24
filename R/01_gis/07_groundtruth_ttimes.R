@@ -5,6 +5,9 @@
 #'  3) IPM driving times (from Helene and Luciano)                                                
 # ------------------------------------------------------------------------------------------------ #
 
+source('R/functions/out.session.R')
+start <- Sys.time()
+
 # Set-up
 library(tidyverse)
 library(rgdal)
@@ -14,14 +17,13 @@ library(data.table)
 library(doParallel)
 library(foreach)
 select <- dplyr::select
-source('R/functions/out.session.R')
 source('R/functions/ttime_functions.R')
 
 # data
 ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
 mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
 mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
-base_times <- raster("output/ttimes/baseline_ttimes.tif")
+base_times <- raster("output/ttimes/base/ttimes.tif")
 pop1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 
@@ -44,8 +46,8 @@ mora %>%
                           Bicycle == 1 ~ "Bicycle", 
                           Pus == 1 ~ "Pus-pus",
                           Other == 1 ~ "Other"),
-         to_long = ctar_metadata$LONGITUDE[ctar_metadata$CTAR == "Moramanga"], 
-         to_lat  =  ctar_metadata$LATITUDE[ctar_metadata$CTAR == "Moramanga"], 
+         to_long = ctar_metadata$long[ctar_metadata$CTAR == "Moramanga"], 
+         to_lat  =  ctar_metadata$lat[ctar_metadata$CTAR == "Moramanga"], 
          ttimes_reported = hours, 
          type = "commune_wtd") %>%
   select(-(car:known_cat1), -ttimes_wtd) -> gtruth_mora 
@@ -94,4 +96,4 @@ gtruth <- bind_rows(gtruth_IPM, gtruth_mora)
 write.csv(gtruth, "output/ttimes/gtruth_ttimes.csv", row.names = FALSE)
 
 # Save session info ---------------------------------------------------------------------------
-out.session(path = "R/01_gis/06_groundtruth.R", filename = "output/log_local.csv")
+out.session(path = "R/01_gis/06_groundtruth.R", filename = "output/log_local.csv", start = start)
