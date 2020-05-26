@@ -18,6 +18,15 @@ Code to reproduce the analyses and figures are in [R/](R). The Rmarkdown documen
 6. Additional sensitivity analyses
 7. Figures 
 
+## To do
+
+- [ ] Upload inputs & outputs to zenodo (only difference = large files? Or all inputs & outputs this way?)
+- [ ] Guide to reproducing results (pull down zenodo & then run master script so that all non-cluster jobs are run)
+- [ ] Also list linux dependencies
+- [ ] Briefly describe analysis steps & repo structure
+- [ ] Briefly describe the data sources
+
+
 ## R Dependencies
 
 | Package      | Version    |
@@ -55,13 +64,5 @@ Code to reproduce the analyses and figures are in [R/](R). The Rmarkdown documen
 | lubridate    | 1.7.4      |
 | rgeos        | 0.5-2      |
 | rmapshaper   | 0.4.3      |
-| rjags        | 4.10     |
+| rjags        | 4.10       |
 | coda         | 0.19-3     |
-
-## To do
-
-[ ] Upload inputs & outputs to zenodo (only difference = large files? Or all inputs & outputs this way?)
-[ ] Guide to reproducing results (pull down zenodo & then run master script so that all non-cluster jobs are run)
-[ ] Also list linux dependencies
-[ ] Briefly describe analysis steps & repo structure
-[ ] Briefly describe the data sources
