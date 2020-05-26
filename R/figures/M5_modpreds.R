@@ -22,7 +22,7 @@ library(data.table)
 district_bites <- fread("output/bites/district_bites.csv")
 comm_covars <- fread("output/bites/comm_covars.csv")
 mora_bites <- fread("output/bites/mora_bites.csv")
-preds <- read.csv("output/preds/bites/expectations.csv") 
+preds <- read.csv("output/mods/preds/expectations.csv") 
 preds <- filter(preds, interaction(data_source, intercept, OD) %in% c("Moramanga.fixed.FALSE", 
                                                                       "National.fixed.TRUE"))
 

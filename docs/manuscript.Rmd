@@ -33,7 +33,7 @@ author:
       institute: [IPMviro]
       correspondence: false
   - Laurence Baril:
-      institute: [IPCambodia]
+      institute: [IC]
       correspondence: false
   - C.J.E. Metcalf:
       institute: [Princeton]
@@ -43,20 +43,22 @@ author:
       correspondence: false
 institute:
   - Princeton: Department of Ecology and Evolutionary Biology, Princeton University, Princeton, United States
-  - IPMviro: Virology Unit, Institut Pasteur de Madagascar, Antananarivo, Madagascar
-  - IPMvacc: Vaccination Center, Institut Pasteur de Madagascar, Antananarivo, Madagascar
   - IPMepi: Epidemiology and Clinical Research Unit, Institut Pasteur de Madagascar, Antananarivo, Madagascar
-  - IC: Institut Pasteur de Cambodge
   - CIRAD: CIRAD, UMR ASTRE, Antananarivo, Madagascar
-  - OMS: OMS
+  - OMS: World Health Organization, Madagascar
   - UoA: Mention Zoologie et Biodiversité Animale, Faculté des Sciences, Université d’Antananarivo, Antananarivo, Madagascar
-  - Glasgow: Boyd Orr Centre for Population and Ecosystem Health, Institute of Biodiversity, Animal Health and Comparative Medicine, University of Glasgow, Glasgow, UK
   - Geneva: University of Geneva
+  - IPMvacc: Vaccination Center, Institut Pasteur de Madagascar, Antananarivo, Madagascar
+  - IPMviro: Virology Unit, Institut Pasteur de Madagascar, Antananarivo, Madagascar
+  - IC: Institut Pasteur de Cambodge
+  - Glasgow: Boyd Orr Centre for Population and Ecosystem Health, Institute of Biodiversity, Animal Health and Comparative Medicine, University of Glasgow, Glasgow, UK
 date: ""
 link-citations: no
+nocite: '@*'
 output:
  bookdown::word_document2:
     pandoc_args:
+      - --csl=format/plos-neglected-tropical-diseases.csl
       - --filter=pandoc-crossref
       - --lua-filter=format/scholarly-metadata.lua
       - --lua-filter=format/author-info-blocks.lua
@@ -66,6 +68,7 @@ output:
  bookdown::html_document2:
     toc: true
     toc_float: true
+    number_sections: no
     pandoc_args:
       - --csl=format/plos-neglected-tropical-diseases.csl
       - --filter=pandoc-crossref
@@ -74,12 +77,9 @@ output:
       - --lua-filter=format/pagebreak.lua
       - --lua-filter=format/multiple-bibliographies.lua
 keywords: "canine rabies, post-exposure prophylaxis, Gavi, Zero by 30, access to care"
-bibliography: ["bib/refs_all.bib", "bib/refs_pkgs.bib"]
-# bibliography_main: ["bib/refs_all.bib"]
-# bibliography_supp: ["bib/refs_pkgs.bib"]
+bibliography_main: ["bib/refs_all.bib"]
+bibliography_supp: ["bib/refs_pkgs.bib"]
 ---
-
-##### TO DO: fix affiliations
 
 ```{r setupmain, include=FALSE}
 # Libraries
@@ -90,39 +90,68 @@ library(rgdal)
 library(glue)
 library(here)
 library(magrittr)
-
-opts_chunk$set(echo = FALSE, warning = FALSE, include = FALSE)
-
-## data
-ctar_metadata <- fread(here("data/raw/ctar_metadata.csv"))
-district_bites <- fread(here("output/bites/district_bites.csv"))
-mora_bites <- fread(here("output/bites/mora_bites.csv"))
-mada_communes <- readOGR(here("data/processed/shapefiles/mada_communes.shp"))
-mada_districts <- readOGR(here("data/processed/shapefiles/mada_districts.shp"))
+opts_chunk$set(echo = FALSE, warning = FALSE, out.width="80%")
 
 trans_perc <- function(x) {
   round(x, 2)*100
 }
 
+## data
+ctar_metadata <- fread(here("data/processed/clinics/ctar_metadata.csv"))
+district_bites <- fread(here("output/bites/district_bites.csv"))
+mora_bites <- fread(here("output/bites/mora_bites.csv"))
+mada_communes <- readOGR(here("data/processed/shapefiles/mada_communes.shp"))
+mada_districts <- readOGR(here("data/processed/shapefiles/mada_districts.shp"))
+
+## All preds (for abstract stats etc)
+natl_preds <- fread(here("output/preds/natl_preds.gz"))
+natl_base <- natl_preds[scenario == 0]
+
+natl_preds %>%
+  filter(scenario == 0) %>%
+  mutate(prop_averted = averted_mean/(deaths_mean + averted_mean)) %>%
+  select(prop_averted) -> prop_averted
+
+admin_base <- fread(here("output/preds/admin_preds_base.gz"))
+
+## candidate points
+csbs <- fread(here("data/processed/clinics/csb2.csv"))
+clin_per_comm <- fread(here("data/processed/clinics/clinic_per_comm.csv"))
+clin_per_dist <- fread(here("data/processed/clinics/clinic_per_dist.csv"))
+missing_comms <- fread(here("output/stats/missing_comms.csv"))
+comms_no_clins <- length(mada_communes) - (nrow(clin_per_comm) + nrow(ctar_metadata) + nrow(clin_per_dist))
+csbs_max <- rbind(csbs, clin_per_comm[!(clinic_id %in% csbs$clinic_id)], fill = TRUE)
+
+max_added <- max(natl_preds$scenario)
+natl_preds %>%
+  group_by(scale, data_source) %>%
+  arrange(scenario) %>%
+  mutate_at(vars(-c(group_cols(), scenario)), function(x) x/x[1]) -> props
+trends <- read.csv(here("output/stats/trends_adminpreds.csv"))
+
+one_per_dist <- nrow(clin_per_dist)
+one_per_comm <- sort(natl_preds$scenario, decreasing = TRUE)[2]
+
+no_figs <- FALSE
+if(no_figs) include_graphics <- function(x, ...) { return(invisible(NULL)) }
+
 ```
+
 \newpage
 
-# ABSTRACT
-Access to care shapes burden of diseases globally. For dog-mediated rabies, post-exposure prophylaxis (PEP) is highly effective at preventing human deaths, however access to PEP is limited in rabies endemic countries. Recently, a target to eliminate deaths due to canine rabies has been set forth by global health partners. In 2018, Gavi added human rabies vaccine to its investment portfolio, a decision which has the potential to greatly reduce rabies deaths. Here, we estimate rabies burden in Madagascar incorporating estimates of geographic access to PEP. 
+# ABSTRACT 
 
-Go in order.
+## Background
+For dog-mediated rabies, post-exposure prophylaxis (PEP) is highly effective at preventing human deaths, however access to PEP is limited in rabies endemic countries. A target to eliminate deaths due to canine rabies by the year 2030 has been set forth by global health partners, and in 2018, Gavi added human rabies vaccine to its investment portfolio, a decision which has the potential to greatly expand PEP availability and reduce rabies burden. Given the potential for countries to provision PEP more widely, we estimate the impact of access to PEP on burden and explore how expanding access can reduce burden in Madagascar, where current access to PEP is highly limited spatially (N = 31 Anti-Rabies Medical Center or ARMC across the country).
 
-We find that travel times to the closest Anti-Rabies Medical Center (ARMC) is a strong predictor of reported bite incidence across the country. We use resulting estimates of bite incidence in an adapted decision tree framework to generate estimates of burden and reporting across the country, and find that spatial access to PEP shapes local burden. 
+## Methodology & Principal Findings
+We use travel times to the closest ARMC as a proxy for access to PEP. We find that travel times are a strong predictor of reported bite incidence across the country. We use resulting estimates of bite incidence in an adapted decision tree framework to generate estimates of burden and reporting across the country, and find that spatial access to PEP shapes burden sub-nationally. We estimate an annual burden of `r round(sort(natl_base$deaths_mean)[1])` (95% CI: `r round(sort(natl_base$deaths_lower)[nrow(natl_base)])` - `r round(sort(natl_base$deaths_upper)[nrow(natl_base)])`), with current PEP provisioning averting ~ `r glue("{trans_perc(min(prop_averted))}%")` percent of deaths. Under these assumptions, we estimate that expanding PEP provisioning to one clinic per district could reduce the burden of rabies deaths by `r glue("{trans_perc(min(1 - props$deaths_mean[props$scenario == 83]))} - {trans_perc(max(1 - props$deaths_mean[props$scenario == 83]))}%")`. However, our results suggest that even with all major health centers in the country provisioning PEP (N = `r max(natl_preds$scenario)` additional clinics), we could still see substantial mortality due to rabies. Our estimates are most sensitive to assumptions of underlying rabies exposure incidence, but the qualitative patterns of the impacts of travel times and expanded access on burden are robust to these assumptions. 
 
+## Conclusions & Significance
+PEP is effective at preventing deaths and in the absence of rabies data, targeting expansion to populations currently underserved may be the most equitable way to provision PEP. Data on rabies incidence will be neccessary to refine these estimates and to better target interventions. While expanding access could save many more lives, our results suggest that improved outreach and awareness is also needed & improved clinic functioning & surveillance systems. A GAVI investment can propel countries forward on this path combining these life saving interventions. 
 
-We evaluate the impact of expanding access to PEP, using a strategic framework which minimizes travel time for people at the greatest risk of death given a rabies exposure (persons > 3 hrs away from a clinic). Under these assumptions, we estimate that provisioning of PEP to an additional 200 clinics in Madagascar could reduce the burden of rabies deaths by 50%. 
-
-However our estimates are dependent on blah blah blah.
-
-
-These results highlight the importance of accounting for access to care in predicting the impacts of interventions sub-nationally and the potential for expanding PEP access strategically to reduce rabies deaths in endemic settings.
-
-# AUTHOR SUMMARY
+# AUTHOR SUMMARY 
+Canine rabies causes an estimated 60,000 deaths each year across the world, primarily in low and middle income countries where people have limited access to both human (post-exposure prophylaxis or PEP) and dog rabies vaccine. Given that we have the tools to prevent rabies deaths, a global target has been set to eliminate deaths due to canine rabies by the year 2030, and recently, GAVI, a organization that provides funding for immunization programs to eligible countries, added human rabies vaccine to it's funding agenda. In this study, we model estimates of reported bite incidence as a function of travel times and estimates of rabies exposure incidence to extrapolate the burden of human rabies given the current availability of PEP across the country. We find that PEP currently averts a signficant number of deaths, but that burden remains high, particularly in areas with high travel times to a clinic. Expanding PEP availability to more clinics could significantly reduce the current burden of rabies deaths, but our results suggest that expansion alone will not eliminate deaths due to rabies under current levels of reporting. Combining PEP expansion with outreach, surveillance, and mass dog vaccination programs will be necessary to move Madagascar, and other countries like it, forwards on the path to elimination.
 
 \newpage
 
@@ -131,19 +160,19 @@ These results highlight the importance of accounting for access to care in predi
 
 Inequities in access to care are a major driver of disease burden globally [@world2018world]. Often, the populations at greatest risk of a given disease are the most underserved [@peters2008poverty]. Delivering interventions to these groups is challenging due to financial and infrastructural limitations, and requires careful consideration of how best to allocate limited resources [@mainaSpatialDatabaseHealth2019]. 
 
-Dog-mediated rabies is estimated to cause approximately 60,000 human deaths annually [@whorabiesmodelingconsortiumPotentialImpactImproved2019]. Mass vaccination of domestic dogs has been demonstrated to be a highly effective way to control the disease in both animals and humans . While dog vaccination can interrput transmission in the reservoir, human deaths can also be prevented through prompt administration of post-exposure prophylactic vaccines (PEP) following a bite by a rabid dog [@RabiesVaccinesWHO2018]. However, access to human vaccines are limited in countries where canine rabies is endemic [@sreenivasanOverviewRabiesPostexposure2019; @tarantolaRabiesPostexposureProphylaxis2017; @hampsonEstimatingGlobalBurden2015], and within countries these deaths are often concentrated in rural, underserved communities [@wentworthSocialJusticePerspective2019].
+Dog-mediated rabies is estimated to cause approximately 60,000 human deaths annually [@whorabiesmodelingconsortiumPotentialImpactImproved2019]. Mass vaccination of domestic dogs has been demonstrated to be a highly effective way to control the disease in both animals and humans. While dog vaccination can interrput transmission in the reservoir, human deaths can also be prevented through prompt administration of post-exposure prophylactic vaccines (PEP) following a bite by a rabid dog [@RabiesVaccinesWHO2018]. However, access to human vaccines are limited in countries where canine rabies is endemic [@sreenivasanOverviewRabiesPostexposure2019; @tarantolaRabiesPostexposureProphylaxis2017; @hampsonEstimatingGlobalBurden2015], and within countries these deaths are often concentrated in rural, underserved communities [@wentworthSocialJusticePerspective2019].
 
-In 2015, a global framework to eliminate deaths due to dog-mediated rabies by 2030 through a combination of PEP provisioning and dog vaccination was established by the World Health Organization (WHO) and partners [@world2018zero]. Furthermore, in 2018, Gavi, the Vaccine Alliance, added human rabies vaccines to their proposed investment portfolio [@GaviVIS]. From 2021, Gavi-eligible countries will be able to apply for support to expand access to these vaccines, with potential to greatly reduce deaths due to rabies. Yet it is unclear how these vaccines should be distributed to prevent deaths most effectively.
+In 2015, a global framework to eliminate deaths due to dog-mediated rabies by 2030 through a combination of PEP provisioning and dog vaccination was established by the World Health Organization (WHO) and partners [@world2018zero]. Furthermore, in 2018, Gavi, the Vaccine Alliance, added human rabies vaccines to their proposed investment portfolio [@GaviVIS]. From 2021, Gavi-eligible countries will be able to apply for support to expand access to these vaccines, with potential to greatly reduce deaths due to rabies. 
 
-A primary challenge is the lack of data on rabies exposures in humans and incidence in animals in most rabies-endemic countries [@scottAddressingDisconnectEstimated2017]. The majority of rabies burden studies at the national level have integrated bite patient data on reported bites into a probability decision tree framework, with the key assumption that overall reported bite incidence (i.e. both bites due to non-rabid and rabid animals) are proportional to rabies incidence (i.e. the more bites reported in a location, the higher the incidence of rabies exposures), and that reporting is uniform across space [@hampsonEstimatingGlobalBurden2015; @knobelReevaluatingBurdenRabies2005; @rajeevHealthcareUtilizationProvisioning2018]. If applied subnationally, these assumptions would likely underestimate rabies deaths in places with poor access to PEP and may overestimate rabies deaths in places with better access to PEP. 
+A primary challenge in expanding access effectively is the lack of data on rabies exposures and deathss in humans and incidence in animals in most rabies-endemic countries [@scottAddressingDisconnectEstimated2017]. Deaths due to rabies are often severely underreported, with many people dying outside of the health system, often in the most vulnerable and remote communities [@taylor2017difficulties]. Instead of directly measuring rabies deaths, the majority of rabies burden studies use bite patient data on reported bites and a decision tree framework to extrapolate deaths, with the key assumption that overall reported bite incidence (i.e. both bites due to non-rabid and rabid animals) are proportional to rabies incidence (i.e. the more bites reported in a location, the higher the incidence of rabies exposures), and that reporting is uniform across space [@hampsonEstimatingGlobalBurden2015; @knobelReevaluatingBurdenRabies2005; @rajeevHealthcareUtilizationProvisioning2018]. If applied subnationally, these assumptions would likely underestimate rabies deaths in places with poor access to PEP and may overestimate rabies deaths in places with better access to PEP.
 
 In Madagascar, the Institut Pasteur de Madagascar (IPM) provides PEP at no-cost to patients at 31 clinics, or anti-rabies medical centers (ARMC) across the country [@rajeevHealthcareUtilizationProvisioning2018]. PEP is not available at any other public clinics or through the private sector. In addition, there is limited control of rabies in dog populations and the disease appears to be endemic throughout the country [@andriamandimbySurveillanceControlRabies2013; @reynesLaboratorySurveillanceRabies2011]. Due to the spatially restricted nature of PEP distribution points and lack of direct costs for PEP, geographic access is likely to be a major driver of disease burden within the country. Previously, we estimated the burden of rabies in Madagascar nationally using data from a single district to extrapolate to the country, and did not account for spatial variation in access [@rajeevHealthcareUtilizationProvisioning2018]. Here, we revise estimates of burden by incorporating the impact of access to PEP at the sub-national level on preventing human rabies deaths and explore the potential impact of expanding provisioning of human rabies vaccines on further reducing these deaths.
 
 
 # METHODS
 
-## Estimating travel time to closest ARMC {#methods-spatial}
-To estimate travel times to the nearest clinic at the scale of administrative units, we used two raster inputs: 1) the friction surface from the Malaria Atlas Project [@weissGlobalMapTravel2018] at an ~1 km^2 scale ([Fig S1.1A](#figS1.1)) and 2) the population estimates which we resampled to the friction surface from the the 2015 UN adjusted population projections from World Pop (@linardPopulationDistributionSettlement2012a, originally at an ~100m^2 resolution, [Fig S1.1B](#figS1.1)).  
+## Estimating travel time to closest ARMC {#methods-ttimes}
+To estimate travel times to the nearest clinic at the scale of administrative units, we used two raster inputs: 1) the friction surface from the Malaria Atlas Project [@weissGlobalMapTravel2018] at an ~1 km^2 scale (Fig S1.1A) and 2) the population estimates which we resampled to the friction surface from the the 2015 UN adjusted population projections from World Pop (@linardPopulationDistributionSettlement2012a, originally at an ~100m^2 resolution, Fig S1.1B.  
 
 Using the approach described in @weissGlobalMapTravel2018, we used GPS points of ARMC to estimate the travel time to the nearest clinic provisioning PEP at an approximately 1 x 1 km scale. We then extracted the mean travel times as well as the mean of travel times weighted by population for the district and commune (the administrative unit below the district) level. We also compared these metrics to euclidean distance, taking the minimum distance from the administrative unit centroid to any ARMC. We used administrative shapefiles from the UN Office for the Coordination of Humanitarian Affairs.
 
@@ -155,7 +184,7 @@ We used two datasets on bite patients reporting to ARMC:
 1) A national database of bite patient forms submitted to IPM from ARMC across the country between 2014 - 2017. These were individual patient data forms that were submitted from clinics as frequently as monthly to annually, which included data on the date of reporting and were resolved to the district level (i.e. the district where the patient resided).
 2) `r max(mora_bites$nobs, na.rm = TRUE)` months of data (between October 2016 and June 2019) on patients reporting to the Moramanga ARMC resolved to the commune level. We calculated average annual bite incidence to the commune level by taking the monthly average of reported bites and multiplying by 12.
 
-The data from the Moramanga district were completely reported across the `r max(mora_bites$nobs, na.rm = TRUE)` month period. However, for the national data, some clinics did not report any data, and for others there were substantial periods, months to even a whole year, when no patient forms were submitted. To correct for under-submission of forms, we attempted to identify what proportion of data were missing each year by excluding any periods of time for which there were 15 consecutive days where zero patient records were submitted ([Figure S2.1A](figS2.1). We then divided the total number of bites reported to each clinic from each clinic in a given year by the estimated proportion of forms which were not submitted (undersubmission) for each clinic. Due to the variation in submission of forms across time, we chose to take the average of the annual bite incidence estimates aggregated to the district level.
+The data from the Moramanga district were completely reported across the `r max(mora_bites$nobs, na.rm = TRUE)` month period. However, for the national data, some clinics did not report any data, and for others there were substantial periods, months to even a whole year, when no patient forms were submitted. To correct for under-submission of forms, we attempted to identify what proportion of data were missing each year by excluding any periods of time for which there were 15 consecutive days where zero patient records were submitted ([Figure S2.1A](figS2.1)). We then divided the total number of bites reported to each clinic from each clinic in a given year by the estimated proportion of forms which were not submitted (undersubmission) for each clinic. Due to the variation in submission of forms across time, we chose to take the average of the annual bite incidence estimates aggregated to the district level.
 
 We validated this approach to estimating form undersubmission by comparing estimated vial demand given the total reported bites (corrected for under-submission) for the years 2014-2017 to actual vials provisioned to clinics over this same period. Vial demand was simulated under simplified assumptions of PEP administration and adherence[@rajeevHealthcareUtilizationProvisioning2018], assuming that patients reported randomly across the year and then completed doses 3, 7, and 28 days subsequent from the date reported. For this analysis, we look at the range of vial estimates assuming that all patients complete 3 vs. 4 doses total. During this period, the Thai Red Cross Intradermal regimen was used across Madagascar, with 0.2 mL administered per patient at each visit. Vials can be shared within a day between two patients, resulting in 0.1 background wastage per vial shared, plus any additional wasteage from unused doses discarded at the end of the day. We did not have the date or month when vials were provisioned, so we compared estimated demand to the total vials provisioned across this four year period. 
 
@@ -187,19 +216,21 @@ We estimate deaths due to rabies as a function of the number of bites predicted 
 
 For $E_i$, we center the distribution at the lower end of our estimate of exposure incidence from the Moramanga District (42 exposures/100,000 persons). The range for $E_i$ is estimated using the approach used in [@whorabiesmodelingconsortiumPotentialImpactImproved2019] where rabies incidence in the dog population is estimated to be approximately 1% annually in the absence of dog vaccination, and that on average a rabid dog exposes 0.39 persons. These assumptions are derived from modeling and long term contact tracing data from the Serengeti District, Tanzania [@hampsonRabiesExposuresPostExposure2008; @hampsonSurveillanceEstablishElimination2016; @whorabiesmodelingconsortiumPotentialImpactImproved2019]. We then take the range of exposure incidence as the probability of exposure multiplied by the number of expected rabies cases in dogs assuming 1% incidence and the estimate of the dog population using a range of human to dog ratios (HDRs) of 5 (upper estimate) and 25 (lower estimate). As there is little data on dog populations in Madagascar [@andriamandimbySurveillanceControlRabies2013], this range of HDRs encompasses a wide range of observed HDRs across Africa [@knobelReevaluatingBurdenRabies2005; @sambo2018estimating], as well as recent subnational estimates from Madagascar [@leblancclaireRabiesMadagascarThreepronged2019], and also generates similar human exposure incidences as observed previously across Africa [@beyeneEstimatingBurdenRabies2018; @hampsonRabiesExposuresPostExposure2008]. See figure S4 for further details. 
 
-
-```{r fig 1, fig.fullwidth=TRUE}
+```{r fig 1}
 include_graphics(here("figs/main/M1_sankey.jpeg"))
 ```
-*__Figure 2.__Decision tree for burden estimation. For a given administrative unit $i$, human deaths due to rabies ($D_i$) are calculated from model predicted bites ($B_i$). To get $R_i$, the number of reported bites that were rabies exposures, we multiply $B_i$ by $p_{rabid}$, the proportion of reported bites that are rabies exposures. $p_{rabid}$ is constrained such that reported rabies exposures cannot exceed total rabies exposures ($E_i$) and reporting cannot exceed a maximum ($p_{max}$). $R_i$ is subtracted from $E_i$ to get the number of unreported bites ($U_i$) and then multiplied by the probability of death given a rabies exposure ($p_{infect}$) to get the number of deaths due to rabies ($D_i$). Similarly, deaths averted by PEP are estimated by multiplying $R_i$ by $p_{infect}$, i.e. those who would have died given exposure, but instead received PEP. Both $E_i$ and $p_{rabid}$ are drawn from a triangular distribution; all parameter values and sources are listed in Table 1.*
 
+*__Figure 1__. Decision tree for burden estimation. For a given administrative unit $i$, human deaths due to rabies ($D_i$) are calculated from model predicted bites ($B_i$). To get $R_i$, the number of reported bites that were rabies exposures, we multiply $B_i$ by $p_{rabid}$, the proportion of reported bites that are rabies exposures. $p_{rabid}$ is constrained such that reported rabies exposures cannot exceed total rabies exposures ($E_i$) and reporting cannot exceed a maximum ($p_{max}$). $R_i$ is subtracted from $E_i$ to get the number of unreported bites ($U_i$) and then multiplied by the probability of death given a rabies exposure ($p_{infect}$) to get the number of deaths due to rabies ($D_i$). Similarly, deaths averted by PEP are estimated by multiplying $R_i$ by $p_{infect}$, i.e. those who would have died given exposure, but instead received PEP. Both $E_i$ and $p_{rabid}$ are drawn from a triangular distribution; all parameter values and sources are listed in Table 1.*
+  
+  
 $B_i$, the number of total reported bites, is the predicted number of bites from the models of bite incidence as a function of travel times. To get $R_i$, the number of reported rabies exposures, we multiply $B_i$ by $p_{rabid}$, the proportion of reported bites that are rabies exposures, drawn from a triangular distribution with range between 0.2 - 0.6. So that rabid reported bites cannot exceed the total expected number of human rabies exposures or a maximum reporting (as we know that even with minimal travel times, people may not report for PEP for other reasons), we constrain $p_{rabid}$ as follows:
 $$ p_{rabid}=\begin{cases} x, & \text{if}\ \frac{E_i\rho_{max}}{B_i} > x \\ \frac{E_i\rho_{max}}{B_i}, &\text{otherwise} \end{cases}$$
 where $\rho_{max}$ is the maximum reporting. We estimate $\rho_{max}$ from the Moramanga ARMC data for the commune of Moramanga Ville, the closest commune to the ARMC (average of 3.12 minutes travel time to the clinic), and where contact tracing data estimated that approximately 2% of rabies exposure go unreported [@rajeevHealthcareUtilizationProvisioning2018]. We assume that all rabies exposed patients who report to an ARMC receive and complete PEP, and PEP is completely effective at preventing death due to rabies. 
 
 We subtract $R_i$ from $E_i$, the number of total human rabies exposures drawn from a triangular distribution with range of 15.6 - 76 exposures per 100,000 persons, to get the number of unreported exposures ($U_i$). Deaths due to rabies in each administrative unit ($D_i$) are then estimated by mutliplying $D_i$ times $p_{death}$.
 Deaths averted are calculated similarly as the reported rabies exposures $R_i$ that would have died in the absence of PEP given $p_{death}$ (i.e $A_ip_{death}$). Table 1 lists all parameter values and sources used in the decision tree. \
-
+  
+  
 Table:**Table 1.** Parameters used in the decision tree to estimate human rabies deaths at the administrative level.\
 
 | **Parameter**   | **Value**        | **Description**	                 | **Source**|
@@ -208,19 +239,9 @@ Table:**Table 1.** Parameters used in the decision tree to estimate human rabies
 | $p_{rabid}$	| Triangular(a = 0.2, b = 0.6, c = 0.4) |	Proportion of reported bites that are rabies exposures | [@rajeevHealthcareUtilizationProvisioning2018] |
 | $\rho_{max}$ | 0.98	| The maximum reporting possible for any location	Data from Moramanga Ville, Moramanga District | [@rajeevHealthcareUtilizationProvisioning2018] |
 | $p_{death}$ |	0.16 | The probability of death given a rabies exposure	| [@changaluchaNeedImproveAccess2018]|
-
+  
+  
 ## Estimating the impact of expanding PEP provisioning to additional clinics {#methods-incremental} 
-
-```{r ncsbs}
-## candidate points
-csbs <- fread(here("data/processed/clinics/csb2.csv"))
-clin_per_comm <- fread(here("data/processed/clinics/clinic_per_comm.csv"))
-clin_per_dist <- fread(here("data/processed/clinics/clinic_per_dist.csv"))
-missing_comms <- fread(here("output/stats/missing_comms.csv"))
-comms_no_clins <- length(mada_communes) - (nrow(clin_per_comm) + nrow(ctar_metadata) + nrow(clin_per_dist))
-csbs_max <- rbind(csbs, clin_per_comm[!(clinic_id %in% csbs$clinic_id)], fill = TRUE)
-
-```
 
 We developed a framework to rank clinics by how much they could improve access for people currently underserved and to estimate the incremental reduction in burden as PEP is expanded to these clinics. We simulate expansion first to each district (N = `r length(mada_districts)`)and then to each commune in the country for all communes with a clinic. We select the CSB II (Centre de Sante Niveau II, major health centers with capacity for delivering vaccines) in the highest density grid cell of the administrative unit as candidates for expansion. At the commune level, `r nrow(missing_comms) - comms_no_clins`  communes did not have a CSB II, so we chose the CSB I (Centre de Sante Niveau I, secondary health posts) in the highest density grid cell. `r comms_no_clins` communes lacked any CSB I or II.
 
@@ -239,8 +260,8 @@ We also estimate how expansion to additional clinics may impact vaccine demand. 
 ## Sensitivity analysis {#methods-sensitivity}
 To test the effect of our model assumptions on estimates of rabies burden and vial demand, we did a univariate sensitivity analyses of both parameters from the models of bite incidence and the decision tree parameters. For each parameter in the decision tree, we simulated predcitions fixing estimates to the upper and lower range of each parameter, while keeping the other parameters unchanged (Table S6.1). For parameters from the models of reported bite incidence, we fixed the estimate at the upper and lower 95% quantiles of their posterior distributions (Table S6.2). We also look at how systematic variation in rabies incidence with human population size could affect our estimates of burden. Specifically, if we believe that human to dog ratios are positively correlated with human populations (i.e. if dog ownership/populations are higher in more populated, urban areas), then we might expect higher rabies exposure incidence within our range as population size increases. Alternatively, if we believe that the human to dog ratio is inversely correlated with human population size (i.e. if dog ownership is more common in less populated, rural areas), we might expect rabies exposure incidence within our range to scale negatively with human population size. We use scaling factors to scale incidence either positively or negatively with the population sizes observed at the district and commune levels, while still constraining them within the range of exposure incidence used in the main analyses (15.6 - 76 exposures per 100,000 persons, see Fig S6.4) and simulated baseline burden, as well as the impact of expanding PEP access.
 
-## Data and code 
-All analyses were done in `r sessionInfo()$R.version$version.string` [@RLang2019] and using the packages listed in the [supplementary references]{#srefs}. All processed data, code, and outputs are archived at this zenodo repository (to be archived upon submission) and maintained at [this github repository](https://github.com/mrajeev08/MadaAccess). The raw bite patient data at the national level are maintained in a database by IPM. This database was last queried on September 19, 2019 for these analyses. Anonymized raw data from this database are available from IPM following insitutional data transfer protocols. Anonymized raw data collected from the Moramanga District were retrieved from the Wise Monkey Portal (http://www.wisemonkeyfoundation.org/) on the same date and are shared in the archived repository. 
+## Data and analyses 
+All analyses were done in `r sessionInfo()$R.version$version.string` [@RLang2019] and using the packages listed in the supplementary references (section S7). All processed data, code, and outputs are archived at this zenodo repository (to be archived upon submission) and maintained at github.com/mrajeev08/MadaAccess. The raw bite patient data at the national level are maintained in two secure REDCap (project-redcap.org) databases, one for IPM and another for all peripheral ARMC. These databases were last queried on September 19, 2019 for these analyses. Anonymized raw bite patient data are available from IPM following insitutional data transfer protocols. Anonymized raw data collected from the Moramanga District were retrieved from the Wise Monkey Portal (wisemonkeyfoundation.org) on the same date and are shared in the archived repository. 
 
 ## Ethics statement
 Data collection from the Moramanga District was approved by the Princeton University IRB (# 7801) and the Madagascar Ministry of Public Health Ethics Committee (# 105-MSANP/CE). Oral informed consent was obtained from all interviewed participants. Data collected from bite patients at the national level are maintained jointly by the Ministry of Health and IPM as a routine part of PEP provisioning. 
@@ -259,34 +280,39 @@ ttime_stats %>%
   sum(prop_pop) -> prop_over6_base
 ```
 
-Estimates of travel times to the closest ARMC vary greatly across the country (Fig 3A), with approximately `r round(prop_over3_base*100, 0)`% of the population living greater than 3 hrs away from a clinic (Fig 3B). We found that travel times estimated from the friction surface generally underestimate true driving times and patient reported travel times to the Moramanga ARMC (Fig 3C), and that patient reported travel times were significantly more variable than estimates from the friction surface (Fig S1.2). The friction surface assumes that the fastest available mode of transport is used to travel each grid cell (i.e. the presence of a road in a given grid cell indicates that all travel through that grid cell will be at vehicle rather than walking speeds). However, patients reporting to the Moramanga ARMC report using mutliple modes of transport, with some cases of individuals walking multiple days to reach a clinic (Fig S1.3). Despite these discrepancies, travel times correlate with the reported and groundtruthed driving times (Fig 3C, Fig S1.4). Travel times weighted by population at the grid cell level were a better predicter than unweighted travel times or distance (Table S1.1). Therefore we use this metric as a proxy for access at the commune/district level in subsequent analyses.
+Estimates of travel times to the closest ARMC vary greatly across the country (Fig 3A), with approximately `r round(prop_over3_base*100, 0)`% of the population estimated to live greater than 3 hrs away from a clinic (Fig 3B). However, we found that these estimates from the friction surface generally underestimate true driving times across the country and patient reported travel times to the Moramanga ARMC (Fig 3C), and that patient reported travel times were significantly more variable than estimates from the friction surface (Fig S1.2). The friction surface assumes that the fastest available mode of transport is used to travel each grid cell (i.e. the presence of a road in a given grid cell indicates that all travel through that grid cell will be at vehicle rather than walking speeds). However, patients reporting to the Moramanga ARMC report using mutliple modes of transport, with some cases of individuals walking multiple days to reach a clinic (Fig S1.3). Despite these discrepancies, travel time estimates from the friction surface correlate with the reported and groundtruthed driving times (Fig 3C, Fig S1.4). Travel times weighted by population at the grid cell level were a better predicter than unweighted travel times or distance (Table S1.1). Therefore we use this metric as a proxy for access at the commune/district level in subsequent analyses.
 
-```{r fig M2, fig.fullwidth=TRUE}
+```{r fig M2}
 include_graphics(here("figs/main/M2_ttimes.jpeg"))
 ```
-*__Figure 3.A)__ Travel times to the closest ARMC estimated at an ~ 1km^2 scale for Madagascar. __B)__ Distribution of the population across travel times. __C)__Correlation between patient reported travel times to the Moramanga ARMC and travel times weighted by population (mean at the commune level) and between reported driving times between GPS points and travel time estimates at the grid cell level. For the commune means, the vertical point lineranges show the 95% quantiles for reported travel times, and the point size shows the number of observations for each commune. The best fit lines (pink and purple lines) and 95% confidence interval (shading) from a linear model where observed travel times ~ estimated travel times for each data source are also shown. The dashed black line is the 1:1 line.* 
 
+*__Figure 2A)__ Travel times to the closest ARMC estimated at an ~ 1 km^2^ scale for Madagascar. __B)__ Distribution of the population across travel times. __C)__ Correlation between patient reported travel times to the Moramanga ARMC and travel times weighted by population (mean at the commune level) and between reported driving times between GPS points and travel time estimates at the grid cell level. For the commune means, the vertical point lineranges show the 95% quantiles for reported travel times, and the point size shows the number of observations for each commune. The best fit lines (pink and purple lines) and 95% confidence interval (shading) from a linear model where observed travel times are predicted by estimated travel times for each data source are also shown. The dashed black line is the 1:1 line.* 
+  
+  
 ## Estimating average annual bite incidence at the district and commune level {#results-biteinc}
 We assigned each district or commune to a catchment based on which clinic was the closest for the majority of the population. While there are discrepancies between commune and district catchment assignments (Fig S2.1A), > 75% of the population in a given district or commune were closest to a single clinic (Fig S2.B). In addition, for the national data we found that for most districts, the majority of bites were reported to the closest clinic as estimated by our travel time metric (Fig 1A), and the majority of bites reported to a clinic came from within the catchment assigned by the travel time metric (Fig S2.1C). 
 
 ```{r fig M3 catchmaps}
 include_graphics(here("figs/main/M3_bitemaps.jpeg"))
 ```
-*__Figure 3.A)__ The network of patient presentations at the district level for the __A)__ national data and __B)__ commune level for the Moramanga data: circles with a black outline represent the total number of patients reporting to each ARMC for which we have data. Color corresponds to the clinic catchment. Circles with a white outline are the total number of bites reported for that administrative unit (plotted as the centroid). Lines show which ARMC those patients reported to, with the line width proportional to number of patients from that district reporting to the ARMC; flows of less than 5 patients were excluded. Out-of-catchment reporting is indicated where points and line colors are mismatched. For panel __A)__ districts in catchments excluded due to lack of forms submitted by the clinic are colored in grey. For __B)__ the inset of Madagascar shows the location of the enlarged area plotted, which shows the district of Moramanga (outlined in black), and all communes included in it's catchment (red polygons) and other communes where bites were reported to in grey.*
 
-Clinic submission of forms was highly variable over the period covered by the dataset (Figure S2.1). We found that estimates of vial demand based on uncorrected bite patient numbers are generally lower than the true number of vials provisioned for those clinics with substantial undersubmission of forms ([Figure S2.1B](#figS2.1)), and correcting patient numbers by under-submission of forms based on the 15 day consecutive day cut-off results in estimates of vial demand closer to the observed vials provisioned ([Figure S2.2A and B](#figS2.2)). We excluded any clinics which submitted less than 10 forms (excluded `r nrow(ctar_metadata) - max(district_bites$catch)` catchments, in grey in Fig 3A). After additionally excluding any year with less than 25% of forms submitted, our final dataset consisted of estimates of average bite incidence for `r nrow(district_bites)` out for `r length(mada_districts)` districts total (Fig 4A), and `r nrow(mora_bites)` communes within the catchment of the Moramanga District (Fig 4B). 
+*__Figure 3A)__ The network of patient presentations at the district level for the __A)__ national data and __B)__ commune level for the Moramanga data: circles with a black outline represent the total number of patients reporting to each ARMC for which we have data. Color corresponds to the clinic catchment. Circles with a white outline are the total number of bites reported for that administrative unit (plotted as the centroid). Lines show which ARMC those patients reported to, with the line width proportional to number of patients from that district reporting to the ARMC; flows of less than 5 patients were excluded. Out-of-catchment reporting is indicated where points and line colors are mismatched. For panel __A)__ districts in catchments excluded due to lack of forms submitted by the clinic are colored in grey. For __B)__ the inset of Madagascar shows the location of the enlarged area plotted, which shows the district of Moramanga (outlined in black), all communes included in it's catchment (red polygons), and other communes where bites were reported to in grey.*
+  
+  
+Clinic submission of forms was highly variable over the period covered by the dataset (Figure S2.1). We found that estimates of vial demand based on uncorrected bite patient numbers are generally lower than the true number of vials provisioned for those clinics with substantial undersubmission of forms (Figure S2.1B). Correcting patient numbers by under-submission of forms based on the 15 day consecutive day cut-off results in estimates of vial demand closer to the observed vials provisioned for the majority of clinics (Figure S2.2A and B). We excluded any clinics which submitted less than 10 forms (excluded `r nrow(ctar_metadata) - max(district_bites$catch)` catchments, in grey in Fig 3A). After additionally excluding any year with less than 25% of forms submitted, our final dataset consisted of estimates of average bite incidence for `r nrow(district_bites)` out for `r length(mada_districts)` districts total (Fig 4A), and `r nrow(mora_bites)` communes within the catchment of the Moramanga District (Fig 4B). 
 
 ```{r fig M4 biteinc}
 include_graphics(here("figs/main/M4_biteinc.jpeg"))
 ```
 
 *__Figure 4.__ The estimated average annual bite incidence from the national and Moramanga data plotted at the __A)__ district scale (both datasets) and at the __B)__ commune scale (Moramanga dataset). Colors correspond to the clinic catchment, shape indicates the dataset, and the size of the point indicates the number of observations (i.e. the number of years for which data was available for the national data; note for Moramanga `r max(mora_bites$nobs, na.rm = TRUE)` months of data were used). The point lines indicate the range of estimated bite incidence for each district.*
-
+  
+  
 ```{r}
 outliers <- read.csv(here("output/stats/outliers.csv"))
 ```
 
-Bite incidence estimates generally decreased with weighted travel times at both scales, although there was considerable variation between catchments for the magnitude of this relationship. For the national data, there were also two outliers, Toamasina II (the sub-urban commune surrounding the city of Toamasina) and Soanierana Ivongo, which both had higher bite incidence when compared to other districts with similar travel times. While the estimates from the Moramanga data showed higher reported incidence at low travel times at the commune level compared to the district estimates, when aggregated to the district fell within the ranges observed from the national dataset.
+Bite incidence estimates generally decreased with weighted travel times at both scales, although there was considerable variation between catchments for the magnitude of this relationship. For the national data, there were also two outliers, Toamasina II (the sub-urban commune surrounding the city of Toamasina) and Soanierana Ivongo, which both had higher bite incidence when compared to other districts with similar travel times. While the estimates from the Moramanga data showed higher reported incidence at low travel times at the commune level compared to the district estimates, when aggregated to the district, bite incidence estimates fell within the ranges observed from the national dataset.
 
 ## Modeling reported bite incidence as a function of travel times {#results-bitemods}
 ```{r}
@@ -295,24 +321,22 @@ convergence <- read.csv(here("output/stats/convergence.csv"))
 
 All models and posterior estimates of parameters converged (Gelman-Rubin diagnostic < `r round(max(convergence$val[convergence$OD != TRUE]), 3)`, @gelman2006data). All of the candidate models which included travel times produced similar predictions when compared to the observed data (Fig S3.2). Population size alone was the poorest fit to the data as estimated by DIC (Table S3.1), and models with population size as an additional covariate did not generate realistic predictions to the observed data or when used to predict out of fit (Figs S3.2 and S3.3). 
 
-For the national data, including a random catchment effect improved predictions of the observed data (Fig S3.2 & Fig S3.3), and catchment level effects were strongly identified in the posterior estimates. However, after accounting for overdispersion of the data, these catchment effects were not clearly identifiable and the posterior estimates of the catchment intercepts were broadly similar (Fig S3.6), and the models resulted in similar predictions to the data (Fig S3.7), indicating that the catchment effect could not be differentiated from random variation in the data. Similarly, while the commune model fit to the Moramanga data generated stronger estimates of the travel time effect (Fig 5B), after accounting for overdispersion of the data, the posterior estimates of the parameters overlapped for the commune and district models fit to the national data (Fig S3.4), and the model estimates were in general less robust to overdispersion than for the national data, particularly at low travel times (Fig S3.5). Finally, for the national data, we also looked at the sensitivity of these models to how we corrected our data for underreporting, and we found that parameter estimates of travel time impacts were similar across models (Fig S3.8) and generated similar predictions of the range of bite incidence across travel times (Fig S3.9).
+For the national data, including a random catchment effect improved predictions of the observed data (Fig S3.2 & Fig S3.3), and catchment level effects were strongly identified in the posterior estimates. However, after accounting for overdispersion of the data, these catchment effects were not clearly identifiable and the posterior estimates of the catchment intercepts were broadly similar (Fig S3.6), and the models resulted in similar predictions to the data (Fig S3.7), indicating that the catchment effect could not be differentiated from random variation in the data. Similarly, while the commune model fit to the Moramanga data generated stronger estimates of the travel time effect (Fig 5B), after accounting for overdispersion of the data, the posterior estimates of the parameters overlapped for the commune and district models fit to the national data (Fig S3.4), and the model estimates were in general less robust to overdispersion than for the national data, particularly at low travel times (Fig S3.5). Finally, for the national data, we also looked at the sensitivity of these models to how we corrected our data for underreporting, and we found that parameter estimates of travel time impacts were similar across models and performed similarly in predicting the data, and instead the correction applied impacted the magnitude of the bite incidence estimates (Fig S3.8 and Fig S3.9).
 
-As the prediction from the model fit to the Moramanga data without accounting for overdispersion falls within the prediction interval for the models fit to the national data (Fig 5A), for subsequent predictions of burden, we use the parameter estimates from the commune and district models fit to the national data, as they encompass the range of travel time effects observed in our datasets.
+As the prediction from the model fit to the Moramanga data without accounting for overdispersion falls within the prediction interval for the models fit to the national data (Fig 5A), for subsequent predictions of burden, we use the parameter estimates models fit to the national data, as they encompass the range of travel time effects observed in our datasets. In addition, our out of fit predictions to the data across scales suggest that the commune model is able to capture travel time impacts at this scale, therefore we use both the district and commune model to disaggregate burden to the finest scale possible given our modeling framework. 
 
-```{r fig 5, fig.fullwidth=TRUE}
+```{r fig 5}
 include_graphics(here("figs/main/M5_mods.jpeg"))
 ```
-_**Figure 5.** Travel times as a predictor of reported bite incidence per 100,000 persons. A) The estimated relationship between travel time in hours (x-axis) and mean annual bite incidence per 100,000 persons (y-axis). The lines are the mean estimates and the envelopes are the 95% prediction intervals for predictions generated by drawing 1000 independent samples from the parameter posterior distributions for three candidate models: model with travel times at the 1) commune and 2) district level fitted to the national data with an overdispersion parameter ($\sigma_e$) and 3) travel times at the commune level fitted to the Moramanga data with a fixed intercept and unadjusted for overdispersion. The envelopes show the 95% prediction interval. The points show the data used to fit the models: National data (triangles) at the district level used to fit the District and Commune models, and Moramanga data (circles) at the commune level used to fit the Moramanga model. The posterior distribution of parameters from the respective models for the B) model intercept, C) travel time effect, and D) the overdisperson parameter (for national data only)._  
 
+_**Figure 5.** Travel times as a predictor of reported bite incidence per 100,000 persons. A) The estimated relationship between travel time in hours (x-axis) and mean annual bite incidence per 100,000 persons (y-axis). The lines are the mean estimates and the envelopes are the 95% prediction intervals for predictions generated by drawing 1000 independent samples from the parameter posterior distributions for three candidate models: model with travel times at the 1) commune and 2) district level fitted to the national data with an overdispersion parameter ($\sigma_e$) and 3) travel times at the commune level fitted to the Moramanga data with a fixed intercept and unadjusted for overdispersion. The envelopes show the 95% prediction interval. The points show the data used to fit the models: National data (circles) at the district level used to fit the District and Commune models, and Moramanga data (triangles) at the commune level used to fit the Moramanga model. The posterior distribution of parameters from the respective models for the B) model intercept, C) travel time effect, and D) the overdisperson parameter (for national data only)._  
+  
+  
 ## Estimating the burden of human rabies deaths subnationally {#results-burden}
 
-```{r burden results}
-natl_preds <- fread(here("output/preds/burden_natl.gz"))
-natl_base <- natl_preds[scenario == 0]
-```
-
-Overall, we estimate between `r round(sort(natl_base$deaths_mean)[1])` - `r round(sort(natl_base$deaths_mean)[nrow(natl_base)])` average annual deaths in Madagascar due to rabies depending on the model used (Table 2). We also estimate that under the current system of 31 ARMCs in Madagascar, approximately `r round(sort(natl_base$averted_mean)[1])` - `r round(sort(natl_base$averted_mean)[nrow(natl_base)])` deaths due to rabies are prevented through provisioning of PEP each year. In general, the incidence of rabies deaths increases with travel times to clinics, and there is significant variation sub-nationally when burden is modeled at the district level, with even stronger patterns of increase in burden with travel times when modeling burden at the commune level with estimates from the Moramanga data (Figure 4). The estimates of burden from the model fitted to the Moramanga data result in estimates of burden that are lower at the national level, but higher relatively in places with high travel times {fix!}. However, there is considerable uncertainty in these estimates, in particular given the district model of bite incidence.
-
+Overall, we estimate between `r round(sort(natl_base$deaths_mean)[1])` - `r round(sort(natl_base$deaths_mean)[nrow(natl_base)])` average annual deaths in Madagascar due to rabies depending on the model used (Table 2). We also estimate that under the current system of 31 ARMCs in Madagascar, approximately `r round(sort(natl_base$averted_mean)[1])` - `r round(sort(natl_base$averted_mean)[nrow(natl_base)])` deaths due to rabies are prevented through provisioning of PEP each year. In general, the incidence of rabies deaths increases with travel times to clinics, and  there is significant variation sub-nationally when burden is modeled at the district level, with even stronger patterns of increase in burden with travel times when modeling burden at the commune level (Figure 4). However, there is considerable uncertainty in these estimates, in particular given the district model of bite incidence.
+  
+  
 *__Table 2.__ Model predictions of average annual reported bite incidence, total deaths, and total deaths averted at the national level for the two models (commune level and district level models with a random catchment effect); 95% prediction interval of national estimate in parentheses.*
 
 ```{r Table 2}
@@ -329,76 +353,58 @@ kable(table1, digits = -0, col.names = c("Model", "Reported bite incidence per 1
                                         "Deaths averted"))           
 ```
   
-  
-```{r fig 4, fig.fullwidth=TRUE}
+    
+    
+```{r fig 6}
 include_graphics(here("figs/main/M6_burden_base.jpeg"))
 ```
+
 *__Figure 4.__ Spatial variation in predicted incidence of human rabies deaths per 100, 000 persons. __A)__ for each district (y-axis) in Madagascar, where the diamonds show the predicted incidence for the district model and the squares show the incidence for the commune model fit to the National data for all communes in a district. Points are colored by and districts are ordered by travel times. The vertical lines show the average national incidence of human rabies deaths for the commune (grey) and district (black) models. Incidence mapped to the __B)__ commune level and __C)__ district level from the respective models; grey X’s show locations of current ARMC*
-
+  
+  
 ## The impact of expanding PEP access to additional clinics {#results-incremental}
-```{r}
-max_added <- max(as.numeric(natl_preds$scenario[!(natl_preds$scenario %in% c("max", "armc_per_dist", "armc_per_comm"))]))
-natl_preds %>%
-  mutate(scenario_num = case_when(!(scenario %in% c("max", "armc_per_dist", "armc_per_comm")) ~ as.numeric(scenario),
-                                  scenario == "max" ~ max_added + 200, scenario == "armc_per_dist" ~ 114, 
-                                  scenario == "armc_per_comm" ~ max_added + 150)) %>%
-  group_by(scale, data_source) %>%
-  arrange(scenario_num) %>%
-  mutate_at(vars(-c(group_cols(), scenario, scenario_num)), function(x) x/x[1]) -> props
-trends <- read.csv(here("output/stats/trend_preds.csv"))
+For a subset of clinics (n = 83, up to one clinic per district), we compared the impact of three different metrics for ranking clinics on reducing annual burden of deaths. We found that metrics that targeted expansion at clinics based on the proportion of the population they reduced travel times for (above a threshold of three hours) performed the best (Fig S5.1). Therefore, we used this metric for simulating expansion to the larger set of clinics (N = `r max_added` clinics).
 
-```
+We found that strategic expansion of access to these additional `r nrow(clin_per_dist)` clinics (i.e. 1 clinic per district) reduced burden by `r round(min(1 - props$deaths_mean[props$scenario == one_per_dist])*100, 2)` - `r round(max(1 - props$deaths_mean[props$scenario == one_per_dist])*100, 2)`% (Fig 7A). With one clinic per commune (where a clinic was available, N = `r one_per_comm`), we see a further reduction between `r round(min(1 - props$deaths_mean[props$scenario == one_per_comm])*100, 2)` - `r round(max(1 - props$deaths_mean[props$scenario == one_per_comm])*100, 2)`. However, reductions in burden saturate as more clinics are added (Fig S5.2). Even when all CSB II provision PEP in the country, our model still predicts `r round(min(1 - natl_preds$deaths_mean[natl_preds$scenario == max(natl_preds$scenario)]), 2)` - `r round(max(1 - natl_preds$deaths_mean[natl_preds$scenario == max(natl_preds$scenario)]), 2)` rabies deaths per annum, and average reporting of rabid exposures remains between `r round(min(1 - trends$reporting_mean[trends$scenario == max(trends$scenario)])*100, 2)` - `r round(max(1 - trends$deaths_mean[trends$scenario == max(trends$scenario)])*100, 2)`% (Fig S5.5). This is largely due to the fact that as more clinics are added, reported bite incidence saturates (Fig S5.4), and instead there are shifts in which clinic bites are reported to (S5.7 & S5.8). 
 
-We found that expanding PEP to additional clinics reduces rabies deaths, with strategic expansion of access to an additional 250 clinics reducing burden by `r round(min(1 - props$deaths_mean[props$scenario == 250])*100, 2)` - `r round(max(1 - props$deaths_mean[props$scenario == 250])*100, 2)`% (Fig 7A). However, benefits accrue less rapidly as ARMC are added: with approximately 700 clinics, we see a further reduction between `r round(min(1 - props$deaths_mean[props$scenario == 700])*100, 2)` - `r round(max(1 - props$deaths_mean[props$scenario == 700])*100, 2)`. This saturation is a result of the landscape of clinics across the country, as additional clinics reduce clinics for fewer people as more clinics are added (Fig S5.1). Even at maximal PEP access, our model still predicts `r round(min(1 - natl_preds_all$deaths_mean[natl_preds_all$scenario == max(natl_preds_all$scenario)]), 2)` - `r round(max(1 - natl_preds_all$deaths_mean[natl_preds_all$scenario == max(natl_preds_all$scenario)]), 2)` rabies deaths per annum, and average reporting of rabid exposures remains between `r round(min(1 - trends$reporting_mean[trends$scenario == max(trends$scenario)])*100, 2)` - `r round(max(1 - trends$deaths_mean[trends$scenario == max(trends$scenario)])*100, 2)`% (Fig S5.6).
-
-Vial demand also increases (Fig 7B), and more vials are needed per averted death as PEP access is expanded (Fig 7C). Our model predicts an increase from `r round(min(1 - natl_preds_all$vials_mean[natl_preds_all$scenario == 0]), 2)` - `r round(max(1 - natl_preds_all$vials_mean[natl_preds_all$scenario == 0]), 2)` vials under current clinic provisioning and with the abridged Thai Red cross regimen (i.e. visits on days 0, 3, 7), to ~`r round(min(1 - natl_preds_all$vials_mean[natl_preds_all$scenario == 250]), 2)` - `r round(max(1 - natl_preds_all$vials_mean[natl_preds_all$scenario == 250]), 2)` vials with 250 clinics, and approximately `r round(min(1 - natl_preds_all$vials_mean[natl_preds_all$scenario == max(natl_preds_all$scenario)]), 2)` - `r round(max(1 - natl_preds_all$vials_mean[natl_preds_all$scenario == max(natl_preds_all$scenario)]), 2)` vials if all CSB IIs were to provision PEP. Importantly, clinic throughput decreases, as well, with clinics seeing fewer patients per day (S5.7), as reported bite incidence saturates (Fig S5.5), and instead there are shifts in which clinics bites are reported to.
+Vial demand also outpaces reductions in burden (Fig 7B), with more vials  needed per averted death as PEP access is expanded (Fig 7C). Our model predicts an increase from `r round(min(1 - natl_preds$vials_mean[natl_preds$scenario == 0]), 2)` - `r round(max(1 - natl_preds$vials_mean[natl_preds$scenario == 0]), 2)` vials under current clinic provisioning and with the abridged Thai Red cross regimen (i.e. visits on days 0, 3, 7), to ~`r round(min(1 - natl_preds$vials_mean[natl_preds$scenario == 250]), 2)` - `r round(max(1 - natl_preds$vials_mean[natl_preds$scenario == 250]), 2)` vials with 250 clinics, and approximately `r round(min(1 - natl_preds$vials_mean[natl_preds$scenario == max(natl_preds$scenario)]), 2)` - `r round(max(1 - natl_preds$vials_mean[natl_preds$scenario == max(natl_preds$scenario)]), 2)` vials if all CSB IIs were to provision PEP. Importantly, clinic catchment populations and throughput decrease, as well, with clinics serving fewer patients per day (S5.6).
 
 
-
-```{r fig 5, fig.fullwidth=TRUE}
+```{r fig 7}
 include_graphics(here("figs/main/M7_addARMC.jpeg"))
 ```
 
-*__Figure 5. A)__ Decrease in deaths due to rabies, __B)__ increase in total # of vials as additional ARMC are added at the national level , and __C)__ increase in vials needed per death averted based on the two models of reported bites. Lines are the mean of 1000 simulations with envelopes representing 95% prediction intervals. The points show three additional scenarios: 1) one ARMC per district (N = 114 clinics total, + 83 clinics), 2) one ARMC per commune where atleast one is present (N = `r nrow(clin_per_comm)` total, + `r nrow(clin_per_comm) - 31` clinics), and 3) all CSB II in the country provision PEP (N = `r nrow(csbs) + 31` clinics total, + `r nrow(csbs)`)*
-
+*__Figure 5. A)__ Decrease in deaths due to rabies, __B)__ increase in total # of vials as additional ARMC are added at the national level , and __C)__ increase in vials needed per death averted based on the two models of reported bites. Lines are the mean of 1000 simulations with envelopes representing 95% prediction intervals. The points show when all additional csb (N = `r max_added`) clinics have been added). *
+  
+  
 ## Sensitivity of estimates to bite incidence and decision tree model parameters {#results-sensitivity}
-To quantify which parameters contribute to the uncertainty observed in our estimates, we performed a univariate sensitivity analyses, varying parameters in both the model of bite incidence (Table S6.1) and the decision tree model (Table S6.2). These analyses show that assumptions of the underlying rabies exposure incidence ($E_i$) contribute the greatest to uncertainty in estimates of baseline burden and for determining the impact of expanding access (Fig S6.2). Uncertainty in bite model parameters contribute less to variation of estimates of burden. For the estimates of vial demand, uncertainty around the intercept of the model (i.e. the baseline reported bite incidence) has the greatest impact, rather than the travel time effect or the overdispersion parameter (Fig S6.3). Finally, scaling of incidence with population size modulates this impact of travel times on deaths, with positive scaling of rabies incidence with population size (i.e. more rabies in more populated places) dampening and negative scaling enhancing the relationship between access and deaths (Fig S6.5A). However, the impact of adding clinics remains broadly the same (Fig S6.5B). Overall, while uncertainty in the underlying rabies exposure incidence results in significant variation in the absolute number of rabies burden, our results of the current impact of travel times on burden and of the potential for expanded access to reduce burden are qualitatively similar across parameter estimates. 
-
+To quantify which parameters contribute to the uncertainty observed in our estimates, we performed a univariate sensitivity analyses, varying parameters in both the model of bite incidence (Table S6.1) and the decision tree model (Table S6.2). These analyses show that assumptions of the underlying rabies exposure incidence ($E_i$) contribute the greatest to uncertainty in estimates of baseline burden (Fig S6.1) and for determining the impact of expanding access (Fig S6.2). Uncertainty in bite model parameters contribute less to uncertainty in estimates of burden. For the estimates of vial demand, uncertainty around the intercept of the model (i.e. the baseline reported bite incidence) has the greatest impact, rather than the travel time effect or the overdispersion parameter (Fig S6.3). Finally, scaling of incidence with population size (Fig S6.4) modulates this impact of travel times on deaths, with positive scaling of rabies incidence with population size (i.e. more rabies in more populated places) dampening and negative scaling enhancing the relationship between access and deaths (Fig S6.5A). However, the impact of adding clinics remains broadly the same (Fig S6.5B). Overall, while uncertainty in the underlying rabies exposure incidence results in significant variation in the absolute number of rabies deaths, our estimates of the impact of travel times on burden and of the potential for expanded access to reduce burden are qualitatively similar across parameter assumptions. 
 
 # DISCUSSION  
-```{r}
-natl_preds %>%
-  filter(scenario == 0) %>%
-  mutate(prop_averted = averted_mean/(deaths_mean + averted_mean)) %>%
-  select(prop_averted) -> prop_averted
-```
-
 
 ## Main findings
-Travel time to the closest ARMC was a strong predictor of reported bite incidence in Madagascar. Using an adapted decision tree framework, we find that the burden of rabies is likely to be concentrated in areas with low access to PEP. Even given only 31 clinics, we estimate that current provisioning averts `r glue("{trans_perc(min(prop_averted))} - {trans_perc(max(prop_averted))}%")` of deaths that would occur due to rabies in the absence of PEP. We estimate that expanding PEP access has the potential to reduce deaths due to rabies, with expansion to one clinic provisioning PEP per district reducing deaths by `r glue("{trans_perc(min(1 - props$deaths_mean[props$scenario == 83]))} - {trans_perc(max(1 - props$deaths_mean[props$scenario == 83]))}%")`. 
+Travel time to the closest ARMC was a strong predictor of reported bite incidence in Madagascar. Using an adapted decision tree framework, we find that the burden of rabies is likely to be concentrated in areas with low access to PEP. Under the status quo (N = 31 clinics), we estimate that current provisioning averts `r glue("{trans_perc(min(prop_averted))} - {trans_perc(max(prop_averted))}%")` of deaths that would occur due to rabies in the absence of PEP. We estimate that expanding PEP access has the potential to reduce deaths due to rabies, with expansion to one clinic per district (N = `r one_per_dist`) reducing deaths by `r glue("{trans_perc(min(1 - props$deaths_mean[props$scenario == 83]))} - {trans_perc(max(1 - props$deaths_mean[props$scenario == 83]))}%")` and to one clinic per commune (N = `r one_per_comm`) reducing deaths by `r glue("{trans_perc(min(1 - props$deaths_mean[props$scenario == one_per_comm]))} - {trans_perc(max(1 - props$deaths_mean[props$scenario == one_per_comm]))}%")`.
 
-However, our model predicts that geographic expansion of PEP access alone is unlikely to eliminate deaths due to rabies, and that even given expansion of PEP to all major health centers (n = 1676) in the country, between `r glue("{round(min(natl_preds_all$deaths_mean[natl_preds_all$scenario == max(natl_preds_all$scenario)]))} - {round(max(natl_preds_all$deaths_mean[natl_preds_all$scenario == max(natl_preds_all$scenario)]))}")` deaths may still occur nationally. This result is driven by two key factors. Given the landscape of clinics and travel times across the country, even with expansion to all major health centers in the country, travel times remain high for a significant proportion of the population {inline estimate of prop pop living > 3 hrs}. Finally, the travel time effect, while consistently non-zero and negative, does not account for much of the variance observed in the data for locations of similar travel times, suggesting that other factors may be driving reported bite incidence not included in our study {expected range of incidence at low travel times}. 
+However, our model predicts that geographic expansion of PEP access alone is unlikely to eliminate deaths due to rabies, and that even given expansion of PEP to all additional CSB II in the country (N = `r max(natl_preds$scenario)` additional clinics), between `r glue("{round(min(natl_preds$deaths_mean[natl_preds$scenario == max(natl_preds$scenario)]))} - {round(max(natl_preds$deaths_mean[natl_preds$scenario == max(natl_preds$scenario)]))}")` deaths may still occur nationally. This result is driven by two key factors. First, given the landscape of clinics and travel times across the country, despite expansion to all major health centers in the country, travel times remain high for a significant proportion of the population (Figure S5.4). Secondly, even for locations with low travel times given the range human rabies exposures between 15 - 76 per 100,000 persons, we estimate an average incidence of human rabies deaths of `r round(min(admin_base$deaths_mean/admin_base$pop*1e5), 2)` (Figure S5.5). Importantly, for administrative units with similar travel times, we estimate a significant amount of variation that cannot be explained by travel times alone, suggesting other factors may be driving access and reporting of bite incidence. 
 
-Because of these factors, we find that after a certain number of clinics are added, rather than large increases in reported incidence, we see shifts in the clinic locations where bites are reported to. Vial demand reflects these patterns as well, however, vials needed per death averted match predictions from a recent cost effectiveness analysis of PEP expansion, suggesting that expanding PEP access will remain highly cost effective [@whorabiesmodelingconsortiumPotentialImpactImproved2019]. While the qualitative patterns hold, the actualy # of deaths is highly sensitive to our assumptions of rabies exposure incidence. 
+Because of these factors, we find that as PEP provisioning is expanded to more clinics, rather than large increases in reported incidence, we see shifts in the clinic locations where bites are reported to. Vial demand reflects these patterns as well. However, vials needed per death averted are lower than predictions from a recent cost effectiveness analysis of PEP expansion (assuming a cost of 5 USD per vial, a maximum of `r round(max(natl_preds$vials_upper/natl_preds$averted_upper)*5)` USD per death averted in direct costs, similar to the ~ 600 USD per death averted estimated in @whorabiesmodelingconsortiumPotentialImpactImproved2019), suggesting that expanding PEP access will remain highly cost effective given current ranges of reported bite incidence. Ultimately, these quantitative findings are highly dependent on the assumption of underlying rabies exposure incidence.  Data on rabies incidence in dogs and exposures in humans are needed to confirm these estimates, but the qualitative patterns regarding travel time impacts remain robust and therefore can be useful in identifying strategies for expanding PEP and reducing burden. 
 
 ## Limitations
-The travel time estimates from the MAP friction surface underestimate true travel times reported by patients, likely due to discrepancies between assigned transport speeds and modes and the reality of travel in Madagascar. These speeds are taken from the Open Street Map user community, or in it's absence, from country cluster data [@weissGlobalMapTravel2018], and also assumes that given multiple types of transport in a cell, the fastest available mode of transport is used. In Madagascar, the presence of paved roads does not necessarily reflect their quality or the modes of transport used to travel these roads. Patients reporting to the Moramanga ARMC reported using a variety of transport methods and had highly variable travel times even within a single commune. Future studies should aim to improve estimates of travel times with country specific data on road speeds and travel conditions [@rayAccessModComputingGeographic2008] to better estimate spatial inequities in access, or by collecting data on patient reported travel times. While patient reported travel times may also lack precision due to recall and estimation error, they will likely be more reflective of the range of travel realities that people experience. 
+The travel time estimates from the MAP friction surface underestimate true travel times reported by patients, likely due to discrepancies between assigned transport speeds and modes and the reality of travel in Madagascar. These speeds are taken from the Open Street Map user community, or in it's absence, from country cluster data [@weissGlobalMapTravel2018], and also assume that given multiple types of transport in a cell, the fastest available mode of transport is used. In Madagascar, the presence of paved roads does not necessarily reflect their quality or the modes of transport used to travel these roads. Patients reporting to the Moramanga ARMC reported using a variety of transport methods and had highly variable travel times even within a single commune. Future studies should aim to improve estimates of travel times with country specific data on road speeds and travel conditions [@rayAccessModComputingGeographic2008] to better estimate spatial inequities in access, or by collecting data on patient reported travel times. While patient reported travel times may also lack precision due to recall and estimation error, they will likely be more reflective of the range of travel realities that people experience. 
 
-We assume that spatial access to PEP is the primary driver of health-seeking behavior, however many other factors may drive an individual’s decision to seek PEP, such as socioeconomic and educational status and awareness about the danger of rabies [@samboKnowledgeAttitudesPractices2014; @barbosacostaInfluencePovertyRabies2018; @etheartEffectCounsellingHealthcareseeking2017; @hampsonRabiesExposuresPostExposure2008]. In the Madagascar context where PEP is provided free of charge to patients, the main cost of seeking PEP is for transport and associated time lost for travel. In addition, more remote communities tend to be of lower socioecomonic and educational status [@peters2008poverty], so our travel time metric may act as a proxy for these set of correlated variables that impact an individual’s access to PEP. In fact, a recent knowledge-attitudes-practices (KAP) study of both community members in the Moramanga District and ARMC staff across the country found that both socioeconomic status and living in an urban area were predictive of knowledge scores [@leblancclaireRabiesMadagascarThreepronged2019]. OUTLIERS TO TIE INTO OD & other factors
+We were able to use multiple sources of data to compare estimates of bite incidence across scales. We found that we could effectively disaggregate burden to the commune scale using our travel time metric. The Moramanga data demonstrates that sub-district patterns of access are important to account for when estimating potential areas with low access. However, we lacked data from other catchments at the commune scale to further confirm and compare finer scale patterns. Focusing on routinely collecting data at the sub-district level could help to resolve these patterns. 
 
-We included an overdispersion parameter in our model to quantify variation not due to travel times, and for all models, the data were significantly overdispersed, suggesting that variation at the clinic level (i.e. differences in clinic functioning such as vaccine availability) and at the administrative level (i.e. differences in regional bite incidence, awareness, outreach, etc.) are likely important drivers of health-seeking behavior and overall vaccine demand. While clinic specific effects were identifiable in models without overdispersion, these random effects were not identifiable when accounting for random variance in the data. Importantly, the national data we used were underreported and incomplete, but we attempted to correct for these issues (quantifying under-submission of forms and excluding districts from catchments with less than 25% of data reported). Improving data submission and quality from clinics across the country will be important to better understand patterns of health seeking behavior and access, but also to monitor how well clinics are functioning and to develop better provisioning systems. 
+We assume that spatial access to PEP is the primary driver of health-seeking behavior, however many other factors may drive an individual’s decision to seek PEP, such as socioeconomic and educational status and awareness about the danger of rabies [@samboKnowledgeAttitudesPractices2014; @barbosacostaInfluencePovertyRabies2018; @etheartEffectCounsellingHealthcareseeking2017; @hampsonRabiesExposuresPostExposure2008]. In the Madagascar context where PEP is provided free of charge to patients, the main cost of seeking PEP is for transport and associated time lost for travel. In addition, more remote communities tend to be of lower socioecomonic and educational status [@peters2008poverty], so our travel time metric may act as a proxy for these set of correlated variables that impact an individual’s access to PEP. In fact, a recent knowledge-attitudes-practices (KAP) study of both community members in the Moramanga District and ARMC staff across the country found that both socioeconomic status and living in an urban area were predictive of knowledge scores [@leblancclaireRabiesMadagascarThreepronged2019]. We also assume that all ARMC reliably provision PEP, but this is unlikely to be the case. Leblanc 2019 found that at the time of their KAP survey, three clinics were experiencing vaccine stock-outs. In addition, while direct costs of the vaccine are not charged to patients, 22 of 31 current ARMC ask for other fees (ranging from 0.50 - 3.00 USD for consultations, gauze, supplementary medication for wound treatment, etc per visit; @leblancclaireRabiesMadagascarThreepronged2019) which might additionally prevent people from receiving treatment after reporting.  
 
-SCALE SCALE We were able to use multiple sources of data to compare estimates of bite incidence across scales. We found that we could effectively disaggregate burden to the commune scale using our travel time metrics. The Moramanga data demonstrates that sub-district patterns of access are important to account for when estimating potential areas with low access. However, we lacked data from other catchments at the commune scale to further confirm and compare finer scale patterns. 
+We included an overdispersion parameter in our model to quantify variation not captured by travel times. For all models, the data were significantly overdispersed, suggesting that variation at the clinic level (i.e. differences in clinic functioning such as vaccine availability and costs charged) and at the administrative level (i.e. differences in regional bite incidence, awareness, outreach, etc.) are likely important drivers of health-seeking behavior and overall vaccine demand. While clinic specific effects were identifiable in models without overdispersion, these random effects were not identifiable when accounting for random variance in the data. Importantly, the national data we used were underreported and incomplete, but we attempted to correct for these issues (quantifying under-submission of forms and excluding districts from catchments with less than 25% of data reported). Improving data submission and quality from clinics across the country will be important to better understand patterns of health seeking behavior and access, but also to monitor how well clinics are functioning and to develop better provisioning systems. 
 
 Our decision tree framework makes strong assumptions about baseline rabies exposure incidence, based on a previous study from the Moramanga District [@rajeevHealthcareUtilizationProvisioning2018] and a global study of rabies burden[@whorabiesmodelingconsortiumPotentialImpactImproved2019]. As incidence of rabies exposures varies significantly over time and space [@hampsonSynchronousCyclesDomestic2007; @hampsonTransmissionDynamicsProspects2009], we incorporated uncertainty into these estimates to generate a mean estimate of burden at the national level. Even when we assume the extremes of these ranges, or that rabies exposure incidence varies systematically with human populations, we find that the qualitative effects of travel times on risk of rabies deaths remains the same. While our sensitivity analyses show that the relative patterns of burden are robust, the magnitude of deaths is most sensitive to our assumption of rabies exposure incidence. Thus, our estimates are more representative of patterns of risk than quantitative differences in burden, and spatial estimates of rabies exposure incidence would be necessary to generate more precise subnational estimates of burden. 
 
-We also make several simplifying assumptions regarding PEP compliance and efficacy. We assume perfect compliance of patients and efficacy of PEP. Although delays in reporting and poor adherence to PEP contribute to risk of death, PEP compliance is generally high in Madagascar [@rajeevHealthcareUtilizationProvisioning2018], and these factors are unlikely to be major drivers of burden [@changaluchaNeedImproveAccess2018]. We do not account for differential risk for severely exposed patients (i.e. Category III exposures) that do not receive rabies Immunoglobulin (RIG). RIG is only available at IPM in Antananarivo, and while exposed persons may be referred to seek RIG, the majority of Category III exposures that seek care are unlikely to have received RIG. We were not able to link patient records between peripheral ARMC and IPM to directly estimate this. However, recent studies have shown that even in the absence of RIG, PEP is highly effective at preventing rabies deaths, and only adds a marginal benefit in terms of reducing burden but at very high cost. It is both unlikely that availability of RIG contributes significantly to rabies burden in Madagascar, or that expansion of RIG provisioning would be a feasible option given the costs. 
+We make several simplifying assumptions regarding PEP compliance and efficacy. We assume perfect compliance of patients and efficacy of PEP. Although delays in reporting and poor adherence to PEP contribute to risk of death, PEP compliance is generally high in Madagascar [@rajeevHealthcareUtilizationProvisioning2018], and these factors are unlikely to be major drivers of burden [@changaluchaNeedImproveAccess2018]. We do not account for differential risk for severely exposed patients (i.e. Category III exposures) that do not receive rabies Immunoglobulin (RIG). RIG is only available at IPM in Antananarivo, and while exposed persons may be referred to seek RIG, the majority of Category III exposures that seek care are unlikely to have received RIG. We were not able to link patient records between peripheral ARMC and IPM to directly estimate this. However, recent studies have shown that even in the absence of RIG, PEP is highly effective at preventing rabies deaths, and only adds a marginal benefit in terms of reducing burden but at very high cost. It is both unlikely that availability of RIG contributes significantly to rabies burden in Madagascar, or that expansion of RIG provisioning would be a feasible option given the costs. 
 
-We also assume that all ARMC reliably provision PEP, but this is unlikely to be the case, as Leblanc 2019 found that at the time of their KAP survey, three clinics were experiencing vaccine stock-outs, which likely contributes to burden. PART ABT THEM CHARGING PATIENTS FOR OTHER FEES HERE (UNCLEAR WHETHER THEY ARE IN THE DATA). 22 ARMC ask for fees (consultation fees to fees for guaze etc for the form. ranging from 2000 Ar - 10000 Ar in some cases, 0.50 - 3,00 USD). And while PEP is free, KAP bit?  In fact, 22 clinics still charge patients (on average ~ 2000 Ar but anywhere from 500 - 10000 Ar for costs other than the vaccine) so this could be a factor too. PRovisioning and clinic functioning will be as important as expanding to everywhere!
+Ideally, many of these assumptions could either be confirmed or updated with improved data on canine rabies incidence, health-seeking behavior, and clinic functioning and provisioning of PEP. Even with these additional data sources, it will be challenging to incorporate the complex interactions between socioeconomic factors, access to and quality of care, and human behavior to predict the impact of PEP spatially. We detail case studies in Box 1 that highlight some of the challenges in capturing variable healthcare seeking behavior in the context of PEP provisioning, and the policy implications of these exceptions.
 
-Ideally, many of these assumptions could either be confirmed or replaced with improved data on canine rabies incidence, health-seeking behavior, and clinic functioning and provisioning of PEP. Even with these additional data sources, it will be challenging to incorporate the complex interactions between socioeconomic factors, access to and quality of care, and human behavior to predict the impact of PEP spatially. We detail case studies in Box 1 that highlight some of the challenges in capturing variable healthcare seeking behavior, particularly in the context of PEP provisioning, and the policy implications of these exceptions.
-
-## Box 1: case studies of the challenges of predicting health seeking behavior
+## Box 1: case studies of the challenges of predicting health seeking behavior and PEP efficacy
 ```{r}
 mora_bites %>%
   filter(district == "Anosibe-An'ala") %>%
@@ -408,123 +414,166 @@ mora_raw <- read.csv(here("data/processed/bitedata/moramanga.csv"))
 mora_raw %>%
   filter(distcode == "MG33317") %>%
   summarize(prop_cat1 = sum(known_cat1)/n()) -> prop_cat1_AA
-admin_preds <- fread(here("output/preds/burden_base.gz")) 
+admin_preds <- fread(here("output/preds/admin_preds_base.gz")) 
 admin_preds %>%
   mutate(distcode = substr(names, 1, 7)) %>%
   filter(distcode == "MG33317") %>%
   group_by(scale) %>%
   summarize(inc = sum(deaths_mean)/sum(pop)*1e5, bite_inc = sum(bites_mean)/sum(pop)*1e5) -> aa_preds
+
+ranked_clins <- fread(here("output/ttimes/addclinics/clinics_ranked.csv"))
+aa_added <- min(ranked_clins[district == "Anosibe-An'ala"]$scenario)
+gtruth <- fread(here("output/ttimes/gtruth_ttimes.csv"))
+gtruth %>%
+  filter(district == "Anosibe-An'ala") %>%
+  summarize(mean = mean(ttimes_reported, na.rm = TRUE), 
+            min =  min(ttimes_reported, na.rm = TRUE),
+            max = max(ttimes_reported, na.rm = TRUE)) -> aa_ttimes
+admin_base %>%
+  mutate(distcode = substr(names, 1, 7)) %>%
+  filter(distcode == "MG33317") %>%
+  group_by(scale) %>%
+  summarize(deaths_mean = sum(deaths_mean), pop = sum(pop)) -> aa_deaths
+
 ```
 
 ### Anosibe A'nala
-In the district of Anosibe A'nala (population of ~ `r round(mada_districts$pop[mada_districts$district = "Anosibe-An'ala"])` people) south of the Moramanga District, travel times to the nearest ARMC are high and highly variable, often exceeding 24 hours and consisting of days of travel on foot. Despite these barriers, we see a moderate incidence of reported bites (~ `r round(aa_bites$inc)` per 100,000 persons). Importantly `r trans_perc(prop_cat1_AA$prop_cat1)`% of these patients were loosely defined Category I exposures, i.e. people who had been in close proximity or had touched a person that had died from suspected rabies. Approximately 50% of the non-Category I exposures were classified as a probable rabies cases based on clinical criteria, and we recorded 5 deaths in this district over a `r max(mora_bites$month)` month period. Only one animal case was confirmed diagnostically however. The data from Anosibe A'nala points to three key insights: 
+In the district of Anosibe A'nala (population of ~ `r round(mada_districts$pop[mada_districts$district == "Anosibe-An'ala"])` people) south of the Moramanga District, travel times to the nearest ARMC are high and highly variable, often exceeding 24 hours and consisting of days of travel on foot. Despite these barriers, we see a moderate incidence of reported bites (~ `r round(aa_bites$inc)` per 100,000 persons). Importantly `r trans_perc(prop_cat1_AA$prop_cat1)`% of these patients were loosely defined Category I exposures, i.e. people who had been in close proximity or had touched a person that had died from suspected rabies. Approximately 50% of the non-Category I exposures were classified as a probable rabies cases based on clinical criteria, and we recorded 4 deaths in this district over a `r max(mora_bites$month)` month period. Only one animal case was confirmed diagnostically however. The data from Anosibe A'nala points to three key insights: 
 
-1) This remote community does suffer from rabies exposure and is likely experiencing a high burden of death that we are only seeing the tip of the iceberg for. 
+1) Given the high travel times and the observed incidence of rabies exposures and human rabies deaths, this remote community is likely experiencing a much higher burden of rabies of which we are observing only a small fraction. In our modeling analysis, we estimate that an annual burden of `r round(aa_deaths$deaths_mean[1], 2)` per year.
 
-2) When people are aware of the risk of death due to rabies, they are willing to travel a long time (in many cases walking 3 days to attend the clinic) to seek the vaccine. In addition, surveillance responses, i.e. when there is a suspected cases, there is often referral of these people from far away, can work and if these investigations are triggered on exposure rather than death then they could greatly help to prevent deaths. There is great potential for community outreach to go far. 
+2)Travel times estimated from the friction surface (average weighted travel times of `r round(mada_districts$ttimes_wtd[mada_districts$district == "Anosibe-An'ala"]/60, 2)`) are much lower than those observed for this district (average patient reported travel times of `r round(aa_ttimes$mean, 2)` hours). While there is a road connecting the main commune of Anosibe An'ala to the Moramanga ARMC, road speeds are often < 10km per hour and conditions, particularly during the rainy seasons, make it impossible for anything but large transport trucks to travel this road. Most people use multiple modes of transport depending on cost and availability (i.e. boat, on foot, by transport truck). In our ranking of clinics by reduction in travel times, this clinic was the `r aa_added`th clinic added. However, given the recurrent cases of human rabies deaths and the high travel times, this area might deserve higher prioritization. Importantly, other remote communities may also be experiencing a high and hidden burden of rabies, and improved surveillance across the country will be necessary to best prioritize resources.
 
-3) What do we estimate as the death incidence? When would we add a clinic? The travel times estimated from the friction surface are much lower than those observed. Because while there is a road, road speeds are often < 10km per hour and people hitch rides with transport trucks. This is also highly seasonal, during the rainy season it's almost impossible to travel other than by foot. And most people use multiple modes of transport depending on cost and availability (i.e. boat, on foot, by camion). So these metrics may miss key areas that are underserved and warrants improvement.
+3) Despite these high travel times, when people are aware of the risk of death due to rabies and when PEP is available at no direct costs, they are willing to travel many hours to days (in some cases walking 3 days to attend the clinic) to seek PEP. In addition, a strong surveillance response, i.e. referral of people in contact with suspect human cases of rabies is possible, and can work to improve PEP efficacy if these investigations were triggered on human exposure or animal cases rather than a human death. Community outreach and active surveillance in other remote areas could also greatly improve people's awareness of risk and health seeking behavior.
+
 
 ### Antananarivo 
-In 2016, a taxi driver in his 60s died of rabies in suburban Antananarivo. He was bitten by an unknown dog returning from work one evening, and the next day he promptly reported to a clinic where he was reffered to the ARMC at IPM. His daughter, a prospective medical student, and other family members urged him to seek the vaccine, but he did not believe his risk was high and so in the end did not seek PEP. He developed symptoms 2 weeks later and died within a few days. The case was confirmed by the Naional Rabies Reference Laboratory at IPM. This case points to the other side of the health-seeking behavior coin from Anosibe A'nala. Even given prompt reporting and referral, and socioeconomic indicators that would suggest a high probability of seeking PEP, this person did not seek PEP. However, the case does point to the fact that community education on rabies risk, as well as availability of PEP at peripheral clinics even in areas with already high access could remove further barriers to PEP and prevent additional deaths. 
+In 2016, a taxi driver in his 60s died of rabies in suburban Antananarivo. He was bitten by an unknown dog returning from work one evening, and the next day he promptly reported to a clinic where he was reffered to the ARMC at IPM for PEP. His daughter, a prospective medical student, and other family members urged him to seek the vaccine, but he did not believe his risk was high and so in the end did not seek further care. He developed symptoms 2 weeks later and died within a few days. The case was later confirmed as a rabies death by the Naional Rabies Reference Laboratory at IPM. This case points to the other side of the health-seeking behavior coin from Anosibe A'nala. Even given prompt reporting and referral, and socioeconomic indicators that would suggest a high probability of seeking PEP, this person did not seek PEP. This case highlights the need for community education on rabies risk, and how improving availability of PEP at peripheral clinics even in areas with already high access could remove further barriers to PEP and prevent additional deaths. It also highlights the limitations of PEP provisioning as the sole intervention for preventing human rabies deaths.
 
 ## Broader context
-
 Our work is in line with previous studies demonstrating the impacts of geographic access to care on health outcomes [@aleganaTreatmentseekingBehaviourLow2017; @nikolayEvaluatingHospitalBasedSurveillance2017; @macphersonDisparitiesAccessDiagnosis2019; @polettiHiddenBurdenMeasles2018; @Hegde2019dt; @metcalfTransportNetworksInequities2015]. While many of these studies directly estimated reporting using community based and cross-sectional survey data [@aleganaTreatmentseekingBehaviourLow2017; @nikolayEvaluatingHospitalBasedSurveillance2017], we use model derived estimates of reporting and assumptions of baseline disease incidence to estimate burden, similar to methods developed for other pathogens to estimate burden in data sparse settings [@macphersonDisparitiesAccessDiagnosis2019; @polettiHiddenBurdenMeasles2018; @Hegde2019dt]. For canine rabies, estimating burden of disease directly is challenging [@scottAddressingDisconnectEstimated2017; @taylorDifficultiesEstimatingHuman2017] and direct empirical estimates of rabies burden have previously relied on exhaustive contact tracing studies [@beyeneEstimatingBurdenRabies2018; @hampsonRabiesExposuresPostExposure2008] or large-scale mortality surveys [@sudarshanAssessingBurdenHuman2007]. Recent studies have estimated access to health-seeking behavior and PEP completion and adherence, but not directly linked these estimates to burden [@tarantolaRabiesPostexposureProphylaxis2017; @zaidiGeographicVariationAccess2013]. Our framework for incorporating estimates of access into previously developed burden estimation methods (i.e. decision trees) could help to improve and refine existing burden estimates and explore impacts of expanding access, particularly at the sub-national level. 
 
-The observed range of reported bite incidence from our data are in line with estimates of reported bite incidence across Africa, and largely is in line with previous model estimates of bite incidence based on national statistics. USE SPECIFIC ESTIMATES HERE (i.e. human development index & proportion of the population that is urban, see @whorabiesmodelingconsortiumPotentialImpactImproved2019 Supplementary Materials for both a summary of data sources and model estimates). Ultimately, reported bite incidence is driven by many factors unrelated to rabies including the underlying size of dog populations, barriers to access to PEP (i.e. both financial costs and geographic access), and awareness of rabies risk. In our study, we do not attempt to quantify the total non-rabies related bite incidence, but use a range of values for the proportion of reported bites which we think are genuine rabies exposures. As we did not have location specific estimates of this parameter, we used a range estimated from a previous study in the Moramanga District [@rajeevHealthcareUtilizationProvisioning2018], however this approach is likely to be less applicable in settings where rabies exposures only make up a small fraction of patients reporting for PEP [@rysavaPathRabiesElimination2018; @wallaceEstablishmentCanineRabies2015], i.e. in settings where barriers to PEP are low (i.e low or no direct costs, low travel times, high socioeconomic status of the population). 
+The observed range of reported bite incidence from our data are in line with estimates of reported bite incidence across Africa (see @whorabiesmodelingconsortiumPotentialImpactImproved2019 Supplementary Materials for both a summary of data sources and model estimates). Ultimately, reported bite incidence is driven by many factors unrelated to rabies incidence in the dog population, including the underlying size of dog populations, barriers to access to PEP (i.e. both financial costs and geographic access), and awareness of rabies risk. In our study, we do not attempt to quantify the total non-rabies related bite incidence, but use a range of values for the proportion of reported bites which we think are genuine rabies exposures. As we did not have location specific estimates of this parameter, we used a range estimated from a previous study in the Moramanga District [@rajeevHealthcareUtilizationProvisioning2018]. This approach is likely to be less applicable in settings where rabies exposures only make up a small fraction of patients reporting for PEP [@rysavaPathRabiesElimination2018; @wallaceEstablishmentCanineRabies2015], i.e. where barriers to PEP are low (i.e low or no direct costs, low travel times, high socioeconomic status of the population) and reporting of non-rabid bites high.
 
-While our incidence of human rabies deaths are based on strong assumptions of rabies incidence, they generally fall within the range estimated for a wide range of settings from both empirical and modeling studies STATE RANGES HERE this range estimates in our study vs this range estimated in these studies [@beyeneEstimatingBurdenRabies2018; @hampsonRabiesExposuresPostExposure2008; @sudarshanAssessingBurdenHuman2007; @tenzinDogBitesHumans2011; @lyRabiesSituationCambodia2009, @whorabiesmodelingconsortiumPotentialImpactImproved2019]. We estimate a higher burden of rabies deaths here STATE that previously for Madagascar STATE [@rajeevHealthcareUtilizationProvisioning2018]. While in this study we assumed a lower range of incidence of underlying rabies exposure, previously we assumed a fixed reporting of 85% of rabies exposures across the country. Accounting for spatial variation in access and in reported bite incidence across the country resulted in predictions of increased burden, mirrored by a decrease in deaths averted under baseline provisioning. Improved clinic level data, as well as surveillance data on rabies exposures will be necessary to further refine these estimates, particularly given sensitivity of these estimates to assumptions of rabies exposure incidence. 
+While our incidence of human rabies deaths are based on strong assumptions of rabies incidence, they generally fall within the range estimated for a wide range of settings from both empirical and modeling studies  [@beyeneEstimatingBurdenRabies2018; @hampsonRabiesExposuresPostExposure2008; @sudarshanAssessingBurdenHuman2007; @tenzinDogBitesHumans2011; @lyRabiesSituationCambodia2009, @whorabiesmodelingconsortiumPotentialImpactImproved2019]. We estimate a higher burden of rabies deaths here than we previously estimated for Madagascar [@rajeevHealthcareUtilizationProvisioning2018]. While in this study we assumed a lower range of incidence of underlying human rabies exposures, previously we assumed a fixed reporting of 85% of rabies exposures across the country. Accounting for spatial variation in access and in reported bite incidence across the country resulted in predictions of increased burden, mirrored by a decrease in deaths averted under baseline provisioning. Improved clinic level data, as well as surveillance data on rabies exposures will be necessary to further refine these estimates, particularly given sensitivity of these estimates to assumptions of rabies exposure incidence.
 
 One approach to obtaining this data is integrated bite case management which relies on follow-up of bite patients to determine rabies exposure status, recommend treatment, and identify other potential persons exposed [@lechenneImportanceParticipatoryIntegrated2017; @undurragaCostEffectivenessEvaluationNovel2017; @rajeevHealthcareUtilizationProvisioning2018]. If these methods were implemented, ARMC could act as sentinels for rabies surveillance across the country, with bite patients reporting to clinics triggering investigations of suspect rabies cases. Ultimately, these methods rely on exposed persons to report to clinics, and as such, expanding access to PEP could strengthen clinic based surveillance efforts. 
 
-Our estimates of vial demand depend on countrywide adoption of the new abridged intradermal regimen recommended by WHO [@tarantolaIntradermalRabiesPostexposure2018]. While this new recommendation has been adopted by the Ministry of Health, it will be important to train clinicians and staff, as in 2019 only 15% of staff interviewed were aware of this regimen [@leblancclaireRabiesMadagascarThreepronged2019]. In addition, the majority of staff were also not aware of the WHO classifications of exposure categories, and vaccination of Category I exposures, i.e. those not recommended PEP, is a common practice. In the Moramanga district, up to 20% of vial demand was due to these exposures [@rajeevHealthcareUtilizationProvisioning2018], and more judicious PEP provisioning could reduce vial demand, particularly if expansion of PEP results in increases in reported bite incidence beyond what we predict. 
+Our estimates of vial demand depend on countrywide adoption of the new abridged intradermal regimen recommended by WHO [@tarantolaIntradermalRabiesPostexposure2018]. While this new recommendation has been adopted by the Ministry of Health, it will be important to train clinicians and staff, as in 2019, only 15% of staff interviewed were aware of this regimen [@leblancclaireRabiesMadagascarThreepronged2019]. In addition, the majority of staff were also not aware of the WHO classifications of exposure categories, and vaccination of Category I exposures, i.e. those not recommended PEP, is a common practice. In the Moramanga district, up to 20% of vial demand was due to these exposures [@rajeevHealthcareUtilizationProvisioning2018], and more judicious PEP provisioning could reduce vial demand accordingly.
 
-We predict that as clinics are expanded, overall throughput (i.e. the number of patients reporting daily to a clinic) will decrease. This may make provisioning PEP more challenging, as vial demand may become less predictable annually, resulting in stockouts or vaccine wastage. Establishing decentralized provisioning mechanisms, for example through combining provisioning of PEP with routine childhood vaccines, or novel methods for vaccine delivery (i.e. drone delivery of emergency medicine, [@boeras2019use]) may be potential ways to mitigate these challenges. IMPROVED vacc technology! Previous to 2006 when the nerve tissue vaccine was still in use, access to PEP in Madagascar was more widespread, with clinics able to request vaccine from IPM upon demand. However, once the more expensive Vero cell vaccine was implemented, vaccine provisioning to all clinics became too costly, resulting in provisioning to a subset of clinics [@andriamandimbySurveillanceControlRabies2013]. This suggests that wider spread vaccine provisioning is feasible given health infrastructure in Madagascar if cost barriers are removed. 
+We predict that as clinics are expanded, overall throughput (i.e. the number of patients reporting daily to a clinic) will decrease. This may make provisioning PEP more challenging, as vial demand may become less predictable annually, resulting in stockouts or vaccine wastage. Establishing decentralized provisioning mechanisms, for example through combining provisioning of PEP with routine childhood vaccines, or novel methods for vaccine delivery (i.e. drone delivery of emergency medicine, [@boeras2019use]) may be potential ways to mitigate these challenges. Previous to 2006 when the nerve tissue vaccine was still in use, access to PEP in Madagascar was more widespread, with clinics able to request vaccine from IPM upon demand. However, once the more expensive Vero cell vaccine was implemented, vaccine provisioning to all clinics became too costly, resulting in provisioning to a subset of clinics [@andriamandimbySurveillanceControlRabies2013]. This suggests that wider spread vaccine provisioning is feasible given health infrastructure in Madagascar if cost barriers are removed. 
 
-A Gavi investment can remove this cost barrier. In most rabies endemic countries, access to PEP is geographically limited and/or costly to patients [@changaluchaNeedImproveAccess2018; @liDescriptiveAssessmentRabies2019; @sreenivasanOverviewRabiesPostexposure2019; @tarantolaRabiesPostexposureProphylaxis2017]. Currently, each clinic in Madagascar serves on average a catchment population of 750,000 persons. Latin American countries, where significant progress has been made towards elimination, aim to provide one clinic providing PEP for 100,000 persons, which would require approximately 200 additional ARMC in Madagascar. If GAVI investment results in expansion to underserved areas and strengthens existing provisioning and supply chain mechanisms, then rabies burden could be greatly reduced. Importantly, given our estimates of vial demand and deaths averted and accounting for direct vaccine costs only, PEP expansion remains highly cost-effective (< 500 USD per death averted given average vaccine vial costs, @whorabiesmodelingconsortiumPotentialImpactImproved2019). 
+```{r}
+catch_trends <- fread(here("output/stats/trend_catches.csv"))
+catch_trends %>% 
+  group_by(scenario) %>% 
+  summarize(mean_pops = mean(pops_mean)) %>%
+  as.data.table() -> catch_pops
+```
 
-Ultimately even given expanded access, achieving 'the last mile', i.e. preventing deaths due to rabies in the most remote populations will require a disproportionate level of resources and our results suggest that this will not be achievable through PEP alone [@delriovilasTribulationsLastMile2017]. IBCM programs and risked based assessments are one way to tackle the issue of managing PEP resources effectively even as demand outpaces reductions in burden [@rysavaPathRabiesElimination2018]. Combining PEP provisioning with mass dog vaccination will be key to interrrupting transmission, and eliminating deaths due to rabies. These same issues of access, however apply to both dog vaccination programs and surveillance systems, and integrating spatial heterogeneities in vaccination and detection will be critical to understand how control and prevention interventions can be best implemented [@fergusonHeterogeneitySpreadControl2015]. 
+A Gavi investment can remove this cost barrier. In most rabies endemic countries, access to PEP is geographically limited and/or costly to patients [@changaluchaNeedImproveAccess2018; @liDescriptiveAssessmentRabies2019; @sreenivasanOverviewRabiesPostexposure2019; @tarantolaRabiesPostexposureProphylaxis2017]. Currently, each clinic in Madagascar serves on average a catchment population of `r round(mean(catch_trends[scenario == 0]$pops_mean), -3)` persons. Latin American countries, where significant progress has been made towards elimination, aim to provide one clinic providing PEP for 100,000 persons, which would require approximately `r min(catch_pops[mean_pops < 1e5]$scenario)` additional ARMC in Madagascar. If GAVI investment results in expansion to underserved areas and strengthens existing provisioning and supply chain mechanisms, then rabies burden could be greatly reduced. Given our estimates of vial demand and deaths averted, PEP expansion remains highly cost-effective [@whorabiesmodelingconsortiumPotentialImpactImproved2019] when considering direct costs only. However, our results suggest that expansion alone cannot prevent the majority of deaths and improved outreach and education on the risk of rabies exposure, better surveillance and active case management, and ultimately control in the domestic dog population will be necessary to manage the burden of rabies in Madagascar.
 
-## Conclusion {inline these stats}
-Geographic access to PEP is a strong predictor of reported bite incidence in Madagascar and expanding PEP availability to more clinics across the country could greatly reduce human rabies deaths. In the absence of data on rabies incidence and risk of exposure, targeting expansion of PEP at areas currently underserved may be the best way to reduce rabies burden and provide equitable access to PEP. Specifically, choosing clinics serving populations that under the status quo would have to travel greater than 3 hours to seek PEP, or alternatively aiming for clinics to serve a catchment size of approximately 100,000 persons, are two ways that PEP access could be expanded strategically. However, our results also suggest that increasing outreach and awareness of rabies risk, improving clinic functioning and provisioning practices, and removing socioeconomic barriers for persons seeking PEP will be critical to ensure the efficacy of PEP expansion. Improved surveillance of animal rabies will also be needed to better understand the landscape of rabies burden across countries and to identify populations at the greatest risk for rabies deaths. Expansion of PEP can greatly reduce risk and inequities in access to this life-saving vaccine, and a GAVI investment would allow countries to more equitably provide PEP to populations that currently face immense barriers to seeking this intervention ([@wentworthSocialJusticePerspective2019], see Box 1 for case studies). In addition, as PEP alone cannot prevent all rabies deaths, it could facilitate investment in mass dog vaccination to interrupt transmission, and eventually eliminate deaths due to tnis devastating disease. 
+Ultimately even given maximal access, achieving 'the last mile', preventing deaths due to rabies in the most remote and vulnerable populations, will require a disproportionate level of resources [@delriovilasTribulationsLastMile2017]. IBCM programs and risked based assessments are one way to tackle the issue of managing PEP resources effectively even as demand outpaces reductions in burden [@rysavaPathRabiesElimination2018]. Combining PEP provisioning with mass dog vaccination will be key to interrrupting transmission, and eliminating deaths due to rabies. These same issues of access, however apply to both dog vaccination programs and surveillance systems, and integrating spatial heterogeneities in vaccination and detection will be critical to understand how control and prevention interventions can be best implemented [@fergusonHeterogeneitySpreadControl2015]. 
 
-## Acknowledgements
+## Conclusion
+Geographic access to PEP is a strong predictor of reported bite incidence in Madagascar and expanding PEP availability to more clinics across the country could greatly reduce human rabies deaths. In the absence of data on rabies incidence and risk of exposure, targeting expansion of PEP at areas currently underserved may be the best way to reduce rabies burden and provide equitable access to PEP. Specifically, exanding provisioning clinics serving populations that under the status quo would have to travel greater than 3 hours to seek PEP, or alternatively aiming for clinics to serve a catchment size of approximately 100,000 persons, are two ways that PEP access could be expanded strategically. However, our results also suggest that increasing outreach and awareness of rabies risk, improving clinic functioning and provisioning practices, and removing socioeconomic barriers for persons seeking PEP will be critical to ensure the efficacy of PEP expansion. Improved surveillance of animal rabies will also be needed to better understand the landscape of rabies burden across countries and to identify populations at the greatest risk for rabies deaths. Expansion of PEP can greatly reduce risk and inequities in access to this life-saving vaccine, and a GAVI investment would allow countries to more equitably provide PEP to populations that currently face immense barriers to seeking this intervention ([@wentworthSocialJusticePerspective2019], see Box 1 for case studies). In addition, as PEP alone cannot prevent all rabies deaths, it could facilitate investment in mass dog vaccination to interrupt transmission, and eventually eliminate deaths due to tnis devastating disease. 
 
+## Acknowledgements 
+
+We would like to thank all the clinicians and staff at the ARMC across the country. We are grateful to IPM and the Ministry of Public Health who work to collect and maintain data on PEP provisioning. In particular, on the data management side, we would like to thank the GIS unit for assistance with spatial data and Michael Luciano Tantely for sharing driving time data. We would like to thank Claire LeBlanc, Rila Ratovoson, and Daouda Kassie for sharing results of their work in the Moramanga District. In addition, we would like to thank Jean Hyacinthe Randrianarisoa, Ranaivoarimanana, Fierenantsoa Randriamahatana, Esther Noiarisaona, Cara Brook, Amy Winter, Christian Ranaivoson, John Friar, and Amy Wesolowski for their assistance with data collection. This work was funded by grants from the Center for Health and Wellbeing and the Department of Ecology and Evolutionary Biology at Princeton University to CJEM and MR. MR is supported by an NSF Graduate Research Fellowship. KH is supported by the Wellcome Trust (207569/Z/17/Z).
 \newpage
 
-## References
+## References 
 ::: {#refs_main}
 :::
 
 \newpage
 
-# SUPPLEMENTARY FIGURES & TABLES
+# SUPPLEMENTARY FIGURES & TABLES 
 
 ## S1. Estimating travel times to the closest ARMC {#S1}
-[*jump back to main results section: estimating travel times*](#results-ttimes)  
 
-```{r fig S1.1, fig.fullwidth=TRUE}
+```{r fig S1.1 inputs A friction B pop}
 include_graphics(here("figs/supplementary/S1.1_inputs.jpeg"))
 ```
-*__[Figure S1.1.]{#figS1.1}__ Raster inputs to estimate travel times to the closest ARMC for Madagascar __A)__ Friction surface of travel speeds (in minutes per meter) at an ~ 1x1 km scale __B)__ Population estimates resampled to the same friction surface.*
 
-```{r fig S1.2, fig.fullwidth=TRUE}
+*__[Figure S1.1.]{#figS1.1}__ Raster inputs to estimate travel times to the closest ARMC for Madagascar __A)__ Friction surface of travel speeds (in minutes per meter) at an ~ 1x1 km scale __B)__ Population estimates resampled to the same friction surface.*
+  
+    
+    
+```{r fig S1.2 ttimes A Moramanga B Drive}
 include_graphics(here("figs/supplementary/S1.2_raw.jpeg"))
 ```
+
 *__[Figure S1.2.]{#figS1.2}__ Source of true travel time estimates __A)__ Distribution of travel times estimated at the grid cell level and reported by patients for each commune where patient data were available from the Moramanga ARMC. __B)__ Reported driving times between locations, with the color corresponding to the total driving time and the size of the line showing the direction of travel (narrow to wide ~ origin to destination). Paths are bezier curves from origin to destination, but do not show actual paths driven.*
+  
+  
 
-
-```{r fig S1.3, fig.fullwidth=TRUE}
+```{r fig S1.3 travel modes}
 include_graphics(here("figs/supplementary/S1.3_modes.jpeg"))
 ```
-*__[Figure S1.3.]{#figS1.3}__ Reported modes of transport used compared to reported travel times for patients reporting to the Moramanga ARMC.*
 
-```{r fig S1.4, fig.fullwidth=TRUE}
+*__[Figure S1.3.]{#figS1.3}__ Reported modes of transport used compared to reported travel times for patients reporting to the Moramanga ARMC.*
+    
+    
+  
+```{r fig S1.4 lms ttimes}
 include_graphics(here("figs/supplementary/S1.4_lms.jpeg"))
 ```
-*__[Figure S1.4.]{#figS1.4}__ Observed estimates of travel times (commune means of patient reported travel times and driving times between point locations) predicted by __A)__ Distance (km) (Euclidean distance between origin and destination for driving times and distance from the commune centroid to the Moramanga ARMC for commune means) __B)__ Travel time estimates and C) Travel time estimates weighted by population (for commune means only).*
 
-*__[Table S1.1.]{#tabS1.1} R^2 values from linear models with estimated access metrics predicting either driving times or commune means of patient reported travel times.*
-```{r table S1.1}
+*__[Figure S1.4.]{#figS1.4}__ Observed estimates of travel times (commune means of patient reported travel times and driving times between point locations) predicted by __A)__ Distance (km) (Euclidean distance between origin and destination for driving times and distance from the commune centroid to the Moramanga ARMC for commune means) __B)__ Travel time estimates and C) Travel time estimates weighted by population (for commune means only).*
+   
+    
+  
+*__[Table S1.1.]{#tabS1.1}__ R^2^ values from linear models with estimated access metrics predicting either driving times or commune means of patient reported travel times.*
+```{r table S1.1 lms table}
 S1.1_table <- read.csv(here("output/stats/access_met_r2.csv"), row.names = 1)
 kable(S1.1_table, col.names = c("Predictor", "Driving times", 
                                 "Commune mean of patient reported travel times"))
 ```
+  
+  
 
-
-```{r fig S1.5, fig.fullwidth=TRUE}
+```{r fig S1.5 output ttimes A district B commune}
 include_graphics(here("figs/supplementary/S1.5_outputs.jpeg"))
 ```
+
 *__[Figure S1.5.]{#figS1.5}__ Estimates of mean travel times weighted by population at the __A)__ District __B)__ Commune scale.*
-
+  
+  
 ## S2. Estimating average annual bite incidence at the district and commune level
-[*jump back to main results section: Bite patient data*](#results-biteinc)  
-
-```{r fig S2.1, fig.fullwidth=TRUE}
+  
+  
+```{r fig S2.1 A catchments B closest C Prop bites}
 include_graphics(here("figs/supplementary/S2.1_catchments.jpeg"))
 ```
-*__[Figure S2.1]{#figS2.1} __A)__ Catchments as assigned by closest clinic for the majority of the population within a commune (polygon fill) or which a district (polygon outline). Admin units where the fill and border colors do not match show places where assigned catchments differ at the district vs commune scale. __B)__ Distribution of the proportion of the population in a given administrative unit (district or commune) served by the catchment assigned. __C)__ The proportion of bites reported to each clinic which originated from a district within the assigned catchment.*
 
+*__[Figure S2.1]{#figS2.1}A)__ Catchments as assigned by closest clinic for the majority of the population within a commune (polygon fill) or which a district (polygon outline). Admin units where the fill and border colors do not match show places where assigned catchments differ at the district vs commune scale. __B)__ Distribution of the proportion of the population in a given administrative unit (district or commune) served by the catchment assigned. __C)__ The proportion of bites reported to each clinic which originated from a district within the assigned catchment.*
+  
+  
 
-```{r fig 2.2, fig.fullwidth=TRUE}
+```{r fig 2.2 form sub A time series B reporting C vial comp}
 include_graphics(here("figs/supplementary/S2.2_vialcomps.jpeg"))
 ```
+
 *__[Figure S2.2.]{#figS2.2}A)__ The daily time series of the number of forms submitted by each clinic, with periods of time where no forms were submitted for >= 15 days excluded (in white). __B)__ Estimates for the proportion of forms submitted for each clinic (points are the estimate for each year) calculated as the # of days in a year which were not excluded based on the  criteria of 15 consecutive days of non-submission/365. __C)__ The difference between log(estimated) and log(observed) vials provisioned for the period of 2013 -  2017 for each clinic correcting for undersubmission (squares) using the 15 day cut-off show in A and B, vs. not correcting for undersubmission (circles). We did not have data on vials provisioned for IPM.*
 
+  
+  
 ## S3. Modeling reported bite incidence as a function of travel times {#S3}
-
-[*jump back to main results section: Travel times as a predictor of bites*](#results-bitemods)  
-
-```{r fig S3.1, fig.fullwidth=TRUE}
+  
+  
+```{r fig S3.1 corr pop ttimes}
 include_graphics(here("figs/supplementary/S3.1_corrs.jpeg"))
 ```
-_**Figure S3.1.** Correlation between travel time in hours (the average weighted by the population) and population size of administrative units at the district and commune scale._
+_**Figure S3.1.** Correlation between travel time in hours (the average weighted by the population) and population size of administrative units at the district and commune scale._\
 
 <br/>
+  
+  
 
 *__Table S3.1.__ DIC Estimates for all models. Models with the lowest DIC for each dataset and scale of covariate are in bold.  For the column pop effect, addPop = models with population size as additional covariate, onlyPop = models with population as only covariate, flatPop = models with population as offset in model. For the intercept type: random = random intercept by catchment, fixed = a single fixed intercept was estimated).*
-```{r table S3.1}
+```{r table S3.1 dic}
 model_ests <- read.csv(here("output/mods/estimates.csv"))
 model_ests %>%
   filter(OD == FALSE) %>%
@@ -543,116 +592,134 @@ knitr::kable(dic_ranks,
 <br/>
 
   
-```{r fig S3.2, fig.fullwidth=TRUE}
+```{r fig S3.2 obs vs predicted}
 include_graphics(here("figs/supplementary/S3.2_fitted.jpeg"))
 ```
+
 _**Figure S3.2. Prediction to data used to fit each model.** Log of the observed bites against the log of predicted bites generated from sampling 1000 independent draws from the posterior distributions for each parameter, with the points the mean of the predictions and the linerange the 95% prediction intervals. Columns are by the type of model intercept (either a fixed intercept or a random intercept by catchment) and rows are the type of model structure with respect to the population covariate (addPop = population size as additional covariate, onlyPop = population as only covariate, flatPop = population as offset in model). Colors show which data set  was used for fitting and the scale of the model (Moramanga = Moramanga data with covariates at the commune level, Commune = National data with covariates at the commune level, District = National data with covariates at the district level)._\
 
 <br/>
 
-```{r fig S3.3, fig.fullwidth=TRUE}
+```{r fig S3.3 out of fit}
 include_graphics(here("figs/supplementary/S3.3_outfit.jpeg"))
 ```
+
 _**Figure S3.3. Out of fit predictions to data.** Log of the observed bites against the log of predicted bites for data not used to fit the model. Predictions were generated by sampling 1000 independent draws from the posterior distributions for each parameter, with the points the mean of the predictions and the linerange the 95% prediction intervals. The first two columns are the predictions from the commune and district model fitted to the national data for the Moramanga data with fixed and random intercepts. The third column are predictions from models fitted to the Moramanga data for the national data at the commune and district scale (only fixed intercept models). Rows are the type of model structure with respect to the population covariate and colors show which data set was used for fitting as per Figure S3.2._
 
 <br/>
 
 
-```{r fig S3.4, fig.fullwidth=TRUE}
+```{r fig S3.4 od comp posts}
 include_graphics(here("figs/supplementary/S3.4_posts_all.jpeg"))
 ```
+
 _**Figure S3.4.** Posterior estimates of parameters from models with travel time and population as an offset (flatPop in figures S3.2 & S3.3), comparing models accounting for overdispersion ($\sigma_e$) compared to models with no overdispersion parameter. For the Moramanga model, as data came from a single catchment, models with a random catchment effect ($\sigma_0$) were not fitted._
 
-
-```{r fig S3.5, fig.fullwidth=TRUE}
+  
+  
+```{r fig S3.5 od comp preds}
 include_graphics(here("figs/supplementary/S3.5_preds_OD.jpeg"))
 ```
+
 _**Figure S3.5.** Predicted relationship between travel times (in hours) and reported bite incidence per 100,000 persons, generated from sampling 1000 independent draws from the posterior distributions for each parameter, with the line the mean of the predictions and the envelopes showing the 95% prediction intervals. Rows are by the type of model intercept (either a fixed intercept or a random intercept by catchment) and columns are whether the model estimated an overdispersion parameter. The points show the data used to fit the models (the National dataset), as well as the Moramanga dataset._\
+  
+  
 
-
-```{r fig S3.6, fig.fullwidth=TRUE}
+```{r fig S3.6 random vs od}
 include_graphics(here("figs/supplementary/S3.6_posts_intercepts.jpeg"))
 ```
+
 _**Figure S3.6.** Posterior estimates of the catchment intercepts ($\alpha$ parameters, with $\beta_0$ the estimated mean intercept) for models with and without an overdispersion parameter._\
 
-
-```{r fig S3.7, fig.fullwidth=TRUE}
+  
+  
+```{r fig S3.7 random vs od}
 include_graphics(here("figs/supplementary/S3.7_preds_ODcomp.jpeg"))
 ```
+
 _**Figure S3.7.** Predicted relationship between travel times (in hours) and reported bite incidence per 100,000 persons for random intercept model without overdispersion vs. fixed intercept model with overdispersion, generated from sampling 1000 independent draws from the posterior distributions for each parameter, with the line the mean of the predictions and the envelopes showing the 95% prediction intervals. The points show the data used to fit the models (the National dataset), as well as the Moramanga dataset._\
 
-
-```{r fig S3.8, fig.fullwidth=TRUE}
+  
+  
+```{r fig S3.8 rep cutoff posts}
 include_graphics(here("figs/supplementary/S3.8_posts_rep_se.jpeg"))
 ```
-_**Figure S3.8.** Posterior estimates for models with population as an offset and an overdispersion parameter. Columns show estimates from models fitted to the national dataset (1) corrected for both undersubmission by correcting for periods of at least 7 days where zero patient forms where submiited, (2) correcting for periods of 15 days where zero patient forms where submiited, and (3) with the raw data not correcting for undersubmission. ._\
 
-```{r fig S3.9, fig.fullwidth=TRUE}
+_**Figure S3.8.** Posterior estimates for models with population as an offset and an overdispersion parameter. Columns show estimates from models fitted to the national dataset (1) corrected for both undersubmission by correcting for periods of at least 7 days where zero patient forms where submiited, (2) correcting for periods of 15 days where zero patient forms where submiited, and (3) with the raw data not correcting for undersubmission. ._\
+  
+  
+
+```{r fig S3.9 rep cutoff preds}
 include_graphics(here("figs/supplementary/S3.9_preds_rep_se.jpeg"))
 ```
 
-_**Figure S3.5.** The estimated relationship between travel time in hours (x-axis) and mean annual bite incidence per 100,000 persons (y-axis) for models with population as an offset and an overdispersion parameter. Panels show predictions from models fitted to the national dataset 1) correcting for periods of at least 7 days where zero patient forms where submiited (a less stringent cutoff resulting in lower estimates of the proportion of forms submitted and thus higher estimates of reported bite incidence), (2) correcting for periods of 15 days where zero patient forms where submitted, as presented in the main analysis, and (3) with the raw data not correcting for undersubmission (resulting in lower estimates of reported bite incidence). Predictions were generated from sampling 1000 independent draws from the posterior distributions for each parameter, with the line the mean of the predictions and the envelopes showing the 95% prediction intervals. The points show the data used to fit the models._
-
+_**Figure S3.9.** The estimated relationship between travel time in hours (x-axis) and mean annual bite incidence per 100,000 persons (y-axis) for models with population as an offset and an overdispersion parameter. Panels show predictions from models fitted to the national dataset 1) correcting for periods of at least 7 days where zero patient forms where submiited (a less stringent cutoff resulting in lower estimates of the proportion of forms submitted and thus higher estimates of reported bite incidence), (2) correcting for periods of 15 days where zero patient forms where submitted, as presented in the main analysis, and (3) with the raw data not correcting for undersubmission (resulting in lower estimates of reported bite incidence). Predictions were generated from sampling 1000 independent draws from the posterior distributions for each parameter, with the line the mean of the predictions and the envelopes showing the 95% prediction intervals. The points show the data used to fit the models._
+  
+  
 ## S4. Range of rabies exposure incidence in people
 
-```{r fig S4.1, fig.fullwidth=TRUE}
+```{r fig S4.1 exp range}
 include_graphics(here("figs/supplementary/S4.1_exprange.jpeg"))
 ```
 
-_**Figure S4.1.** Estimated exposures per 100,000 given a range of human to dog ratios (HDRs, x-axis) and annual dog rabies incidence (y axis), assuming that each dog on average exposes 0.39 persons [@hampsonSurveillanceEstablishElimination2016]. The black dashed lines show the range of human to dog ratios (HDRs) we use in the main analysis to estimate the range of human exposure incidence (the red horizontal line). The grey dashed lines show the HDRs estimated from the Moramanga district from a recent study [@leblancclaireRabiesMadagascarThreepronged2019]. The cells with red outlines show the range of estimated exposure incidence from a previous study of bite patients in Moramanga District [@rajeevHealthcareUtilizationProvisioning2018]._
-
+_**Figure S4.1.** Estimated exposures per 100,000 given a range of human to dog ratios (HDRs, x-axis) and annual dog rabies incidence (y axis), assuming that each dog on average exposes 0.39 persons [@hampsonSurveillanceEstablishElimination2016]. The black dashed lines show the range of human to dog ratios (HDRs) we use in the main analysis to estimate the range of human exposure incidence (where the red horizontal line and black dashed lines intersect). The grey dashed lines show the HDRs estimated from the Moramanga district from a recent study [@leblancclaireRabiesMadagascarThreepronged2019]. The cells with red outlines show the range of estimated exposure incidence from a previous study of bite patients in Moramanga District [@rajeevHealthcareUtilizationProvisioning2018]._
+  
+  
 ## S5. Estimating the impact of expanding PEP provisioning to additional clinics {#S5}
-[*jump back to main methods section: Incremental reduction of burden*](#methods-incremental)  
-[*jump back to main results section: Incremental reduction of burden*](#results-incremental)  
-
-```{r fig S5.1 add clinics, fig.fullwidth=TRUE}
-include_graphics(here("figs/supplementary/S5.1_ARMCadded.jpeg"))
+  
+  
+```{r fig S5.1 metrics}
+include_graphics(here("figs/supplementary/S5.1_tests.jpeg"))
 ```
-_**Figure S5.1.** Map of the location and at what step each clinic was added. The circles are each of the CSB II across the country sized by the proportion of the population for which they reduced travel times (excluding those already living within 3 hours of an ARMC) and the colors showing at what step each clinic was added (i.e. 1 = the first clinic added). The large white crosses show the location of the existing 31 ARMC in Madagascar and the smaller white crosses are the remaining CSB II in the country (which reduced travel times for less than 0.01% of people living greater than 3 hours from a clinic and thus were not ranked)._
-
-```{r fig S5.2 ttime map shifts, fig.fullwidth=TRUE}
-include_graphics(here("figs/supplementary/S5.2_map_shifts.tiff"))
+_**Figure S5.1.** Comparing metrics for ranking clinics for targeted expansion to 83 additional districts (so that each district has an ARMC). We simulated expansion using three different ranking metrics: 1) reduction in mean travel times (green line) 2) the proportion of the population for which travel times were reduced (red dashed line) and 3) the proportion of the population for which travel times were reduced weighted by the reduction in travel times (pink dashed line). For each of these, we simulated burden using our decision tree framework (y axis is the mean of 1000 simulations of annual deaths at the national level). The blue lines show 10 simulations of randomly expanding access on reducing burden as a comparator. The panels show to the commune and district model of reported bite incidence. _
+  
+  
+```{r fig S5.2 add clinics}
+include_graphics(here("figs/supplementary/S5.2_ARMCadded.jpeg"))
 ```
-_**Figure S5.2.** Maps of how travel times change as clinics are added at the **A)** ~1 x 1 km grid cell **B)** commune and **C)** district scales. The columns are ordered by the number or clinics at each step: baseline (N = 31), 100, 200, 300, 723 (when algorithm stops adding clinics), and max (N = 1648 clinics, all CSB IIs in the country). Grey pixels show the location of ARMC at each step. Commune and district values are the average grid cell travel times weighted by the population in each cell._
-
-```{r fig S5.3 prop pop ttimes, fig.fullwidth=TRUE}
-include_graphics(here("figs/supplementary/S5.3_prop_ttimes.jpeg"))
+_**Figure S5.2.** Map of the location and at what step each clinic was added. The circles are each of the CSB II across the country sized by the resulting average reduction in burden (based on smoothed annual burden estimates from the commune model, see inset). The large white crosses show the location of the existing 31 ARMC in Madagascar and the smaller white crosses are the additional CSB II in the country which were added in the final step but not ranked._
+  
+  
+```{r fig S5.3 map shifts}
+include_graphics(here("figs/supplementary/S5.3_map_shifts.jpeg"))
 ```
-_**Figure S5.4.** As clinics are added, the proportion of the population binned by travel times in hours. Panel labels are the number or clinics at each step: baseline (N = 31), 100, 200, 300, 472 (when algorithm stops adding clinics), and max (N = 1648 clinics, all CSB IIs in the country)._
-
-
-```{r fig S5.4 prop pop catchment, fig.fullwidth=TRUE}
-include_graphics(here("figs/supplementary/S5.4_prop_catch.jpeg"))
+_**Figure S5.3.** Maps of how travel times change as clinics are added at the **A)** ~1 x 1 km grid cell **B)** commune and **C)** district scales. The columns are ordered by the number or clinics at each step: baseline (N = 31), + 83 (1 per district), + 200, + 600, + 1406 (1 per commune), and max (+ 1696 clinics, all additional CSB IIs in the country). Grey pixels show the location of ARMC at each step. Commune and district values are the average grid cell travel times weighted by the population in each cell._
+  
+  
+```{r fig S5.4 travel times(a) bite inc(b)}
+include_graphics(here("figs/supplementary/S5.4_ttimes_bites.jpeg"))
 ```
-_**Figure S5.3.** As clinics are added, shifts in distribution of the proportion of population in a given catchment  for the two models (colors, Commune scale model fitted to the Moramanga data and District scale model fitted to the National data). Rows are ordered by the number or clinics at each step: baseline (N = 31), 100, 200, 300, 472 (when algorithm stops adding clinics), and max (N = 1648 clinics, all CSB IIs in the country)._
-
-```{r fig S5.5 travel times(a) bite inc(b), fig.fullwidth=TRUE}
-include_graphics(here("figs/supplementary/S5.5_ttimes_shifts.jpeg"))
+_**Figure S5.4.** Shifts in estimated **A)** travel times (hrs, x-axis is square root transformed), **B)** bite incidence per 100,000 persons and boxplots showing the median for communes and district models (colors) as clinics are added._
+  
+  
+```{r fig S5.5 reporting(a) death inc(b)}
+include_graphics(here("figs/supplementary/S5.5_reporting_shifts.jpeg"))
 ```
-_**Figure S5.5.** Shifts in estimated **A)** travel times (hrs), **B)** bite incidence per 100,000 persons. The left panels show the shift in distributions of these estimates as clinics are added, and the right panels show the changes in the averages (line) and the 95% quantiles (shading) for communes and districts  for the two models (colors, Commune scale model fitted to the Moramanga data and District scale model fitted to the National data)._
-
-```{r fig S5.6 reporting(a) death inc(b), fig.fullwidth=TRUE}
-include_graphics(here("figs/supplementary/S5.6_reporting_shifts.jpeg"))
+_**Figure S5.5.** Shifts in estimated **A)** reporting, **B)** death incidence per 100,000 persons for the commune and district models (colors) as clinics are added._
+  
+  
+```{r fig S5.6 catch(a) vials(b) throughput(c)}
+include_graphics(here("figs/supplementary/S5.6_clinic_shifts.jpeg"))
 ```
-_**Figure S5.6.** Shifts in estimated **A)** Reporting, **B)** death incidence per 100,000 persons. The left panels show the shift in distributions of these estimates as clinics are added, and the right panels show the changes in the averages (line) and the 95% quantiles (shading) for communes and districts for the two models (colors, Commune scale model fitted to the Moramanga data and District scale model fitted to the National data)._
+_**Figure S5.6.** Shifts in average clinic **A)** catchment population size, **B)** annual vial demand, and **C)** daily throughput (i.e. average number of patients reporting each day) given estimates of bite incidence for the commune and district models (colors). For vial demand estimation, catchment population sizes are the same for each model as these populations are allocated at the grid cell level (i.e. population in a grid cell is allocated to the clinic catchment it is closest to in terms of travel times regardless of district or commune). All x-axes are log transformed._
+  
+  
 
-```{r fig S5.7 catch(a) vials(b) throughput(c), fig.fullwidth=TRUE}
-include_graphics(here("figs/supplementary/S5.7_clinic_shifts.jpeg"))
+```{r fig S5.7 comm network}
+include_graphics(here("figs/supplementary/S5.7_comm_map.jpeg"))
 ```
-_**Figure S5.7.** Shifts in clinic average **A)** catchment population size, **B)** and annual vial demand, and **C)**  daily throughput given estimates of bite incidence for the two models (colors, Commune scale model fitted to the Moramanga data and District scale model fitted to the National data). The left panels show the shift in distributions of these estimates as clinics are added, and the right panels show the changes in the averages (line) and the 95% quantiles (shading). Catchment population sizes are the same for each model._
 
-```{r fig S5.8 prop same admin, fig.fullwidth=TRUE}
-include_graphics(here("figs/supplementary/S5.8_prop_in_admin.jpeg"))
+_**Figure S5.7.** Shifts in where bites are reported to as clinics are added for the commune model. The circles show the clinic locations for each scenario, with size propotional to the annual average bites reported to that clinic. Lines show where the bites are reported from (commune centroid) also proportional to the number of bites. The polygon shading shows the commune level reported bite incidence._
+  
+  
+```{r fig S5.8 dist network}
+include_graphics(here("figs/supplementary/S5.8_dist_map.jpeg"))
 ```
-_**Figure S5.8.** Shifts in the distribution of the proportion of bites reported to a clinic that came from within the same A) commune or B) district as the ARMC was located for the two models (Commune scale model fitted to the Moramanga data and District scale model fitted to the National data)._
 
-
-
+_**Figure S5.8.** Shifts in where bites are reported to as clinics are added for the district model. The circles show the clinic locations for each scenario, with size propotional to the annual average bites reported to that clinic. Lines show where the bites are reported from (commune centroid) also proportional to the number of bites. The polygon shading shows the district level reported bite incidence._
+  
+  
 ## S6. Sensitivity of burden estimates to parameter assumptions {#S6}
-
-[*jump back to main methods section: Incremental reduction of burden*](#methods-sensitivity)  
-[*or to main results section: Incremental reduction of burden*](#results-sensitivity)  
-
 
 ```{r se tables}
 se_pars <- read.csv(here("output/sensitivity/se_pars.csv"))
@@ -673,55 +740,67 @@ se_table_all %>%
   filter(!grepl("beta|sigma|min", par), scale != "Commune") %>%
   as.data.table(.) -> dtree_se
 ```
-
+  
+  
 Table:**Table S6.1.** Range of parameters used in models of bite incidence for the univariate sensitivity analyses.\
 
-| **Parameter**   | **Description**        | **Commune model (Moramanga data)** | **District model (National data)** | 
+| **Parameter**   | **Description**        | **Commune model** | **District model** | 
 |:----------------|:----------------------:|:----------------------------------:|:----------------------------------:|
-| $\beta_t$ | Travel time effect	| `r bites_se$Commune[par == "beta_t"]` | `r bites_se$Commune[par == "beta_t"]`
-| $\beta_0$ | Model intercept	| `r bites_se$Commune[par == "beta_0"]` | `r bites_se$Commune[par == "beta_0"]`
-| $\sigma_0$ | Standard deviation of intercept by catchment	| -- | `r bites_se$Commune[par == "sigma_0"]`
-
+| $\beta_t$ | Travel time effect	| `r bites_se[par == "beta_ttimes"]$Commune` | `r bites_se[par == "beta_ttimes"]$District`
+| $\beta_0$ | Model intercept	| `r bites_se[par == "beta_0"]$Commune` | `r bites_se[par == "beta_0"]$District`
+| $\sigma_0$ | Overdispersion	| `r bites_se[par == "sigma_e"]$Commune` | `r bites_se[par == "sigma_e"]$District`
+  
+  
 Table:**Table S6.2.** Range of parameters used in decision tree model for the univariate sensitivity analyses.\
 
 | **Parameter**   | **Description**        | **Range**	                 | **Notes**|
 |:----------------|:----------------------:|:----------------------------|:---------:|
-| $E_i$ |	Annual exposures per 100,000 persons| `r dtree_se$range[par == "exp_max"]`  	
-| $p_{rabid}$	| Proportion of reported bites that are rabies exposures | `r dtree_se$range[par == "p_rab_max"]` 	
-| $\rho_{max}$ | The maximum reporting possible for any location | `r dtree_se$range[par == "rho_max"]`	 
-| $p_{death}$ | The probability of death given a rabies exposure^[1] | `r dtree_se$range[par == "p_death"]`	
-[1] 95% CI of estimate from @changaluchaNeedImproveAccess2018|
+| $E_i$ |	Annual exposures per 100,000 persons| `r dtree_se[par == "exp_max"]$range`  	
+| $p_{rabid}$	| Proportion of reported bites that are rabies exposures | `r dtree_se[par == "p_rab_max"]$range` 	
+| $\rho_{max}$ | The maximum reporting possible for any location | `r dtree_se[par == "rho_max"]$range`	 
+| $p_{death}$ | The probability of death given a rabies exposure* | `r dtree_se[par == "p_death"]$range`	
+_*95% CI of estimate from @changaluchaNeedImproveAccess2018 _
+  
+  
 
-
-```{r fig S6.1 base se, fig.fullwidth=TRUE}
+```{r fig S6.1 base se}
 include_graphics(here("figs/supplementary/S6.1_base_se.jpeg"))
 ```
+
 _**Figure S6.1.** A) Range of estimates of the estimate average deaths at the national level for range of parameter estimates (point shows the estimate presented in the main analyses and the ends show the upper and lower estimates for the parameter range) and B)  estimates for the predicted relationship between travel times and incidence of human rabies deaths across the same parameter ranges (line shows the estimate presented in the main analyses and the envelope shows the upper and lower estimates for the parameter range) for the two models (colors). See Table S6.1 & 2 for ranges used for each parameter._
+  
+  
 
-
-```{r fig S6.2 add se, fig.fullwidth=TRUE}
+```{r fig S6.2 add se}
 include_graphics(here("figs/supplementary/S6.2_addARMC_se.jpeg"))
 ```
-_**Figure S6.2.** A) Estimates of the maximum proportion reduction of deaths from the baseline for range of parameter estimates (point shows the estimate presented in the main analyses and the ends show the upper and lower estimates for the parameter range) and B) estimates for how human rabies decreases proportional to the baseline as clinics are added for these same parameter ranges (line shows the estimate presented in the main analyses and the envelope shows the upper and lower estimates for the parameter range) for the two models (colors). See Table S6.1 & 2 for ranges used for each parameter._
 
+_**Figure S6.2.** A) Estimates of the maximum proportion reduction of deaths from the baseline for range of parameter estimates (point shows the estimate presented in the main analyses and the ends show the upper and lower estimates for the parameter range) and B) estimates for how human rabies decreases proportional to the baseline as clinics are added for these same parameter ranges (line shows the mean estimate presented in the main analyses and the envelope shows the mean estimates for the parameters fixed at the upper and lower range) for the two models (colors). See Table S6.1 & 2 for ranges used for each parameter._
 
-```{r fig S6.3 vial se, fig.fullwidth=TRUE}
+  
+  
+```{r fig S6.3 vial se}
 include_graphics(here("figs/supplementary/S6.3_vial_se.jpeg"))
 ```
-_**Figure S6.3.** A) Estimates of the baseline vial demand for where each parameter was set to the upper and lower estimat of parameter estimates (point shows the estimate presented in the main analyses and the ends show the upper and lower estimates for the parameter range) and B) estimates for how vial demand increases as clinics are added for these same parameter ranges (line shows the estimate presented in the main analyses and the envelope shows the upper and lower estimates for the parameter range) for the two models (colors). See Table S6.1 & 2 for ranges used for each parameter._
 
+_**Figure S6.3.** A) Estimates of the baseline vial demand for where each parameter was set to the upper and lower estimat of parameter estimates (point shows the estimate presented in the main analyses and the ends show the upper and lower estimates for the parameter range) and B) estimates for how vial demand increases as clinics are added for these same parameter ranges (line shows the mean estimate presented in the main analyses and the envelope shows the mean estimates for the parameters fixed at the upper and lower range) for the two models (colors) for the two models (colors). See Table S6.1 & 2 for ranges used for each parameter._
+  
+  
 
-```{r fig S6.4 scaling factors, fig.fullwidth=TRUE}
+```{r fig S6.4 scaling factors}
 include_graphics(here("figs/supplementary/S6.4_scaling_rels.jpeg"))
 ```
-*__Figure S6.4.__ Range of constrained scaling factors generated for district and commune population size so that underlying rabies exposures either A) decreases with increasing population size or B) increases with increasing population size across a fixed range of exposure incidence (15.6 - 76 exposures/100k persons). Lines show the expected relationship, with points showing where administrative units fall along this curve, and maps show how this results in variation in assumed exposure incidence spatially at the commune and district level.*
 
-```{r fig S6.5 scaling se, fig.fullwidth=TRUE}
+*__Figure S6.4.__ Range of constrained scaling factors generated for district and commune population size so that underlying rabies exposures either A) decreases with increasing population size or B) increases with increasing population size across a fixed range of exposure incidence (15.6 - 76 exposures/100k persons). Lines show the expected relationship, with points showing where administrative units fall along this curve, and maps show how this results in variation in assumed exposure incidence spatially at the commune and district level.*
+  
+  
+```{r fig S6.5 scaling se}
 include_graphics(here("figs/supplementary/S6.5_scaling_se.jpeg"))
 ```
+
 *__Figure S6.5.__ Predicted relationship between A) travel times and rabies death incidence per 100k persons and B) the proportional reduction in deaths from the baseline as clinics are added for the district model vs. commune models (colors) with columns comparing the baseline (presented in main analyses) and assumptions of rabies exposure incidence increasing or decreasing with human population size (shapes). The points show the mean estimates from 1000 simulations and the lineranges show the 95% prediction intervals.*
-
-## Supplementary Reference (R packages used) {#srefs}
-
-::: {#refs_R}
+  
+  
+## S7. Sotware citations (R Packages used) {#srefs}
+::: {#refs_supp}
 :::

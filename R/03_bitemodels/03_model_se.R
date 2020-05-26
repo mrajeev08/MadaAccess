@@ -253,7 +253,7 @@ expectations <-
                data_source = j$data_source, OD = j$OD, rep_cutoff = j$rep_cutoff)
   }
 
-write.csv(expectations, "output/mods/preds/expectations_se.csv", row.names = FALSE)
+write.csv(expectations, "output/mods/expectations_se.csv", row.names = FALSE)
 
 # Parse these from bash for where to put things
 syncto <- "~/Documents/Projects/MadaAccess/output/mods/"

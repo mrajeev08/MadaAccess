@@ -108,23 +108,8 @@ preds_mada %>%
   left_join(mora_bites,
             by = c("names" = "commcode")) -> preds_mora_grouped
 preds_grouped <- bind_rows(preds_mora_grouped, preds_mada_grouped)
-write.csv(preds_grouped, "output/preds/bites/fitted_grouped_all.csv", row.names = FALSE)
-write.csv(preds_mada, "output/preds/bites/fitted_ungrouped_all.csv", row.names = FALSE)
-
-# Table of overdispersion factors for models without sigma_e
-model_ests %>%
-  group_by(pop_predict, intercept, scale, data_source, OD) %>%
-  summarize(df = n()) -> model_dfs
-
-preds_grouped %>%
-  filter(OD == FALSE) %>%
-  left_join(model_dfs) %>%
-  mutate(z = (mean_bites - avg_bites)/sqrt(mean_bites), 
-         nobs = case_when(data_source %in% "National" ~ nrow(district_bites),
-                          data_source %in% "Moramanga" ~ nrow(mora_bites))) %>%
-  group_by(data_source, scale, pop_predict, intercept) %>%
-  summarize(od_ratio = sum(z^2)/(nobs[1] - df[1])) -> model_ods
-write.csv(model_ods, "output/mods/mod_ODs.csv", row.names = FALSE)
+write.csv(preds_grouped, "output/mods/preds/fitted_grouped_all.csv", row.names = FALSE)
+write.csv(preds_mada, "output/mods/preds/fitted_ungrouped_all.csv", row.names = FALSE)
 
 # Out of fit --------------------------------------------------------------------------------------
 
@@ -174,7 +159,7 @@ outfit_mora <-
                observed = mora_bites$avg_bites)
   }
 
-write.csv(outfit_mora, "output/preds/bites/outfit_mora.csv", row.names = FALSE)
+write.csv(outfit_mora, "output/mods/preds/outfit_mora.csv", row.names = FALSE)
 
 # Use Moramanga model to predict district and commune model
 mora_mods <- filter(mods, data_source == "Moramanga")
@@ -230,7 +215,7 @@ outfit_mada %>%
   summarize_at(vars(contains("bites")), sum, na.rm = TRUE) %>%
   left_join(district_bites, by = c("group_names" = "distcode")) -> outfit_grouped
 
-write.csv(outfit_grouped, "output/preds/bites/outfit_grouped_mada.csv", row.names = FALSE)
+write.csv(outfit_grouped, "output/mods/preds/outfit_grouped_mada.csv", row.names = FALSE)
 
 # Get expectations given a range of travel times and pop of 1e5 --------------------------------
 # for flat pop models only
@@ -267,7 +252,7 @@ expectations <-
                data_source = pars$data_source, OD = pars$OD)
   }
 
-write.csv(expectations, "output/preds/bites/expectations.csv", row.names = FALSE)
+write.csv(expectations, "output/mods/preds/expectations.csv", row.names = FALSE)
 
 # Session Info
 out.session(path = "R/03_bitemodels/03_get_modpreds.R", filename = "output/log_local.csv", 

@@ -47,7 +47,7 @@ names(scale_labs) <- scale_levs
 names(model_cols) <- scale_levs
 
 # Fitted predictions
-preds_grouped <- read.csv("output/preds/bites/fitted_grouped_all.csv")
+preds_grouped <- read.csv("output/mods/preds/fitted_grouped_all.csv")
 preds_grouped$mod_intercept <- preds_grouped$intercept
 fitted_preds <- ggplot(data = filter(preds_grouped, OD == FALSE), 
        aes(x = log(avg_bites + 0.1), y = log(mean_bites + 0.1), 
@@ -69,8 +69,8 @@ fitted_preds <- ggplot(data = filter(preds_grouped, OD == FALSE),
 ggsave("figs/supplementary/S3.2_fitted.jpeg", fitted_preds, device = "jpeg", height = 10, width = 8)
 
 # Out of fit predictions
-outfit_mora <- read.csv("output/preds/bites/outfit_mora.csv")
-outfit_mada <- read.csv("output/preds/bites/outfit_grouped_mada.csv")
+outfit_mora <- read.csv("output/mods/preds/outfit_mora.csv")
+outfit_mada <- read.csv("output/mods/preds/outfit_grouped_mada.csv")
 
 # Trying nested facet labels
 outfit_mada$type <- "National"
@@ -131,7 +131,7 @@ ggplot(data = filter(all_samps, !(grepl("alpha", Parameter))),
 ggsave("figs/supplementary/S3.4_posts_all.jpeg", posts_all, device = "jpeg", height = 8, width = 8)
 
 # And generates similar predictions (except for Mora data!)
-preds <- read.csv("output/preds/bites/expectations.csv") # Expectations
+preds <- read.csv("output/mods/preds/expectations.csv") # Expectations
 district_bites$data_source <- "National"
 mora_bites$data_source <- "Moramanga"
 observed <- bind_rows(district_bites, mora_bites)
@@ -216,7 +216,7 @@ ggsave("figs/supplementary/S3.7_preds_ODcomp.jpeg", preds_ODcomp, device = "jpeg
 
 # Sensitivity of model ests to reporting cut-offs ---------------------------------------------
 bitedata_se <- fread("output/mods/bitedata_se.csv")
-preds_se <- fread("output/mods/preds/expectations_se.csv")
+preds_se <- fread("output/mods/expectations_se.csv")
 
 # labs 
 scale_labs <- c("Commune", "District")
