@@ -20,6 +20,7 @@ library(gdistance)
 library(foreach)
 select <- dplyr::select
 source("R/functions/ttime_functions.R")
+source("R/functions/geom_raincloud.R")
 
 # Pull in data
 ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
@@ -68,19 +69,19 @@ names(mets) <- c("mean_tt", "prop", "prop_wtd", "random")
 
 ggplot(data = tests, 
        aes(x = as.numeric(scenario), y = deaths_mean, color = type, linetype = type,
-           group = metric), alpha = 0.5) +
+           group = metric), alpha = 0.75) +
   geom_line() +
   scale_color_manual(values = c('#66c2a5','#fc8d62','#e78ac3', '#8da0cb'),
                      labels = mets, name = "Rank metric") +
   scale_linetype(labels = mets, name = "Rank metric") +
   labs(x = "# Additional ARMC", y = "Average annual deaths") +
-  facet_wrap(~ scale, ncol = 1) +
+  facet_wrap(~ scale, nrow = 1) +
   theme_minimal_hgrid() +
   theme(panel.background = element_rect(fill = "gray92"), 
         panel.grid.major = element_line(color = "white")) -> S5.1_tests
   
 
-ggsave("figs/supplementary/S5.1_tests.jpeg", S5.1_tests, width = 6, height = 8)
+ggsave("figs/supplementary/S5.1_tests.jpeg", S5.1_tests, width = 8, height = 6)
 
 
 # Clinics added ------------------------------------------------------------------------------
@@ -237,6 +238,8 @@ S5.3 <- S5.3A / S5.3B / S5.3C
 ggsave("figs/supplementary/S5.3_map_shifts.tiff", S5.3, height = 8, width = 10, compression = "lzw",
        device = "tiff", dpi = 300, type = "cairo")
 
+ggsave("figs/supplementary/S5.3_map_shifts.jpeg", S5.3, height = 8, width = 10)
+
 # Decreases in ttimes, bite incidence, and reporting ------------------------------------
 admin_preds <- fread("output/preds/admin_preds.gz")
 admin_preds_filtered <- filter(admin_preds, scenario %in% scenario_levs)
@@ -252,7 +255,7 @@ ggplot(data = admin_preds_filtered,
                outlier.shape = NA, alpha = 0.5, width = 0.15) +  
   scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols, 
                     guide = "none") +
-  scale_y_continuous(trans = "sqrt") +
+  scale_y_continuous(trans = "sqrt", breaks = c(0.5, 1, 3, 5, 10, 15)) +
   scale_x_discrete(labels = scenario_labs) +
   labs(x = "# Additional ARMC", y = "Travel times (hrs)", tag = "A") +
   coord_flip() +
@@ -267,7 +270,8 @@ ggplot(data = admin_preds_filtered,
   geom_boxplot(data = admin_preds_filtered, 
                aes(x = as.factor(scenario), y = bites_mean/pop*1e5), 
                outlier.shape = NA, alpha = 0.5, width = 0.15) +  
-  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols) +
+  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols,
+                    name = "Scale") +
   scale_x_discrete(labels = scenario_labs) +
   labs(x = "", y = "Reported bites \n per 100k", tag = "B") +
   coord_flip() +
@@ -304,7 +308,8 @@ ggplot(data = admin_preds_filtered,
   geom_boxplot(data = admin_preds_filtered, 
                aes(x = as.factor(scenario), y = deaths_mean/pop*1e5), 
                outlier.shape = NA, alpha = 0.5, width = 0.15) +  
-  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols) +
+  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols,
+                    name = "Scale") +
   scale_x_discrete(labels = scenario_labs) +
   labs(x = "", y = "Deaths per 100k", tag = "B") +
   coord_flip() +
@@ -391,7 +396,8 @@ ggplot(data = bites_by_catch_filtered,
   geom_boxplot(data = bites_by_catch_filtered, 
                aes(x = as.factor(scenario), y = tp_mean), 
                outlier.shape = NA, alpha = 0.5, width = 0.15) +  
-  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols) +
+  scale_fill_manual(aesthetics = c("color", "fill"), values = model_cols,
+                    name = "Scale") +
   scale_y_continuous(trans = "log", breaks = c(0.1, 0.5, 1, 5, 10, 50)) +
   scale_x_discrete(labels = scenario_labs) +
   labs(x = "", y = "Daily clinic throughput", tag = "C") +

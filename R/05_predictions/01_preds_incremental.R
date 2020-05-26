@@ -45,6 +45,7 @@ all_preds <- run_scenarios(lookup = lookup, pred_type = c("vials", "burden"),
                            rng_seed = 23481, sims = 1000)
 
 fwrite(all_preds$admin_preds, "output/preds/admin_preds.gz")
+fwrite(all_preds$admin_preds[scenario == 0], "output/preds/admin_preds_base.gz")
 fwrite(all_preds$natl_preds, "output/preds/natl_preds.gz")
 fwrite(all_preds$catch_preds, "output/preds/catch_preds.gz")
 fwrite(all_preds$prop_preds, "output/preds/prop_preds.gz")

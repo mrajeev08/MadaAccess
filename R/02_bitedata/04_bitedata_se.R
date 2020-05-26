@@ -48,28 +48,32 @@ throughput %>%
 reporting$ctar <- ctar_metadata$CTAR[match(reporting$id_ctar, ctar_metadata$id_ctar)]
 write.csv(reporting, "output/sensitivity/reporting.csv", row.names = FALSE)
 
-# Estimates of vials from reporting 
-# ------------------------------------------------------------------------------------------------
+# Estimates of vials from reporting ----------------------------------------
+throughput %>%
+  group_by(id_ctar) %>%
+  summarize_at(vars(starts_with("include")), 
+               function (x) sum(x)/(365*4)) -> reporting_total 
+
 prop.f <- function(num, denom) num/denom # helper function
 
-# Getting bites at the ctar level
+# Getting bites at the ctar level over 4 year period
 patient_ts %>%
-  mutate(year = year(date_reported)) %>%
-  group_by(year, id_ctar) %>% 
+  group_by(id_ctar) %>% 
   summarize(no_patients = sum(no_patients)) %>%
-  left_join(reporting) %>%
-  mutate_at(vars(starts_with("include")), prop.f, num = quote(no_patients)) -> ctar_bites
+  left_join(reporting_total) %>%
+  mutate_at(vars(starts_with("include")), 
+            prop.f, num = quote(no_patients)) -> ctar_bites
 
-# Do average of 3 doses per patient at days 0, 3, 7
+# Do average of 3 doses per patient at days 0, 3, 7 over 4 year period
 # Get completion of subsequent doses by clinic
 get.vials.3 <- function(x) {
-  day0 <- floor(runif(x, min = 1, max = 365))
+  day0 <- floor(runif(x, min = 1, max = 365*4))
   days <- tabulate(c(day0, day0 + 3, day0 + 7))
   return(sum(ceiling(days)/2))
 }
 
 get.vials.4 <- function(x) {
-  day0 <- floor(runif(x, min = 1, max = 365))
+  day0 <- floor(runif(x, min = 1, max = 365*4))
   days <- tabulate(c(day0, day0 + 3, day0 + 7, day0 + 28))
   return(sum(ceiling(days)/2))
 }
@@ -103,9 +107,7 @@ ctar_bites %>%
 vial_ests <- bind_rows(vial_ests_3, vial_ests_4)
 
 vial_ests %>%
-  filter(year != 2017) %>%
-  select(-year) %>%
-  group_by(id_ctar, ctar, vials) %>%
+  group_by(id_ctar, vials) %>%
   summarize_all(sum) %>%
   pivot_longer(cols = starts_with("include")) -> vials_summed
 
@@ -124,7 +126,7 @@ vial_ests %>%
   pivot_wider(names_from = "vials", names_prefix = "mean", values_from = "value") -> vial_comp
 
 reporting %>%
-  group_by(ctar) %>%
+  group_by(ctar, id_ctar) %>%
   summarize(reporting = mean(include_15, na.rm = TRUE)) %>%
   right_join(filter(vial_comp, cut_off == 15 | cut_off == Inf)) -> vials_to_plot
 

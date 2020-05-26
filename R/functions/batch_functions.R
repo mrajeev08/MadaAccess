@@ -16,6 +16,7 @@ run_scenarios <- function(lookup, directory = "output/ttimes/", pred_type = c("v
                           colnames_max, colnames_all, colnames_j, admin_to_keep, catch_keep = TRUE,
                           multicomb = function(x, ...) { mapply(rbind, x, ..., SIMPLIFY = FALSE)}, 
                           rng_seed = 23481, sims = 1000) {
+  setDTthreads(1)
   
   foreach(j = iter(lookup, by = "row"), .combine = multicomb, 
           .packages = c('data.table', 'foreach', "triangle", "glue"), .options.RNG = rng_seed,
@@ -199,6 +200,8 @@ summarize_mats <- function(mats, combine_func = 'cbind',
                            mean_func = function(x) rowMeans(x, na.rm = TRUE), 
                            upper_func = function(x) apply(x, 1, quantile, prob = 0.975), 
                            lower_func = function(x) apply(x, 1, quantile, prob = 0.025)) {
+  
+  setDTthreads(1)
   
   mats <- mats[lengths(mats) != 0]
   

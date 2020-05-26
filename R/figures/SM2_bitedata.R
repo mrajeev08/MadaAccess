@@ -142,7 +142,7 @@ rep_B <- ggplot(data = reporting, aes(x = reorder(ctar, include_15), y = include
                                               color = ctar)) +
   geom_boxplot() +
   geom_point(alpha = 0.5) +
-  labs(y = "Estimated reporting", x = "", tag = "B") +
+  labs(y = "Estimated submission \n of forms", x = "", tag = "B") +
   geom_hline(yintercept = 0.25, linetype = 2, color = "grey") +
   coord_flip() +
   scale_color_manual(values = catch_cols, guide = "none") +
@@ -158,7 +158,7 @@ vials_C <- ggplot(data = vial_comp, aes(x = reorder(ctar, reporting), shape = fa
   geom_point(aes(y = ((log(mean3) + log(mean4))/2) - log(vials_observed)), size = 2) +
   geom_linerange(aes(ymin = log(mean3) - log(vials_observed), ymax = log(mean4) - log(vials_observed))) +
   geom_hline(yintercept = 0, linetype = 2, color = "grey") +
-  scale_shape_manual(values = c(0, 1), name = "Correction for \n underreporting", 
+  scale_shape_manual(values = c(0, 1), name = "Correction for \n undersubmission", 
                      labels = c("15" = "15 day cut-off", "Inf" = "none")) +
   labs(y = "Difference between \n log(estimated) and log(observed) vials", x = "", tag = "C") +
   coord_flip() +

@@ -83,7 +83,9 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 # Pass through base df, otherwise you need all the vectors!
 add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, rank_metric, 
                      base_scenario = 0, thresh_met = 0, overwrite = TRUE, random = TRUE) {
-
+  
+  setDTthreads(1)
+  
   # Pull in references to files (that way not as big!)
   cand_list <- vector("list", nrow(cand_df))
   foreach(j = 1:nrow(cand_df), .packages = "raster") %do% {
@@ -170,6 +172,8 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, ran
 
 # Get grid cell catchments for set of clinics ------------------------------------------------
 update.base <- function(cand_df, base_df, nsplit = 2) {
+  
+  setDTthreads(1)
   
   base <- copy(base_df)
   
@@ -281,6 +285,8 @@ process_ttimes <- function(dir_name = "output/ttimes/addclinics", include_base =
 # Get brick list ------------------------------------------------------------------------------
 get.bricks <- function(brick_dir = "output/ttimes/candidates") {
   
+  setDTthreads(1)
+  
   bricks <- list.files(brick_dir, full.names = TRUE)
   
   foreach(i = iter(bricks), .combine = rbind) %do% {
@@ -297,6 +303,9 @@ get.bricks <- function(brick_dir = "output/ttimes/candidates") {
 
 # Separate function for aggregate to admin ----------------------------------------------------
 aggregate.admin <- function(base_df, admin = "distcode", scenario) {
+  
+  setDTthreads(1)
+  
   base <- copy(base_df)
   base[, c("pop_admin", "pop_wt") := 
             .(sum(pop, na.rm = TRUE), sum(pop[!is.na(ttimes)], na.rm = TRUE), scenario), 
