@@ -1,5 +1,5 @@
 .Rproj.user
-.Rproj
+*.Rproj
 .Rhistory
 .RData
 .Ruserdata
@@ -31,3 +31,4 @@ data/raw/WorldPop/mdg_ppp_2015.tif
 data/raw/WorldPop/mdg_ppp_2018.tif
 data/raw/WorldPop/mdg_ppp_2020.tif
 data/raw/WorldPop/MDG_ppp_2015_adj_v2.tif
+tree.md
