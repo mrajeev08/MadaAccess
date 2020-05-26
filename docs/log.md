@@ -16,12 +16,12 @@ May 2020
 - Added maps of scaling factors of incidence to show how those sensitvity analyses map on to expectations of underlying rabies incidence. 
 - For vial demand predictions, now allocating vial demand by what proportion of the district/commune population is closest to a given clinic (so that a district or commune can be served by multiple clinics)
 - Updated the way clinics are added to reflect a more realistic expansion process, i.e. to one per district and then to one per commune. Also compared different ranking metrics against randomly adding clinics to verify that the metric used resulted in the steepest reduction in burden.
+- clarified patient reporting vs. undersubmission of forms (per Helene's comments). The undersubmission refers to forms not being submitted by clinics rather than people not seeking PEP.
 
 ## Text
 - Matched methods and results sections to have the same sub-headings and organization
 - Moved all explanatory text from supplement into main manuscript (now supplement just has figures & tables, plus citations of  packages used)
 - made a sankey flow diagram to better capture the decision tree (figure 1)
-- clarified patient reporting vs. undersubmission of forms (per Helene's comments)
 - explained & added in figures showing how clinic throughput shifts as more ARMC are added (lower # of patients presenting per day as catchment size decreases)
 - clarified catchment term
 - clarified why the effects of adding clinics saturate
@@ -31,5 +31,5 @@ May 2020
 - added two 'case studies' on challenges in predicting health seeking behavior from population level predictors
 
 ## Note on world pop estimates
-- I had issues with the newer estimates of gridded population data from World Pop and from Facebook see [here], so I switched back to the older estimates (which are no longer available through the World Pop website, so may be worth inquiring with them about the discrepancies). These older estimates result in similar estimates of pop size at the regional level given the new census and for the Moramanga District given the recent [census study]()
+- I had issues with the newer estimates of gridded population data from World Pop and from Facebook see [here](https://dataforgood.fb.com/tools/population-density-maps/), so I switched back to the older estimates (which are no longer available through the World Pop website, so may be worth inquiring with them about the discrepancies). These older estimates result in similar estimates of pop size at the regional level given the new census and for the Moramanga District given the recent [census study](https://academic.oup.com/ije/article-abstract/48/6/1754/5606762?redirectedFrom=fulltext)
 
