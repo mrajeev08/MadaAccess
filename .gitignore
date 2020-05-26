@@ -13,7 +13,6 @@ archive/
 accessPEP_cache
 accessPEP_files
 sessionInfo.csv
-figs/
 *.docx
 docs/*temp*
 *.html
