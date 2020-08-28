@@ -5,14 +5,14 @@ if (summed == TRUE) {
   model <- "model {
 
     # Priors
-    sigma_0 ~ dunif(0, 100) # SD hyperparameter for random intercepts
+    sigma_0 ~ dunif(0, 10) # SD hyperparameter for random intercepts
     tau_0 <- pow(sigma_0, -2)
     for (i in 1:ncatches) {
         alpha[i] ~ dnorm(beta_0, tau_0) # Random intercepts
     }
     
-    beta_0 ~ dnorm(0, 10^-3)
-    beta_ttimes ~ dnorm(0, 10^-3) 
+    beta_0 ~ dnorm(0, 0.1)
+    beta_ttimes ~ dnorm(0, 0.1) 
     
     # Insert OD prior here
     
@@ -40,14 +40,14 @@ if (summed == TRUE) {
 if(summed == FALSE) {
   model <- "model {
     # Priors
-    beta_0 ~ dnorm(0, 10^-3) # Mean hyperparameter for random intercepts
+    beta_0 ~ dnorm(0, 0.1) # Mean hyperparameter for random intercepts
     sigma_0 ~ dunif(0, 100) # SD hyperparameter for random intercepts
     tau_0 <- pow(sigma_0, -2)
     for (i in 1:ncatches) {
       alpha[i] ~ dnorm(beta_0, tau_0) # Random intercepts
     }
     
-    beta_ttimes ~ dnorm(0, 10^-3) 
+    beta_ttimes ~ dnorm(0, 0.1) 
     
     # Insert OD prior here
 
@@ -75,8 +75,8 @@ inits <- list(alpha = rnorm(ncatches, 0, 1),
 # Pop options
 if(pop_predict =="addPop") {
   # edit model text accordingly
-  model <- gsub("beta_ttimes ~ dnorm(0, 10^-3)",
-                "beta_ttimes ~ dnorm(0, 10^-3)\n    beta_pop ~ dnorm(0, 10^-3)", 
+  model <- gsub("beta_ttimes ~ dnorm(0, 0.1)",
+                "beta_ttimes ~ dnorm(0, 0.1)\n    beta_pop ~ dnorm(0, 0.1)", 
                 model, fixed = TRUE)   # add extra params + priors
   model <- gsub("*pop[i] # remove offset", "", model, fixed = TRUE) # remove the offset
   model <- gsub("alpha[catch[i]] + beta_ttimes*ttimes[i]",
@@ -92,8 +92,8 @@ if(pop_predict =="addPop") {
 
 if(pop_predict =="onlyPop") {
   # edit model text accordingly
-  model <- gsub("beta_ttimes ~ dnorm(0, 10^-3)",
-                "beta_pop ~ dnorm(0, 10^-3)", model, fixed = TRUE)   # remove extra params + priors
+  model <- gsub("beta_ttimes ~ dnorm(0, 0.1)",
+                "beta_pop ~ dnorm(0, 0.1)", model, fixed = TRUE)   # remove extra params + priors
   model <- gsub("*pop[i] # remove offset", "", model, fixed = TRUE) # remove the offset
   model <- gsub("alpha[catch[i]] + beta_ttimes*ttimes[i]",
                 "alpha[catch[i]] + beta_pop*pop[i]/trans",
@@ -112,11 +112,12 @@ if(pop_predict =="onlyPop") {
 # Overdispersion
 if(OD == TRUE) {
   
+  OD_priors <- 
   "sigma_e ~ dunif(0, 10)
     tau_e <- pow(sigma_e, -2)     
     for(j in 1:nlocs){
       epsilon[j] ~ dnorm(0, tau_e) 
-    }" -> OD_priors
+    }" 
   
   # add lines for prior & param
   model <- gsub("# Insert OD prior here", OD_priors, model, fixed = TRUE)

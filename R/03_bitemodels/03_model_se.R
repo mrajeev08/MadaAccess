@@ -98,7 +98,7 @@ mods_all <-
             ttimes <- covar_df$ttimes_wtd/60
             
             inc_prior <- log(mean(data_df$avg_bites/data_df$pop))
-            prior_list <- list(beta_0 = glue("beta_0 ~ dnorm({inc_prior}, 10^-3)"))
+            prior_list <- list(beta_0 = glue("beta_0 ~ dnorm({inc_prior}, 0.1)"))
             
             out <- estimate.pars(bites = data_df$avg_bites,
                                  ttimes = ttimes, pop = covar_df$pop, 

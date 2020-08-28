@@ -5,8 +5,8 @@ if (summed == TRUE) {
   model <- "model {
 
     # Priors
-    beta_0 ~ dnorm(0, 10^-3)
-    beta_ttimes ~ dnorm(0, 10^-3)
+    beta_0 ~ dnorm(0, 0.1)
+    beta_ttimes ~ dnorm(0, 0.1)
     
     # Insert OD prior here
     
@@ -32,8 +32,8 @@ if (summed == FALSE) {
   model <- "model {
 
     # Priors
-    beta_0 ~ dnorm(0, 10^-3)
-    beta_ttimes ~ dnorm(0, 10^-3)
+    beta_0 ~ dnorm(0, 0.1)
+    beta_ttimes ~ dnorm(0, 0.1)
     
     # Insert OD prior here
     
@@ -60,8 +60,8 @@ inits <- list(beta_0 = rnorm(1, 0, 1),
 # Pop options
 if(pop_predict ==  "addPop") {
   # edit model text accordingly
-  model <- gsub("beta_ttimes ~ dnorm(0, 10^-3)",
-                "beta_ttimes ~ dnorm(0, 10^-3)\n    beta_pop ~ dnorm(0, 10^-3)", 
+  model <- gsub("beta_ttimes ~ dnorm(0, 0.1)",
+                "beta_ttimes ~ dnorm(0, 0.1)\n    beta_pop ~ dnorm(0, 0.1)", 
                 model, fixed = TRUE)   # add extra params + priors
   model <- gsub("*pop[i] # remove offset", "", model, fixed = TRUE) # remove the offset
   model <- gsub("beta_0 + beta_ttimes*ttimes[i]",
@@ -77,8 +77,8 @@ if(pop_predict ==  "addPop") {
 
 if(pop_predict ==  "onlyPop") {
   # edit model text accordingly
-  model <- gsub("beta_ttimes ~ dnorm(0, 10^-3)",
-                "beta_pop ~ dnorm(0, 10^-3)", model, fixed = TRUE)   # remove extra params + priors
+  model <- gsub("beta_ttimes ~ dnorm(0, 0.1)",
+                "beta_pop ~ dnorm(0, 0.1)", model, fixed = TRUE)   # remove extra params + priors
   model <- gsub("*pop[i] # remove offset", "", model, fixed = TRUE) # remove the offset
   model <- gsub("beta_0 + beta_ttimes*ttimes[i]",
                 "beta_0 + beta_pop*pop[i]/trans",
@@ -95,12 +95,12 @@ if(pop_predict ==  "onlyPop") {
 
 # Overdispersion
 if(OD == TRUE) {
-  
+  OD_priors <-
   "sigma_e ~ dunif(0, 10)
     tau_e <- pow(sigma_e, -2)     
     for(j in 1:nlocs){
       epsilon[j] ~ dnorm(0, tau_e) 
-    }" -> OD_priors
+    }" 
   
   # add lines for prior & param
   model <- gsub("# Insert OD prior here", OD_priors, model, fixed = TRUE)
