@@ -16,7 +16,7 @@
 #' @return raster at same resolution as the input friction surface and cropped to the shapefile with 
 #'   the minimum ttimes metric estimate as the values
 #' @section Dependencies:
-#'  Packages: gdistance, raster, rgdal, sp
+#'  Packages: gdistance, raster, sf, sp
 
 get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE, 
                              filename_trans){

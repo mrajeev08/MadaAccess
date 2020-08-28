@@ -7,7 +7,7 @@
 # Libraries
 library(tidyverse)
 library(data.table)
-library(rgdal)
+library(sf)
 library(lubridate)
 select <- dplyr::select
 
@@ -19,10 +19,10 @@ source("R/functions/data_functions.R")
 national <- fread("data/processed/bitedata/national.csv")
 moramanga <- fread("data/processed/bitedata/moramanga.csv")
 ctar_metadata <- fread("data/processed/clinics/ctar_metadata.csv")
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
+mada_communes <- st_read("data/processed/shapefiles/mada_communes.shp")
+mada_districts <- st_read("data/processed/shapefiles/mada_districts.shp")
 
-# Get stats on missingness (output if possible!)
+# Get stats on missingness (output if possible!) (# use steward to document in data)
 # National < 0.5% (0.28%)
 nrow(national[is.na(year(date_reported))]) # 1
 nrow(national[is.na(distcode)]) # 95
@@ -37,129 +37,26 @@ nrow(moramanga[is.na(id_ctar)]) # 0
 nrow(national[is.na(commcode)]) # 54% unmatched (40% of peripheral unmatched and 60% of IPM unmatched)
 nrow(moramanga[is.na(commcode)]) # 23 and these are passage! (< 2%)
 
-# 1. National bite data: getting incidence estimates -----------------------------------------
-# Getting daily throughput for each clinic
-national %>%
-  filter(year(date_reported) > 2013, year(date_reported) < 2018, !is.na(distcode), !is.na(id_ctar)) %>%
-  mutate(date_reported = ymd(date_reported)) %>%
-  group_by(date_reported, id_ctar) %>%
-  summarise(no_patients = n()) %>%
-  ungroup() %>%
-  complete(date_reported = seq(min(date_reported), max(date_reported), by = "day"), id_ctar, 
-           fill = list(no_patients = 0)) -> throughput
-
-# rle.days = Helper function for getting which days to include (moved to functions from data_functions.R)
-# and also identify potential CAT 1 by the throughput mean/sd
-throughput %>%
-  group_by(id_ctar) %>%
-  arrange(date_reported, .by_group = TRUE) %>%
-  mutate(include_day = rle.days(no_patients, threshold = 15), 
-         mean_throughput = mean(no_patients[include_day == 1]),
-         sd_throughput = sd(no_patients[include_day == 1]),
-         estimated_cat1 = ifelse(no_patients >= mean_throughput + 3*sd_throughput, 
-                                     1, 0),
-         year = year(date_reported)) -> throughput
-
-# yearly reporting
-# sum the total # of days included over # of days in year (365)
-throughput %>%
-  group_by(year, id_ctar) %>%
-  summarize(reporting = sum(include_day)/365) -> reporting
-
-# Left join with throughput to get exclusion criteria
-national %>%
-  filter(year(date_reported) > 2013, year(date_reported) < 2018,
-         distcode %in% mada_districts$distcode, 
-         id_ctar %in% ctar_metadata$id_ctar[!is.na(ctar_metadata$id_ctar)],
-         type == "new") %>% 
-  mutate(date_reported = ymd(date_reported)) %>%
-  left_join(select(throughput, date_reported, id_ctar, include_day, estimated_cat1, year)) -> bites
-
-# Getting district level exclusion criteria
-# if submitted less than 10 forms total
-national %>%
-  filter(year(date_reported) > 2013, year(date_reported) < 2018, 
-         distcode %in% mada_districts$distcode, 
-         id_ctar %in% ctar_metadata$id_ctar[!is.na(ctar_metadata$id_ctar)]) %>%
-  group_by(id_ctar) %>%
-  summarize(total_forms = n()) %>%
-  complete(id_ctar = ctar_metadata$id_ctar, fill = list(total_forms = 0)) %>%
-  right_join(ctar_metadata) %>%
-  mutate(total_forms = ifelse(is.na(total_forms), 0, total_forms),
-         exclude_dist = ifelse(total_forms > 10, 0, 1)) -> ctar_metadata
-
+# Prep shapefiles
+ctar_metadata <- ctar_to_exclude(national, ctar_metadata, min_forms = 10)
 mada_districts$exclude_dist <- ctar_metadata$exclude_dist[match(mada_districts$catchment,
                                                                 ctar_metadata$CTAR)]
-# A check
-unique(mada_districts$catchment[mada_districts$exclude_dist == 1])
+mada_communes %>%
+  left_join(select(st_drop_geometry(mada_districts), distcode, exclude_dist, 
+                   ctch_dist = catchment)) -> mada_communes
 
-# Getting bite incidence estimates for all districts
-bites %>%
-  # filter known contacts and estimated ones based on throughput
-  filter(include_day == 1) %>% 
-  group_by(year, distcode) %>%
-  summarize(bites = n()) -> bites_district
-bites_district$CTAR <- mada_districts$catchment[match(bites_district$distcode, 
-                                                       mada_districts$distcode)]
-bites_district$id_ctar<- ctar_metadata$id_ctar[match(bites_district$CTAR, ctar_metadata$CTAR)]
-bites_district %>%
-  left_join(reporting) %>%
-  filter(reporting > 0.25) %>% # dont include any district for which catchment clinic had
-  # less than 25% reporting
-  # correct for reporting by year and ctar reported to 
-  mutate(bites = bites/reporting) %>%
-  group_by(distcode) %>%
-  summarize(avg_bites = mean(bites, na.rm = TRUE),
-            sd_bites = sd(bites, na.rm = TRUE), 
-            min_bites = min(bites, na.rm = TRUE),
-            max_bites = max(bites, na.rm = TRUE),
-            nobs = n()) %>%
-  complete(distcode = mada_districts$distcode, fill = list(avg_bites = 0)) -> bite_ests
 
-# Join bites with district and commune covariates 
-mada_districts@data %>%
-  filter(exclude_dist == 0) %>%
-  mutate(catch = as.numeric(droplevels(catchment)), 
-         group = as.numeric(droplevels(distcode))) %>%
-  left_join(bite_ests) %>%
-  arrange(group) -> district_bites
+# National data: district bites & commcovars
+natl <- clean_natl(national, mada_districts, mada_communes, ctar_metadata, 
+                       reporting_thresh = 0.25, 
+                       tput_thresh = 15)
 
-# Communes
-mada_communes$exclude_dist <- mada_districts$exclude_dist[match(mada_communes$distcode,
-                                                                          mada_districts$distcode)]
-mada_communes$ctch_dist <- mada_districts$catchment[match(mada_communes$distcode,
-                                                                 mada_districts$distcode)]
-mada_communes@data %>%
-  filter(exclude_dist == 0) %>%
-  mutate(catch = as.numeric(droplevels(ctch_dist)),
-         group = as.numeric(droplevels(distcode))) %>%
-  arrange(group) -> comm_covars
-district_bites$end <- cumsum(rle(comm_covars$group)$lengths)
-district_bites$start <- c(1, lag(district_bites$end)[-1] + 1)
-
-# 2. Moramanga data ------------------------------------------------------------------------
-moramanga %>%
-  mutate(month_date = floor_date(ymd(moramanga$date_reported), unit = "month")) %>%
-  filter(type == "new", month_date >= "2016-10-01", 
-         month_date <= "2019-06-01", !is.na(commcode)) %>%
-  group_by(commcode, month_date) %>%
-  summarize(bites = n()) %>%
-  ungroup() %>%
-  complete(month_date = seq(min(month_date), max(month_date), by = "month"), 
-           commcode, fill = list(bites = 0)) %>%
-  group_by(commcode) %>%
-  summarize(avg_bites = mean(bites)*12,
-            nobs = n()) %>% # average monthly bites x 12 to get annual avg_bites
-  complete(commcode = mada_communes$commcode, fill = list(avg_bites = 0)) -> mora_bites 
-
-mada_communes@data %>%
-  filter(catchment == "Moramanga") %>%
-  left_join(mora_bites) -> mora_bites
-mora_bites$catch <- district_bites$catch[district_bites$catchment == "Moramanga"][1]
+# Moramanga data
+mora_bites <- clean_mora(moramanga, mada_communes, mada_districts, natl$district_bites)  
 
 # Write out bite data and covariate data
-fwrite(district_bites, "output/bites/district_bites.csv")
-fwrite(comm_covars, "output/bites/comm_covars.csv")
+fwrite(natl$district_bites, "output/bites/district_bites.csv")
+fwrite(natl$comm_covars, "output/bites/comm_covars.csv")
 fwrite(mora_bites, "output/bites/mora_bites.csv")
 
 # Save session info

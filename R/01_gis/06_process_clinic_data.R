@@ -8,54 +8,48 @@ source("R/functions/out.session.R")
 # packages
 library(tidyverse)
 library(raster)
-library(geosphere)
-library(rgdal)
+library(sf)
 select <- dplyr::select
 
 # data
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
+mada_districts <- st_read("data/processed/shapefiles/mada_districts.shp")
+mada_communes <- st_read("data/processed/shapefiles/mada_communes.shp")
 ctar_metadata <- read.csv("data/raw/ctar_metadata.csv")
 csbs <- read.csv("data/raw/csbs.csv", stringsAsFactors = FALSE)
 
 # get clinic commcodes & distcodes
-csbs_coords <- SpatialPoints(cbind(csbs$xcoor, csbs$ycoor), 
-                             proj4string = 
-                               CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-csbs$commcode <- over(csbs_coords, mada_communes)$commcode
-csbs$commune <- over(csbs_coords, mada_communes)$commune
-csbs$distcode <- over(csbs_coords, mada_districts)$distcode
-csbs$district <- over(csbs_coords, mada_communes)$district
+csbs <- st_as_sf(csbs, coords = c("xcoor", "ycoor"), 
+                     crs = st_crs(mada_communes))
+csbs <- st_join(csbs, 
+                select(mada_communes, commcode, distcode, district, commune, pop), 
+                join = st_intersects)
 
 # Process exisiting ctar data -------------------------------------------------------------
-ctar_coords <- SpatialPoints(cbind(ctar_metadata$LONGITUDE, ctar_metadata$LATITUDE), 
-                             proj4string = 
-                               CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+ctar_metadata <- st_as_sf(ctar_metadata, coords = c("LONGITUDE", "LATITUDE"), 
+                          crs = st_crs(mada_communes))
+ctar_metadata <- st_join(ctar_metadata, 
+                         select(mada_communes, commcode, distcode, district, commune), 
+                         join = st_intersects)
+
 ctar_metadata%>%
-  mutate(commcode = over(ctar_coords, mada_communes)$commcode,
-         commune = over(ctar_coords, mada_communes)$commune,
-         distcode = over(ctar_coords, mada_districts)$distcode,
-         district = over(ctar_coords, mada_districts)$district,
-         clinic_id = 1:nrow(ctar_metadata)) %>%
-  rename(lat = LATITUDE, long = LONGITUDE) -> ctar_metadata
+  mutate(clinic_id = 1:nrow(ctar_metadata)) -> ctar_metadata
 
 # Process all csb IIs ------------------------------------------------------------------------
 csbs %>% 
   filter(type == "CSB2", genre_fs != "Priv", type_fs != "Health Post") %>%
-  select(district, distcode, commune, commcode, lat = ycoor, long = xcoor) -> csb2
-dist_mat <- distm(cbind(ctar_metadata$long, ctar_metadata$lat), 
-                  cbind(csb2$long, csb2$lat))
-csb2 <- csb2[-apply(dist_mat, 1, which.min), ]
-csb2$clinic_id <- 1:nrow(csb2) + 31 # id for clinics
+  select(district, distcode, commune, commcode) -> csb2
+dist_mat <- st_distance(ctar_metadata, csb2)
+csb2 %>% 
+  slice(-c(apply(dist_mat, 1, which.min))) %>%
+  mutate(clinic_id = 1:nrow(.) + 31, 
+         long = st_coordinates(.)[, "X"], 
+         lat = st_coordinates(.)[, "Y"]) -> csb2
 
-write.csv(csb2, "data/processed/clinics/csb2.csv", row.names = FALSE)
+write.csv(st_drop_geometry(csb2), "data/processed/clinics/csb2.csv", row.names = FALSE)
 
 # Process additional scenarios -------------------------------------------------------------
 pop_1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
-csb2_coords <- SpatialPoints(cbind(csb2$long, csb2$lat), 
-                             proj4string = 
-                               CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-csb2$pop_dens <- extract(pop_1x1, csb2_coords)
+csb2$pop_dens <- extract(pop_1x1, csb2[, c("long", "lat")])
 
 # 1 per district
 csb2 %>%
@@ -75,29 +69,29 @@ csb2 %>%
 missing_comms <- mada_communes$commcode[!(mada_communes$commcode %in% clinic_per_comm$commcode |
                                           mada_communes$commcode %in% ctar_metadata$commcode |
                                           mada_communes$commcode %in% clinic_per_dist$commcode)]
-write.csv(missing_comms, "output/stats/missing_comms.csv")
-
 csbs %>% 
   filter(type != "CSB1", genre_fs != "Priv") %>%
-  select(distcode, district, commcode, commune, lat = ycoor, long = xcoor) %>%
+  select(distcode, district, commcode, commune) %>%
   mutate(clinic_id = 1:nrow(.) + max(csb2$clinic_id)) -> csb1
 
-csb1_coords <- SpatialPoints(cbind(csb1$long, csb1$lat), 
-                            proj4string = 
-                              CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-csb1$pop_dens <- extract(pop_1x1, csb1_coords)
+csb1$pop_dens <- extract(pop_1x1, st_coordinates(csb1))
 
 csb1 %>%
   filter(commcode %in% missing_comms) %>%
   group_by(commcode) %>%
   filter(pop_dens == max(pop_dens, na.rm = TRUE)) %>%
   ungroup() %>%
-  mutate(clinic_id = max(csb2$clinic_id) + 1:nrow(.)) %>%
+  mutate(clinic_id = max(csb2$clinic_id) + 1:nrow(.), 
+         long = st_coordinates(.)[, "X"], 
+         lat = st_coordinates(.)[, "Y"]) %>%
   bind_rows(clinic_per_comm) ->  clinic_per_comm
 
-write.csv(clinic_per_comm, "data/processed/clinics/clinic_per_comm.csv", row.names = FALSE)
-write.csv(clinic_per_dist, "data/processed/clinics/clinic_per_dist.csv", row.names = FALSE)
-write.csv(ctar_metadata, "data/processed/clinics/ctar_metadata.csv", row.names = FALSE)
+write.csv(st_drop_geometry(clinic_per_comm), "data/processed/clinics/clinic_per_comm.csv", 
+          row.names = FALSE)
+write.csv(st_drop_geometry(clinic_per_dist), "data/processed/clinics/clinic_per_dist.csv", 
+          row.names = FALSE)
+write.csv(st_drop_geometry(ctar_metadata), "data/processed/clinics/ctar_metadata.csv", 
+          row.names = FALSE)
 
 # Session Info
 out.session(path = "R/01_gis/06_process_clinic_data.R", filename = "output/log_local.csv", 

@@ -4,18 +4,17 @@
 #' combining into cleaned Moramanga and National datasets (output into ~data/processed/)  
 # ------------------------------------------------------------------------------------------------ #
 
-
 # Set-up --------------------------------------------------------------------------------------
 library(stringdist)
-library(rgdal)
+library(sf)
 library(dplyr)
 library(lubridate)
 source("R/functions/out.session.R")
 select <- dplyr::select 
 
 # Read in shapefiles
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
+mada_communes <- st_read("data/processed/shapefiles/mada_communes.shp")
+mada_districts <- st_read("data/processed/shapefiles/mada_districts.shp")
 
 # Read in raw bite data
 peripheral <- read.csv("data/raw/bitedata/peripheral/SaisieRage_DATA_2018-09-21_1755.csv")
@@ -42,12 +41,6 @@ peripheral_comm_matches %>%
 peripheral %>%
   mutate(matchcode_data = as.character(interaction(distcode, tolower(commune)))) %>%
   left_join(peripheral_comm_matches) -> peripheral
-
-# Also do Cat 1 matching (identify known Cat 1s)
-known_cat1 <- read.csv("data/processed/matched_names/peripheral_notes_known_cat1.csv")
-peripheral$known_cat1 <- known_cat1$known_cat1[match(peripheral$remarque, 
-                                                                known_cat1$Note)]
-peripheral$known_cat1[is.na(peripheral$known_cat1)] <- 0
 
 # IPM data to the district
 names_matched <- read.csv("data/processed/matched_names/ipm_dist_matched.csv")
@@ -91,19 +84,20 @@ moramanga_comm_matches %>%
                                                    mada_communes$matchcode)]) %>%
   filter(!is.na(matchcode_data)) %>%
   select(min_fixed, match, matchcode_comm, matchcode_data, commcode) -> moramanga_comm_matches
+
 moramanga %>%
   mutate(matchcode_data = interaction(distcode, tolower(commune))) %>%
   left_join(moramanga_comm_matches) -> moramanga
 
 # Format other columns  ---------------------------------------------------------------------------
-# Date reported, CTAR, type, commcode, distcode, known_cat1, notes
+# Date reported, CTAR, type, commcode, distcode, notes
 # + ttimes & transport type for mora data
 
 # Peripheral
 peripheral %>%
   mutate(type = "new", date_reported = ymd(date_de_consultation), 
          source = "peripheral") %>%
-  select(date_reported, type, ctar, id_ctar, distcode, commcode, known_cat1, 
+  select(date_reported, type, ctar, id_ctar, distcode, commcode, 
          source) -> peripheral_clean
 
 # IPM
@@ -112,9 +106,8 @@ IPM %>%
                           categorie == "R" ~ "restart", 
                           categorie == "T" ~ "transfer"), 
          date_reported = ymd(dat_consu), 
-         known_cat1 = ifelse(type_cont == "C", 1, 0),
          ctar = "IPM", id_ctar = 5, source = "IPM") %>%
-  select(date_reported, type, ctar, id_ctar, distcode, commcode, known_cat1, source) -> IPM_clean
+  select(date_reported, type, ctar, id_ctar, distcode, commcode, source) -> IPM_clean
   
 # Moramanga bite data
 moramanga %>%

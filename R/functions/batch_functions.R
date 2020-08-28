@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------------------------ #
 #' Batch functions
-#' Functions for running preds & mods across scenarios                                                                                       
+#' Functions for running preds & mods across scenarios
 # ------------------------------------------------------------------------------------------------ #
 
 #' Run preds for set of scenarios

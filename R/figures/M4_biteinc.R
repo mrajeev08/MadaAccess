@@ -9,7 +9,7 @@ source("R/functions/out.session.R")
 # Libraries
 library(patchwork)
 library(tidyverse)
-library(rgdal)
+library(sf)
 library(data.table)
 library(cowplot)
 select <- dplyr::select
@@ -18,8 +18,7 @@ select <- dplyr::select
 district_bites <- fread("output/bites/district_bites.csv")
 mora_bites <- fread("output/bites/mora_bites.csv")
 ctar_metadata <- fread("data/processed/clinics/ctar_metadata.csv")
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
+mada_districts <- st_read("data/processed/shapefiles/mada_districts_simple.shp")
 
 # colors by catchment
 catch_cols <- c("#FCC56F","#004D43", "#7A4900", "#CBCDD2", "#006b3c", "#EFF2F1",

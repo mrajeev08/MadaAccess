@@ -6,7 +6,7 @@
 
 # Set-up --------------------------------------------------------------------------------------
 library(stringdist)
-library(rgdal)
+library(sf)
 library(dplyr)
 
 # source matching function
@@ -14,8 +14,8 @@ source("R/functions/out.session.R")
 source("R/functions/match_names.R")
 
 # Read in shapefiles
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
+mada_communes <- st_read("data/processed/shapefiles/mada_communes.shp")
+mada_districts <- st_read("data/processed/shapefiles/mada_districts.shp")
 
 # Match commune names in peripheral ARMC data -------------------------------------------------
 # automatch ones with < 3 fixed distance

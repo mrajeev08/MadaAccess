@@ -14,7 +14,7 @@ start <- Sys.time()
 # libraries
 library(doRNG)
 library(glue)
-library(rgdal)
+library(sf)
 library(data.table)
 library(tidyverse)
 library(foreach)
@@ -25,8 +25,8 @@ source("R/functions/predict_functions.R")
 source("R/functions/batch_functions.R")
 
 # Scaling factors ----------------------------------------------------------------------------
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
+mada_communes <- st_read("data/processed/shapefiles/mada_communes.shp")
+mada_districts <- st_read("data/processed/shapefiles/mada_districts.shp")
 
 # Communes
 pop <- mada_communes$pop - min(mada_communes$pop)

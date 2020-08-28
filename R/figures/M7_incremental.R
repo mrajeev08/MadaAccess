@@ -78,7 +78,7 @@ vials_per_death <- ggplot(natl_preds[scenario != max(scenario)],
 
 figM7 <- burden / vials / vials_per_death + plot_layout(guides = "collect")
 ggsave("figs/main/M7_addARMC.jpeg", figM7, device = "jpeg", height = 8.75, width = 8)
-ggsave("figs/main/M7_addARMC.tiff", figM7, device = "tiff", dpi = 300, height = 8.75, width = 8.75, 
+ggsave("figs/main/M7_addARMC.tiff", figM7, device = "tiff", dpi = 300, height = 8.75, width = 7.5, 
        compression = "lzw", type = "cairo")
 
 # Saving session info

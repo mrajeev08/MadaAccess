@@ -5,9 +5,10 @@
 start <- Sys.time()
 source("R/functions/out.session.R")
 
+check
+
 # Set-up
 library(tidyverse)
-library(rgdal)
 library(raster)
 library(patchwork)
 library(cowplot)
@@ -17,8 +18,6 @@ source('R/functions/out.session.R')
 
 # data
 ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
 base_times <- raster("output/ttimes/base/ttimes.tif")
 pop1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
@@ -37,11 +36,11 @@ ttimes_A <- ggplot() +
                                   fill = cut(ttimes/60, breaks = ttime_breaks, 
                                              labels = ttime_labs))) + 
   scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
-                    drop = FALSE, na.value = "black") +
+                    drop = FALSE, na.value = "black", guide = "none") +
   geom_point(data = ctar_metadata, aes(x = long, y = lat), color = "darkgrey", 
              shape = 4,
              stroke = 2) +
-  theme_map() +
+  theme_map(font_size = 11) +
   labs(tag = "A") +
   coord_quickmap()
 
@@ -63,7 +62,7 @@ prop_B <- ggplot(data = prop_pop_ttimes, aes(x = cut_times, y = prop_pop,
                     drop = FALSE) +
   ylim(c(0, 0.6)) +
   labs(x = "Travel times (hrs)", y = "Proportion of\n population") +
-  theme_minimal_hgrid() +
+  theme_minimal_hgrid(font_size = 11) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(tag = "B")
 
@@ -104,15 +103,15 @@ gtruth_comp_C <- ggplot(data = all,
                      name = "Type of estimate") +
   geom_abline(slope = 1, intercept = 0, linetype = 2) + 
   guides(shape = guide_legend(override.aes = list(linetype = c(0, 0), size = 2))) +
-  theme_minimal_hgrid() +
-  labs(x = "Estimated travel times (hrs)", y = "Reported travel times (hrs)", 
+  theme_minimal_hgrid(font_size = 11) +
+  labs(x = "Estimated travel times (hrs)", y = "Reported travel times \n (hrs)", 
        tag = "C")
  
 # combined
 figM2_ttimes <- (ttimes_A + (prop_B / gtruth_comp_C)) + plot_layout(widths = c(1.5, 1))
 # for plos
 ggsave("figs/main/M2_ttimes.jpeg", figM2_ttimes, height = 10, width = 10)
-ggsave("figs/main/M2_ttimes.tiff", figM2_ttimes, dpi = 300, height = 10, width = 10,
+ggsave("figs/main/M2_ttimes.tiff", figM2_ttimes, dpi = 300, height = 5, width = 7.5,
        compression = "lzw", type = "cairo")
 
 # save session info

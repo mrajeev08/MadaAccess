@@ -1,7 +1,12 @@
 #' Title
 #' Description
 #' Details
-#' @param Paramters
+#'
+#' @param from 
+#' @param to 
+#' @param frac 
+#' @param transform 
+#'
 #' @return Returned
 #' @section Dependencies:
 #'     List dependencies here, i.e. packages and other functions
@@ -35,6 +40,7 @@ get.bezier.pts <- function(from, to, frac = 0.8, transform = function(x) sqrt(1/
 #' Title
 #' Description
 #' Details
+#' bbox is from st_bbox
 #' @param Paramters
 #' @return Returned
 #' @section Dependencies:
@@ -42,9 +48,9 @@ get.bezier.pts <- function(from, to, frac = 0.8, transform = function(x) sqrt(1/
 #'     
 get.bezleg <- function(bbox, n_pts, size_vec, min_size, offset_long, offset_lat) {
   
-  long_min <- bbox["x", "min"] + offset_long # pulls it in from bbox edge
-  long_max <- bbox["x", "max"] - offset_long # pulls it in from bbox edge
-  lat_pt<- bbox["y", "min"] + offset_lat # pulls it down away from Mada 
+  long_min <- bbox$xmin + offset_long # pulls it in from bbox edge
+  long_max <- bbox$xmax - offset_long # pulls it in from bbox edge
+  lat_pt<- bbox$ymin + offset_lat # pulls it down away from Mada 
   
   long <- seq(long_min, long_max, length.out = n_pts)
   

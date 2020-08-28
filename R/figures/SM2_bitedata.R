@@ -8,19 +8,19 @@ start <- Sys.time()
 
 # Libraries
 library(tidyverse)
-library(rgdal)
-library(rgeos)
+library(sf)
 library(data.table)
 library(lubridate)
 library(patchwork)
 library(cowplot)
+
 select <- dplyr::select
 source("R/functions/out.session.R")
 
 # Read in metadata
 ctar_metadata <- fread("data/processed/clinics/ctar_metadata.csv")
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
+mada_communes <- st_read("data/processed/shapefiles/mada_communes_simple.shp")
+mada_districts <- st_read("data/processed/shapefiles/mada_districts_simple.shp")
 national <- fread("data/processed/bitedata/national.csv")
 
 # Catchment maps (commune = fill & district = color ) ------------------------------------------
@@ -34,10 +34,12 @@ names(catch_cols) <- ctar_metadata$CTAR
 
 
 # Dissolve shapefiles
-districts_dissolved <- gUnaryUnion(mada_districts, id = mada_districts$catchment)
-gg_distcatch <- fortify(districts_dissolved, region = "catchment")
-communes_dissolved <- gUnaryUnion(mada_communes, id = mada_communes$catchment)
-gg_commcatch <- fortify(communes_dissolved)
+mada_districts %>%
+  group_by(catchment) %>%
+  summarize(geometry = st_union(geometry)) -> gg_distcatch
+mada_communes %>%
+  group_by(catchment) %>%
+  summarize(geometry = st_union(geometry)) -> gg_commcatch 
 
 catchments_A <- ggplot() +
   geom_polygon(data = gg_commcatch, aes(x = long, y = lat, group = group, fill = id), 

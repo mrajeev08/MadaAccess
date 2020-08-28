@@ -14,7 +14,7 @@ registerDoMPI(cl)
 start <- Sys.time()
 
 # Libraries
-library(rgdal)
+library(sf)
 library(raster)
 library(foreach)
 library(tidyverse)
@@ -29,8 +29,7 @@ source("R/functions/out.session.R")
 source("R/functions/ttime_functions.R")
 
 # Load in GIS files 
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
+mada_districts <- st_read("data/processed/shapefiles/mada_districts.shp")
 ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 

@@ -52,7 +52,7 @@ ggplot(data = preds,
   scale_fill_manual(values = model_cols, name = "Scale",
                     labels = scale_labs) +
   scale_shape_manual(values = c(6, 1), name = "Dataset") +
-  labs(x = "Travel time (hrs)", y = "Predicted bites per 100k", tag = "A") +
+  labs(x = "Travel time (hrs)", y = "Reported bites per 100k", tag = "A") +
   cowplot::theme_minimal_grid() -> mod_preds
 
 # Plot posterior ests ------------------------------------------------------------------
@@ -67,6 +67,7 @@ set_breaks = function(limits) {
   round(seq(limits[1], limits[2], length.out = 5), 1)[2:4]
 }
 
+# hack for patchwork bug
 ggplot(data = all_samps, aes(x = Parameter, y = value, fill = interaction(data_source, scale))) +
   geom_violin(alpha = 0.5) +
   scale_x_discrete(labels = c("beta_0" = bquote(beta[0] ~ "(Intercept)"),
@@ -75,15 +76,16 @@ ggplot(data = all_samps, aes(x = Parameter, y = value, fill = interaction(data_s
   scale_fill_manual(values = model_cols, name = "Scale",
                     labels = scale_labs, guide = "none") +
   scale_y_continuous(breaks = set_breaks) +
-  facet_wrap(~ Parameter, scales = "free", ncol = 1) +
+  facet_wrap(~ Parameter, scales = "free", ncol = 1, 
+             labeller = as_labeller(c("beta_0" = "", "beta_ttimes" = "", "sigma_e" = ""))) +
   labs(y = "Posterior estimates", tag = "B") +
-  theme_minimal_hgrid() +
-  theme(strip.text = element_blank()) -> posts
+  theme_minimal_hgrid() -> posts
 
 mods <- (mod_preds | posts) + plot_layout(guides = "collect")
 
-ggsave("figs/main/M5_mods.tiff", mods, dpi = 300, height = 8, width = 8)
-ggsave("figs/main/M5_mods.jpeg", mods, height = 8, width = 8)
+ggsave("figs/main/M5_mods.tiff", mods, dpi = 300, height = 8, width = 7.5, 
+       compression = "lzw", type = "cairo")
+ggsave("figs/main/M5_mods.jpeg", mods, height = 8, width = 7.5)
 
 # Session Info
 out.session(path = "R/M5_modpreds.R", filename = "output/log_local.csv", start = start)

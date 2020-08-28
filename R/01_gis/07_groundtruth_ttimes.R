@@ -10,7 +10,7 @@ start <- Sys.time()
 
 # Set-up
 library(tidyverse)
-library(rgdal)
+library(sf)
 library(raster)
 library(lubridate)
 library(data.table)
@@ -21,8 +21,7 @@ source('R/functions/ttime_functions.R')
 
 # data
 ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts.shp")
+mada_communes <- st_read("data/processed/shapefiles/mada_communes.shp")
 base_times <- raster("output/ttimes/base/ttimes.tif")
 pop1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
 friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
@@ -32,7 +31,8 @@ friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
 mora <- read.csv("data/processed/bitedata/moramanga_ttimes.csv")
 mada_communes$catchment <- ctar_metadata$CTAR[mada_communes$catchment]
 mora %>%
-  left_join(select(mada_communes@data, commcode, district, from_lat = lat_cent, from_long = long_cent, 
+  left_join(select(st_drop_geometry(mada_communes), commcode, district, 
+                   from_lat = lat_cent, from_long = long_cent, 
                    commune, pop, ttimes_wtd, ttimes_un, catchment), 
             by = c("commcode" = "commcode")) %>%
   mutate(ttimes_est = ttimes_wtd/60, ttimes_un = ttimes_un/60) %>% 
@@ -69,7 +69,7 @@ system.time ({
   foreach(points_to = iter(point_mat_to, by = "row"),
           points_from = iter(point_mat_from, by = "row"),
           .packages = c("raster", "gdistance", "data.table")) %dopar% {
-            ttimes <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
+            ttimes <- get.ttimes(friction = friction_masked, shapefile = mada_communes,
                                  coords = points_to, trans_matrix_exists = TRUE,
                                  filename_trans = "data/processed/rasters/trans_gc_masked.rds")
             extract(ttimes, SpatialPoints(points_from)) 

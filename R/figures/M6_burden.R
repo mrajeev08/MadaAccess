@@ -8,14 +8,14 @@ start <- Sys.time()
 # libraries
 library(tidyverse)
 library(data.table)
-library(rgdal)
+library(sf)
 library(patchwork)
 library(cowplot)
 
 # Predicted burden
 burden_preds <- fread("output/preds/admin_preds.gz")[scenario == 0]
-mada_communes <- readOGR("data/processed/shapefiles/mada_communes_simple.shp")
-mada_districts <- readOGR("data/processed/shapefiles/mada_districts_simple.shp")
+mada_communes <- st_read("data/processed/shapefiles/mada_communes_simple.shp")
+mada_districts <- st_read("data/processed/shapefiles/mada_districts_simple.shp")
 ctar_metadata <- fread("data/processed/clinics/ctar_metadata.csv")
 
 # Grouped to district
@@ -69,20 +69,20 @@ compare_burden <- ggplot() +
   theme(axis.text.y = element_blank()) +
   coord_flip(clip = "off")
 
-gg_commune <- fortify(mada_communes, region = "commcode")
-gg_commune %>% 
-  left_join(burden_preds[scale == "Commune"], by = c("id" = "commcode")) -> gg_commune_plot
+mada_communes %>% 
+  select(-pop) %>%
+  left_join(burden_preds[scale == "Commune"], by = c("commcode" = "commcode")) -> gg_commune_plot
 
-gg_district <- fortify(mada_districts, region = "distcode")
-gg_district %>% 
-  left_join(district_deaths, by = c("id" = "distcode")) -> gg_district_plot
+mada_districts %>% 
+  select(-pop) %>%
+  left_join(district_deaths, by = c("distcode" = "distcode")) -> gg_district_plot
 
 col_lim <- c(floor(min(gg_commune_plot$deaths_mean/gg_commune_plot$pop*1e5)),
              ceiling(max(gg_commune_plot$deaths_mean/gg_commune_plot$pop*1e5)))
 
 comm_burden <- ggplot() +
-  geom_polygon(data = gg_commune_plot,
-               aes(x = long, y = lat, group = group, fill = deaths_mean/pop*1e5), 
+  geom_sf(data = gg_commune_plot,
+               aes(fill = deaths_mean/pop*1e5), 
                color = "white", size = 0.05) +
   geom_point(data = ctar_metadata, aes(x = long, y = lat), color = "grey50",
              shape = 4, size = 2, stroke = 1.5) +
@@ -90,13 +90,12 @@ comm_burden <- ggplot() +
   scale_fill_viridis_c(option = "magma", direction = -1, 
                       name = "Predicted incidence \n of deaths per 100k",
                       limits = col_lim) +
-  theme_map() +
-  coord_quickmap()
+  theme_map()
 
 
 district_burden <- ggplot() +
-  geom_polygon(data = gg_district_plot,
-               aes(x = long, y = lat, group = group, fill = deaths_mean/pop*1e5), 
+  geom_sf(data = gg_district_plot,
+               aes(fill = deaths_mean/pop*1e5), 
                color = "white", size = 0.05) +
   geom_point(data = ctar_metadata, aes(x = long, y = lat), color = "grey50",
              shape = 4, size = 2, stroke = 1.5) +
@@ -104,14 +103,13 @@ district_burden <- ggplot() +
   scale_fill_viridis_c(option = "magma", direction = -1, 
                        name = "Predicted incidence \n of deaths per 100k",
                        limits = col_lim) +
-  theme_map() +
-  coord_quickmap()
+  theme_map() 
 
 burden_base <- (compare_burden | ((comm_burden / district_burden) + 
                                     plot_layout(nrow = 2, guides = "collect"))) + 
                 plot_layout(widths = c(1, 2))
 ggsave("figs/main/M6_burden_base.jpeg", burden_base, height = 14, width = 10)
-ggsave("figs/main/M6_burden_base.tiff", burden_base, dpi = 300, device = "tiff", height = 12, width = 10, 
+ggsave("figs/main/M6_burden_base.tiff", burden_base, dpi = 300, device = "tiff", height = 8.75, width = 7.5, 
        compression = "lzw", type = "cairo")
 
 # Saving session info
