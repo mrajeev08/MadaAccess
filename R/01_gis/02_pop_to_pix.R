@@ -1,12 +1,10 @@
 # ------------------------------------------------------------------------------------------------ #
-#' Pop rasters to pixels
-#' Matching NA pops to non NA cells; this takes a long time and lots of memory!
-#' Ran it on Della @ Princeton and allocated 25 gigs of RAM; takes ~ 2 hour to run 
+#' Aggregating wp pop to friction surface
+#' Matching pop with NA friction value to nearest non-NA friction value
+#' and then aggregating to the friction surface
 # ------------------------------------------------------------------------------------------------ #
 
-# Pass the command for sub util (to submit to cluster, see sub -h or sub --help)
-# Don't quote the jobname, otherwise will pass quotes to it!
-# sub_cmd=-sn -t 12 -n 1 -mem 25000 -sp "./R/01_gis/02_pop_to_pix.R" -jn pop2pix -wt 1m -n@
+start <- Sys.time()
 
 # Set-up
 library(raster)
@@ -15,22 +13,35 @@ source("R/functions/out.session.R")
 source("R/functions/match_pop.R")
 
 # Load in frition surface and then convert to spatial pixels
-friction_masked <- as(raster("data/processed/rasters/friction_mada_masked.tif"),
-                      "SpatialPixelsDataFrame") 
-friction_masked$cell_id <- 1:length(friction_masked)
+friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
+friction_pix <- as(friction_masked, "SpatialPixelsDataFrame") 
+friction_pix$match_id <- friction_pix@grid.index
 
-# WP 2015
+# WP 2015 original 
 wp_2015 <- raster("data/raw/WorldPop/MDG_ppp_2015_adj_v2.tif")
-wp_2015_matched <- pop_to_pixels(friction_pixels = friction_masked, 
-                                 pop_raster = wp_2015, nmoves = 250)
-library(raster)
-writeRaster(wp_2015_matched, "data/processed/rasters/wp_2015_temp.tif", overwrite = TRUE, 
+wp_2015_pix <- as(wp_2015, "SpatialPixelsDataFrame")
+
+# here minDimension which ranks intersections
+wp_2015_pix$match_id<- over(wp_2015_pix, friction_pix, minDimension = 0)$match_id
+match <- raster(wp_2015_pix["match_id"]) # transform back to raster
+
+# For ones that are missing find the nearest non NA cell id
+wp_2015_unmatched <- wp_2015_pix[is.na(wp_2015_pix$match_id), ]
+match <- match_nearest(unmatched_pix = wp_2015_unmatched, matched_raster = match, 
+                       max_adjacent = 100)
+
+# Summarize pop to this updated raster
+pop_dt <- data.table(pop = wp_2015[], friction_id = match[])
+pop_dt <- pop_dt[, .(pop = sum(pop, na.rm = TRUE)), by = "friction_id"][!is.na(friction_id)]
+friction_pix$pop <- pop_dt$pop[match(friction_pix$match_id, pop_dt$friction_id)]
+pop <- raster(friction_pix["pop"]) # transform back to raster
+
+# should be true (or minimal difference)
+sum(pop[], na.rm = TRUE) - sum(wp_2015[], na.rm = TRUE)
+
+writeRaster(pop, "data/processed/rasters/wp_2015_1x1.tif", overwrite = TRUE, 
             options=c("COMPRESS=LZW"))
-sum(getValues(wp_2015), na.rm = TRUE)
-sum(getValues(wp_2015_matched), na.rm = TRUE)
 
 # Save session info
-syncto <- "~/Documents/Projects/MadaAccess/data/processed/"
-syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/data/processed/wp_2015_temp.tif"
+out.session(path = "R/01_gis/02_pop_to_pix.R", filename = "output/log_local.csv")
 
-out.session(path = "R/01_gis/02_pop_to_pix.R", filename = "log_cluster.csv")

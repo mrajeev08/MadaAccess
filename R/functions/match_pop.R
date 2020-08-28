@@ -1,92 +1,49 @@
 #' Create temporary pop raster with pops matched to non-NA cell 
 #' Matches cells in pop raster which do not have a match to the friction surface 
 #' to nearest cell that does have a match to the friction surface. Mainly issue with coastal 
-#' populations. Very memory intensive at the moment. Should perhaps chunk with foreach and
-#' command line option of fread.
-#' @param friction_pixels the friction raster converted to a SpatialPixelsDataFrame, each pixel 
-#'                        should also be assigned a 'cell_id'
-#' @param pop_raster the population raster to match cells for
-#' @param nmoves the number of cells to look away (i.e. the match neighborhood)
-#' @return A raster with pops added to matched cells. Note that the NA cells still have their original 
-#' pop value, so the total sum of the output pop_raster will be greater than the input pop_raster 
-#' @section Dependencies:
-#'     data.table, raster, user defined function find.nonNA
-pop_to_pixels <- function(friction_pixels, pop_raster, nmoves = 10){
+#' populations. 
+#' 
+#' @param unmatched_pix 
+#' @param matched_raster 
+#' @param max_adjacent 
+#'
+#' @import data.table
+#' @import raster
+#' 
+match_nearest <- function(unmatched_pix, matched_raster, max_adjacent = 100) {
   
-  ## Convert to spatial pixels
-  pop_pixels <- as(pop_raster, "SpatialPixelsDataFrame") 
-  names(pop_pixels) <- "pop"
+  find <- data.table(adjacent(matched_raster, unmatched_pix@grid.index))
+  find$match <- matched_raster[find$to]
+  matched <- find[, .(match = min(match, na.rm = TRUE)), by = "from"] # match is the friction grid index
+  matched <- matched[!is.infinite(match)]
+  find <- find[!(from %in% matched$from)] 
   
-  ## Get cell id for corresponding fric surface
-  pop_pixels$cell_id <- over(pop_pixels, friction_pixels, minDimension = 0)$cell_id
-  
-  ## First find a match for any pop that is not covered by a friction grid cell
-  tomatch <- pop_pixels[which(is.na(pop_pixels$cell_id) & !is.na(pop_pixels$pop)), ]
-  opts <- pop_pixels[which(!is.na(pop_pixels$cell_id) & !is.na(pop_pixels$pop)), ]
-  match_index <- find.nonNA(rast = pop_raster, match_inds = tomatch@grid.index,
-                            opt_inds = opts@grid.index, nmoves = nmoves)
-  ind_add <- data.table(pop = tomatch$pop, match_index)
-  ind_add <- ind_add[ , .(pop = sum(pop)), by = "match_index"]
-
-  ## Move from index to closest matching 
-  to_add <- ind_add$pop[match(pop_pixels@grid.index, ind_add$match_index)]
-  to_add[is.na(to_add)] <- 0
-  pop_pixels$pop <- pop_pixels$pop + to_add
-  
-  pop <- raster(pop_pixels["pop"]) # transform back to raster
-  return(pop)
-}
-
-#' Find nearest matching cells
-#' \code{find.nonNA} takes a vector of raster indexes (the cell id) and finds the closest cell in
-#'  a second 
-#' vector of indexes. Uses the rowColFromCell and cellFromRowCol functions in the raster package
-#' to search outward from the origin cells up to a certain # of cells away (nmoves). The function
-#' stops either when all indexes have been matched or when the maximum number of cells away have been
-#' searched.
-#' @param rast orginal raster
-#' @param match_inds origin indexes to search around for closest match
-#' @param opt_inds index options where the match could be found
-#' @param nmoves the maximum number of cells away to look for the match
-#' @return index of closest matching cells from opt_inds
-#' @section Dependencies:
-#'     data.table, raster
-
-find.nonNA <- function(rast, match_inds, opt_inds, nmoves) {
-  
-  ind_find <- data.table(rowColFromCell(rast, match_inds), 
-                         index = match_inds)
-  ## set match variables
-  ind_find$matched <- FALSE 
-  ind_find$index_new <- ind_find$index
-  
-  ## get dt for where to look at sequentially
-  x_move <- seq(1, nmoves, by = 1)
-  y_move <- seq(1, nmoves, by = 1)
-  ways_to_move <- rbind(data.table(x = x_move, y = y_move),
-                            data.table(x = x_move, y = y_move - 1),
-                            data.table(x = x_move - 1, y = y_move))
-  ways_to_move <- rbind(ways_to_move, data.table(x = -ways_to_move$x, y = ways_to_move$y), 
-                        data.table(x = ways_to_move$x, y = -ways_to_move$y),
-                        data.table(x = -ways_to_move$x, y = -ways_to_move$y))
-  ways_to_move[, c("order_x", "order_y") := list(abs(x), abs(y))]
-  setorder(ways_to_move, order_x, order_y)
-  
-  ## loop through until a match found or all possible cells have been searched
-  for(i in 1:nrow(ways_to_move)) {
-    move <- ways_to_move[i, ]
-    if(length(ind_find$matched[ind_find$matched == FALSE]) > 0){
-      ind_find[, c("index_new",
-                 "matched") := list(fifelse(matched %in% FALSE, 
-                                           cellFromRowCol(rast, row + move$x, col + move$y),
-                                           index_new),
-                                    fifelse(matched %in% FALSE,
-                                           cellFromRowCol(rast, row + move$x, col + move$y) %in%
-                                             opt_inds, matched))]
+  for(i in 1:max_adjacent) {
+    if(nrow(find > 0)) {
+      adj_next <- adjacent(matched_raster, unique(find$to))
+      adj_next <- data.table(to = adj_next[, "from"], to_i = adj_next[, "to"]) # next to_i
+      adj_next$match <- matched_raster[adj_next$to_i]
+      
+      matches <- adj_next[, .(match = min(match, na.rm = TRUE)), by = "to"] 
+      find <- find[, c("from", "to")][matches, on = "to"]
+      matches <- find[, .(match = min(match, na.rm = TRUE)), by = "from"]
+      matched <- rbind(matched, matches[!is.infinite(match)])
+      
+      find <- find[, c("from", "to")][adj_next, on = "to", allow.cartesian = TRUE]
+      find <- unique(find[, c("to", "to_i") := .(to_i, NULL)][!(from %in% matched$from)]) # search out
     } else {
       break
     }
   }
-  if(length(ind_find$matched[ind_find$matched == FALSE]) > 0) print("Warning: not all matched!")
-  return(ind_find$index_new)
+  
+  if(nrow(find > 0)) {
+    print("Warning: still unmatched pixels!")
+  }
+  
+  unmatched_pix$match_id <- matched$match[match(unmatched_pix@grid.index, matched$from)]
+  matched_raster[unmatched_pix@grid.index] <- unmatched_pix$match_id
+  
+  return(matched_raster)
 }
+
+
