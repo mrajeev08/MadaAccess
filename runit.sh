@@ -14,13 +14,17 @@ usage=$(cat <<-END
                      if passed, will ask you whether vpn-ed in to della
     --dry            dryrun, just prints the scripts and whether they are run
                      locally or on cluster
+    -q, --quiet      whether to show messages, warnings, and errors from R; defaults to showing all              pass the arg to suppress these
+    --printErrors    whether to print errors regardless of quiet argument
 END
 )
 
-
+# Set up
+quiet=0
 dryrun=0
 cl=0
-FILES="R/*/*"
+FILES="R/*/*.R"
+printerrors=0
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -29,7 +33,11 @@ while [ "$1" != "" ]; do
                             ;;
     --dry )                 dryrun=1
                             ;;
-    -cl | --cluster )      cl=1
+    -q | --quiet )          quiet=1
+                            ;;
+    --printErrors )         printerrors=1
+                            ;;
+    -cl | --cluster )       cl=1
                             ;;
     -h | --help )           echo "$usage"
                             exit
@@ -39,6 +47,28 @@ while [ "$1" != "" ]; do
     esac
     shift
 done
+
+if [ "$quiet" = "0" ];
+then
+    out=/dev/tty
+else
+    if [ "$printerrors" = "0" ];
+    then
+        out=/dev/null
+    else
+        out=$(mktemp /tmp/log.XXXXXX)
+        trap "rm -f $out" 0 3 15 6
+    fi
+fi
+
+# Colors
+Red='\033[0;31m'          # Red
+Blue='\033[0;34m'         # Blue
+NC='\033[0m' # No Color
+BCyan='\033[1;36m' # Bold Cyan
+BRed='\033[1;31m' # Bold Red
+
+# Processing stdout & stderr
 
 
 if [ "$cl" = "1" ] && [ "$dryrun" = "0" ];
@@ -78,7 +108,18 @@ do
             echo "local: $f"
         else
             echo "local: $f"
-            Rscript --vanilla "$f"
+            if Rscript --vanilla "$f" &> $out;
+            then
+                echo  -e "${BCyan}$f completed.${NC}"
+            else
+                echo -e "${BRed}$f did not complete!${NC}"
+                if [ "$printerrors" = "1" ];
+                then
+                    grep "Error:" $out --color
+                fi
+            fi
         fi
     fi
 done
+
+echo "" # for trap even if you CTRL + C you're way out of all the jobs

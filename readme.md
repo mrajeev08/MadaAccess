@@ -18,6 +18,13 @@ Code to reproduce the analyses and figures are in [R/](R). The Rmarkdown documen
 6. Additional sensitivity analyses
 7. Figures 
 
+## Reproducing Results
+
+```
+chmod u+x runit.sh
+
+```
+
 ## To do
 
 - [ ] Upload inputs & outputs to zenodo (only difference = large files? Or all inputs & outputs this way?)
