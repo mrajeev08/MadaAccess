@@ -26,20 +26,24 @@
 #'     rjags, foreach
 #'   
   
-estimate.pars <- function(bites, ttimes, pop, ncovars, nlocs, catch, ncatches, start, end,
-                          group, model_func, pop_predict = "addPop", intercept = "random",
-                          summed = FALSE, OD = FALSE, data_source = "National", scale = "Commune",
+estimate.pars <- function(data_df, covar_df, model_func, pars,
                           trans = 1e5, chains = 3, adapt = 500, burn = 100, 
                           iter = 10000, thinning = 5, 
                           dic = TRUE, save = FALSE, pass_priors = NULL, 
                           seed = NULL, suffix = NULL, ...) {
-
-  mod_name <- paste0(scale, "_", intercept, "_", pop_predict, ifelse(OD == TRUE, "_OD", ""),
+  
+  
+  mod_name <- paste0(pars$scale, "_", pars$intercept, "_", pars$pop_predict, 
+                     ifelse(pars$OD == TRUE, "_OD", ""),
                      ifelse(!is.null(suffix), suffix, ""))
   
   # get the model function and out its output to the function environment
-  list2env(model_func(summed, pop_predict, OD, bites, ttimes, pop, group, catch,
-                      ncovars, nlocs, ncatches, start, end, trans), envir = environment())
+  list2env(model_func(summed = pars$summed, pop_predict = pars$pop_predict, OD = pars$OD, 
+                      bites = data_df$avg_bites, ttimes = covar_df$ttimes, 
+                      pop = covar_df$pop, group = covar_df$group, catch = covar_df$catch,
+                      ncovars = nrow(covar_df), nlocs = nrow(data_df), 
+                      ncatches = max(data_df$catch), start = covar_df$start, end = covar_df$end, 
+                      trans = trans), envir = environment())
 
   if(!is.null(pass_priors)) {
     model <- pass.priors(prior_list = pass_priors, uninformed = "dnorm(0, 10^-3)", model)
@@ -57,14 +61,14 @@ estimate.pars <- function(bites, ttimes, pop, ncovars, nlocs, catch, ncatches, s
       jags_mod <- jags.model(textConnection(model), data = data, inits = inits, 
                              n.chains = 1, n.adapt = adapt)
       update(jags_mod, burn)
-      samps <- coda.samples(jags_mod, params, n.iter = iter, thin = thinning)
+      samps <- coda.samples(jags_mod, pars, n.iter = iter, thin = thinning)
     } -> samps
     
   } else {
     jags_mod <- jags.model(textConnection(model), data = data, inits = inits, 
                            n.chains = chains, n.adapt = adapt)
     update(jags_mod, burn)
-    samps <- coda.samples(jags_mod, params, n.iter = iter, thin = thinning)
+    samps <- coda.samples(jags_mod, pars, n.iter = iter, thin = thinning)
   }
   
   if(dic == TRUE) {
@@ -85,7 +89,7 @@ estimate.pars <- function(bites, ttimes, pop, ncovars, nlocs, catch, ncatches, s
   
   if(save == TRUE) {
     ## Directory to output results
-    dir_name <- paste0("output/mods/samps/", data_source)
+    dir_name <- paste0("output/mods/samps/", pars$data_source)
     
     if (!dir.exists(dir_name)) {
       dir.create(dir_name, recursive = TRUE)

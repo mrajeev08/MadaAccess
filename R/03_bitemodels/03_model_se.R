@@ -26,6 +26,9 @@ source("R/functions/out.session.R")
 source("R/functions/data_functions.R")
 source("R/functions/estimate_pars.R")
 source("R/functions/predict_functions.R")
+source("R/functions/utils.R")
+source("R/functions/candidate_mods/fixed_intercept.R")
+source("R/functions/candidate_mods/random_intercept.R")
 
 # Read in data
 national <- fread("data/processed/bitedata/national.csv")
@@ -80,7 +83,7 @@ mods <- expand_grid(pop_predict = "flatPop", intercept = "fixed",
                     rep_cutoff = c(7, 15, Inf),
                     OD = TRUE)
 mods %>%
-  mutate(sum_it = case_when(scale %in% "District" ~ FALSE,
+  mutate(summed = case_when(scale %in% "District" ~ FALSE,
                             scale %in% "Commune" ~ TRUE), 
          covars_df = case_when(scale %in% "District" ~ list(bitedata_se),
                                scale %in% "Commune" ~ list(commcovar_se)), 
@@ -95,18 +98,16 @@ mods_all <-
             
             covar_df <- filter(j$covars_df[[1]], rep_cutoff == j$rep_cutoff)
             data_df <- filter(j$data_df[[1]], rep_cutoff == j$rep_cutoff)
-            ttimes <- covar_df$ttimes_wtd/60
+            covar_df$ttimes <- covar_df$ttimes_wtd/60
+            model_func <- get(paste0(j$intercept, "_mod"))
             
             inc_prior <- log(mean(data_df$avg_bites/data_df$pop))
             prior_list <- list(beta_0 = glue("beta_0 ~ dnorm({inc_prior}, 0.1)"))
             
-            out <- estimate.pars(bites = data_df$avg_bites,
-                                 ttimes = ttimes, pop = covar_df$pop, 
-                                 start = data_df$start, end = data_df$end,
-                                 ncovars = nrow(covar_df), group = covar_df$group,
-                                 nlocs = nrow(data_df), catch = covar_df$catch, 
-                                 ncatches = max(data_df$catch), pop_predict = j$pop_predict, 
-                                 intercept = j$intercept, summed = j$sum_it, OD = j$OD, 
+            out <- estimate.pars(data_df = data_df,
+                                 covar_df = covar_df, 
+                                 pars = j,
+                                 model_func = model_func,
                                  data_source = j$data_source,
                                  scale = j$scale, trans = 1e5, burn = 5000, 
                                  chains = 3, adapt = 2500, iter = 60000, thinning = 5,
@@ -129,9 +130,7 @@ mods_all <-
                                   quant_97.5 = samp_summ$quantiles[, 1], psrf_est = diag$psrf[, 1],
                                   hpd_lower90 = hpd_90[, 1], hpd_upper90 = hpd_90[, 2],
                                   psrf_upper = diag$psrf[, 2], mpsrf = diag$mpsrf, 
-                                  pop_predict = j$pop_predict, intercept = j$intercept, 
-                                  summed = j$sum_it, data_source = j$data_source, OD = j$OD, 
-                                  scale = j$scale, dic = dic_est, rep_cutoff = j$rep_cutoff)
+                                  j, dic = dic_est)
           }
 
 warnings()

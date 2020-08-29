@@ -42,7 +42,7 @@ mods %>%
   filter(interaction(scale, data_source) != "District.Moramanga", 
          interaction(intercept, data_source) != "random.Moramanga",
          !(interaction(OD, pop_predict) %in% c("TRUE.onlyPop", "TRUE.addPop"))) %>%
-  mutate(sum_it = case_when(data_source %in% "Moramanga" ~ FALSE, scale %in% "District" ~ FALSE,
+  mutate(summed = case_when(data_source %in% "Moramanga" ~ FALSE, scale %in% "District" ~ FALSE,
                             scale %in% "Commune" ~ TRUE), 
          covars_df = case_when(data_source %in% "Moramanga" ~ list(mora_bites),
                                scale %in% "District" ~ list(district_bites),
@@ -58,25 +58,19 @@ mods_all <-
           jags_seed = iter(seeds), .combine = "rbind", .packages = c("rjags", "glue"), 
           .options.RNG = 321) %dorng% {
             
+            
             covar_df <- j$covars_df[[1]]
             data_df <- j$data_df[[1]]
-            ttimes <- covar_df$ttimes_wtd/60
+            covar_df$ttimes <-covar_df$ttimes_wtd/60
+            model_func <- get(paste0(j$intercept, "_mod"))
             
             inc_prior <- log(mean(data_df$avg_bites/data_df$pop))
             prior_list <- list(beta_0 = glue("beta_0 ~ 0, 0.1)"))
             
-            out <- estimate.pars(bites = data_df$avg_bites,
-                                 ttimes = ttimes, pop = covar_df$pop, 
-                                 start = data_df$start, end = data_df$end,
-                                 ncovars = nrow(covar_df), group = covar_df$group,
-                                 nlocs = nrow(data_df), catch = covar_df$catch, 
-                                 ncatches = max(data_df$catch), 
-                                 model_func = random_mod,
-                                 pop_predict = j$pop_predict, 
-                                 intercept = j$intercept, summed = j$sum_it, OD = j$OD, 
-                                 data_source = j$data_source,
-                                 scale = j$scale, trans = 1e5, burn = 5000, 
-                                 chains = 3, adapt = 2500, iter = 60000, thinning = 5,
+            out <- estimate.pars(data_df = data_df, covar_df = covar_df, pars = j,
+                                 model_func = model_func,
+                                 trans = 1e5, burn = 5000, chains = 3, 
+                                 adapt = 2500, iter = 60000, thinning = 5,
                                  dic = TRUE, save = TRUE, centered = FALSE, 
                                  pass_priors = prior_list, seed = jags_seed)
             
@@ -91,14 +85,11 @@ mods_all <-
             
             hpd_90 <- HPDinterval(as.mcmc(do.call(rbind, samps)), prob = 0.9) #hpds
             
-            samp_df <- data.frame(params = params, samp_summ$statistics, 
+            samp_df <- data.frame(params = params, samp_summ$statistics, j,
                                   neff = effectiveSize(samps), quant_2.5 = samp_summ$quantiles[, 5],
                                   quant_97.5 = samp_summ$quantiles[, 1], psrf_est = diag$psrf[, 1],
                                   hpd_lower90 = hpd_90[, 1], hpd_upper90 = hpd_90[, 2],
-                                  psrf_upper = diag$psrf[, 2], mpsrf = diag$mpsrf, 
-                                  pop_predict = j$pop_predict, intercept = j$intercept, 
-                                  summed = j$sum_it, data_source = j$data_source, OD = j$OD, 
-                                  scale = j$scale, dic = dic_est)
+                                  psrf_upper = diag$psrf[, 2], mpsrf = diag$mpsrf, dic = dic_est)
           }
 
 warnings()
