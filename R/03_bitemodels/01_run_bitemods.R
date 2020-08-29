@@ -29,6 +29,8 @@ comm_covars <- fread("output/bites/comm_covars.csv")
 mora_bites <- fread("output/bites/mora_bites.csv")
 source("R/functions/estimate_pars.R")
 source("R/functions/out.session.R")
+source("R/functions/candidate_mods/fixed_intercept.R")
+source("R/functions/candidate_mods/random_intercept.R")
 
 # Run all Mada models -----------------------------------------------------------------------
 mods <- expand_grid(pop_predict = c("addPop", "onlyPop", "flatPop"), 
@@ -68,7 +70,9 @@ mods_all <-
                                  start = data_df$start, end = data_df$end,
                                  ncovars = nrow(covar_df), group = covar_df$group,
                                  nlocs = nrow(data_df), catch = covar_df$catch, 
-                                 ncatches = max(data_df$catch), pop_predict = j$pop_predict, 
+                                 ncatches = max(data_df$catch), 
+                                 model_func = random_mod,
+                                 pop_predict = j$pop_predict, 
                                  intercept = j$intercept, summed = j$sum_it, OD = j$OD, 
                                  data_source = j$data_source,
                                  scale = j$scale, trans = 1e5, burn = 5000, 

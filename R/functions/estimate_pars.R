@@ -27,19 +27,20 @@
 #'   
   
 estimate.pars <- function(bites, ttimes, pop, ncovars, nlocs, catch, ncatches, start, end,
-                          group, pop_predict = "addPop", intercept = "random",
+                          group, model_func, pop_predict = "addPop", intercept = "random",
                           summed = FALSE, OD = FALSE, data_source = "National", scale = "Commune",
                           trans = 1e5, chains = 3, adapt = 500, burn = 100, 
                           iter = 10000, thinning = 5, 
                           dic = TRUE, save = FALSE, pass_priors = NULL, 
                           seed = NULL, suffix = NULL, ...) {
-  
+
   mod_name <- paste0(scale, "_", intercept, "_", pop_predict, ifelse(OD == TRUE, "_OD", ""),
                      ifelse(!is.null(suffix), suffix, ""))
   
-  model_script <- paste0("R/functions/candidate_mods/", intercept, "_intercept.R")
-  source(model_script, local = TRUE)
-  
+  # get the model function and out its output to the function environment
+  list2env(model_func(summed, pop_predict, OD, bites, ttimes, pop, group, catch,
+                      ncovars, nlocs, ncatches, start, end, trans), envir = environment())
+
   if(!is.null(pass_priors)) {
     model <- pass.priors(prior_list = pass_priors, uninformed = "dnorm(0, 10^-3)", model)
   }
