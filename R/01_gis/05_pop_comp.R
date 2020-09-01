@@ -30,7 +30,7 @@ pop_by_region <- as.data.table(census_2018)[pop_by_region, on = "reg_code"]
 write.csv(pop_by_region, "output/stats/pop_by_region.csv", row.names = FALSE)
 
 # Comparing total 
-sum(getValues(pop1x1), na.rm = TRUE) == sum(pop_by_region$pop_comp) # okay (no missing pops)
+sum(pop1x1[], na.rm = TRUE) == sum(pop_by_region$pop_comp) # okay (no missing pops)
 
 # Moramanga comparison (Ratovoson et al. 2019) ------------------------------------------------
 mora_pop_comp <- data.table(commune = c("Ambohibary", "Moramanga", "Ampasimpotsy Gara"), 

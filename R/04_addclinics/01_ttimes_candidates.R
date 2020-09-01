@@ -20,7 +20,6 @@ library(foreach)
 library(tidyverse)
 library(gdistance)
 library(iterators)
-library(foreach)
 library(data.table)
 library(glue)
 

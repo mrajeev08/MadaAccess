@@ -8,14 +8,15 @@ usage=$(cat <<-END
         runit -d "R/*/*"
 
     accepted options are:
-    -h, --help       show help message and exit
-    -d, --dir        the directory path, quoted
-    -cl, --cluster   whether to run the cluster scripts, defaults to not running them,
-                     if passed, will ask you whether vpn-ed in to della
-    --dry            dryrun, just prints the scripts and whether they are run
-                     locally or on cluster
-    -q, --quiet      whether to show messages, warnings, and errors from R; defaults to showing all              pass the arg to suppress these
-    --printErrors    whether to print errors regardless of quiet argument
+    -h, --help          show help message and exit
+    -d, --dir           the directory path, quoted
+    -cl, --cluster      whether to run the cluster scripts, defaults to not running them,
+                        if passed, will ask you whether vpn-ed in to della
+    --dry               dryrun, just prints the scripts and whether they are run
+                        locally or on cluster
+    -q, --quiet         whether to show messages, warnings, and errors from R; defaults to showing all
+                        pass the arg to suppress these
+    --printErrors       whether to print errors regardless of quiet argument
 END
 )
 
@@ -122,4 +123,4 @@ do
     fi
 done
 
-echo "" # for trap even if you CTRL + C you're way out of all the jobs
+echo "" # for trap even if you CTRL + C your way out of all the jobs

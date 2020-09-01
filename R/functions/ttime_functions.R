@@ -84,12 +84,15 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, rank_metric, 
                      base_scenario = 0, thresh_met = 0, overwrite = TRUE, random = TRUE) {
   
+  base <- copy(base_df) # so as not to modify global env
+  cand <- copy(cand_df) # so as not to modify global env
+  
   setDTthreads(1)
   
   # Pull in references to files (that way not as big!)
-  cand_list <- vector("list", nrow(cand_df))
-  foreach(j = 1:nrow(cand_df), .packages = "raster") %do% {
-    cand_list[[j]] <- raster(cand_df$candfile[j], band = cand_df$band[j])
+  cand_list <- vector("list", nrow(cand))
+  foreach(j = 1:nrow(cand), .packages = "raster") %do% {
+    cand_list[[j]] <- raster(cand$candfile[j], band = cand$band[j])
   }
   
   # Make the directory if it doesn't exist
@@ -110,8 +113,7 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, ran
       while(sum(ranks, na.rm = TRUE) == 0 & length(cand_list) > 1) {
         
         foreach(j = iter(cand_list), .combine = c, .packages = "raster") %dopar% {
-          cand_ttimes <- values(j)
-          rank_metric(base_df, cand_ttimes, thresh_ttimes)
+          rank_metric(base, cand_ttimes = j[], thresh_ttimes)
         } -> ranks
         
         # If no candidates that would shift travel times above the threshold
@@ -122,29 +124,30 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, ran
       }
     }
     
-    clin_chosen <- cand_df[which.max(ranks), ]
+    clin_chosen <- cand[which.max(ranks), ]
     metric_val <- max(ranks[!is.infinite(ranks)], na.rm = TRUE)
     rank_df <- data.table(scenario = i + base_scenario, clin_chosen, metric_val)
-    new_ttimes <- values(cand_list[[which.max(ranks)]]) # add to base_df
+    new_ttimes <- cand_list[[which.max(ranks)]][] # add to base
     
     # Take out the max one
-    cand_df <- cand_df[-which.max(ranks), ]
+    cand <- cand[-which.max(ranks), ]
     cand_list <- cand_list[-which.max(ranks)] 
     
     # Aggregating to district & commune
     # If ttimes improved then, new ttimes replaces the baseline and catchment
-    base_df[, c('ttimes', 'catchment') := 
+    
+    base[, c('ttimes', 'catchment') := 
               .(fifelse((new_ttimes < ttimes & !is.na(new_ttimes)) |
                           (!is.na(new_ttimes) & is.na(ttimes)), new_ttimes, ttimes), 
                 fifelse((new_ttimes < ttimes & !is.na(new_ttimes)) |
                           (!is.na(new_ttimes) & is.na(ttimes)), clin_chosen$clinic_id, catchment))]
     
-    district_df <- aggregate.admin(base_df = base_df, admin = "distcode", scenario = i + base_scenario)
+    district_df <- aggregate.admin(base_df = base, admin = "distcode", scenario = i + base_scenario)
     district_maxcatch <- district_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
                                      by = .(distcode, scenario)]
     
     # Commune
-    commune_df <- aggregate.admin(base_df = base_df, admin = "commcode", scenario = i + base_scenario)
+    commune_df <- aggregate.admin(base_df = base, admin = "commcode", scenario = i + base_scenario)
     commune_maxcatch <- commune_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
                                    by = .(commcode, scenario)]
     
@@ -197,11 +200,11 @@ update.base <- function(cand_df, base_df, nsplit = 2) {
           .packages = c("raster", "data.table"), .combine = multicomb) %dopar% {
           
           sub <- out[[i]]
-          cand_ttimes <- values(sub[[1]])
+          cand_ttimes <- sub[[1]][]
           cand_catch <- ifelse(!is.na(cand_ttimes), names(sub)[1], NA)
             
           for(j in 2:length(sub)) {
-            cand_comp <- values(sub[[j]])
+            cand_comp <- sub[[j]][]
             cand_catch <- fifelse((cand_comp < cand_ttimes & !is.na(cand_comp)) |
                                   (!is.na(cand_comp) & is.na(cand_ttimes)), names(sub)[j], 
                                   cand_catch)

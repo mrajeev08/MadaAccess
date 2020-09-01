@@ -198,7 +198,7 @@ foreach(i = 1:length(scenario_levs), .combine = "bind_rows") %do% {
   names(ttimes) <- "ttimes"
   ttimes_df <- as.data.frame(ttimes, xy = TRUE)
   ttimes_df$scenario <- scenario_levs[i]
-  ttimes_df$pop <- getValues(pop_1x1)
+  ttimes_df$pop <- pop_1x1[]
   scenario_pts <- bind_rows(scenario_pts, pts)
   ttimes_df
 } -> all_times_df
