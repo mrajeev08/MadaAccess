@@ -1,0 +1,1649 @@
+"district","distcode","commune","commcode","clinic_id","long","lat"
+"Ambatolampy","MG12110","Antanamalaza","MG12110291",32,47.6277,-19.4275
+"Mandoto","MG12120","Ankazomiriotra","MG12120090",33,46.4397,-19.6764
+"Antanifotsy","MG12114","Antanifotsy","MG12114010",34,47.326,-19.6617
+"Farafangana","MG25213","Ambohigogo","MG25213270",35,47.5838,-22.7738
+"Farafangana","MG25213","Etrotroka Atsimo","MG25213390",36,47.553,-22.8635
+"Farafangana","MG25213","Tovona","MG25213450",37,47.6053,-22.9579
+"Vondrozo","MG25217","Vondrozo","MG25217011",38,47.3297,-22.8136
+"Mananjary","MG23209","Mananjary","MG23209010",39,48.3458,-21.2063
+"Mahajanga I","MG41401","Mahabibo","MG41401002",40,46.3443,-15.6982
+"Mahajanga I","MG41401","Mahajanga","MG41401001",41,46.3181,-15.7148
+"Befandriana Nord","MG42412","Antsakabary","MG42412210",42,48.9374,-15.1053
+"Mahajanga II","MG41415","Mahajamba Usine","MG41415091",43,47.0953,-15.7605
+"Antananarivo Atsimondrano","MG11117","Andranonahoatra","MG11117030",44,47.4774,-18.9162
+"Antananarivo Renivohitra","MG11101","4e Arrondissement","MG11101004",45,47.4983,-18.9282
+"Moramanga","MG33314","Moramanga","MG33314010",46,48.2302,-18.9488
+"Toamasina I","MG31301","Ankirihiry","MG31301005",47,49.3769,-18.1439
+"Toamasina I","MG31301","Ankirihiry","MG31301005",48,49.3766,-18.1353
+"Nosy-Be","MG71718","Hell-Ville","MG71718001",49,48.2783,-13.4062
+"Ihosy","MG24216","Ihosy","MG24216010",50,46.124,-22.4007
+"Andramasina","MG11115","Ambohimiadana","MG11115091",51,47.7781,-19.2472
+"Andramasina","MG11115","Anosibe Trimoloharano","MG11115170",52,47.7673,-19.1633
+"Soavinandriana","MG13113","Amparibohitra","MG13113072",53,46.7192,-19.2422
+"Arivonimamo","MG13105","Arivonimamo I","MG13105010",54,47.1816,-19.0165
+"Antalaha","MG72710","Vinanivao","MG72710271",55,50.2748,-15.883
+"Farafangana","MG25213","Ambalavato Nord","MG25213410",56,47.5524,-22.6127
+"Maintirano","MG44421","Maintirano","MG44421010",57,44.0261,-18.0524
+"Vatomandry","MG31307","Iamborano","MG31307092",58,48.7752,-19.3945
+"Amparafaravola","MG33312","Tanambe","MG33312111",59,48.4511,-17.3851
+"Tsihombe","MG52514","Anjampaly","MG52514032",60,45.6759,-25.4401
+"Tsihombe","MG52514","Imongy","MG52514072",61,45.7243,-25.2971
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",62,47.5265,-18.9103
+"Antananarivo Renivohitra","MG11101","2e Arrondissement","MG11101002",63,47.5344,-18.9257
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",64,47.5429,-18.9035
+"Antananarivo Renivohitra","MG11101","4e Arrondissement","MG11101004",65,47.5045,-18.9242
+"Antananarivo Renivohitra","MG11101","5e Arrondissement","MG11101005",66,47.5208,-18.8702
+"Tsiroanomandidy","MG14111","Tsiroanomandidy Ville","MG14111010",67,46.0494,-18.7697
+"Andramasina","MG11115","Ambohimiadana","MG11115091",68,47.7786,-19.2481
+"Belo Sur Tsiribihina","MG54510","Belo Sur Tsiribihina","MG54510011",69,44.5471,-19.6858
+"Manjakandriana","MG11106","Manjakandriana","MG11106011",70,47.8161,-18.9212
+"Antananarivo Avaradrano","MG11102","Sabotsy Namehana","MG11102079",71,47.557,-18.8304
+"Marovoay","MG41406","Ambolomoty","MG41406051",72,46.7212,-16.136
+"Brickaville","MG31306","Ambinaninony","MG31306110",73,49.2834,-18.4993
+"Antananarivo Renivohitra","MG11101","6e Arrondissement","MG11101006",74,47.4862,-18.8649
+"Antananarivo Renivohitra","MG11101","6e Arrondissement","MG11101006",75,47.5072,-18.8758
+"Antananarivo Renivohitra","MG11101","2e Arrondissement","MG11101002",76,47.5371,-18.9143
+"Antananarivo Atsimondrano","MG11117","Alatsinainy Ambazaha","MG11117250",77,47.4584,-18.9758
+"Antananarivo Atsimondrano","MG11117","Ambalavao","MG11117450",78,47.5277,-19.0973
+"Antananarivo Atsimondrano","MG11117","Ambatofahavalo","MG11117470",79,47.5993,-19.1083
+"Antananarivo Atsimondrano","MG11117","Ambavahaditokana","MG11117130",80,47.4665,-18.9224
+"Antananarivo Atsimondrano","MG11117","Ambohijanaka","MG11117350",81,47.5621,-18.9995
+"Antananarivo Atsimondrano","MG11117","Ampahitrosy","MG11117370",82,47.4915,-19.0289
+"Antananarivo Atsimondrano","MG11117","Ampanefy","MG11117270",83,47.4946,-18.9754
+"Antananarivo Atsimondrano","MG11117","Ampitatafika","MG11117011",84,47.4642,-18.9485
+"Antananarivo Atsimondrano","MG11117","Andoharanofotsy","MG11117170",85,47.533,-18.976
+"Antananarivo Atsimondrano","MG11117","Andranonahoatra","MG11117030",86,47.4767,-18.9089
+"Antananarivo Atsimondrano","MG11117","Androhibe","MG11117410",87,47.464,-19.0101
+"Antananarivo Atsimondrano","MG11117","Ankadimanga","MG11117290",88,47.4619,-18.8945
+"Antananarivo Atsimondrano","MG11117","Ankaraobato","MG11117190",89,47.5355,-18.9668
+"Antananarivo Atsimondrano","MG11117","Anosizato Andrefana","MG11117012",90,47.4923,-18.9407
+"Antananarivo Atsimondrano","MG11117","Antanetikely","MG11117230",91,47.4859,-19.0638
+"Antananarivo Atsimondrano","MG11117","Bemasoandro","MG11117070",92,47.4867,-18.9077
+"Antananarivo Atsimondrano","MG11117","Bongatsara","MG11117390",93,47.5436,-19.0322
+"Antananarivo Atsimondrano","MG11117","Soavina","MG11117330",94,47.5037,-18.9621
+"Antananarivo Atsimondrano","MG11117","Tanjombato","MG11117150",95,47.5281,-18.9557
+"Antananarivo Atsimondrano","MG11117","Tsiafahy","MG11117430",96,47.5581,-19.0677
+"Antananarivo Atsimondrano","MG11117","Tsiafahy","MG11117430",97,47.5909,-19.0385
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",98,47.5233,-18.9071
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",99,47.521,-18.9061
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",100,47.5109,-18.9078
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",101,47.5166,-18.9092
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",102,47.5142,-18.9079
+"Antananarivo Renivohitra","MG11101","2e Arrondissement","MG11101002",103,47.5588,-18.9273
+"Antananarivo Renivohitra","MG11101","2e Arrondissement","MG11101002",104,47.541,-18.9418
+"Antananarivo Renivohitra","MG11101","2e Arrondissement","MG11101002",105,47.5421,-18.9175
+"Antananarivo Renivohitra","MG11101","2e Arrondissement","MG11101002",106,47.532,-18.9201
+"Toamasina II","MG31310","Toamasina Suburbaine","MG31310010",107,49.3511,-18.1571
+"Antananarivo Renivohitra","MG11101","2e Arrondissement","MG11101002",108,47.5464,-18.9427
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",109,47.5211,-18.8979
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",110,47.526,-18.9035
+"Antananarivo Renivohitra","MG11101","5e Arrondissement","MG11101005",111,47.5325,-18.8961
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",112,47.5466,-18.9082
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",113,47.5424,-18.9075
+"Antananarivo Renivohitra","MG11101","4e Arrondissement","MG11101004",114,47.5262,-18.9223
+"Antananarivo Renivohitra","MG11101","4e Arrondissement","MG11101004",115,47.5223,-18.9206
+"Antananarivo Renivohitra","MG11101","5e Arrondissement","MG11101005",116,47.5212,-18.8713
+"Antananarivo Renivohitra","MG11101","5e Arrondissement","MG11101005",117,47.5465,-18.8712
+"Antananarivo Renivohitra","MG11101","6e Arrondissement","MG11101006",118,47.4867,-18.856
+"Antananarivo Renivohitra","MG11101","6e Arrondissement","MG11101006",119,47.5009,-18.8746
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",120,47.516,-18.9111
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",121,47.4989,-18.9047
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",122,47.5096,-18.9151
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",123,47.5295,-18.8952
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",124,47.5229,-18.8971
+"Antananarivo Renivohitra","MG11101","4e Arrondissement","MG11101004",125,47.5,-18.9127
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",126,47.508,-18.9082
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",127,47.5164,-18.909
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",128,47.5266,-18.9101
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",129,47.5318,-18.9136
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",130,47.5329,-18.9023
+"Antananarivo Atsimondrano","MG11117","Tanjombato","MG11117150",131,47.5286,-18.9588
+"Antananarivo Atsimondrano","MG11117","Andoharanofotsy","MG11117170",132,47.5355,-19.0015
+"Antananarivo Atsimondrano","MG11117","Itaosy","MG11117110",133,47.4712,-18.9144
+"Antananarivo Atsimondrano","MG11117","Ankaraobato","MG11117190",134,47.5425,-18.9659
+"Antananarivo Atsimondrano","MG11117","Fenoarivo","MG11117311",135,47.4359,-18.9318
+"Antananarivo Atsimondrano","MG11117","Itaosy","MG11117110",136,47.4635,-18.9116
+"Antananarivo Atsimondrano","MG11117","Itaosy","MG11117110",137,47.4712,-18.9191
+"Antananarivo Atsimondrano","MG11117","Tanjombato","MG11117150",138,47.5278,-18.9606
+"Antananarivo Atsimondrano","MG11117","Tanjombato","MG11117150",139,47.5273,-18.956
+"Antananarivo Atsimondrano","MG11117","Tanjombato","MG11117150",140,47.5285,-18.9606
+"Antananarivo Atsimondrano","MG11117","Tanjombato","MG11117150",141,47.5286,-18.9558
+"Antananarivo Avaradrano","MG11102","Alasora","MG11102010",142,47.5685,-18.9582
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",143,47.5313,-18.9113
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",144,47.5111,-18.9147
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",145,47.5062,-18.902
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",146,47.512,-18.907
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",147,47.5202,-18.9096
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",148,47.5191,-18.9075
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",149,47.5151,-18.9033
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",150,47.5149,-18.9082
+"Antananarivo Renivohitra","MG11101","1er Arrondissement","MG11101001",151,47.5186,-18.907
+"Antananarivo Renivohitra","MG11101","2e Arrondissement","MG11101002",152,47.5601,-18.9265
+"Antananarivo Renivohitra","MG11101","2e Arrondissement","MG11101002",153,47.5403,-18.9242
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",154,47.5213,-18.8973
+"Antananarivo Renivohitra","MG11101","6e Arrondissement","MG11101006",155,47.5143,-18.8923
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",156,47.5151,-18.8927
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",157,47.5259,-18.8929
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",158,47.5286,-18.9018
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",159,47.5222,-18.8977
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",160,47.5255,-18.8993
+"Antananarivo Renivohitra","MG11101","3e Arrondissement","MG11101003",161,47.5311,-18.9006
+"Antananarivo Renivohitra","MG11101","4e Arrondissement","MG11101004",162,47.5252,-18.9459
+"Antananarivo Renivohitra","MG11101","4e Arrondissement","MG11101004",163,47.4987,-18.9275
+"Antananarivo Renivohitra","MG11101","4e Arrondissement","MG11101004",164,47.5209,-18.9212
+"Antananarivo Renivohitra","MG11101","4e Arrondissement","MG11101004",165,47.5219,-18.9195
+"Antananarivo Renivohitra","MG11101","5e Arrondissement","MG11101005",166,47.5497,-18.9038
+"Antananarivo Renivohitra","MG11101","5e Arrondissement","MG11101005",167,47.5424,-18.8852
+"Antananarivo Renivohitra","MG11101","5e Arrondissement","MG11101005",168,47.5506,-18.9081
+"Antananarivo Renivohitra","MG11101","5e Arrondissement","MG11101005",169,47.5371,-18.891
+"Antananarivo Renivohitra","MG11101","5e Arrondissement","MG11101005",170,47.5516,-18.8708
+"Antananarivo Renivohitra","MG11101","5e Arrondissement","MG11101005",171,47.5625,-18.8989
+"Antananarivo Renivohitra","MG11101","5e Arrondissement","MG11101005",172,47.5578,-18.8958
+"Antananarivo Renivohitra","MG11101","5e Arrondissement","MG11101005",173,47.5325,-18.891
+"Antananarivo Renivohitra","MG11101","5e Arrondissement","MG11101005",174,47.5262,-18.8749
+"Antananarivo Avaradrano","MG11102","Ambohimalaza Miray","MG11102230",175,47.637,-18.8961
+"Antananarivo Avaradrano","MG11102","Ambohimangakely","MG11102099",176,47.5941,-18.8993
+"Antananarivo Avaradrano","MG11102","Ambohimanambola","MG11102050",177,47.6004,-18.9428
+"Antananarivo Avaradrano","MG11102","Ambohimanga Rova","MG11102319",178,47.5672,-18.7606
+"Antananarivo Avaradrano","MG11102","Ambohimanga Rova","MG11102319",179,47.5583,-18.7703
+"Antananarivo Avaradrano","MG11102","Ankadikely Ilafy","MG11102039",180,47.5622,-18.8576
+"Antananarivo Avaradrano","MG11102","Ankadinandriana","MG11102430",181,47.6628,-19.0604
+"Antananarivo Avaradrano","MG11102","Fiaferana","MG11102279",182,47.6212,-18.84
+"Antananarivo Avaradrano","MG11102","Masindray","MG11102410",183,47.6271,-18.9697
+"Antananarivo Avaradrano","MG11102","Sabotsy Namehana","MG11102079",184,47.5603,-18.8191
+"Antananarivo Avaradrano","MG11102","Sabotsy Namehana","MG11102079",185,47.5578,-18.8315
+"Antananarivo Avaradrano","MG11102","Talata Volonondry","MG11102379",186,47.5986,-18.7752
+"Antananarivo Avaradrano","MG11102","Viliahazo","MG11102350",187,47.6672,-18.7966
+"Antananarivo Avaradrano","MG11102","Talata Volonondry","MG11102379",188,47.5993,-18.7315
+"Antananarivo Avaradrano","MG11102","Alasora","MG11102010",189,47.5677,-18.9554
+"Antananarivo Avaradrano","MG11102","Ankadikely Ilafy","MG11102039",190,47.5566,-18.8507
+"Antananarivo Avaradrano","MG11102","Alasora","MG11102010",191,47.5691,-18.9606
+"Antananarivo Avaradrano","MG11102","Ambohimanambola","MG11102050",192,47.6008,-18.9434
+"Antananarivo Avaradrano","MG11102","Ambohimangakely","MG11102099",193,47.5634,-18.893
+"Antananarivo Avaradrano","MG11102","Ambohimangakely","MG11102099",194,47.5974,-18.8998
+"Antananarivo Avaradrano","MG11102","Anjeva Gara","MG11102390",195,47.6581,-18.9427
+"Antananarivo Avaradrano","MG11102","Ankadikely Ilafy","MG11102039",196,47.567,-18.8501
+"Antananarivo Avaradrano","MG11102","Manandriana","MG11102210",197,47.5873,-18.8074
+"Antananarivo Avaradrano","MG11102","Sabotsy Namehana","MG11102079",198,47.5558,-18.8257
+"Antananarivo Avaradrano","MG11102","Sabotsy Namehana","MG11102079",199,47.5583,-18.8312
+"Ambohidratrimo","MG11103","Ambato","MG11103390",200,47.49,-18.595
+"Ambohidratrimo","MG11103","Ambatolampy","MG11103172",201,47.5173,-18.7981
+"Ambohidratrimo","MG11103","Ambohidratrimo","MG11103010",202,47.437,-18.8153
+"Ambohidratrimo","MG11103","Ambohimanjaka","MG11103270",203,47.4281,-18.7217
+"Ambohidratrimo","MG11103","Ambohipihaonana","MG11103370",204,47.5678,-18.683
+"Ambohidratrimo","MG11103","Ambohitrimanjaka","MG11103130",205,47.4378,-18.8615
+"Ambohidratrimo","MG11103","Ampangabe","MG11103190",206,47.4054,-18.8587
+"Ambohidratrimo","MG11103","Ampanotokana","MG11103210",207,47.3296,-18.729
+"Ambohidratrimo","MG11103","Ampanotokana","MG11103210",208,47.3105,-18.7276
+"Ambohidratrimo","MG11103","Anjanadoria","MG11103410",209,47.3854,-18.6248
+"Ambohidratrimo","MG11103","Anosiala","MG11103030",210,47.4283,-18.801
+"Ambohidratrimo","MG11103","Antanetibe","MG11103350",211,47.3614,-18.6873
+"Ambohidratrimo","MG11103","Antehiroka","MG11103070",212,47.4736,-18.8478
+"Ambohidratrimo","MG11103","Antsahafilo","MG11103252",213,47.5384,-18.6421
+"Ambohidratrimo","MG11103","Avaratsena","MG11103430",214,47.5969,-18.6506
+"Ambohidratrimo","MG11103","Fiadanana","MG11103290",215,47.4068,-18.8797
+"Ambohidratrimo","MG11103","Ambohidratrimo","MG11103010",216,47.4251,-18.8265
+"Ambohidratrimo","MG11103","Ivato Aeroport","MG11103112",217,47.4813,-18.8065
+"Ambohidratrimo","MG11103","Ivato Firaisana","MG11103111",218,47.4878,-18.8189
+"Ambohidratrimo","MG11103","Mahabo","MG11103310",219,47.3367,-18.6439
+"Ambohidratrimo","MG11103","Mahitsy","MG11103150",220,47.3515,-18.7537
+"Ambohidratrimo","MG11103","Mahitsy","MG11103150",221,47.3483,-18.7574
+"Ambohidratrimo","MG11103","Ampanotokana","MG11103210",222,47.2856,-18.7897
+"Ambohidratrimo","MG11103","Manjakavaradrano","MG11103251",223,47.4866,-18.6955
+"Ambohidratrimo","MG11103","Merimandroso","MG11103171",224,47.5089,-18.7547
+"Ambohidratrimo","MG11103","Talatamaty","MG11103050",225,47.4605,-18.8403
+"Ambohidratrimo","MG11103","Talatamaty","MG11103050",226,47.4489,-18.8231
+"Ambohidratrimo","MG11103","Antehiroka","MG11103070",227,47.4765,-18.8497
+"Ambohidratrimo","MG11103","Ivato Aeroport","MG11103112",228,47.4777,-18.8016
+"Ambohidratrimo","MG11103","Ivato Aeroport","MG11103112",229,47.4833,-18.8026
+"Ambohidratrimo","MG11103","Ambohidratrimo","MG11103010",230,47.4426,-18.8174
+"Ambohidratrimo","MG11103","Talatamaty","MG11103050",231,47.4621,-18.8383
+"Tsiroanomandidy","MG14111","Bemahatazana","MG14111290",232,45.9464,-19.0442
+"Fenoarivobe","MG14119","Ambohitromby","MG14119071",233,46.4038,-17.9113
+"Fenoarivobe","MG14119","Ambohitromby","MG14119071",234,46.421,-17.8925
+"Fenoarivobe","MG14119","Fenoarivo Centre","MG14119010",235,46.5643,-18.4526
+"Fenoarivobe","MG14119","Fenoarivo Centre","MG14119010",236,46.4615,-18.495
+"Fenoarivobe","MG14119","Firavahana","MG14119031",237,46.8862,-18.6273
+"Fenoarivobe","MG14119","Firavahana","MG14119031",238,46.8826,-18.5927
+"Fenoarivobe","MG14119","Kiranomena","MG14119051",239,46.0517,-18.2965
+"Fenoarivobe","MG14119","Mahajeby","MG14119053",240,45.9968,-18.0466
+"Fenoarivobe","MG14119","Firavahana","MG14119031",241,46.9461,-18.6329
+"Fenoarivobe","MG14119","Tsinjoarivo 22","MG14119052",242,45.8516,-18.3482
+"Miarinarivo","MG13112","Alatsinainikely","MG13112112",243,46.5657,-18.9332
+"Miarinarivo","MG13112","Ambatomanjaka","MG13112050",244,46.8666,-18.8736
+"Miarinarivo","MG13112","Analavory","MG13112111",245,46.716,-18.9734
+"Miarinarivo","MG13112","Andolofotsy","MG13112210",246,46.6389,-18.747
+"Miarinarivo","MG13112","Anosibe Ifanja","MG13112151",247,46.7528,-18.8829
+"Miarinarivo","MG13112","Manazary","MG13112071",248,46.868,-19.0489
+"Miarinarivo","MG13112","Mandiavato","MG13112130",249,47.0229,-19.092
+"Miarinarivo","MG13112","Miarinarivo II","MG13112030",250,46.9766,-18.9578
+"Miarinarivo","MG13112","Soamahamanina","MG13112090",251,47.0167,-18.9903
+"Miarinarivo","MG13112","Soavimbazaha","MG13112190",252,47.0384,-18.8093
+"Miarinarivo","MG13112","Zoma Bealoka","MG13112170",253,47.0555,-18.8569
+"Arivonimamo","MG13105","Alakamisikely","MG13105213",254,47.16,-19.1971
+"Arivonimamo","MG13105","Ambatomanga","MG13105190",255,47.2118,-18.8257
+"Arivonimamo","MG13105","Ambatomirahavavy","MG13105170",256,47.393,-18.9356
+"Arivonimamo","MG13105","Amboanana","MG13105090",257,47.1725,-19.1381
+"Arivonimamo","MG13105","Ambohimandry","MG13105230",258,47.3712,-19.0946
+"Arivonimamo","MG13105","Ambohimasina","MG13105270",259,47.2687,-18.8247
+"Arivonimamo","MG13105","Ambohipandrano","MG13105291",260,47.338,-19.133
+"Arivonimamo","MG13105","Ambohitrambo","MG13105050",261,47.1787,-18.9221
+"Arivonimamo","MG13105","Ampahimanga","MG13105070",262,47.1974,-19.1047
+"Arivonimamo","MG13105","Antambolo","MG13105250",263,47.3183,-18.8325
+"Arivonimamo","MG13105","Rambolamasoandro Andranomiely","MG13105216",264,47.1542,-19.3197
+"Soavinandriana","MG13113","Ambatoasana Centre","MG13113210",265,46.3845,-19.2009
+"Soavinandriana","MG13113","Amberomanga","MG13113132",266,46.6166,-19.2402
+"Soavinandriana","MG13113","Amparaky","MG13113131",267,46.6299,-19.3079
+"Soavinandriana","MG13113","Ampary","MG13113030",268,46.7098,-19.095
+"Soavinandriana","MG13113","Ampefy","MG13113090",269,46.734,-19.044
+"Soavinandriana","MG13113","Ankaranana","MG13113150",270,46.6209,-19.0495
+"Soavinandriana","MG13113","Ankisabe","MG13113190",271,46.4805,-19.2955
+"Andilamena","MG33316","Antanimenabaka","MG33316031",272,48.4902,-16.938
+"Soavinandriana","MG13113","Dondona","MG13113012",273,46.8514,-19.1706
+"Soavinandriana","MG13113","Mahavelona","MG13113170",274,46.5254,-19.1712
+"Soavinandriana","MG13113","Masindray","MG13113071",275,46.7343,-19.2736
+"Soavinandriana","MG13113","Soavinandriana","MG13113011",276,46.7382,-19.1709
+"Soavinandriana","MG13113","Tamponala","MG13113230",277,46.405,-19.3043
+"Arivonimamo","MG13105","Manalalondo","MG13105211",278,47.1127,-19.2569
+"Antsirabe I","MG12108","Soamalaza Mahatsinjo","MG12108003",279,47.0431,-19.8758
+"Antsirabe I","MG12108","Antsirabe Afovoany Atsinanana","MG12108004",280,47.0448,-19.9273
+"Antsirabe I","MG12108","Antsenakely Andraikiba","MG12108001",281,47.0283,-19.8721
+"Antsirabe I","MG12108","Antsenakely Andraikiba","MG12108001",282,47.0275,-19.8717
+"Antsirabe I","MG12108","Ampatana Mandriankeniheny","MG12108002",283,47.0035,-19.9325
+"Antsirabe I","MG12108","Antsenakely Andraikiba","MG12108001",284,47.0053,-19.867
+"Antsirabe I","MG12108","Manodidina Ny Gara Ambilombe","MG12108005",285,47.0381,-19.8489
+"Antsirabe I","MG12108","Mahazoarivo Avarabohitra","MG12108006",286,47.0319,-19.8533
+"Andapa","MG72712","Matsohely","MG72712170",287,49.5671,-14.6197
+"Andapa","MG72712","Ambalamanasy II","MG72712210",288,49.6078,-14.5514
+"Andapa","MG72712","Ankiakabe Nord","MG72712050",289,49.5913,-14.6737
+"Andapa","MG72712","Belaoka Marovato","MG72712070",290,49.6132,-14.6096
+"Andapa","MG72712","Marovato","MG72712110",291,49.6356,-14.6078
+"Antalaha","MG72710","Ambalabe","MG72710170",292,50.4222,-15.1609
+"Antalaha","MG72710","Ambinanifaho","MG72710190",293,50.1191,-14.6124
+"Farafangana","MG25213","Ivandrika","MG25213110",294,47.722,-22.882
+"Farafangana","MG25213","Namohora Iaborano","MG25213472",295,47.6399,-22.6279
+"Farafangana","MG25213","Ihorombe","MG25213551",296,47.5328,-23.0131
+"Farafangana","MG25213","Ivandrika","MG25213110",297,47.726,-22.8805
+"Farafangana","MG25213","Mahabo Mananivo","MG25213310",298,47.682,-23.1831
+"Farafangana","MG25213","Mahafasa Centre","MG25213170",299,47.6767,-22.688
+"Farafangana","MG25213","Mahavelo","MG25213150",300,47.6999,-22.7047
+"Farafangana","MG25213","Maheriraty","MG25213290",301,47.6139,-22.7545
+"Farafangana","MG25213","Manambotra Atsimo","MG25213130",302,47.8107,-22.9282
+"Farafangana","MG25213","Marovandrika","MG25213590",303,47.6659,-22.5178
+"Farafangana","MG25213","Sahamadio","MG25213490",304,47.5761,-22.5205
+"Farafangana","MG25213","Tangainony","MG25213230",305,47.7432,-22.6995
+"Farafangana","MG25213","Vohilengo","MG25213570",306,47.6936,-22.5489
+"Farafangana","MG25213","Vohimasy","MG25213030",307,47.7235,-22.8031
+"Farafangana","MG25213","Vohitromby","MG25213090",308,47.763,-22.8788
+"Befotaka","MG25222","Antaninarenina","MG25222032",309,46.94,-23.9456
+"Befotaka","MG25222","Antondabe","MG25222012",310,47.1398,-23.853
+"Befotaka","MG25222","Befotaka Sud","MG25222011",311,46.9883,-23.823
+"Befotaka","MG25222","Beharena","MG25222052",312,46.83,-23.8631
+"Befotaka","MG25222","Bekofafa Sud","MG25222053",313,46.5837,-23.7647
+"Befotaka","MG25222","Marovitsika Sud","MG25222031",314,46.8943,-24.0385
+"Andramasina","MG11115","Alarobia Vatosola","MG11115110",315,47.7501,-19.2284
+"Andramasina","MG11115","Alarobia Vatosola","MG11115110",316,47.6885,-19.2406
+"Andramasina","MG11115","Alatsinainy Bakaro","MG11115071",317,47.6811,-19.3225
+"Andramasina","MG11115","Ambohimiadana","MG11115091",318,47.7756,-19.244
+"Andramasina","MG11115","Andohariana","MG11115032",319,47.5757,-19.3139
+"Andramasina","MG11115","Andramasina","MG11115010",320,47.5888,-19.1866
+"Andramasina","MG11115","Ambohimiadana","MG11115091",321,47.7727,-19.2051
+"Andramasina","MG11115","Antotohazo","MG11115072",322,47.6153,-19.3687
+"Andramasina","MG11115","Fitsinjovana Bakaro","MG11115130",323,47.7318,-19.3906
+"Andramasina","MG11115","Mandrosoa","MG11115050",324,47.6666,-19.1618
+"Andramasina","MG11115","Sabotsy Ambohitromby","MG11115031",325,47.6118,-19.2379
+"Andramasina","MG11115","Sabotsy Manjakavahoaka","MG11115150",326,47.7537,-19.1706
+"Andramasina","MG11115","Ambohimiadana","MG11115091",327,47.8168,-19.259
+"Anjozorobe","MG11107","Alakamisy","MG11107170",328,47.9331,-18.5371
+"Anjozorobe","MG11107","Ambatomanoina","MG11107230",329,47.6255,-18.3121
+"Anjozorobe","MG11107","Amboasary Nord","MG11107270",330,47.7674,-18.1182
+"Anjozorobe","MG11107","Ambohibary Vohilena","MG11107310",331,47.6219,-18.2191
+"Anjozorobe","MG11107","Ambongamarina","MG11107099",332,47.9548,-18.3261
+"Anjozorobe","MG11107","Ambongamarina","MG11107099",333,47.8026,-18.2963
+"Anjozorobe","MG11107","Betatao","MG11107150",334,47.8578,-18.1254
+"Anjozorobe","MG11107","Analaroa","MG11107190",335,47.7087,-18.4126
+"Anjozorobe","MG11107","Antanetibe","MG11107211",336,47.556,-18.382
+"Anjozorobe","MG11107","Anjozorobe","MG11107019",337,47.8795,-18.4027
+"Anjozorobe","MG11107","Anjozorobe","MG11107019",338,47.8656,-18.4744
+"Anjozorobe","MG11107","Antanetibe","MG11107211",339,47.5574,-18.3963
+"Anjozorobe","MG11107","Beronono","MG11107370",340,47.5172,-18.1861
+"Anjozorobe","MG11107","Betatao","MG11107150",341,47.8875,-18.2025
+"Anjozorobe","MG11107","Mangamila","MG11107070",342,47.8617,-18.5659
+"Anjozorobe","MG11107","Marotsipoy","MG11107350",343,47.6621,-17.9281
+"Anjozorobe","MG11107","Tsarasaotra","MG11107110",344,47.9141,-18.5578
+"Ankazobe","MG11104","Ambolotarakely","MG11104170",345,47.4018,-18.2703
+"Ankazobe","MG11104","Ankazobe","MG11104010",346,47.1158,-18.3163
+"Ankazobe","MG11104","Antakavana","MG11104190",347,47.3838,-18.0349
+"Ankazobe","MG11104","Antotohazo","MG11104071",348,47.0956,-18.5196
+"Ankazobe","MG11104","Fiadanana","MG11104130",349,46.8852,-18.2231
+"Fandriana","MG22204","Fiadanana","MG22204070",350,47.4076,-20.3343
+"Ankazobe","MG11104","Kiangara","MG11104210",351,47.0296,-17.9709
+"Ankazobe","MG11104","Mahavelona","MG11104110",352,47.2542,-18.514
+"Ankazobe","MG11104","Marondry","MG11104072",353,47.0027,-18.4347
+"Ankazobe","MG11104","Miantso","MG11104230",354,47.1522,-18.7189
+"Ankazobe","MG11104","Talata Angavo","MG11104030",355,47.0991,-18.2092
+"Ankazobe","MG11104","Tsaramasoandro","MG11104150",356,47.2172,-17.9613
+"Ankazobe","MG11104","Ambohitromby","MG11104050",357,47.1631,-18.4928
+"Manjakandriana","MG11106","Alarobia","MG11106090",358,47.7236,-18.9665
+"Manjakandriana","MG11106","Alarobia","MG11106090",359,47.7269,-18.9568
+"Manjakandriana","MG11106","Ambanitsena","MG11106210",360,47.689,-18.8746
+"Manjakandriana","MG11106","Ambatolaona","MG11106012",361,47.8811,-18.9289
+"Manjakandriana","MG11106","Ambatomanga","MG11106070",362,47.7377,-18.9654
+"Manjakandriana","MG11106","Ambatomanga","MG11106070",363,47.7659,-19.0033
+"Manjakandriana","MG11106","Ambatomena","MG11106251",364,47.7572,-18.7823
+"Manjakandriana","MG11106","Ambohibao Sud","MG11106252",365,47.746,-18.7491
+"Manjakandriana","MG11106","Ambohibary","MG11106050",366,47.8196,-18.8467
+"Manjakandriana","MG11106","Ambohitrandriamanitra","MG11106230",367,47.7799,-19.0878
+"Manjakandriana","MG11106","Ambohitrolomahitsy","MG11106371",368,47.6797,-18.7069
+"Manjakandriana","MG11106","Ampaneva","MG11106372",369,47.6704,-18.7483
+"Manjakandriana","MG11106","Ambohitrony","MG11106290",370,47.7689,-18.7485
+"Manjakandriana","MG11106","Anjepy","MG11106190",371,47.7325,-18.8483
+"Antananarivo Avaradrano","MG11102","Viliahazo","MG11102350",372,47.6933,-18.8109
+"Manjakandriana","MG11106","Ankazondandy","MG11106351",373,47.7959,-18.6984
+"Manjakandriana","MG11106","Ankazondandy","MG11106351",374,47.7465,-18.7032
+"Manjakandriana","MG11106","Antsahalalina","MG11106272",375,47.7944,-18.7619
+"Manjakandriana","MG11106","Nandihizana","MG11106170",376,47.7062,-18.907
+"Manjakandriana","MG11106","Manjakandriana","MG11106011",377,47.812,-18.9184
+"Manjakandriana","MG11106","Manjakandriana","MG11106011",378,47.8036,-18.9117
+"Manjakandriana","MG11106","Merikanjaka","MG11106310",379,47.8329,-19.1383
+"Manjakandriana","MG11106","Miadanandriana","MG11106150",380,47.7914,-19.0372
+"Manjakandriana","MG11106","Ranovao","MG11106130",381,47.815,-18.8276
+"Manjakandriana","MG11106","Sadabe","MG11106390",382,47.71,-18.6174
+"Manjakandriana","MG11106","Sambaina","MG11106030",383,47.7828,-18.8927
+"Manjakandriana","MG11106","Soavinandriana","MG11106352",384,47.8709,-18.697
+"Manjakandriana","MG11106","Merikanjaka","MG11106310",385,47.8773,-19.1304
+"Tsiroanomandidy","MG14111","Ambalanirana","MG14111250",386,46.5189,-18.7577
+"Tsiroanomandidy","MG14111","Ambararatabe","MG14111210",387,46.192,-18.986
+"Tsiroanomandidy","MG14111","Ambatolampy","MG14111051",388,46.1289,-18.8949
+"Tsiroanomandidy","MG14111","Ambatolampy","MG14111051",389,46.21,-18.9381
+"Tsiroanomandidy","MG14111","Ankadinondry Sakay","MG14111090",390,46.463,-18.974
+"Tsiroanomandidy","MG14111","Ankerana Avaratra","MG14111110",391,46.119,-18.585
+"Tsiroanomandidy","MG14111","Anosy","MG14111190",392,46.43,-18.8284
+"Tsiroanomandidy","MG14111","Belobaka","MG14111230",393,45.6921,-18.9945
+"Tsiroanomandidy","MG14111","Bemahatazana","MG14111290",394,45.9459,-19.0486
+"Tsiroanomandidy","MG14111","Bevato","MG14111070",395,46.2573,-18.6935
+"Tsiroanomandidy","MG14111","Fierenana","MG14111310",396,45.8461,-18.5455
+"Tsiroanomandidy","MG14111","Mahasolo","MG14111270",397,46.3671,-19.1218
+"Tsiroanomandidy","MG14111","Maritampona","MG14111052",398,46.1131,-19.0371
+"Tsiroanomandidy","MG14111","Maroharona","MG14111330",399,46.2932,-19.2764
+"Tsiroanomandidy","MG14111","Miandrarivo","MG14111130",400,45.9897,-18.9372
+"Tsiroanomandidy","MG14111","Soanierana","MG14111170",401,46.2513,-18.6341
+"Tsiroanomandidy","MG14111","Tsinjoarivo Imanga","MG14111150",402,46.3196,-18.933
+"Tsiroanomandidy","MG14111","Tsiroanomandidy Fihaonana","MG14111030",403,46.0107,-18.6152
+"Tsiroanomandidy","MG14111","Tsiroanomandidy Fihaonana","MG14111030",404,46.1112,-18.7903
+"Miarinarivo","MG13112","Andolofotsy","MG13112210",405,46.5388,-18.7539
+"Arivonimamo","MG13105","Antenimbe","MG13105212",406,47.1071,-19.214
+"Arivonimamo","MG13105","Arivonimamo II","MG13105030",407,47.1657,-19.0149
+"Arivonimamo","MG13105","Imerintsiatosika","MG13105130",408,47.3224,-18.9917
+"Arivonimamo","MG13105","Manalalondo","MG13105211",409,47.1598,-19.2657
+"Arivonimamo","MG13105","Marofangady","MG13105215",410,47.0834,-19.3164
+"Arivonimamo","MG13105","Miandrandra","MG13105292",411,47.2705,-19.2203
+"Arivonimamo","MG13105","Miantsoarivo","MG13105310",412,47.4052,-19.1997
+"Arivonimamo","MG13105","Morafeno","MG13105110",413,47.0966,-19.0919
+"Arivonimamo","MG13105","Morarano","MG13105150",414,47.303,-18.9132
+"Arivonimamo","MG13105","Imerintsiatosika","MG13105130",415,47.3222,-18.9777
+"Antsirabe II","MG12118","Alakamisy","MG12118050",416,46.9856,-19.8046
+"Antsirabe II","MG12118","Ambano","MG12118010",417,47.0292,-19.6975
+"Antsirabe II","MG12118","Ambatomena","MG12118310",418,47.3018,-19.8176
+"Antsirabe II","MG12118","Ambohibary","MG12118331",419,47.1368,-19.6184
+"Antsirabe II","MG12118","Ambohidranandriana","MG12118130",420,47.1703,-19.904
+"Antsirabe II","MG12118","Ambohidranandriana","MG12118130",421,47.1886,-19.9445
+"Antsirabe II","MG12118","Ambohimiarivo","MG12118150",422,47.1646,-19.8351
+"Antsirabe II","MG12118","Andranomanelatra","MG12118110",423,47.112,-19.7744
+"Antsirabe II","MG12118","Antsoatany","MG12118230",424,47.1673,-19.7623
+"Antsirabe II","MG12118","Ambohitsimanova","MG12118170",425,47.1416,-20.0246
+"Antsirabe II","MG12118","Antanambao","MG12118370",426,47.3911,-19.9577
+"Antsirabe II","MG12118","Antanimandry","MG12118070",427,46.9634,-19.8538
+"Antsirabe II","MG12118","Antanimandry","MG12118070",428,46.9468,-19.8307
+"Antsirabe II","MG12118","Antsoatany","MG12118230",429,47.1561,-19.699
+"Antsirabe II","MG12118","Belazao","MG12118030",430,46.9681,-19.8935
+"Antsirabe II","MG12118","Alatsinainy Ibity","MG12118250",431,46.9645,-20.1985
+"Antsirabe II","MG12118","Manandona","MG12118210",432,47.0615,-20.0627
+"Antsirabe II","MG12118","Mandrosohasina","MG12118332",433,47.1756,-19.5853
+"Antsirabe II","MG12118","Mangarano","MG12118190",434,46.979,-19.962
+"Antsirabe II","MG12118","Sahanivotry Manandona","MG12118270",435,47.0588,-20.1361
+"Antsirabe II","MG12118","Soanindrariny","MG12118290",436,47.236,-19.906
+"Antsirabe II","MG12118","Tsarahonenana Sahanivotry","MG12118350",437,47.268,-19.994
+"Antsirabe II","MG12118","Vinaninkarena","MG12118090",438,47.0421,-19.9735
+"Ambatolampy","MG12110","Ambatolampy","MG12110010",439,47.4313,-19.3759
+"Ambatolampy","MG12110","Ambatolampy","MG12110010",440,47.4478,-19.377
+"Ambatolampy","MG12110","Ambatondrakalavao","MG12110090",441,47.5081,-19.4511
+"Ambatolampy","MG12110","Ambodifarihy Fenomanana","MG12110190",442,47.5626,-19.4672
+"Ambatolampy","MG12110","Ambohipihaonana","MG12110050",443,47.4143,-19.4432
+"Ambatolampy","MG12110","Andranovelona","MG12110330",444,47.6271,-19.628
+"Ambatolampy","MG12110","Andravola Vohipeno","MG12110150",445,47.3743,-19.4086
+"Ambatolampy","MG12110","Andriambilany","MG12110110",446,47.466,-19.3304
+"Ambatolampy","MG12110","Antanamalaza","MG12110291",447,47.6284,-19.4269
+"Ambatolampy","MG12110","Antanimasaka","MG12110230",448,47.5633,-19.4035
+"Ambatolampy","MG12110","Antsampandrano","MG12110270",449,47.5917,-19.5432
+"Ambatolampy","MG12110","Behenjy","MG12110250",450,47.4873,-19.2101
+"Ambatolampy","MG12110","Belambo Firaisana","MG12110130",451,47.5131,-19.3553
+"Ambatolampy","MG12110","Manjakatompo","MG12110070",452,47.4481,-19.3465
+"Ambatolampy","MG12110","Morarano","MG12110030",453,47.4569,-19.4186
+"Ambatolampy","MG12110","Sabotsy Namatoana","MG12110210",454,47.371,-19.3113
+"Ambatolampy","MG12110","Tsiafajavona Ankaratra","MG12110170",455,47.3333,-19.3795
+"Ambatolampy","MG12110","Tsinjoarivo","MG12110310",456,47.6857,-19.6351
+"Antanifotsy","MG12114","Ambatolahy","MG12114030",457,47.2864,-19.7318
+"Antanifotsy","MG12114","Ambatomiady","MG12114079",458,47.4161,-19.6936
+"Antanifotsy","MG12114","Ambatotsipihina","MG12114150",459,47.2376,-19.458
+"Antanifotsy","MG12114","Ambodiriana","MG12114230",460,47.5653,-19.5817
+"Antanifotsy","MG12114","Ambodiriana","MG12114230",461,47.5531,-19.5731
+"Antanifotsy","MG12114","Ambohimandroso","MG12114110",462,47.4311,-19.515
+"Antanifotsy","MG12114","Ampitatafika","MG12114050",463,47.3574,-19.5648
+"Antanifotsy","MG12114","Andranofito","MG12114090",464,47.4558,-19.8288
+"Antanifotsy","MG12114","Antanifotsy","MG12114010",465,47.3004,-19.7106
+"Antanifotsy","MG12114","Antanifotsy","MG12114010",466,47.3362,-19.62
+"Antanifotsy","MG12114","Antanifotsy","MG12114010",467,47.3245,-19.6608
+"Antanifotsy","MG12114","Antanifotsy","MG12114010",468,47.2936,-19.6577
+"Antanifotsy","MG12114","Antsahalava","MG12114199",469,47.4661,-19.5609
+"Antanifotsy","MG12114","Antsampandrano","MG12114290",470,47.5714,-19.9531
+"Antanifotsy","MG12114","Belanitra","MG12114172",471,47.7342,-19.7258
+"Antanifotsy","MG12114","Ambohimandroso","MG12114110",472,47.4315,-19.5199
+"Betafo","MG12109","Alakamisy Anativato","MG12109070",473,46.9066,-19.8818
+"Betafo","MG12109","Ambatonikolahy","MG12109170",474,46.9412,-19.7264
+"Betafo","MG12109","Mandritsara","MG12109050",475,46.9061,-19.8355
+"Betafo","MG12109","Ambohimanambola","MG12109250",476,46.5717,-19.8439
+"Betafo","MG12109","Ambohimasina","MG12109270",477,46.7643,-19.6073
+"Betafo","MG12109","Andrembesoa","MG12109490",478,46.5496,-20.1097
+"Mandoto","MG12120","Anjoma Ramartina","MG12120070",479,45.9446,-19.6422
+"Mandoto","MG12120","Ankazomiriotra","MG12120090",480,46.5338,-19.6591
+"Betafo","MG12109","Anosiarivo Manapa","MG12109212",481,46.7702,-20.0545
+"Mandoto","MG12120","Antanambao Ambary","MG12120050",482,46.2139,-19.5946
+"Betafo","MG12109","Antohobe","MG12109190",483,46.6924,-19.7639
+"Betafo","MG12109","Antsoso","MG12109090",484,46.8548,-19.7739
+"Betafo","MG12109","Betafo","MG12109010",485,46.856,-19.8351
+"Mandoto","MG12120","Betsohana","MG12120030",486,46.387,-19.448
+"Mandoto","MG12120","Fidirana","MG12120110",487,46.5661,-19.5119
+"Betafo","MG12109","Inanantonana","MG12109290",488,46.6406,-19.6235
+"Betafo","MG12109","Mahaiza","MG12109211",489,46.8387,-19.9441
+"Mandoto","MG12120","Mandoto","MG12120010",490,46.2919,-19.5803
+"Betafo","MG12109","Soavina","MG12109130",491,46.7589,-19.8331
+"Betafo","MG12109","Tritriva","MG12109110",492,46.9262,-19.925
+"Mandoto","MG12120","Vinany","MG12120150",493,46.4857,-19.6126
+"Mandoto","MG12120","Vasiana","MG12120130",494,46.2345,-19.8253
+"Mandoto","MG12120","Ankazomiriotra","MG12120090",495,46.5329,-19.6587
+"Faratsiho","MG12116","Ambohiborona","MG12116130",496,47.0784,-19.3533
+"Faratsiho","MG12116","Valabetokana","MG12116170",497,46.7561,-19.332
+"Faratsiho","MG12116","Andranomiady","MG12116090",498,46.9573,-19.2137
+"Faratsiho","MG12116","Antsampanimahazo","MG12116030",499,47.041,-19.4172
+"Faratsiho","MG12116","Faratsiho","MG12116010",500,46.951,-19.4078
+"Faratsiho","MG12116","Miandrarivo","MG12116150",501,46.752,-19.4436
+"Faratsiho","MG12116","Ramainandro","MG12116070",502,47.0019,-19.3073
+"Faratsiho","MG12116","Vinaninony Atsimo","MG12116110",503,47.0328,-19.5254
+"Faratsiho","MG12116","Faravohitra","MG12116050",504,47.0169,-19.4831
+"Antsiranana II","MG71713","Andrafiabe","MG71713110",505,49.4051,-12.5273
+"Antsiranana II","MG71713","Andranofanjava","MG71713191",506,49.0419,-12.4797
+"Antsiranana II","MG71713","Andranovondronina","MG71713170",507,49.3119,-12.1187
+"Antsiranana II","MG71713","Anivorano Nord","MG71713231",508,49.2323,-12.7416
+"Antsiranana II","MG71713","Ankarongana","MG71713210",509,49.3942,-12.6667
+"Antsiranana II","MG71713","Anketrakabe","MG71713130",510,49.3454,-12.5528
+"Antsiranana II","MG71713","Antsahampano","MG71713050",511,49.1888,-12.325
+"Antsiranana II","MG71713","Antsalaka","MG71713152",512,49.2512,-12.6404
+"Antsiranana II","MG71713","Bobasakoa","MG71713251",513,48.96,-12.81
+"Antsiranana II","MG71713","Mahavanona","MG71713070",514,49.3808,-12.46
+"Antsiranana II","MG71713","Mosorolava","MG71713254",515,48.9796,-12.762
+"Antsiranana II","MG71713","Ramena","MG71713010",516,49.3478,-12.2427
+"Antsiranana II","MG71713","Sadjoavato","MG71713151",517,49.3485,-12.6335
+"Antsiranana II","MG71713","Joffre Ville","MG71713033",518,49.2029,-12.4974
+"Ambanja","MG71719","Ambanja","MG71719010",519,48.4522,-13.6811
+"Ambanja","MG71719","Ambalahonko","MG71719130",520,48.471,-13.5283
+"Ambanja","MG71719","Ambaliha","MG71719250",521,48.1564,-13.7645
+"Ambanja","MG71719","Ambodimanga Ramena","MG71719172",522,48.4955,-13.7635
+"Ambanja","MG71719","Ambohimarina","MG71719233",523,48.4972,-13.888
+"Ambanja","MG71719","Ankatafa","MG71719350",524,48.3954,-13.6377
+"Ambanja","MG71719","Marovato","MG71719231",525,48.5604,-13.9689
+"Ambanja","MG71719","Ankatafa","MG71719350",526,48.3695,-13.639
+"Ambanja","MG71719","Ankingameloka","MG71719150",527,48.298,-13.8169
+"Ambanja","MG71719","Anorontsangana","MG71719310",528,47.9222,-13.9154
+"Ambanja","MG71719","Antranokarany","MG71719091",529,48.3869,-13.7268
+"Ambanja","MG71719","Antsakoamanondro","MG71719110",530,48.5043,-13.6105
+"Ambanja","MG71719","Antsatsaka","MG71719070",531,48.4001,-13.7081
+"Ambanja","MG71719","Antsirabe","MG71719330",532,48.1978,-13.8745
+"Ambanja","MG71719","Bemaneviky Haut Sambirano","MG71719171",533,48.4931,-13.841
+"Ambanja","MG71719","Bemaneviky Ouest","MG71719290",534,47.9681,-13.5246
+"Ambanja","MG71719","Djangoa","MG71719092",535,48.3242,-13.8025
+"Ambanja","MG71719","Maherivaratra","MG71719210",536,48.5669,-13.5272
+"Ambanja","MG71719","Marotolana","MG71719270",537,48.614,-14.0241
+"Ambanja","MG71719","Ambohitrandriana","MG71719232",538,48.635,-13.9076
+"Ambanja","MG71719","Antafiambotry","MG71719190",539,48.4923,-13.3691
+"Ambilobe","MG71717","Ambilobe","MG71717010",540,49.0469,-13.1959
+"Ambilobe","MG71717","Ambakirano","MG71717090",541,49.1541,-13.209
+"Ambilobe","MG71717","Ambarakaraka","MG71717231",542,48.8484,-13.5137
+"Ambilobe","MG71717","Ambatoben'anjavy","MG71717110",543,49.0522,-13.2311
+"Ambilobe","MG71717","Ampondralava","MG71717050",544,48.8897,-13.1954
+"Ambilobe","MG71717","Anaborano Ifasy","MG71717232",545,48.8221,-13.5491
+"Ambilobe","MG71717","Anjiabe Ambony","MG71717171",546,48.8668,-13.222
+"Ambilobe","MG71717","Antsaravibe","MG71717130",547,48.9641,-12.921
+"Ambilobe","MG71717","Antsohimbondrona","MG71717150",548,48.8588,-13.0927
+"Ambilobe","MG71717","Beramanja","MG71717190",549,48.8757,-13.3427
+"Ambilobe","MG71717","Betsiaka","MG71717210",550,49.4017,-13.0714
+"Ambilobe","MG71717","Manambato","MG71717233",551,49.1167,-13.7
+"Ambilobe","MG71717","Mantaly","MG71717030",552,48.9769,-13.179
+"Andapa","MG72712","Andapa","MG72712010",553,49.653,-14.665
+"Ambilobe","MG71717","Tanambao Marivorahona","MG71717070",554,49.1048,-13.0862
+"Ambilobe","MG71717","Beramanja","MG71717190",555,48.8136,-13.3627
+"Nosy-Be","MG71718","Dzamandzar","MG71718005",556,48.1921,-13.3525
+"Nosy-Be","MG71718","Bemanondrobe","MG71718004",557,48.311,-13.2889
+"Nosy-Be","MG71718","Ambatozavavy","MG71718003",558,48.3169,-13.3691
+"Nosy-Be","MG71718","Ampangorina","MG71718002",559,48.3484,-13.4427
+"Sambava","MG72711","Ambatoafo","MG72711450",560,49.679,-14.1138
+"Sambava","MG72711","Amboangibe","MG72711371",561,49.8107,-14.1456
+"Sambava","MG72711","Ambodiampana","MG72711410",562,49.8528,-14.528
+"Sambava","MG72711","Ambodivoara","MG72711130",563,49.9828,-14.3401
+"Sambava","MG72711","Ambohimalaza","MG72711059",564,50.0304,-14.2969
+"Sambava","MG72711","Ambohimitsinjo","MG72711210",565,49.9315,-14.3215
+"Sambava","MG72711","Analamaho","MG72711190",566,49.9445,-14.2117
+"Sambava","MG72711","Andrahanjo","MG72711330",567,49.8253,-14.3149
+"Sambava","MG72711","Andratamarina","MG72711250",568,49.901,-14.3552
+"Sambava","MG72711","Andrembona","MG72711372",569,49.7912,-14.2023
+"Sambava","MG72711","Anjangoveratra","MG72711230",570,50.0608,-14.1239
+"Sambava","MG72711","Anjialava","MG72711470",571,49.7313,-14.0817
+"Sambava","MG72711","Anjinjaomby","MG72711150",572,49.9701,-14.3022
+"Sambava","MG72711","Antindra","MG72711390",573,49.8112,-14.1347
+"Sambava","MG72711","Antsahavaribe","MG72711510",574,49.6519,-14.0312
+"Sambava","MG72711","Antsambaharo","MG72711310",575,49.9474,-14.5058
+"Sambava","MG72711","Bemanevika","MG72711350",576,50.1258,-14.1409
+"Sambava","MG72711","Bevonotra","MG72711530",577,49.6108,-14.0724
+"Sambava","MG72711","Farahalana","MG72711079",578,50.1547,-14.4251
+"Sambava","MG72711","Maroambihy","MG72711430",579,49.8434,-14.5072
+"Sambava","MG72711","Marogaona","MG72711270",580,49.8851,-14.1922
+"Sambava","MG72711","Marojala","MG72711290",581,50.0325,-14.4691
+"Sambava","MG72711","Morafeno","MG72711170",582,50.0468,-14.3669
+"Sambava","MG72711","Nosiarina","MG72711090",583,50.0482,-14.2159
+"Sambava","MG72711","Tanambao Daoud","MG72711490",584,50.1112,-13.9866
+"Sambava","MG72711","Sambava Cu","MG72711010",585,50.1712,-14.2692
+"Sambava","MG72711","Ambodiampana","MG72711410",586,49.8897,-14.5129
+"Andapa","MG72712","Ambalamanasy II","MG72712210",587,49.5871,-14.5287
+"Andapa","MG72712","Ambodiangezoka","MG72712230",588,49.5095,-14.5987
+"Andapa","MG72712","Ambodimanga I","MG72712090",589,49.6144,-14.6996
+"Andapa","MG72712","Andrakata","MG72712130",590,49.7167,-14.6287
+"Andapa","MG72712","Andranomena","MG72712190",591,49.5352,-14.6045
+"Andapa","MG72712","Anjialavabe","MG72712330",592,49.4904,-14.1901
+"Andapa","MG72712","Anoviara","MG72712290",593,49.8336,-14.7419
+"Andapa","MG72712","Antsahamena","MG72712350",594,49.7797,-14.9371
+"Andapa","MG72712","Bealampona","MG72712150",595,49.5662,-14.6551
+"Andapa","MG72712","Belaoka Marovato","MG72712070",596,49.5933,-14.5935
+"Andapa","MG72712","Betsakotsako Andranotsara","MG72712250",597,49.5566,-14.5659
+"Andapa","MG72712","Doany","MG72712310",598,49.5155,-14.3744
+"Antalaha","MG72710","Ambohitralanana","MG72710210",599,50.4595,-15.2487
+"Antalaha","MG72710","Antalaha Ambonivohitra","MG72710010",600,50.2803,-14.8976
+"Antalaha","MG72710","Antalaha Ambonivohitra","MG72710010",601,50.2809,-14.9069
+"Antalaha","MG72710","Antalaha Ambonivohitra","MG72710010",602,50.2766,-14.8955
+"Antalaha","MG72710","Antananambo","MG72710110",603,50.1244,-14.8676
+"Antalaha","MG72710","Antombana","MG72710070",604,50.1393,-14.9991
+"Antalaha","MG72710","Antsahanoro","MG72710090",605,50.1421,-14.8403
+"Antalaha","MG72710","Antsambalahy","MG72710250",606,49.959,-14.7708
+"Antalaha","MG72710","Lanjarivo","MG72710230",607,50.0754,-14.6115
+"Antalaha","MG72710","Marofinaritra","MG72710130",608,50.1174,-15.0349
+"Antalaha","MG72710","Sarahandrano","MG72710151",609,50.0222,-14.8267
+"Antalaha","MG72710","Ampohibe","MG72710050",610,50.2995,-15.0337
+"Antalaha","MG72710","Ampahana","MG72710030",611,50.2212,-14.7627
+"Vohemar","MG72716","Ambalasatrana","MG72716130",612,49.6993,-13.7438
+"Toamasina II","MG31310","Ambodiriana","MG31310070",613,49.2716,-17.9334
+"Toamasina II","MG31310","Amboditandroroho","MG31310092",614,49.2762,-18.3293
+"Toamasina II","MG31310","Ampasimadinika Manambolo","MG31310091",615,49.1978,-18.4441
+"Toamasina II","MG31310","Ampasimbe Onibe","MG31310170",616,49.4664,-17.5991
+"Toamasina II","MG31310","Amporoforo","MG31310192",617,49.1518,-17.8406
+"Toamasina II","MG31310","Andondabe","MG31310211",618,49.3777,-17.7656
+"Toamasina II","MG31310","Andranobolaha","MG31310230",619,49.0385,-18.3145
+"Toamasina II","MG31310","Antenina","MG31310193",620,48.975,-17.7893
+"Toamasina II","MG31310","Antetezambaro","MG31310030",621,49.3873,-18.0697
+"Toamasina II","MG31310","Fanandrana","MG31310050",622,49.2388,-18.3079
+"Toamasina II","MG31310","Fanandrana","MG31310050",623,49.267,-18.2591
+"Toamasina II","MG31310","Fito","MG31310250",624,48.7694,-17.9893
+"Toamasina II","MG31310","Mahavelona (Foulpointe)","MG31310110",625,49.5131,-17.6769
+"Toamasina II","MG31310","Mangabe","MG31310191",626,49.2337,-17.7266
+"Toamasina II","MG31310","Sahambala","MG31310130",627,49.1767,-17.955
+"Mandritsara","MG42410","Ambalakirajy","MG42410211",628,48.4238,-15.7933
+"Mandritsara","MG42410","Ambarikorano","MG42410171",629,48.9866,-15.8948
+"Mandritsara","MG42410","Ambaripaika","MG42410191",630,48.98,-15.7591
+"Mandritsara","MG42410","Ambilombe","MG42410270",631,49.0256,-15.5445
+"Mandritsara","MG42410","Amboaboa","MG42410130",632,48.7194,-15.945
+"Mandritsara","MG42410","Ambodiadabo","MG42410391",633,48.5899,-16.1817
+"Mandritsara","MG42410","Ambodiamontana Kianga","MG42410192",634,48.9368,-15.8092
+"Mandritsara","MG42410","Ambohisoa","MG42410330",635,48.2945,-15.9079
+"Mandritsara","MG42410","Amborondolo","MG42410392",636,48.4852,-16.0995
+"Mandritsara","MG42410","Manampaneva","MG42410150",637,48.6812,-16.0513
+"Mandritsara","MG42410","Ampatakamaroreny","MG42410350",638,48.7948,-16.4964
+"Mandritsara","MG42410","Andohajango","MG42410290",639,48.4962,-15.9085
+"Mandritsara","MG42410","Andratamarina","MG42410172",640,49.0494,-15.8552
+"Mandritsara","MG42410","Anjiabe","MG42410310",641,48.3509,-15.597
+"Mandritsara","MG42410","Ankiabe-Salohy","MG42410371",642,48.7341,-15.6105
+"Mandritsara","MG42410","Antanambaon'amberina","MG42410410",643,49.1128,-16.409
+"Mandritsara","MG42410","Antsatramidola","MG42410231",644,48.9677,-15.6333
+"Mandritsara","MG42410","Antsiatsiaka","MG42410112",645,49.1094,-16.0592
+"Mandritsara","MG42410","Antsirabe Centre","MG42410111",646,48.9652,-15.9552
+"Mandritsara","MG42410","Antsoha","MG42410050",647,48.8028,-15.7698
+"Mandritsara","MG42410","Kalandy","MG42410090",648,48.7435,-15.8306
+"Mandritsara","MG42410","Marotandrano","MG42410250",649,48.8403,-16.1767
+"Mandritsara","MG42410","Pont Sofia","MG42410372",650,48.6482,-15.4953
+"Mandritsara","MG42410","Tsaratanana","MG42410070",651,48.8373,-15.9593
+"Vohemar","MG72716","Ampanefena","MG72716231",652,49.9488,-13.8607
+"Vohemar","MG72716","Ampisikinana","MG72716330",653,49.804,-12.947
+"Vohemar","MG72716","Fanambana","MG72716050",654,49.9743,-13.4585
+"Vohemar","MG72716","Andrafainkona","MG72716210",655,49.4665,-13.7422
+"Vohemar","MG72716","Andravory","MG72716190",656,49.6034,-13.8669
+"Vohemar","MG72716","Ambodisambalahy","MG72716232",657,49.8466,-13.8119
+"Vohemar","MG72716","Belambo","MG72716350",658,49.856,-14.021
+"Vohemar","MG72716","Bobakindro","MG72716090",659,49.6819,-13.4734
+"Vohemar","MG72716","Daraina","MG72716110",660,49.659,-13.205
+"Vohemar","MG72716","Fanambana","MG72716050",661,49.9878,-13.5538
+"Vohemar","MG72716","Maromokotra Loky","MG72716290",662,49.4739,-13.0082
+"Vohemar","MG72716","Milanoa","MG72716070",663,49.7803,-13.5866
+"Vohemar","MG72716","Nosibe","MG72716170",664,49.7948,-13.1766
+"Vohemar","MG72716","Vohemar","MG72716010",665,49.9918,-13.3737
+"Vohemar","MG72716","Amboriala","MG72716270",666,49.4313,-13.846
+"Fianarantsoa I","MG21201","Tanana Ambony","MG21201001",667,47.0698,-21.4669
+"Fianarantsoa I","MG21201","Manolafaka","MG21201005",668,47.0762,-21.4147
+"Fianarantsoa I","MG21201","Tanana Ambony","MG21201001",669,47.0885,-21.4556
+"Fianarantsoa I","MG21201","Vatosola","MG21201007",670,47.057,-21.4455
+"Fianarantsoa I","MG21201","Tanana Ambany","MG21201002",671,47.0971,-21.4376
+"Fianarantsoa I","MG21201","Lalazana","MG21201006",672,47.0602,-21.4859
+"Fianarantsoa I","MG21201","Andrainjato Avaratra","MG21201003",673,47.1036,-21.448
+"Fianarantsoa I","MG21201","Tanana Ambony","MG21201001",674,47.0875,-21.4567
+"Fianarantsoa I","MG21201","Tanana Ambony","MG21201001",675,47.0866,-21.4556
+"Fianarantsoa I","MG21201","Tanana Ambony","MG21201001",676,47.0819,-21.4547
+"Fianarantsoa I","MG21201","Andrainjato Avaratra","MG21201003",677,47.1102,-21.4641
+"Fianarantsoa I","MG21201","Tanana Ambany","MG21201002",678,47.0969,-21.4339
+"Fianarantsoa I","MG21201","Tanana Ambony","MG21201001",679,47.0828,-21.4646
+"Fianarantsoa I","MG21201","Tanana Ambany","MG21201002",680,47.1021,-21.4424
+"Vohibato","MG21224","Alakamisy Itenina","MG21224050",681,47.1569,-21.6461
+"Lalangina","MG21220","Ambalakely","MG21220030",682,47.1661,-21.4188
+"Lalangina","MG21220","Ambalamahasoa","MG21220210",683,47.1428,-21.3396
+"Isandra","MG21225","Ambalamidera II","MG21225090",684,46.8542,-21.3301
+"Isandra","MG21225","Ambondrona","MG21225070",685,46.9934,-21.267
+"Isandra","MG21225","Andoharanomaitso","MG21225050",686,46.9488,-21.4709
+"Lalangina","MG21220","Andrainjato Centre","MG21220011",687,47.139,-21.4948
+"Lalangina","MG21220","Andrainjato Est","MG21220012",688,47.1838,-21.5438
+"Vohibato","MG21224","Andranomiditra","MG21224230",689,47.2725,-21.6393
+"Vohibato","MG21224","Andranovorivato","MG21224190",690,46.9902,-21.628
+"Lalangina","MG21220","Androy","MG21220330",691,47.2715,-21.3315
+"Isandra","MG21225","Anjoma Itsara","MG21225030",692,46.9169,-21.2205
+"Isandra","MG21225","Ankarinarivo Manirisoa","MG21225110",693,47.0359,-21.3916
+"Lalangina","MG21220","Fandrandava","MG21220430",694,47.2452,-21.521
+"Isandra","MG21225","Fanjakana","MG21225190",695,46.8875,-21.1815
+"Lalangina","MG21220","Alatsinainy Ialamarina","MG21220350",696,47.3035,-21.5285
+"Isandra","MG21225","Iavonomby Vohibola","MG21225210",697,47.0671,-21.3259
+"Isandra","MG21225","Isorana","MG21225010",698,46.9333,-21.3194
+"Lalangina","MG21220","Ivoamba","MG21220070",699,47.1492,-21.3946
+"Vohibato","MG21224","Mahaditra","MG21224270",700,47.0958,-21.7682
+"Vohibato","MG21224","Mahaditra","MG21224270",701,47.0687,-21.7792
+"Vohibato","MG21224","Mahasoabe","MG21224010",702,47.2164,-21.5905
+"Lalangina","MG21220","Mahatsinjony","MG21220111",703,47.2027,-21.4211
+"Isandra","MG21225","Mahazoarivo","MG21225170",704,46.8226,-21.3733
+"Vohibato","MG21224","Maneva","MG21224150",705,47.0749,-21.5797
+"Isandra","MG21225","Nasandratrony","MG21225150",706,47.0333,-21.3556
+"Lalangina","MG21220","Sahambavy","MG21220112",707,47.257,-21.4408
+"Vohibato","MG21224","Soaindrana","MG21224250",708,47.0415,-21.5149
+"Isandra","MG21225","Soatanana","MG21225130",709,46.9207,-21.3888
+"Vohibato","MG21224","Talata Ampano","MG21224070",710,47.0375,-21.5633
+"Vohibato","MG21224","Vinanitelo","MG21224030",711,47.2627,-21.7361
+"Vohibato","MG21224","Vohimarina","MG21224130",712,46.9062,-21.6283
+"Lalangina","MG21220","Taindambo","MG21220090",713,47.1822,-21.4437
+"Ambalavao","MG21205","Ambalavao","MG21205010",714,46.9384,-21.8302
+"Ambalavao","MG21205","Ambinanindovoka","MG21205190",715,47.095,-21.9338
+"Ambalavao","MG21205","Ambinaniroa","MG21205212",716,46.4929,-21.9072
+"Ambalavao","MG21205","Ambohimahamasina","MG21205230",717,47.1757,-21.9356
+"Ambalavao","MG21205","Ambohimandroso","MG21205071",718,46.9606,-21.892
+"Ambalavao","MG21205","Andrainjato","MG21205072",719,46.9865,-21.9119
+"Ambalavao","MG21205","Anjoma","MG21205090",720,47.0338,-21.8879
+"Ambalavao","MG21205","Ankaramena","MG21205211",721,46.6417,-21.9466
+"Ambalavao","MG21205","Besoa","MG21205150",722,46.7728,-21.9104
+"Ambalavao","MG21205","Fenoarivo","MG21205290",723,46.3862,-21.7189
+"Ambalavao","MG21205","Iarintsena","MG21205050",724,46.8801,-21.8282
+"Ambalavao","MG21205","Kirano","MG21205110",725,47.0248,-21.8394
+"Ambalavao","MG21205","Mahazony","MG21205170",726,47.0264,-21.9885
+"Ambalavao","MG21205","Manamisoa","MG21205030",727,46.9712,-21.7759
+"Ambalavao","MG21205","Miarinarivo","MG21205250",728,47.0568,-22.0678
+"Ambalavao","MG21205","Sendrisoa","MG21205130",729,46.9501,-22.0016
+"Ambalavao","MG21205","Vohitsaoka","MG21205270",730,46.7246,-22.0346
+"Ambalavao","MG21205","Anjoma","MG21205090",731,47.076,-21.84
+"Ambohimahasoa","MG21208","Ambalakindresy","MG21208072",732,47.3313,-21.1215
+"Ambohimahasoa","MG21208","Ambohimahasoa","MG21208010",733,47.2223,-21.1023
+"Ambohimahasoa","MG21208","Ambohinamboarina","MG21208230",734,47.0517,-21.0321
+"Ambohimahasoa","MG21208","Ampitana","MG21208030",735,47.2178,-21.1306
+"Vohibato","MG21224","Mahaditra","MG21224270",736,47.1664,-21.8377
+"Ambohimahasoa","MG21208","Ankerana","MG21208050",737,47.1664,-21.1184
+"Ambohimahasoa","MG21208","Befeta","MG21208270",738,47.0489,-21.2326
+"Ambohimahasoa","MG21208","Camp Robin","MG21208252",739,47.1409,-20.9296
+"Ambohimahasoa","MG21208","Fiadanana","MG21208290",740,47.1773,-20.8747
+"Ambohimahasoa","MG21208","Isaka","MG21208211",741,47.0166,-21.1396
+"Ambohimahasoa","MG21208","Ikalalao","MG21208150",742,47.109,-21.1824
+"Ambohimahasoa","MG21208","Manandroy","MG21208071",743,47.2687,-21.1367
+"Ambohimahasoa","MG21208","Morafeno","MG21208130",744,47.2912,-21.2051
+"Ambohimahasoa","MG21208","Ambatosoa","MG21208190",745,47.2549,-20.9698
+"Ambohimahasoa","MG21208","Sahatona","MG21208251",746,47.102,-20.9622
+"Ambohimahasoa","MG21208","Sahave","MG21208110",747,47.1156,-21.0796
+"Ambohimahasoa","MG21208","Vohiposa","MG21208170",748,47.1619,-20.9957
+"Ambohimahasoa","MG21208","Vohitrarivo","MG21208212",749,46.9629,-21.0906
+"Ikalamavony","MG21219","Ambatomainty","MG21219070",750,46.4472,-20.8997
+"Ikalamavony","MG21219","Fitampito","MG21219090",751,46.3083,-20.9648
+"Ikalamavony","MG21219","Ikalamavony","MG21219010",752,46.5971,-21.1636
+"Ikalamavony","MG21219","Mangidy","MG21219030",753,46.7958,-21.2544
+"Ikalamavony","MG21219","Tanamarina Sakay","MG21219110",754,46.6027,-21.4679
+"Ikalamavony","MG21219","Solila","MG21219050",755,46.6171,-21.417
+"Ikalamavony","MG21219","Tanamarina Bekisopa","MG21219150",756,45.8858,-21.645
+"Ikalamavony","MG21219","Tsitondroina","MG21219130",757,46.2454,-21.2867
+"Ambositra","MG22203","Alakamisy Ambohijato","MG22203210",758,47.3152,-20.5673
+"Ambositra","MG22203","Ambalamanakana","MG22203250",759,47.1825,-20.7415
+"Ambositra","MG22203","Ambatofitorahana","MG22203390",760,47.1822,-20.8177
+"Ambositra","MG22203","Sahatsiho Ambohimanjaka","MG22203450",761,47.0916,-20.2011
+"Ambositra","MG22203","Ambohimitombo I","MG22203491",762,47.3904,-20.6791
+"Ambositra","MG22203","Ambohimitombo II","MG22203492",763,47.4466,-20.6116
+"Ambositra","MG22203","Ambositra I","MG22203010",764,47.2487,-20.5181
+"Ambositra","MG22203","Ambositra I","MG22203010",765,47.2493,-20.5488
+"Ambositra","MG22203","Ambositra II","MG22203030",766,47.2624,-20.5186
+"Ambositra","MG22203","Andina","MG22203090",767,47.156,-20.5253
+"Ambositra","MG22203","Ankazoambo","MG22203050",768,47.2356,-20.5709
+"Ambositra","MG22203","Antoetra","MG22203410",769,47.3175,-20.7754
+"Ambositra","MG22203","Fahizay","MG22203190",770,47.3367,-20.5099
+"Ambositra","MG22203","Ihadilanana","MG22203310",771,47.0362,-20.4549
+"Ambositra","MG22203","Ilaka Centre","MG22203290",772,47.1409,-20.3266
+"Ambositra","MG22203","Imerina Imady","MG22203110",773,47.3209,-20.527
+"Ambositra","MG22203","Ivato","MG22203130",774,47.2004,-20.627
+"Ambositra","MG22203","Ivony Miaramiasa","MG22203070",775,47.2001,-20.5644
+"Ambositra","MG22203","Kianjandrakefina","MG22203230",776,47.3481,-20.6161
+"Ambositra","MG22203","Mahazina Ambohipierenana","MG22203430",777,47.0698,-20.3445
+"Ambositra","MG22203","Marosoa","MG22203170",778,47.3652,-20.5424
+"Ambositra","MG22203","Marosoa","MG22203170",779,47.3702,-20.5231
+"Ambositra","MG22203","Tsarasaotra","MG22203150",780,47.2119,-20.4444
+"Ambositra","MG22203","Vohidahy","MG22203552",781,47.5527,-20.5594
+"Ambositra","MG22203","Ambositra I","MG22203010",782,47.2502,-20.521
+"Ambositra","MG22203","Ambositra I","MG22203010",783,47.2467,-20.5322
+"Ambatofinandrahana","MG22202","Ambatofinandrahana","MG22202010",784,46.801,-20.5537
+"Ambatofinandrahana","MG22202","Ambatomifanongoa","MG22202110",785,46.9164,-20.206
+"Ambatofinandrahana","MG22202","Ambondromisotra","MG22202090",786,46.9045,-20.3241
+"Manandriana","MG22223","Andakatany","MG22223172",787,47.0106,-20.5076
+"Ambatofinandrahana","MG22202","Amborompotsy","MG22202130",788,46.2465,-20.6062
+"Ambatofinandrahana","MG22202","Fenoarivo","MG22202050",789,46.8779,-20.8697
+"Ambatofinandrahana","MG22202","Itremo","MG22202030",790,46.6357,-20.5945
+"Ambatofinandrahana","MG22202","Mandrosonoro","MG22202150",791,46.0004,-20.5912
+"Ambatofinandrahana","MG22202","Mangataboahangy","MG22202170",792,46.1913,-20.2658
+"Ambatofinandrahana","MG22202","Soavina","MG22202070",793,46.9143,-20.3832
+"Fandriana","MG22204","Alakamisy Ambohimahazo","MG22204210",794,47.3836,-20.4744
+"Fandriana","MG22204","Ankarinoro","MG22204130",795,47.4832,-20.3267
+"Fandriana","MG22204","Betsimisotra","MG22204192",796,47.5133,-20.2848
+"Fandriana","MG22204","Fandriana","MG22204010",797,47.3835,-20.2483
+"Fandriana","MG22204","Fiadanana","MG22204070",798,47.4003,-20.3404
+"Fandriana","MG22204","Imito","MG22204230",799,47.3323,-20.4209
+"Fandriana","MG22204","Mahazoarivo","MG22204170",800,47.4128,-20.3965
+"Fandriana","MG22204","Milamaina","MG22204030",801,47.3902,-20.2652
+"Fandriana","MG22204","Miarinavaratra","MG22204191",802,47.5,-20.2167
+"Fandriana","MG22204","Sahamadio Fisakana","MG22204050",803,47.4,-20.2981
+"Fandriana","MG22204","Sandrandahy","MG22204150",804,47.295,-20.3517
+"Fandriana","MG22204","Tatamalaza","MG22204110",805,47.4448,-20.2037
+"Manandriana","MG22223","Ambatomarina","MG22223171",806,47.0203,-20.5715
+"Manandriana","MG22223","Ambohimahazo","MG22223030",807,47.0728,-20.6917
+"Manandriana","MG22223","Ambohimilanja","MG22223070",808,47.0425,-20.702
+"Manandriana","MG22223","Ambohipo","MG22223090",809,47.0123,-20.8448
+"Manandriana","MG22223","Ambovombe Centre","MG22223010",810,47.0769,-20.777
+"Manandriana","MG22223","Anjoma Nandihizana","MG22223050",811,47.119,-20.8345
+"Manandriana","MG22223","Anjoman'ankona","MG22223110",812,47.1053,-20.6552
+"Manandriana","MG22223","Talata Vohimena","MG22223150",813,46.9673,-20.863
+"Manandriana","MG22223","Vinany Andakatanikely","MG22223130",814,47.0637,-20.6419
+"Farafangana","MG25213","Ambalatany","MG25213471",815,47.5861,-22.5368
+"Farafangana","MG25213","Ambohimandroso","MG25213330",816,47.5033,-22.7455
+"Farafangana","MG25213","Amporoforo","MG25213190",817,47.795,-22.4546
+"Farafangana","MG25213","Ankarana Miraihina","MG25213350",818,47.6305,-23.0852
+"Farafangana","MG25213","Anosivelo","MG25213050",819,47.7882,-22.7405
+"Farafangana","MG25213","Anosy Tsararafa","MG25213070",820,47.8098,-22.7241
+"Farafangana","MG25213","Antseranambe","MG25213530",821,47.6463,-23.1704
+"Farafangana","MG25213","Beretra Bevoay","MG25213250",822,47.6038,-22.7223
+"Farafangana","MG25213","Efatsy","MG25213430",823,47.6102,-23.1128
+"Farafangana","MG25213","Etrotroka Atsimo","MG25213390",824,47.5885,-22.8899
+"Farafangana","MG25213","Evato","MG25213370",825,47.6872,-22.6161
+"Farafangana","MG25213","Farafangana","MG25213010",826,47.8311,-22.8228
+"Farafangana","MG25213","Fenoarivo","MG25213510",827,47.5704,-23.1265
+"Befotaka","MG25222","Ranotsara Sud","MG25222051",828,46.6507,-23.7325
+"Midongy-Atsimo","MG25215","Andranolalina","MG25215031",829,46.9911,-23.4713
+"Midongy-Atsimo","MG25215","Ankazovelo","MG25215012",830,47.007,-23.6576
+"Midongy-Atsimo","MG25215","Ivondro","MG25215051",831,46.9578,-23.192
+"Midongy-Atsimo","MG25215","Nosifeno","MG25215011",832,47.0158,-23.5869
+"Midongy-Atsimo","MG25215","Soakibany","MG25215052",833,46.9615,-22.9283
+"Midongy-Atsimo","MG25215","Maliorano","MG25215032",834,47.0444,-23.3093
+"Vangaindrano","MG25214","Ambatolava","MG25214212",835,47.2889,-23.5728
+"Vangaindrano","MG25214","Ambongo","MG25214211",836,47.2532,-23.4292
+"Vangaindrano","MG25214","Amparihy Est","MG25214331",837,47.333,-23.9721
+"Vangaindrano","MG25214","Ampasimalemy","MG25214031",838,47.5644,-23.3335
+"Vangaindrano","MG25214","Ampataka","MG25214132",839,47.463,-23.3542
+"Vangaindrano","MG25214","Anilobe","MG25214112",840,47.4776,-23.1996
+"Antanambao Manampontsy","MG31311","Antanambao Manampontsy","MG31311010",841,48.5749,-19.4832
+"Antanambao Manampontsy","MG31311","Antanandehibe","MG31311070",842,48.3514,-19.6788
+"Antanambao Manampontsy","MG31311","Mahela","MG31311030",843,48.4879,-19.4962
+"Antanambao Manampontsy","MG31311","Manakana","MG31311090",844,48.393,-19.7299
+"Antanambao Manampontsy","MG31311","Saivaza","MG31311050",845,48.5853,-19.6645
+"Mahanoro","MG31308","Ambodibonara","MG31308130",846,48.516,-20.3188
+"Mahanoro","MG31308","Ambodiharina","MG31308050",847,48.7702,-20.0105
+"Mahanoro","MG31308","Ankazotsifantatra","MG31308150",848,48.5033,-19.9862
+"Mahanoro","MG31308","Betsizaraina","MG31308012",849,48.7557,-19.9609
+"Mahanoro","MG31308","Mahanoro","MG31308011",850,48.8084,-19.8969
+"Mahanoro","MG31308","Manjakandriana","MG31308070",851,48.5711,-19.8079
+"Mahanoro","MG31308","Masomeloka","MG31308090",852,48.6262,-20.2849
+"Mahanoro","MG31308","Tsaravinany","MG31308030",853,48.6543,-19.7535
+"Mahanoro","MG31308","Mahanoro","MG31308011",854,48.8061,-19.8946
+"Marolambo","MG31309","Ambalapaiso II","MG31309071",855,47.8886,-20.0223
+"Marolambo","MG31309","Ambatofisaka II","MG31309110",856,47.9041,-20.0671
+"Marolambo","MG31309","Ambohimilanja","MG31309090",857,47.9418,-19.8429
+"Marolambo","MG31309","Ambodinonoka","MG31309191",858,47.8096,-20.3597
+"Marolambo","MG31309","Ambodivoangy","MG31309072",859,47.8613,-20.0177
+"Marolambo","MG31309","Ambohimilanja","MG31309090",860,47.9795,-19.9344
+"Marolambo","MG31309","Andonabe Sud","MG31309050",861,48.1971,-19.9228
+"Marolambo","MG31309","Androrangavola","MG31309131",862,47.92,-20.1595
+"Marolambo","MG31309","Anosiarivo I","MG31309132",863,47.902,-20.2041
+"Maevatanana","MG43404","Maevatanana II","MG43404031",864,47.1326,-17.0455
+"Marolambo","MG31309","Betampona","MG31309031",865,48.0674,-20.2078
+"Mananjary","MG23209","Vohilava","MG23209230",866,48.0077,-21.0778
+"Mananjary","MG23209","Mananjary","MG23209010",867,48.334,-21.233
+"Mananjary","MG23209","Mananjary","MG23209010",868,48.3458,-21.2374
+"Vangaindrano","MG25214","Bevata","MG25214251",869,47.2766,-23.309
+"Vangaindrano","MG25214","Fenoambany","MG25214290",870,47.5491,-23.8267
+"Vangaindrano","MG25214","Iara","MG25214230",871,47.4423,-23.0813
+"Vangaindrano","MG25214","Isahara","MG25214311",872,47.3559,-23.7214
+"Vangaindrano","MG25214","Sandravinany","MG25214332",873,47.4406,-24.0393
+"Vangaindrano","MG25214","Karimbary","MG25214252",874,47.2533,-23.2261
+"Vangaindrano","MG25214","Lohafary","MG25214131",875,47.4756,-23.2638
+"Vangaindrano","MG25214","Lopary","MG25214091",876,47.6708,-23.2011
+"Vangaindrano","MG25214","Manambondro","MG25214270",877,47.5447,-23.8006
+"Vangaindrano","MG25214","Marokibo","MG25214172",878,47.5504,-23.6814
+"Vangaindrano","MG25214","Masianaka","MG25214152",879,47.5943,-23.5956
+"Vangaindrano","MG25214","Matanga","MG25214151",880,47.5523,-23.5231
+"Vangaindrano","MG25214","Ranomena","MG25214190",881,47.2672,-23.4245
+"Vangaindrano","MG25214","Soamanova","MG25214070",882,47.602,-23.2972
+"Vangaindrano","MG25214","Tsianofana","MG25214032",883,47.5444,-23.3801
+"Vangaindrano","MG25214","Tsiately","MG25214050",884,47.7025,-23.3172
+"Vangaindrano","MG25214","Isahara","MG25214311",885,47.3359,-23.6575
+"Vangaindrano","MG25214","Vohipaho","MG25214171",886,47.413,-23.6274
+"Vangaindrano","MG25214","Vohipaho","MG25214171",887,47.5085,-23.5462
+"Vangaindrano","MG25214","Vohitrambo","MG25214111",888,47.5283,-23.2687
+"Vondrozo","MG25217","Ambohimana","MG25217090",889,47.3114,-22.5875
+"Vondrozo","MG25217","Anandravy","MG25217013",890,47.3789,-22.9154
+"Vondrozo","MG25217","Andakana","MG25217170",891,47.4575,-22.5265
+"Vondrozo","MG25217","Antokonala","MG25217072",892,47.3984,-23.0044
+"Vondrozo","MG25217","Iamonta","MG25217052",893,47.4175,-22.7239
+"Vondrozo","MG25217","Ivato","MG25217130",894,47.2766,-22.4341
+"Vondrozo","MG25217","Karianga","MG25217111",895,47.3724,-22.4275
+"Vondrozo","MG25217","Mahatsinjo","MG25217030",896,47.4535,-22.8185
+"Vondrozo","MG25217","Mahatsinjo","MG25217030",897,47.4491,-22.7336
+"Vondrozo","MG25217","Mahavelo","MG25217150",898,47.3729,-22.3713
+"Vondrozo","MG25217","Ambohimana","MG25217090",899,47.306,-22.6164
+"Vondrozo","MG25217","Manambidala","MG25217012",900,47.2711,-22.733
+"Vondrozo","MG25217","Manato","MG25217112",901,47.4878,-22.4112
+"Vondrozo","MG25217","Moroteza","MG25217191",902,47.193,-22.2881
+"Vondrozo","MG25217","Vohiboreka","MG25217192",903,47.2919,-22.3269
+"Vondrozo","MG25217","Vohimary","MG25217071",904,47.283,-22.9769
+"Vondrozo","MG25217","Vondrozo","MG25217011",905,47.3219,-22.8211
+"Ihosy","MG24216","Ambatolahy","MG24216131",906,45.838,-22.487
+"Ihosy","MG24216","Ambia","MG24216032",907,46.1912,-22.3678
+"Ihosy","MG24216","Analaliry","MG24216090",908,46.2291,-22.6136
+"Ihosy","MG24216","Analavoka","MG24216210",909,46.4881,-22.544
+"Ihosy","MG24216","Andiolava","MG24216192",910,45.6238,-22.5025
+"Ihosy","MG24216","Ankily","MG24216031",911,46.0995,-22.3862
+"Ihosy","MG24216","Ihosy","MG24216010",912,46.1378,-22.4044
+"Ihosy","MG24216","Ilakaka","MG24216232",913,45.3472,-22.7681
+"Ihosy","MG24216","Menamaty Iloto","MG24216250",914,45.3823,-21.9624
+"Ihosy","MG24216","Irina","MG24216050",915,46.102,-22.4287
+"Ihosy","MG24216","Mahasoa","MG24216110",916,46.0944,-22.1966
+"Ihosy","MG24216","Ranohira","MG24216231",917,45.4129,-22.5579
+"Ihosy","MG24216","Ranohira","MG24216231",918,45.2236,-22.695
+"Ihosy","MG24216","Sahambano","MG24216070",919,46.2812,-22.4884
+"Ihosy","MG24216","Sakalalina","MG24216170",920,46.4817,-22.3405
+"Ihosy","MG24216","Satrokala","MG24216191",921,45.7094,-22.3331
+"Ihosy","MG24216","Soamatasy","MG24216132",922,46.002,-22.668
+"Ihosy","MG24216","Zazafotsy","MG24216151",923,46.363,-22.2092
+"Iakora","MG24221","Begogo","MG24221050",924,46.7064,-23.4915
+"Iakora","MG24221","Iakora","MG24221010",925,46.6601,-23.1005
+"Iakora","MG24221","Ranotsara Nord","MG24221030",926,46.5977,-22.804
+"Ivohibe","MG24218","Antambohobe","MG24218030",927,46.7749,-22.311
+"Ivohibe","MG24218","Ivohibe","MG24218010",928,46.8847,-22.4835
+"Ivohibe","MG24218","Ivongo","MG24218070",929,47.0468,-22.4795
+"Ivohibe","MG24218","Maropaika","MG24218050",930,46.9753,-22.7083
+"Manakara Atsimo","MG23210","Ambahatrazo","MG23210153",931,47.8989,-21.8584
+"Manakara Atsimo","MG23210","Ambahive","MG23210231",932,47.7409,-22.1906
+"Manakara Atsimo","MG23210","Ambalaroka","MG23210233",933,47.7304,-22.1518
+"Manakara Atsimo","MG23210","Ambalavero","MG23210410",934,47.804,-21.8117
+"Manakara Atsimo","MG23210","Ambandrika","MG23210232",935,47.7245,-22.2167
+"Manakara Atsimo","MG23210","Ambila","MG23210070",936,47.9657,-22.0025
+"Manakara Atsimo","MG23210","Amboanjo","MG23210171",937,47.8573,-22.0067
+"Manakara Atsimo","MG23210","Amborondra","MG23210430",938,47.7768,-21.9151
+"Manakara Atsimo","MG23210","Ambotaka","MG23210312",939,48.0459,-21.7526
+"Manakara Atsimo","MG23210","Ampasimboraka","MG23210532",940,47.6363,-21.67
+"Manakara Atsimo","MG23210","Ampasimpotsy Sud","MG23210490",941,47.7561,-21.9413
+"Manakara Atsimo","MG23210","Analavory","MG23210272",942,47.9598,-21.7151
+"Manakara Atsimo","MG23210","Anorombato","MG23210172",943,47.7909,-22.0188
+"Manakara Atsimo","MG23210","Anosiala","MG23210052",944,48.0008,-22.0424
+"Manakara Atsimo","MG23210","Anteza","MG23210510",945,47.8712,-21.669
+"Manakara Atsimo","MG23210","Bekatra","MG23210291",946,47.7199,-22.1104
+"Manakara Atsimo","MG23210","Fenomby","MG23210390",947,47.774,-21.7677
+"Manakara Atsimo","MG23210","Vatana","MG23210212",948,47.7458,-22.2343
+"Manakara Atsimo","MG23210","Kianjanomby","MG23210472",949,47.8055,-21.7369
+"Manakara Atsimo","MG23210","Lokomby","MG23210211",950,47.7466,-22.1841
+"Manakara Atsimo","MG23210","Mahabako","MG23210451",951,47.7164,-21.7532
+"Manakara Atsimo","MG23210","Mahamaibe","MG23210471",952,47.891,-21.735
+"Manakara Atsimo","MG23210","Manakara","MG23210010",953,48.0124,-22.1359
+"Manakara Atsimo","MG23210","Mangatsiotra","MG23210032",954,47.9237,-22.1948
+"Manakara Atsimo","MG23210","Marofarihy","MG23210051",955,47.9632,-22.0299
+"Manakara Atsimo","MG23210","Mavorano","MG23210330",956,47.9415,-21.7796
+"Manakara Atsimo","MG23210","Mitanty","MG23210271",957,47.9994,-21.7287
+"Manakara Atsimo","MG23210","Mizilo Gara","MG23210110",958,47.9194,-21.9269
+"Manakara Atsimo","MG23210","Nihaonana","MG23210313",959,47.9944,-21.7425
+"Manakara Atsimo","MG23210","Onilahy","MG23210452",960,47.6292,-21.7073
+"Manakara Atsimo","MG23210","Sahanambohitra","MG23210152",961,47.8019,-21.8671
+"Manakara Atsimo","MG23210","Saharefo","MG23210531",962,47.6875,-21.6716
+"Manakara Atsimo","MG23210","Sahasinaka","MG23210151",963,47.8332,-21.8103
+"Manakara Atsimo","MG23210","Sakoana","MG23210213",964,47.8131,-22.2079
+"Manakara Atsimo","MG23210","Sorombo","MG23210090",965,47.8643,-22.1436
+"Manakara Atsimo","MG23210","Tataho","MG23210031",966,47.9734,-22.137
+"Manakara Atsimo","MG23210","Vinanitelo","MG23210292",967,47.7381,-22.0157
+"Manakara Atsimo","MG23210","Vohilava","MG23210370",968,47.8798,-21.7842
+"Manakara Atsimo","MG23210","Vohimanitra","MG23210250",969,47.6967,-21.704
+"Manakara Atsimo","MG23210","Vohimasina Nord","MG23210351",970,48.1136,-21.7728
+"Manakara Atsimo","MG23210","Vohimasina Sud","MG23210352",971,48.1246,-21.7991
+"Manakara Atsimo","MG23210","Vohimasy","MG23210190",972,47.7938,-22.1054
+"Ifanadiana","MG23206","Ambohimanga Du Sud","MG23206130",973,47.593,-20.8771
+"Ifanadiana","MG23206","Ambohimiera","MG23206090",974,47.5099,-21.0534
+"Ifanadiana","MG23206","Analampasina","MG23206150",975,47.5444,-20.8374
+"Ifanadiana","MG23206","Androrangavola","MG23206071",976,47.7178,-21.5029
+"Ifanadiana","MG23206","Antaretra","MG23206012",977,47.778,-21.3559
+"Ifanadiana","MG23206","Antsindra","MG23206110",978,47.7319,-20.9879
+"Ifanadiana","MG23206","Fasintsara","MG23206170",979,47.6922,-20.7176
+"Ifanadiana","MG23206","Ifanadiana","MG23206011",980,47.6375,-21.3016
+"Ifanadiana","MG23206","Kelilalina","MG23206052",981,47.5537,-21.2875
+"Ifanadiana","MG23206","Maroharatra","MG23206190",982,47.7691,-20.7326
+"Ifanadiana","MG23206","Marotoko","MG23206072",983,47.7613,-21.5947
+"Ifanadiana","MG23206","Ranomafana","MG23206051",984,47.4552,-21.2582
+"Ifanadiana","MG23206","Tsaratanana","MG23206030",985,47.6374,-21.1773
+"Maevatanana","MG43404","Ambalanjanakomby","MG43404131",986,47.0051,-16.7572
+"Ikongo","MG23211","Ambatofotsy","MG23211031",987,47.4907,-21.7567
+"Ikongo","MG23211","Ambinanitromby","MG23211052",988,47.5229,-21.6758
+"Ikongo","MG23211","Ambohimisafy","MG23211092",989,47.5363,-21.4805
+"Ikongo","MG23211","Ambolomadinika","MG23211012",990,47.42,-21.9234
+"Ikongo","MG23211","Ankarimbelo","MG23211111",991,47.3293,-22.1337
+"Ikongo","MG23211","Belemoka","MG23211032",992,47.602,-21.8249
+"Ikongo","MG23211","Ifanirea","MG23211071",993,47.4767,-22.1906
+"Ikongo","MG23211","Kalafotsy","MG23211113",994,47.3151,-22.2913
+"Ikongo","MG23211","Manampatrana","MG23211051",995,47.582,-21.665
+"Ikongo","MG23211","Maromiandra","MG23211033",996,47.5211,-21.706
+"Ikongo","MG23211","Sahalanona","MG23211073",997,47.6202,-22.0556
+"Ikongo","MG23211","Tanakambana","MG23211072",998,47.4782,-22.0729
+"Ikongo","MG23211","Tolongoina","MG23211091",999,47.5195,-21.5614
+"Ikongo","MG23211","Antodinga","MG23211112",1000,47.415,-22.1495
+"Mananjary","MG23209","Ambalahosy Nord","MG23209370",1001,47.8782,-21.2982
+"Mananjary","MG23209","Ambodinonoka","MG23209391",1002,47.8921,-20.979
+"Mananjary","MG23209","Ambohimiarina II","MG23209190",1003,48.0114,-21.374
+"Mananjary","MG23209","Ambohinihaonana","MG23209310",1004,47.9104,-21.1964
+"Mananjary","MG23209","Ambohitsara Est","MG23209252",1005,48.4619,-20.8674
+"Mananjary","MG23209","Andonabe","MG23209290",1006,47.9539,-21.4611
+"Mananjary","MG23209","Andranambolava","MG23209210",1007,48.2751,-20.9061
+"Mananjary","MG23209","Andranomavo","MG23209332",1008,48.2023,-20.9305
+"Mananjary","MG23209","Ankatafana","MG23209032",1009,48.2797,-21.4151
+"Mananjary","MG23209","Anosimparihy","MG23209450",1010,47.9933,-21.5052
+"Mananjary","MG23209","Antsenavolo","MG23209150",1011,48.0495,-21.392
+"Mananjary","MG23209","Kianjavato","MG23209410",1012,47.8659,-21.3808
+"Mananjary","MG23209","Mahatsara Sud","MG23209050",1013,48.2933,-21.1389
+"Mananjary","MG23209","Mahavoky Nord","MG23209270",1014,48.3013,-20.8468
+"Mananjary","MG23209","Mahela","MG23209251",1015,48.4398,-20.9683
+"Mananjary","MG23209","Manakana Nord","MG23209470",1016,47.8488,-21.3249
+"Mananjary","MG23209","Mananjary","MG23209010",1017,48.3474,-21.2343
+"Mananjary","MG23209","Marofototra","MG23209331",1018,48.1542,-20.8529
+"Mananjary","MG23209","Marokarima","MG23209110",1019,48.1395,-21.2216
+"Mananjary","MG23209","Marosangy","MG23209170",1020,48.2851,-21.0063
+"Mananjary","MG23209","Morafeno","MG23209130",1021,48.1803,-21.0975
+"Mananjary","MG23209","Namorona","MG23209490",1022,48.1838,-21.6389
+"Mananjary","MG23209","Sandrohy","MG23209430",1023,47.8952,-21.5988
+"Mananjary","MG23209","Tsaravary","MG23209031",1024,48.3005,-21.2465
+"Mananjary","MG23209","Tsiatosika","MG23209070",1025,48.2264,-21.185
+"Mananjary","MG23209","Vatohandrina","MG23209350",1026,47.8425,-21.5534
+"Port-Berge (Boriziny-Vaovao)","MG42409","Ambodisakoana","MG42409112",1027,47.9692,-15.3926
+"Port-Berge (Boriziny-Vaovao)","MG42409","Ambodivongo","MG42409172",1028,48.2197,-15.6593
+"Port-Berge (Boriziny-Vaovao)","MG42409","Amparihy","MG42409092",1029,47.7171,-15.7516
+"Port-Berge (Boriziny-Vaovao)","MG42409","Andranomeva","MG42409091",1030,47.7637,-15.7955
+"Port-Berge (Boriziny-Vaovao)","MG42409","Leanja","MG42409111",1031,47.9151,-15.5431
+"Port-Berge (Boriziny-Vaovao)","MG42409","Maevaranohely","MG42409132",1032,47.1898,-15.8843
+"Port-Berge (Boriziny-Vaovao)","MG42409","Marovato","MG42409150",1033,48.0767,-15.793
+"Port-Berge (Boriziny-Vaovao)","MG42409","Port Berge","MG42409010",1034,47.6259,-15.5646
+"Port-Berge (Boriziny-Vaovao)","MG42409","Tsarahasina","MG42409050",1035,47.5697,-15.7599
+"Port-Berge (Boriziny-Vaovao)","MG42409","Tsaratanana I","MG42409032",1036,47.8495,-15.6414
+"Port-Berge (Boriziny-Vaovao)","MG42409","Tsiningia","MG42409070",1037,47.4591,-15.4813
+"Port-Berge (Boriziny-Vaovao)","MG42409","Tsinjomitondraka","MG42409131",1038,47.1199,-15.66
+"Mampikony","MG42423","Ambodihazoambo","MG42423112",1039,47.9161,-16.047
+"Mampikony","MG42423","Ambohitoaka","MG42423051",1040,47.6538,-16.0066
+"Mampikony","MG42423","Ampasimatera","MG42423111",1041,47.7362,-15.9378
+"Mampikony","MG42423","Bekoratsaka","MG42423071",1042,47.4921,-16.1092
+"Mampikony","MG42423","Betaramahamay","MG42423073",1043,47.4826,-15.9498
+"Mampikony","MG42423","Komajia","MG42423090",1044,47.7913,-16.1992
+"Mampikony","MG42423","Malakialina","MG42423072",1045,47.4202,-16.2786
+"Mampikony","MG42423","Mampikony I","MG42423010",1046,47.6469,-16.0933
+"Mampikony","MG42423","Mampikony II","MG42423030",1047,47.5431,-16.284
+"Toamasina I","MG31301","Ankirihiry","MG31301005",1048,49.4028,-18.1299
+"Toamasina I","MG31301","Ankirihiry","MG31301005",1049,49.3942,-18.1419
+"Toamasina I","MG31301","Ambodimanga","MG31301001",1050,49.4083,-18.1537
+"Toamasina I","MG31301","Anjoma","MG31301002",1051,49.3927,-18.1735
+"Toamasina I","MG31301","Tanambao V","MG31301004",1052,49.3995,-18.146
+"Toamasina II","MG31310","Ambodilazana","MG31310150",1053,49.1791,-18.1286
+"Nosy-Varika","MG23207","Ambahy","MG23207031",1054,48.4793,-20.7754
+"Nosy-Varika","MG23207","Ambakobe","MG23207113",1055,48.0875,-20.6877
+"Nosy-Varika","MG23207","Ambodiara","MG23207192",1056,48.0334,-20.6262
+"Nosy-Varika","MG23207","Ambodilafa","MG23207151",1057,48.1804,-20.5067
+"Nosy-Varika","MG23207","Ambodirian'i Sahafary","MG23207052",1058,48.4263,-20.5014
+"Nosy-Varika","MG23207","Ampasinambo","MG23207171",1059,47.9933,-20.5252
+"Nosy-Varika","MG23207","Andara","MG23207032",1060,48.4313,-20.8425
+"Nosy-Varika","MG23207","Androrangavola","MG23207152",1061,48.2392,-20.5285
+"Nosy-Varika","MG23207","Angodongodona","MG23207173",1062,47.8348,-20.57
+"Nosy-Varika","MG23207","Antanambao","MG23207172",1063,47.8794,-20.5511
+"Nosy-Varika","MG23207","Befody","MG23207191",1064,47.937,-20.7789
+"Nosy-Varika","MG23207","Fiadanana","MG23207051",1065,48.3808,-20.4396
+"Nosy-Varika","MG23207","Nosy Varika","MG23207010",1066,48.5352,-20.5879
+"Nosy-Varika","MG23207","Sahavato","MG23207070",1067,48.3279,-20.5977
+"Nosy-Varika","MG23207","Soavina","MG23207130",1068,48.2889,-20.3873
+"Nosy-Varika","MG23207","Vohidroa","MG23207112",1069,48.2075,-20.695
+"Nosy-Varika","MG23207","Ambahy","MG23207031",1070,48.452,-20.7397
+"Nosy-Varika","MG23207","Vohitrandriana","MG23207111",1071,48.2681,-20.7611
+"Vohipeno","MG23212","Andemaka","MG23212190",1072,47.7515,-22.2792
+"Vohipeno","MG23212","Ankarimbary","MG23212090",1073,47.8044,-22.3002
+"Vohipeno","MG23212","Anoloka","MG23212053",1074,47.893,-22.3378
+"Vohipeno","MG23212","Mahabo","MG23212070",1075,47.7824,-22.3534
+"Vohipeno","MG23212","Ilakatra","MG23212230",1076,47.6716,-22.3469
+"Vohipeno","MG23212","Ivato","MG23212051",1077,47.8681,-22.3865
+"Vohipeno","MG23212","Lanivo","MG23212110",1078,47.8138,-22.2951
+"Vohipeno","MG23212","Mahabo","MG23212070",1079,47.8007,-22.3244
+"Vohipeno","MG23212","Mahasoabe","MG23212150",1080,47.7688,-22.2843
+"Vohipeno","MG23212","Mahazoarivo","MG23212270",1081,47.5587,-22.3383
+"Vohipeno","MG23212","Nato","MG23212130",1082,47.8446,-22.3003
+"Vohipeno","MG23212","Onjatsy","MG23212171",1083,47.8976,-22.4064
+"Vohipeno","MG23212","Sahalava","MG23212250",1084,47.6468,-22.2675
+"Vohipeno","MG23212","Anoloka","MG23212053",1085,47.9035,-22.3585
+"Vohipeno","MG23212","Vohilany","MG23212172",1086,47.8834,-22.4073
+"Vohipeno","MG23212","Vohindava","MG23212032",1087,47.8657,-22.4153
+"Vohipeno","MG23212","Vohipeno","MG23212010",1088,47.8388,-22.3562
+"Vohipeno","MG23212","Vohitrindry","MG23212031",1089,47.8318,-22.3806
+"Mahajanga I","MG41401","Mahajanga","MG41401001",1090,46.3185,-15.7146
+"Mahajanga I","MG41401","Mahabibo","MG41401002",1091,46.3385,-15.7143
+"Mahajanga I","MG41401","Mahabibo","MG41401002",1092,46.3409,-15.671
+"Mahajanga I","MG41401","Mahajanga","MG41401001",1093,46.3128,-15.7193
+"Mahajanga I","MG41401","Mahajanga","MG41401001",1094,46.3162,-15.7066
+"Mahajanga I","MG41401","Mahajanga","MG41401001",1095,46.3169,-15.7234
+"Mahajanga I","MG41401","Mahabibo","MG41401002",1096,46.3302,-15.7066
+"Mahajanga I","MG41401","Mahajanga","MG41401001",1097,46.3141,-15.7196
+"Mahajanga I","MG41401","Mahajanga","MG41401001",1098,46.3176,-15.7152
+"Mahajanga I","MG41401","Mahabibo","MG41401002",1099,46.3263,-15.71
+"Mahajanga I","MG41401","Mahajanga","MG41401001",1100,46.3162,-15.7132
+"Mahajanga II","MG41415","Ambalabe Befanjava","MG41415092",1101,46.9515,-15.7754
+"Mahajanga II","MG41415","Ambalakida","MG41415031",1102,46.7136,-15.8154
+"Mahajanga II","MG41415","Andranoboka","MG41415072",1103,46.8892,-15.6348
+"Mahajanga II","MG41415","Bekobay","MG41415071",1104,46.9266,-15.8184
+"Mahajanga II","MG41415","Betsako","MG41415032",1105,46.5325,-15.5994
+"Mahajanga II","MG41415","Belobaka","MG41415011",1106,46.3943,-15.7048
+"Mahajanga II","MG41415","Boanamary","MG41415012",1107,46.3202,-15.835
+"Mahajanga II","MG41415","Mahajamba Usine","MG41415091",1108,47.1069,-15.7262
+"Mahajanga II","MG41415","Mariarano","MG41415050",1109,46.6947,-15.4818
+"Ambato Boeni","MG41405","Ankirihitra","MG41405130",1110,46.5827,-16.6125
+"Ambato Boeni","MG41405","Ambato Ambarimay","MG41405019",1111,46.7185,-16.4687
+"Ambato Boeni","MG41405","Ambondromamy","MG41405112",1112,47.1578,-16.4365
+"Ambato Boeni","MG41405","Andranofasika","MG41405052",1113,46.8467,-16.3365
+"Ambato Boeni","MG41405","Andranomamy","MG41405150",1114,47.1241,-16.5378
+"Ambato Boeni","MG41405","Anjiajia","MG41405090",1115,46.9498,-16.4609
+"Ambato Boeni","MG41405","Ankijabe","MG41405051",1116,46.7656,-16.4136
+"Ambato Boeni","MG41405","Ankirihitra","MG41405130",1117,46.443,-16.7726
+"Ambato Boeni","MG41405","Madirovalo","MG41405070",1118,46.5467,-16.4439
+"Ambato Boeni","MG41405","Manerinerina","MG41405170",1119,47.297,-16.2594
+"Ambato Boeni","MG41405","Sitampiky","MG41405190",1120,46.1078,-16.6756
+"Ambato Boeni","MG41405","Tsaramandroso","MG41405111",1121,47.0465,-16.3639
+"Ambato Boeni","MG41405","Andranofasika","MG41405052",1122,46.8455,-16.3362
+"Marovoay","MG41406","Marovoay Banlieue","MG41406031",1123,46.6269,-15.9945
+"Marovoay","MG41406","Marovoay Ville","MG41406010",1124,46.6431,-16.1044
+"Marovoay","MG41406","Tsararano","MG41406070",1125,46.6721,-16.1779
+"Marovoay","MG41406","Marovoay Ville","MG41406010",1126,46.7005,-16.0986
+"Mitsinjo","MG41407","Ambarimaninga","MG41407092",1127,46.0037,-16.4952
+"Mitsinjo","MG41407","Antongomena Bevary","MG41407030",1128,45.9189,-15.9239
+"Mitsinjo","MG41407","Antseza","MG41407012",1129,45.8623,-16.2148
+"Mitsinjo","MG41407","Bekipay","MG41407091",1130,46.1257,-16.2533
+"Mitsinjo","MG41407","Katsepy","MG41407070",1131,46.2377,-15.7637
+"Mitsinjo","MG41407","Mitsinjo","MG41407011",1132,45.8714,-16.0087
+"Mitsinjo","MG41407","Mitsinjo","MG41407011",1133,45.8687,-16.0117
+"Soalala","MG41403","Ambohipaky","MG41403030",1134,44.9744,-16.4234
+"Soalala","MG41403","Andranomavo","MG41403050",1135,45.5639,-16.5787
+"Soalala","MG41403","Andranomavo","MG41403050",1136,45.4349,-16.4938
+"Soalala","MG41403","Soalala","MG41403010",1137,45.3267,-16.1013
+"Marovoay","MG41406","Ambolomoty","MG41406051",1138,46.6983,-16.1601
+"Marovoay","MG41406","Ankaraobato","MG41406158",1139,46.1884,-16.183
+"Marovoay","MG41406","Ankazomborona","MG41406090",1140,46.7571,-16.114
+"Marovoay","MG41406","Anosinalainolona","MG41406033",1141,46.6215,-16.1838
+"Marovoay","MG41406","Antanambao Andranolava","MG41406032",1142,46.6945,-15.9955
+"Marovoay","MG41406","Antanimasaka","MG41406112",1143,46.5135,-16.2345
+"Marovoay","MG41406","Antanimasaka","MG41406112",1144,46.539,-16.2284
+"Marovoay","MG41406","Bemaharivo","MG41406130",1145,46.4004,-16.1436
+"Marovoay","MG41406","Manaratsandry","MG41406111",1146,46.5066,-16.1892
+"Marovoay","MG41406","Marovoay","MG41406052",1147,46.7544,-16.1821
+"Fenerive Est","MG32305","Ambatoharanana","MG32305090",1148,49.3089,-17.2405
+"Fenerive Est","MG32305","Ampasimbe Manantsatrana","MG32305150",1149,49.4799,-17.0945
+"Fenerive Est","MG32305","Ampasina Maningory","MG32305070",1150,49.415,-17.2137
+"Fenerive Est","MG32305","Antsiatsiaka","MG32305210",1151,49.3736,-17.0481
+"Fenerive Est","MG32305","Fenerive Est","MG32305010",1152,49.412,-17.3833
+"Fenerive Est","MG32305","Mahambo","MG32305050",1153,49.4537,-17.4868
+"Fenerive Est","MG32305","Miorimivalana","MG32305170",1154,49.1666,-17.1686
+"Fenerive Est","MG32305","Saranambana","MG32305130",1155,49.1723,-17.2723
+"Fenerive Est","MG32305","Vohilengo","MG32305110",1156,49.2659,-17.289
+"Fenerive Est","MG32305","Vohipeno","MG32305190",1157,49.295,-17.1678
+"Mananara-Avaratra","MG32304","Ambatoharanana","MG32304093",1158,49.5819,-16.4266
+"Mananara-Avaratra","MG32304","Ambodiampana","MG32304070",1159,49.6148,-16.1028
+"Mananara-Avaratra","MG32304","Ambodivoanio","MG32304012",1160,49.6589,-16.183
+"Mananara-Avaratra","MG32304","Antanambaobe","MG32304031",1161,49.6684,-16.2621
+"Mananara-Avaratra","MG32304","Antanambe","MG32304110",1162,49.8487,-16.4332
+"Sainte Marie","MG32302","Sainte Marie","MG32302019",1163,49.9718,-16.7668
+"Sainte Marie","MG32302","Sainte Marie","MG32302019",1164,49.9143,-16.8558
+"Soanierana Ivongo","MG32318","Andapafito","MG32318070",1165,49.3806,-16.9109
+"Soanierana Ivongo","MG32318","Ambahoabe","MG32318090",1166,49.5054,-16.7712
+"Soanierana Ivongo","MG32318","Ambodiampana","MG32318050",1167,49.5689,-16.823
+"Soanierana Ivongo","MG32318","Antanifotsy","MG32318030",1168,49.6135,-16.875
+"Soanierana Ivongo","MG32318","Fotsialanana","MG32318012",1169,49.484,-16.9222
+"Soanierana Ivongo","MG32318","Manompana","MG32318110",1170,49.7429,-16.6899
+"Vavatenina","MG32315","Ambatoharanana","MG32315092",1171,49.119,-17.3437
+"Vavatenina","MG32315","Ambohibe","MG32315050",1172,49.1085,-17.4365
+"Vavatenina","MG32315","Ampasimazava","MG32315070",1173,49.2989,-17.4085
+"Vavatenina","MG32315","Andasibe","MG32315110",1174,49.0763,-17.3584
+"Vavatenina","MG32315","Anjahambe","MG32315091",1175,49.1464,-17.3848
+"Vavatenina","MG32315","Maromitety","MG32315030",1176,49.2851,-17.4383
+"Vavatenina","MG32315","Miarinarivo","MG32315130",1177,49.1733,-17.6437
+"Vavatenina","MG32315","Sahatavy","MG32315150",1178,48.9963,-17.4521
+"Vavatenina","MG32315","Vavatenina","MG32315010",1179,49.2008,-17.4662
+"Morafenobe","MG44422","Beravina","MG44422050",1180,45.2273,-18.1783
+"Antsohihy","MG42413","Ambodimadiro","MG42413171",1181,48.0243,-14.5471
+"Antsohihy","MG42413","Ambodimanary","MG42413130",1182,47.9992,-15.2291
+"Antsohihy","MG42413","Ambodimandresy","MG42413090",1183,48.0954,-14.7863
+"Antsohihy","MG42413","Ampandriankilandy","MG42413051",1184,48.0669,-14.9383
+"Antsohihy","MG42413","Anahidrano","MG42413070",1185,47.8902,-15.0175
+"Antsohihy","MG42413","Andreba","MG42413172",1186,48.1891,-14.5964
+"Antsohihy","MG42413","Anjalazala","MG42413052",1187,48.1744,-15.0132
+"Antsohihy","MG42413","Anjiamangirana","MG42413110",1188,47.7724,-15.1695
+"Antsohihy","MG42413","Ankerika","MG42413030",1189,47.8753,-14.9587
+"Mananara-Avaratra","MG32304","Manambolosy","MG32304050",1190,49.6715,-16.0409
+"Mananara-Avaratra","MG32304","Mananara Avaratra","MG32304011",1191,49.768,-16.17
+"Mananara-Avaratra","MG32304","Sandrakatsy","MG32304091",1192,49.6162,-16.3421
+"Mananara-Avaratra","MG32304","Saromaona","MG32304130",1193,49.329,-16.159
+"Mananara-Avaratra","MG32304","Antanananivo","MG32304032",1194,49.7196,-16.2844
+"Mananara-Avaratra","MG32304","Imorona","MG32304013",1195,49.8343,-16.1902
+"Maroantsetra","MG32303","Ambinanitelo","MG32303090",1196,49.5829,-15.3503
+"Maroantsetra","MG32303","Andranofotsy","MG32303051",1197,49.8201,-15.4328
+"Maroantsetra","MG32303","Androndrono","MG32303153",1198,49.1996,-15.7656
+"Maroantsetra","MG32303","Anjahana","MG32303111",1199,49.8665,-15.4121
+"Maevatanana","MG43404","Ambalajia","MG43404112",1200,46.9284,-16.7856
+"Maevatanana","MG43404","Ambalanjanakomby","MG43404131",1201,47.0711,-16.6994
+"Maevatanana","MG43404","Andriba","MG43404171",1202,46.9299,-17.6044
+"Maevatanana","MG43404","Antanimbary","MG43404092",1203,46.855,-17.1851
+"Maevatanana","MG43404","Antsiafabositra","MG43404091",1204,46.9552,-17.3082
+"Maevatanana","MG43404","Bemokotra","MG43404050",1205,46.6982,-17.06
+"Maevatanana","MG43404","Maevatanana II","MG43404031",1206,46.8459,-16.9007
+"Maevatanana","MG43404","Madiromirafy","MG43404192",1207,46.8419,-16.8411
+"Maevatanana","MG43404","Maevatanana I","MG43404010",1208,46.8226,-16.9624
+"Maevatanana","MG43404","Mahazoma","MG43404070",1209,46.5705,-17.1695
+"Maevatanana","MG43404","Mangabe","MG43404191",1210,46.8229,-16.7232
+"Kandreho","MG43416","Behazomaty","MG43416013",1211,46.3397,-17.4361
+"Maevatanana","MG43404","Morafeno","MG43404173",1212,47.2333,-17.6447
+"Kandreho","MG43416","Andasibe","MG43416052",1213,46.2443,-17.6605
+"Soalala","MG41403","Andranomavo","MG41403050",1214,45.646,-17.2785
+"Kandreho","MG43416","Behazomaty","MG43416013",1215,46.278,-17.4661
+"Kandreho","MG43416","Betaimboay","MG43416051",1216,46.135,-17.7671
+"Kandreho","MG43416","Kandreho","MG43416011",1217,46.0966,-17.4856
+"Kandreho","MG43416","Ambaliha","MG43416012",1218,46.005,-17.4508
+"Tsaratanana","MG43408","Ambakireny","MG43408170",1219,47.8403,-17.629
+"Tsaratanana","MG43408","Ampandrana","MG43408130",1220,47.8423,-17.312
+"Tsaratanana","MG43408","Bekapaika","MG43408030",1221,47.5579,-16.7472
+"Tsaratanana","MG43408","Betrandraka","MG43408070",1222,47.5522,-17.0353
+"Tsaratanana","MG43408","Brieville","MG43408190",1223,47.6477,-17.4775
+"Tsaratanana","MG43408","Sakoamadinika","MG43408210",1224,48.0362,-17.1992
+"Tsaratanana","MG43408","Sarobaratra","MG43408110",1225,47.3274,-16.4635
+"Tsaratanana","MG43408","Tsararova","MG43408050",1226,47.6523,-16.7131
+"Tsaratanana","MG43408","Tsaratanana","MG43408010",1227,47.6532,-16.7967
+"Tsaratanana","MG43408","Keliloha","MG43408090",1228,47.6656,-17.2682
+"Tsaratanana","MG43408","Manakana","MG43408230",1229,47.4611,-17.761
+"Maintirano","MG44421","Andabotoka","MG44421050",1230,44.1308,-18.1091
+"Maintirano","MG44421","Andranovao","MG44421194",1231,44.06,-17.6135
+"Maintirano","MG44421","Andrea","MG44421090",1232,44.122,-17.8931
+"Maintirano","MG44421","Ankisatra","MG44421110",1233,44.1523,-18.2242
+"Maintirano","MG44421","Antsaidoha Bebao","MG44421210",1234,44.4365,-17.4342
+"Maintirano","MG44421","Antsondrodava","MG44421150",1235,44.3902,-18.4519
+"Maintirano","MG44421","Bebaboky Sud","MG44421232",1236,44.4668,-17.1364
+"Maintirano","MG44421","Belitsaky","MG44421170",1237,44.4299,-17.9816
+"Maintirano","MG44421","Berevo/ranobe","MG44421231",1238,44.2933,-17.2219
+"Maintirano","MG44421","Betanatanana","MG44421070",1239,44.1426,-18.1678
+"Maintirano","MG44421","Mafaijijo","MG44421030",1240,44.0845,-18.0567
+"Maintirano","MG44421","Maintirano","MG44421010",1241,44.0257,-18.0587
+"Maintirano","MG44421","Marohazo","MG44421130",1242,44.33,-17.669
+"Maintirano","MG44421","Maromavo","MG44421193",1243,44.2993,-17.5794
+"Maintirano","MG44421","Tambohorano","MG44421191",1244,43.9542,-17.5111
+"Maintirano","MG44421","Veromanga","MG44421192",1245,44.2079,-17.479
+"Ambatomainty","MG44417","Sarodrano","MG44417031",1246,45.6453,-17.7442
+"Antsalova","MG44420","Antsalova","MG44420010",1247,44.624,-18.6791
+"Antsalova","MG44420","Bekopaka","MG44420090",1248,44.7928,-19.1476
+"Antsalova","MG44420","Masoarivo","MG44420050",1249,44.3858,-18.925
+"Antsalova","MG44420","Soahany","MG44420030",1250,44.2096,-18.6752
+"Antsalova","MG44420","Trangahy","MG44420070",1251,44.5596,-19.1287
+"Besalampy","MG44402","Ambolodia Sud","MG44402072",1252,44.9768,-17.201
+"Besalampy","MG44402","Ampako","MG44402012",1253,44.8172,-16.7521
+"Besalampy","MG44402","Ankasakasa Tsibiray","MG44402090",1254,44.868,-16.3476
+"Besalampy","MG44402","Bekodoka","MG44402071",1255,45.1034,-16.9711
+"Besalampy","MG44402","Besalampy","MG44402011",1256,44.4875,-16.7446
+"Besalampy","MG44402","Mahabe","MG44402110",1257,45.3229,-17.0848
+"Besalampy","MG44402","Marovoay Sud","MG44402030",1258,44.5896,-16.9742
+"Besalampy","MG44402","Soanenga","MG44402050",1259,44.6127,-16.5056
+"Morafenobe","MG44422","Morafenobe","MG44422010",1260,44.9239,-17.8179
+"Morafenobe","MG44422","Andramy","MG44422030",1261,44.7649,-17.9793
+"Moramanga","MG33314","Moramanga","MG33314010",1262,48.2295,-18.9483
+"Moramanga","MG33314","Morarano Gara","MG33314110",1263,48.2719,-18.7013
+"Moramanga","MG33314","Sabotsy Anjiro","MG33314150",1264,48.0047,-18.9234
+"Moramanga","MG33314","Vodiriana","MG33314092",1265,48.0411,-18.9811
+"Maroantsetra","MG32303","Ankofa","MG32303070",1266,49.6489,-15.398
+"Maroantsetra","MG32303","Ankofabe","MG32303132",1267,49.6162,-15.5137
+"Maroantsetra","MG32303","Antakotako","MG32303052",1268,49.8023,-15.332
+"Maroantsetra","MG32303","Antsirabe Sahatany","MG32303133",1269,49.5962,-15.4877
+"Maroantsetra","MG32303","Mahalevona","MG32303113",1270,49.9152,-15.4128
+"Maroantsetra","MG32303","Morafeno","MG32303152",1271,49.4517,-15.707
+"Maroantsetra","MG32303","Ambanizana","MG32303112",1272,49.9532,-15.6127
+"Maroantsetra","MG32303","Voloina","MG32303131",1273,49.6153,-15.5715
+"Manja","MG54502","Andranopasy","MG54502110",1274,43.7393,-21.279
+"Manja","MG54502","Ankiliabo","MG54502090",1275,43.8941,-21.7141
+"Tsihombe","MG52514","Antaritarika","MG52514071",1276,45.7552,-25.3941
+"Manja","MG54502","Anontsibe Centre","MG54502050",1277,44.4685,-21.3758
+"Tsihombe","MG52514","Betanty (Faux Cap)","MG52514031",1278,45.528,-25.5657
+"Manja","MG54502","Beharona","MG54502030",1279,44.3045,-21.5241
+"Tsihombe","MG52514","Marovato","MG52514050",1280,45.2761,-25.5277
+"Tsihombe","MG52514","Nikoly","MG52514012",1281,45.3781,-25.4381
+"Manja","MG54502","Soaserana","MG54502070",1282,44.2233,-21.1056
+"Miandrivazo","MG54511","Ambatolahy","MG54511091",1283,45.5383,-20.0079
+"Miandrivazo","MG54511","Ampanihy","MG54511032",1284,45.4133,-19.4292
+"Miandrivazo","MG54511","Ankavandra","MG54511130",1285,45.3055,-18.7968
+"Miandrivazo","MG54511","Ankondromena","MG54511210",1286,45.057,-18.4011
+"Miandrivazo","MG54511","Ankotrofotsy","MG54511071",1287,45.5292,-19.8002
+"Miandrivazo","MG54511","Anosimena","MG54511033",1288,45.4033,-19.6715
+"Miandrivazo","MG54511","Bemahatazana","MG54511031",1289,45.4003,-19.5497
+"Miandrivazo","MG54511","Betsipolitra","MG54511170",1290,45.112,-18.626
+"Miandrivazo","MG54511","Dabolava","MG54511012",1291,45.5417,-19.5879
+"Miandrivazo","MG54511","Isalo","MG54511072",1292,45.4168,-19.7188
+"Miandrivazo","MG54511","Itondy","MG54511110",1293,45.3491,-19.0603
+"Miandrivazo","MG54511","Manambina","MG54511092",1294,45.4824,-20.0843
+"Miandrivazo","MG54511","Manandaza","MG54511050",1295,45.6188,-19.3257
+"Miandrivazo","MG54511","Miandrivazo","MG54511011",1296,45.4573,-19.5296
+"Miandrivazo","MG54511","Soaloka","MG54511150",1297,45.2546,-18.547
+"Vatomandry","MG31307","Ifasina II","MG31307250",1298,48.6183,-19.3171
+"Vatomandry","MG31307","Ambalabe","MG31307230",1299,48.6325,-19.219
+"Vatomandry","MG31307","Ambalavolo","MG31307110",1300,48.8499,-19.2327
+"Vatomandry","MG31307","Amboditavolo","MG31307131",1301,48.8867,-19.1787
+"Vatomandry","MG31307","Ambodivoananto","MG31307030",1302,48.924,-19.3286
+"Vatomandry","MG31307","Ampasimadinika","MG31307190",1303,48.7098,-19.5352
+"Vatomandry","MG31307","Ampasimazava","MG31307172",1304,48.6592,-19.6678
+"Vatomandry","MG31307","Antanambao Mahatsara","MG31307091",1305,48.8006,-19.31
+"Vatomandry","MG31307","Ifasina I","MG31307210",1306,48.681,-19.4488
+"Vatomandry","MG31307","Ilaka Est","MG31307151",1307,48.838,-19.5505
+"Vatomandry","MG31307","Maintinandry","MG31307051",1308,48.9336,-19.4245
+"Vatomandry","MG31307","Niarovana Caroline","MG31307152",1309,48.804,-19.5753
+"Vatomandry","MG31307","Niherenana","MG31307132",1310,48.8917,-19.0675
+"Vatomandry","MG31307","Sahamatevina","MG31307070",1311,48.9115,-19.272
+"Vatomandry","MG31307","Sahamatevina","MG31307070",1312,48.9147,-19.2277
+"Vatomandry","MG31307","Tanambao Vahatrakaka","MG31307052",1313,48.8225,-19.4018
+"Vatomandry","MG31307","Tsarasambo","MG31307053",1314,48.882,-19.4372
+"Vatomandry","MG31307","Tsivangiana","MG31307171",1315,48.7841,-19.6526
+"Vatomandry","MG31307","Vatomandry","MG31307010",1316,48.9815,-19.3303
+"Vatomandry","MG31307","Vatomandry","MG31307010",1317,48.9798,-19.3314
+"Brickaville","MG31306","Brickaville","MG31306010",1318,49.0719,-18.8175
+"Brickaville","MG31306","Brickaville","MG31306010",1319,49.0608,-18.8105
+"Brickaville","MG31306","Ambalarondra","MG31306210",1320,49.0001,-18.4685
+"Brickaville","MG31306","Ambinaninony","MG31306110",1321,49.1722,-18.4599
+"Brickaville","MG31306","Ampasimbe","MG31306172",1322,48.6815,-18.9656
+"Brickaville","MG31306","Andekaleka","MG31306252",1323,48.5967,-18.7984
+"Brickaville","MG31306","Andovoranto","MG31306090",1324,49.1128,-18.9451
+"Brickaville","MG31306","Anjahamana","MG31306290",1325,48.8327,-18.1704
+"Brickaville","MG31306","Fetraomby","MG31306130",1326,48.9032,-18.6104
+"Brickaville","MG31306","Lohariandava","MG31306251",1327,48.6783,-18.7872
+"Brickaville","MG31306","Mahatsara","MG31306070",1328,49.0268,-18.9351
+"Brickaville","MG31306","Maroseranana","MG31306230",1329,48.8378,-18.5378
+"Brickaville","MG31306","Ranomafana Est","MG31306171",1330,48.8434,-18.9609
+"Brickaville","MG31306","Vohipeno Razanaka","MG31306150",1331,48.8799,-18.7717
+"Brickaville","MG31306","Vohitranivona","MG31306030",1332,49.0991,-18.7292
+"Brickaville","MG31306","Ambohimanana","MG31306270",1333,48.7697,-18.5375
+"Ambatondrazaka","MG33313","Ambatondrazaka","MG33313010",1334,48.4214,-17.8182
+"Ambatondrazaka","MG33313","Ambatondrazaka Suburbaine","MG33313032",1335,48.4606,-17.8319
+"Ambatondrazaka","MG33313","Ambatosoratra","MG33313130",1336,48.5174,-17.6135
+"Ambatondrazaka","MG33313","Ambohitsilaozana","MG33313070",1337,48.4554,-17.6928
+"Ambatondrazaka","MG33313","Ambohitsilaozana","MG33313070",1338,48.468,-17.7023
+"Ambatondrazaka","MG33313","Amparihintsokatra","MG33313192",1339,48.5734,-17.5295
+"Ambatondrazaka","MG33313","Ampitatsimo","MG33313050",1340,48.3782,-17.8067
+"Ambatondrazaka","MG33313","Andromba","MG33313194",1341,48.6429,-17.4029
+"Ambatondrazaka","MG33313","Antanandava","MG33313193",1342,48.6708,-17.4557
+"Ambatondrazaka","MG33313","Antsangasanga","MG33313112",1343,48.2888,-17.8404
+"Ambatondrazaka","MG33313","Bejofo","MG33313152",1344,48.2122,-17.8361
+"Ambatondrazaka","MG33313","Didy","MG33313170",1345,48.5495,-18.1206
+"Ambatondrazaka","MG33313","Feramanga Nord","MG33313031",1346,48.4643,-17.817
+"Ambatondrazaka","MG33313","Ilafy","MG33313090",1347,48.4137,-17.8915
+"Antsohihy","MG42413","Antsahabe","MG42413150",1348,48.3782,-14.808
+"Antsohihy","MG42413","Antsohihy","MG42413010",1349,47.9848,-14.8735
+"Analalava","MG42411","Ambaliha","MG42411070",1350,48.218,-14.5296
+"Analalava","MG42411","Ambarijeby Sud","MG42411012",1351,47.6771,-14.933
+"Analalava","MG42411","Ambolobozo","MG42411030",1352,47.8086,-14.411
+"Analalava","MG42411","Analalava","MG42411011",1353,47.7505,-14.6301
+"Analalava","MG42411","Ankaramy","MG42411170",1354,48.1788,-13.9792
+"Analalava","MG42411","Befotaka Nord","MG42411050",1355,48.0218,-14.5322
+"Analalava","MG42411","Mahadrodroka","MG42411210",1356,47.2849,-15.3091
+"Analalava","MG42411","Maromandia","MG42411090",1357,48.0828,-14.2033
+"Analalava","MG42411","Marovatolena","MG42411110",1358,47.6425,-15.1922
+"Bealanana","MG42414","Ambatoriha Est","MG42414090",1359,48.9557,-14.461
+"Bealanana","MG42414","Ambatosia","MG42414071",1360,48.6579,-14.6755
+"Bealanana","MG42414","Ambodiadabo M","MG42414211",1361,49.169,-14.6426
+"Bealanana","MG42414","Ambodiampana","MG42414072",1362,48.6725,-14.639
+"Bealanana","MG42414","Ambodisikidy","MG42414171",1363,48.9016,-14.8437
+"Bealanana","MG42414","Ambovonomby","MG42414110",1364,49.0147,-14.413
+"Bealanana","MG42414","Analila","MG42414131",1365,48.994,-14.4917
+"Bealanana","MG42414","Antsamaka","MG42414050",1366,48.6297,-14.5706
+"Bealanana","MG42414","Beandrarezona","MG42414031",1367,48.6743,-14.4551
+"Bealanana","MG42414","Mangindrano","MG42414151",1368,48.9579,-14.2682
+"Bealanana","MG42414","Marotolana","MG42414190",1369,49.028,-14.6112
+"Befandriana Nord","MG42412","Ambararata","MG42412150",1370,48.5441,-15.0362
+"Befandriana Nord","MG42412","Ambodimotso Sud","MG42412050",1371,48.5866,-15.3834
+"Befandriana Nord","MG42412","Ambolidibe Est","MG42412170",1372,48.7895,-15.0997
+"Befandriana Nord","MG42412","Antsakabary","MG42412210",1373,48.9373,-15.1051
+"Befandriana Nord","MG42412","Antsakanalabe","MG42412130",1374,48.1103,-15.4698
+"Befandriana Nord","MG42412","Befandriana Nord","MG42412010",1375,48.5392,-15.2555
+"Befandriana Nord","MG42412","Maroamalona","MG42412090",1376,48.7249,-15.3701
+"Befandriana Nord","MG42412","Matsondakana","MG42412230",1377,49.3794,-14.8471
+"Befandriana Nord","MG42412","Morafeno","MG42412030",1378,48.5013,-15.2597
+"Befandriana Nord","MG42412","Tsarahonenana","MG42412110",1379,48.4741,-15.4816
+"Befandriana Nord","MG42412","Tsiamalao","MG42412070",1380,48.4424,-15.0344
+"Port-Berge (Boriziny-Vaovao)","MG42409","Ambanjabe","MG42409031",1381,47.7098,-15.6403
+"Port-Berge (Boriziny-Vaovao)","MG42409","Ambodimahabibo","MG42409171",1382,48.1269,-15.7298
+"Marolambo","MG31309","Lohavanana","MG31309170",1383,48.0773,-19.7766
+"Marolambo","MG31309","Sahakevo","MG31309192",1384,47.8539,-20.2714
+"Marolambo","MG31309","Tanambao Rabemanana","MG31309032",1385,48.0501,-20.3407
+"Marolambo","MG31309","Marolambo","MG31309010",1386,48.1297,-20.0542
+"Taolagnaro","MG53515","Ankariera","MG53515113",1387,46.5961,-25.0148
+"Taolagnaro","MG53515","Ambatoabo","MG53515112",1388,46.6721,-24.8532
+"Taolagnaro","MG53515","Ampasimena","MG53515230",1389,47.1579,-24.3754
+"Taolagnaro","MG53515","Ampasy Nahampoana","MG53515031",1390,46.9848,-24.9367
+"Taolagnaro","MG53515","Bevoay","MG53515210",1391,47.0353,-24.4993
+"Taolagnaro","MG53515","Enakara-Haut","MG53515170",1392,46.8973,-24.6271
+"Taolagnaro","MG53515","Enaniliha","MG53515151",1393,46.8505,-24.6644
+"Taolagnaro","MG53515","Emagnobo","MG53515192",1394,46.9764,-24.6201
+"Taolagnaro","MG53515","Fenoevo-Efita","MG53515152",1395,46.8867,-24.6864
+"Taolagnaro","MG53515","Iaboakoho","MG53515132",1396,47.2067,-24.6224
+"Taolagnaro","MG53515","Ifarantsa","MG53515051",1397,46.9377,-24.8779
+"Taolagnaro","MG53515","Isaka-Ivondro","MG53515052",1398,46.8872,-24.7889
+"Taolagnaro","MG53515","Mahatalaky","MG53515131",1399,47.0849,-24.8304
+"Taolagnaro","MG53515","Manantenina","MG53515251",1400,47.3213,-24.2808
+"Taolagnaro","MG53515","Manambaro","MG53515071",1401,46.8152,-25.0288
+"Taolagnaro","MG53515","Mandiso","MG53515053",1402,46.8295,-24.8766
+"Taolagnaro","MG53515","Mahatalaky","MG53515131",1403,47.0514,-24.8984
+"Taolagnaro","MG53515","Ranomafana","MG53515191",1404,46.9607,-24.5712
+"Taolagnaro","MG53515","Ranopiso","MG53515111",1405,46.6719,-25.0559
+"Taolagnaro","MG53515","Sarisambo","MG53515072",1406,46.7931,-25.1122
+"Taolagnaro","MG53515","Soanierana","MG53515033",1407,46.9242,-25.014
+"Taolagnaro","MG53515","Soavary","MG53515253",1408,47.3435,-24.1634
+"Taolagnaro","MG53515","Fort-Dauphin","MG53515010",1409,46.9984,-25.0313
+"Taolagnaro","MG53515","Fort-Dauphin","MG53515010",1410,46.9999,-25.0262
+"Amboasary-Atsimo","MG53519","Amboasary Atsimo","MG53519010",1411,46.3851,-25.0395
+"Amboasary-Atsimo","MG53519","Behara","MG53519030",1412,46.3879,-24.9534
+"Amboasary-Atsimo","MG53519","Ebelo","MG53519291",1413,46.0238,-24.48
+"Amboasary-Atsimo","MG53519","Elonty","MG53519150",1414,46.3479,-23.959
+"Amboasary-Atsimo","MG53519","Esira","MG53519170",1415,46.5882,-24.1661
+"Amboasary-Atsimo","MG53519","Ifotaka","MG53519090",1416,46.0528,-24.7377
+"Amboasary-Atsimo","MG53519","Mahaly","MG53519190",1417,46.4607,-24.068
+"Amboasary-Atsimo","MG53519","Manevy","MG53519210",1418,46.8141,-24.2718
+"Amboasary-Atsimo","MG53519","Maromby","MG53519130",1419,46.5927,-24.4535
+"Amboasary-Atsimo","MG53519","Marotsiraka","MG53519250",1420,45.9728,-24.2711
+"Amboasary-Atsimo","MG53519","Sampona","MG53519070",1421,46.2868,-25.1645
+"Amboasary-Atsimo","MG53519","Tanandava Sud","MG53519050",1422,46.4441,-25.1362
+"Amboasary-Atsimo","MG53519","Tranomaro","MG53519110",1423,46.5002,-24.4829
+"Amboasary-Atsimo","MG53519","Ranobe","MG53519292",1424,46.132,-24.5335
+"Amboasary-Atsimo","MG53519","Tsivory","MG53519230",1425,45.9836,-24.1399
+"Amboasary-Atsimo","MG53519","Tomboarivo","MG53519270",1426,45.9025,-24.2416
+"Amboasary-Atsimo","MG53519","Amboasary Atsimo","MG53519010",1427,46.3817,-25.0424
+"Betroka","MG53517","Analamary","MG53517110",1428,45.8478,-23.2301
+"Betroka","MG53517","Ambatomivary","MG53517350",1429,45.5696,-23.8411
+"Betroka","MG53517","Andriandampy","MG53517331",1430,45.681,-22.749
+"Betroka","MG53517","Sakamahily","MG53517332",1431,45.4976,-22.9784
+"Betroka","MG53517","Beampombo I","MG53517190",1432,45.6659,-23.1056
+"Betroka","MG53517","Beampombo II","MG53517292",1433,45.5589,-23.6052
+"Betroka","MG53517","Bekorobo","MG53517250",1434,45.8104,-23.8035
+"Betroka","MG53517","Benato Toby","MG53517150",1435,45.8632,-23.0886
+"Betroka","MG53517","Betroka","MG53517010",1436,46.0957,-23.2747
+"Betroka","MG53517","Beampombo I","MG53517190",1437,45.5584,-23.1665
+"Betroka","MG53517","Ianabinda","MG53517130",1438,45.9444,-23.4945
+"Betroka","MG53517","Ianakafy","MG53517310",1439,45.4476,-23.3532
+"Betroka","MG53517","Ivahona","MG53517090",1440,46.1744,-23.4552
+"Ampanihy Ouest","MG51507","Maniry","MG51507090",1441,44.924,-24.4966
+"Betroka","MG53517","Jangany","MG53517210",1442,45.7896,-22.8617
+"Betroka","MG53517","Nanarena Besakoa","MG53517293",1443,45.7256,-23.62
+"Betroka","MG53517","Naninora","MG53517050",1444,46.0865,-23.227
+"Betroka","MG53517","Mahabo","MG53517170",1445,46.1354,-23.6697
+"Betroka","MG53517","Mahasoa Est","MG53517230",1446,45.6816,-23.3874
+"Betroka","MG53517","Betroka","MG53517010",1447,46.1173,-23.2523
+"Betroka","MG53517","Ambalasoa","MG53517070",1448,46.0973,-23.0683
+"Morondava","MG54508","Analaiva","MG54508079",1449,44.5004,-20.3308
+"Morondava","MG54508","Analaiva","MG54508079",1450,44.502,-20.3253
+"Morondava","MG54508","Befasy","MG54508159",1451,44.3605,-20.579
+"Morondava","MG54508","Belo Sur Mer","MG54508179",1452,44.0017,-20.7385
+"Morondava","MG54508","Belo Sur Mer","MG54508179",1453,44.1716,-20.7101
+"Morondava","MG54508","Belo Sur Mer","MG54508179",1454,44.1972,-20.461
+"Morondava","MG54508","Bemanonga","MG54508059",1455,44.3455,-20.293
+"Morondava","MG54508","Bemanonga","MG54508059",1456,44.4279,-20.1809
+"Morondava","MG54508","Morondava","MG54508010",1457,44.276,-20.2897
+"Belo Sur Tsiribihina","MG54510","Aboalimena","MG54510090",1458,44.448,-19.2627
+"Belo Sur Tsiribihina","MG54510","Andimaky Manambolo","MG54510012",1459,44.7089,-19.251
+"Belo Sur Tsiribihina","MG54510","Ankalalobe","MG54510111",1460,44.9706,-19.6306
+"Belo Sur Tsiribihina","MG54510","Bemarivo Ankirondro","MG54510013",1461,44.5839,-19.5868
+"Belo Sur Tsiribihina","MG54510","Antsoha","MG54510132",1462,44.8592,-19.9182
+"Belo Sur Tsiribihina","MG54510","Ankiroroky","MG54510152",1463,45.0991,-19.7825
+"Belo Sur Tsiribihina","MG54510","Belo Sur Tsiribihina","MG54510011",1464,44.547,-19.7001
+"Belo Sur Tsiribihina","MG54510","Berevo","MG54510131",1465,44.962,-19.7288
+"Belo Sur Tsiribihina","MG54510","Beroboka Nord","MG54510032",1466,44.6028,-19.9623
+"Belo Sur Tsiribihina","MG54510","Masoarivo","MG54510070",1467,44.6881,-19.7041
+"Belo Sur Tsiribihina","MG54510","Tsaraotana","MG54510050",1468,44.8512,-19.8067
+"Belo Sur Tsiribihina","MG54510","Tsimafana","MG54510031",1469,44.5851,-19.7208
+"Mahabo","MG54509","Ampanihy","MG54509070",1470,44.7174,-20.4679
+"Mahabo","MG54509","Analamitsivalana","MG54509051",1471,44.7169,-20.3045
+"Mahabo","MG54509","Ankilivalo","MG54509030",1472,44.636,-20.2988
+"Mahabo","MG54509","Ankilizato","MG54509091",1473,45.0469,-20.4097
+"Mahabo","MG54509","Befotaka","MG54509052",1474,44.8008,-20.2989
+"Mahabo","MG54509","Beronono","MG54509150",1475,45.0478,-20.905
+"Mahabo","MG54509","Mahabo","MG54509010",1476,44.6636,-20.3791
+"Mahabo","MG54509","Malaimbandy","MG54509130",1477,45.5979,-20.3494
+"Mahabo","MG54509","Mandabe","MG54509110",1478,44.9325,-21.0484
+"Mahabo","MG54509","Mazavasoa","MG54509170",1479,45.702,-20.6915
+"Mahabo","MG54509","Mahabo","MG54509010",1480,44.6578,-20.3777
+"Ambatondrazaka","MG33313","Imerimandroso","MG33313191",1481,48.5922,-17.4267
+"Ambatondrazaka","MG33313","Manakambahiny Antsinanana","MG33313210",1482,48.663,-17.7663
+"Ambatondrazaka","MG33313","Manakambahiny Andrefana","MG33313111",1483,48.294,-17.8642
+"Ambatondrazaka","MG33313","Soalazaina","MG33313231",1484,48.0709,-17.9802
+"Ambatondrazaka","MG33313","Tanambao Besakay","MG33313232",1485,48.0559,-18.102
+"Amparafaravola","MG33312","Ambatomainty","MG33312031",1486,48.2093,-17.6576
+"Amparafaravola","MG33312","Amboavory","MG33312131",1487,48.4853,-17.3314
+"Amparafaravola","MG33312","Andilana Nord","MG33312132",1488,48.5468,-17.3585
+"Amparafaravola","MG33312","Ambohijanahary","MG33312090",1489,48.3822,-17.4025
+"Amparafaravola","MG33312","Ambohitrarivo","MG33312051",1490,48.3532,-17.4752
+"Amparafaravola","MG33312","Amparafaravola","MG33312011",1491,48.2215,-17.5887
+"Amparafaravola","MG33312","Ampasikely","MG33312032",1492,48.1908,-17.6583
+"Amparafaravola","MG33312","Andrebakely Nord","MG33312152",1493,48.6302,-17.3887
+"Amparafaravola","MG33312","Anororo","MG33312052",1494,48.4301,-17.511
+"Amparafaravola","MG33312","Beanana","MG33312112",1495,48.4323,-17.3734
+"Amparafaravola","MG33312","Bedidy","MG33312012",1496,48.022,-17.4702
+"Amparafaravola","MG33312","Morarano Chrome","MG33312071",1497,48.1682,-17.7589
+"Amparafaravola","MG33312","Morarano Chrome","MG33312071",1498,48.1568,-17.8299
+"Amparafaravola","MG33312","Sahamamy","MG33312014",1499,48.3004,-17.516
+"Amparafaravola","MG33312","Vohimena","MG33312151",1500,48.605,-17.351
+"Amparafaravola","MG33312","Vohitsara","MG33312113",1501,48.4982,-17.4035
+"Amparafaravola","MG33312","Andrebakely Sud","MG33312033",1502,48.1887,-17.6779
+"Andilamena","MG33316","Andilamena","MG33316011",1503,48.5713,-17.0138
+"Fandriana","MG22204","Tatamalaza","MG22204110",1504,47.4448,-20.2038
+"Andilamena","MG33316","Bemaitso","MG33316012",1505,48.508,-17.0444
+"Andilamena","MG33316","Maitsokely","MG33316072",1506,47.9953,-16.268
+"Andilamena","MG33316","Maroadabo","MG33316051",1507,48.3774,-16.6374
+"Andilamena","MG33316","Marovato","MG33316052",1508,48.417,-16.4675
+"Andilamena","MG33316","Miarinarivo","MG33316071",1509,48.149,-16.5122
+"Andilamena","MG33316","Tanananifololahy","MG33316032",1510,48.3275,-16.7369
+"Anosibe-An'ala","MG33317","Anosibe An'ala","MG33317011",1511,48.2068,-19.441
+"Anosibe-An'ala","MG33317","Ambalaomby","MG33317052",1512,47.9657,-19.7391
+"Anosibe-An'ala","MG33317","Ambatoharanana","MG33317072",1513,48.1772,-19.6253
+"Anosibe-An'ala","MG33317","Ampandroantraka","MG33317031",1514,48.3441,-19.4073
+"Anosibe-An'ala","MG33317","Tratramarina","MG33317032",1515,48.305,-19.4911
+"Anosibe-An'ala","MG33317","Tsaravinany","MG33317054",1516,48.0413,-19.4818
+"Moramanga","MG33314","Ambatovola","MG33314210",1517,48.5144,-18.9469
+"Moramanga","MG33314","Amboasary","MG33314250",1518,48.2703,-18.3877
+"Moramanga","MG33314","Ambohibary","MG33314030",1519,48.2291,-18.913
+"Moramanga","MG33314","Ambohidronono","MG33314170",1520,48.0262,-18.7597
+"Moramanga","MG33314","Ampasimpotsy Gara","MG33314050",1521,48.339,-18.9626
+"Moramanga","MG33314","Andaingo","MG33314350",1522,48.2669,-18.198
+"Moramanga","MG33314","Andasibe","MG33314070",1523,48.4193,-18.9225
+"Moramanga","MG33314","Anosibe Ifody","MG33314091",1524,48.0795,-18.9119
+"Moramanga","MG33314","Anosibe Ifody","MG33314091",1525,48.0388,-18.9299
+"Moramanga","MG33314","Antanandava","MG33314310",1526,47.9569,-19.0933
+"Moramanga","MG33314","Antaniditra","MG33314292",1527,48.0805,-18.5331
+"Moramanga","MG33314","Beforona","MG33314190",1528,48.5775,-18.9727
+"Moramanga","MG33314","Belavabary","MG33314130",1529,48.0244,-18.8274
+"Moramanga","MG33314","Mangarivotra","MG33314330",1530,48.0261,-19.1685
+"Tsiroanomandidy","MG14111","Fierenana","MG14111310",1531,45.846,-18.537
+"Moramanga","MG33314","Lakato","MG33314230",1532,48.442,-19.1792
+"Toliary-I","MG51501","Besakoa","MG51501006",1533,43.6623,-23.3431
+"Toliary-I","MG51501","Betania","MG51501005",1534,43.6796,-23.3433
+"Toliary-I","MG51501","Mahavatse I","MG51501003",1535,43.6812,-23.3684
+"Toliary-I","MG51501","Mahavatse II","MG51501004",1536,43.6711,-23.3621
+"Toliary-I","MG51501","Tanambao II Tsf Nord","MG51501002",1537,43.6829,-23.3579
+"Toliary-I","MG51501","Mahavatse II","MG51501004",1538,43.6715,-23.3575
+"Toliary-I","MG51501","Tanambao I","MG51501001",1539,43.6721,-23.3559
+"Toliary-I","MG51501","Tanambao I","MG51501001",1540,43.6701,-23.3499
+"Toliary-I","MG51501","Betania","MG51501005",1541,43.6771,-23.3478
+"Toliary-I","MG51501","Tanambao I","MG51501001",1542,43.67,-23.3537
+"Toliary-I","MG51501","Tanambao I","MG51501001",1543,43.6674,-23.3557
+"Toliary-I","MG51501","Besakoa","MG51501006",1544,43.6679,-23.3451
+"Toliary-II","MG51520","Ambohimahavelona","MG51520111",1545,43.8975,-23.4433
+"Toliary-II","MG51520","Ambolofoty","MG51520150",1546,43.8787,-23.5191
+"Toliary-II","MG51520","Anakao","MG51520132",1547,43.6469,-23.6594
+"Toliary-II","MG51520","Andranovory","MG51520270",1548,44.2438,-23.1313
+"Toliary-II","MG51520","Andranovory","MG51520270",1549,44.1459,-23.1413
+"Toliary-II","MG51520","Milenaka","MG51520290",1550,43.6151,-22.7936
+"Toliary-II","MG51520","Ankililoaka","MG51520310",1551,43.622,-22.7638
+"Toliary-II","MG51520","Ankilimalinike","MG51520170",1552,43.5636,-22.9548
+"Toliary-II","MG51520","Antanimena Onilahy","MG51520191",1553,44.1032,-23.5424
+"Toliary-II","MG51520","Beheloka","MG51520358",1554,43.697,-24.0003
+"Toliary-II","MG51520","Behompy","MG51520072",1555,43.9661,-22.9177
+"Toliary-II","MG51520","Belalanda","MG51520030",1556,43.6225,-23.3051
+"Toliary-II","MG51520","Marofoty","MG51520210",1557,43.5399,-22.9324
+"Toliary-II","MG51520","Betsinjaka","MG51520050",1558,43.7034,-23.3685
+"Toliary-II","MG51520","Belalanda","MG51520030",1559,43.611,-23.118
+"Toliary-II","MG51520","Manombo Sud","MG51520250",1560,43.4738,-22.9527
+"Toliary-II","MG51520","Manorofify","MG51520192",1561,43.9703,-23.5293
+"Toliary-II","MG51520","Miary Ambohibola","MG51520071",1562,43.7289,-23.3053
+"Toliary-II","MG51520","Milenaka","MG51520290",1563,43.587,-22.8361
+"Toliary-II","MG51520","Mitsinjo Betanimena","MG51520010",1564,43.7078,-23.3171
+"Toliary-II","MG51520","Analamisampy","MG51520330",1565,43.6778,-22.4607
+"Toliary-II","MG51520","Soalara Sud","MG51520133",1566,43.7143,-23.5944
+"Toliary-II","MG51520","Saint Augustin","MG51520131",1567,43.7627,-23.5512
+"Toliary-II","MG51520","Tsianisiha","MG51520230",1568,43.5844,-22.9033
+"Toliary-II","MG51520","Ankililoaka","MG51520310",1569,43.6134,-22.7775
+"Ampanihy Ouest","MG51507","Ampanihy Ouest","MG51507010",1570,44.7468,-24.698
+"Ampanihy Ouest","MG51507","Ampanihy Ouest","MG51507010",1571,44.55,-25.0524
+"Ampanihy Ouest","MG51507","Ankilizato","MG51507070",1572,44.6645,-24.5841
+"Ampanihy Ouest","MG51507","Ankilimivory","MG51507130",1573,44.9742,-24.4708
+"Ampanihy Ouest","MG51507","Antaly","MG51507110",1574,44.7644,-24.3476
+"Ampanihy Ouest","MG51507","Beahitse","MG51507190",1575,44.4417,-24.1671
+"Ampanihy Ouest","MG51507","Belafike Haut","MG51507170",1576,44.5961,-24.2402
+"Ampanihy Ouest","MG51507","Beroy Atsimo","MG51507270",1577,44.836,-24.0312
+"Ampanihy Ouest","MG51507","Ejeda","MG51507150",1578,44.5135,-24.3485
+"Ampanihy Ouest","MG51507","Fotadrevo","MG51507290",1579,44.972,-24.0273
+"Ampanihy Ouest","MG51507","Gogogogo","MG51507210",1580,44.8067,-24.268
+"Ampanihy Ouest","MG51507","Itampolo","MG51507310",1581,43.8222,-24.3166
+"Ampanihy Ouest","MG51507","Vohitany","MG51507250",1582,44.732,-24.1149
+"Ampanihy Ouest","MG51507","Ejeda","MG51507150",1583,44.5163,-24.3497
+"Ankazoabo","MG51505","Andranomafana","MG51505050",1584,44.2184,-22.2521
+"Ankazoabo","MG51505","Ankazoabo Sud","MG51505011",1585,44.5102,-22.2928
+"Ankazoabo","MG51505","Berenty","MG51505071",1586,45.0521,-22.2954
+"Ankazoabo","MG51505","Fotivolo","MG51505012",1587,44.5715,-22.407
+"Ankazoabo","MG51505","Ankazoabo Sud","MG51505011",1588,44.7698,-22.3772
+"Ankazoabo","MG51505","Tandrano","MG51505030",1589,44.6388,-22.0848
+"Benenitra","MG51521","Ambalavato","MG51521032",1590,45.405,-23.5849
+"Benenitra","MG51521","Benenitra","MG51521010",1591,45.0724,-23.4491
+"Benenitra","MG51521","Ianapera","MG51521031",1592,45.1421,-23.6197
+"Benenitra","MG51521","Ehara","MG51521050",1593,44.8329,-23.4836
+"Beroroha","MG51503","Behisatsy","MG51503050",1594,45.1207,-21.808
+"Beroroha","MG51503","Beroroha","MG51503011",1595,45.1677,-21.6782
+"Beroroha","MG51503","Behisatsy","MG51503050",1596,45.1125,-21.7071
+"Beroroha","MG51503","Marerano","MG51503070",1597,44.6942,-21.3163
+"Beloha","MG52513","Tranoroa","MG52513091",1598,45.1396,-24.949
+"Beroroha","MG51503","Mandronarivo","MG51503091",1599,45.6032,-21.1544
+"Beroroha","MG51503","Sakena","MG51503093",1600,45.7577,-20.9529
+"Beroroha","MG51503","Tanamary","MG51503092",1601,45.4966,-21.3816
+"Betioky Atsimo","MG51506","Ambatry Mitsinjo","MG51506013",1602,44.4064,-23.8535
+"Betioky Atsimo","MG51506","Besely","MG51506112",1603,44.4615,-23.3766
+"Betioky Atsimo","MG51506","Ankazomanga Ouest","MG51506014",1604,44.1362,-23.6534
+"Betioky Atsimo","MG51506","Ankilivalo","MG51506192",1605,44.6329,-23.2761
+"Betioky Atsimo","MG51506","Antohabato","MG51506070",1606,44.4807,-23.5594
+"Betioky Atsimo","MG51506","Ankazombalala","MG51506130",1607,44.6902,-23.5907
+"Betioky Atsimo","MG51506","Beantake","MG51506030",1608,44.3345,-23.8253
+"Betioky Atsimo","MG51506","Belamoty","MG51506311",1609,44.8052,-23.5588
+"Betioky Atsimo","MG51506","Betioky Atsimo","MG51506011",1610,44.3816,-23.7171
+"Betioky Atsimo","MG51506","Bezaha","MG51506150",1611,44.5033,-23.4996
+"Betioky Atsimo","MG51506","Fenoandala","MG51506230",1612,44.6838,-23.5309
+"Betioky Atsimo","MG51506","Lazarivo","MG51506330",1613,44.9917,-23.918
+"Betioky Atsimo","MG51506","Maroarivo Ankazomanga","MG51506015",1614,44.0956,-23.7988
+"Betioky Atsimo","MG51506","Montifeno","MG51506313",1615,44.7567,-23.4802
+"Betioky Atsimo","MG51506","Sakamasay","MG51506012",1616,44.6426,-23.8729
+"Betioky Atsimo","MG51506","Salobe","MG51506270",1617,44.6975,-23.5258
+"Betioky Atsimo","MG51506","Soamanonga","MG51506210",1618,44.7909,-23.8789
+"Betioky Atsimo","MG51506","Soaserana","MG51506251",1619,44.9066,-23.8789
+"Betioky Atsimo","MG51506","Tameantsoa","MG51506090",1620,44.3011,-23.5464
+"Betioky Atsimo","MG51506","Tongobory","MG51506111",1621,44.3255,-23.5339
+"Betioky Atsimo","MG51506","Vatolatsaka","MG51506113",1622,44.296,-23.3202
+"Betioky Atsimo","MG51506","Manalobe","MG51506170",1623,44.5568,-23.4488
+"Morombe","MG51504","Ambahikily","MG51504050",1624,43.6713,-21.6046
+"Morombe","MG51504","Ambahikily","MG51504050",1625,43.7472,-21.6941
+"Morombe","MG51504","Antanimieva","MG51504130",1626,43.7735,-22.2465
+"Morombe","MG51504","Antongo Vaovao","MG51504070",1627,43.5844,-21.4054
+"Morombe","MG51504","Basibasy","MG51504150",1628,43.6613,-22.1786
+"Morombe","MG51504","Befandriana Sud","MG51504110",1629,43.8914,-22.1075
+"Morombe","MG51504","Cu Morombe","MG51504010",1630,43.3576,-21.7449
+"Morombe","MG51504","Nosy Ambositra","MG51504090",1631,43.8952,-21.8841
+"Morombe","MG51504","Nosy Ambositra","MG51504090",1632,43.9812,-21.9197
+"Ankazoabo","MG51505","Ankazoabo Sud","MG51505011",1633,44.3744,-22.4999
+"Sakaraha","MG51512","Andranolava","MG51512130",1634,44.6816,-22.645
+"Sakaraha","MG51512","Bereketa","MG51512090",1635,44.4034,-23.1158
+"Sakaraha","MG51512","Ambinany","MG51512150",1636,44.916,-22.745
+"Sakaraha","MG51512","Mahaboboka","MG51512050",1637,44.3468,-22.8963
+"Sakaraha","MG51512","Mihavatsy","MG51512112",1638,44.1952,-22.9488
+"Sakaraha","MG51512","Sakaraha","MG51512011",1639,44.5314,-22.9133
+"Sakaraha","MG51512","Andamasiny Vineta","MG51512111",1640,44.2517,-23.0604
+"Ambovombe-Androy","MG52516","Ambohimalaza","MG52516033",1641,45.9718,-25.1103
+"Ambovombe-Androy","MG52516","Ambanisarika","MG52516031",1642,45.9814,-25.1958
+"Ambovombe-Androy","MG52516","Ambazoa","MG52516092",1643,45.8952,-25.3259
+"Ambovombe-Androy","MG52516","Ambonaivo","MG52516050",1644,45.9252,-25.2243
+"Ambovombe-Androy","MG52516","Ambondro","MG52516091",1645,45.8232,-25.2163
+"Ambovombe-Androy","MG52516","Ampamata","MG52516152",1646,45.6357,-24.4736
+"Ambovombe-Androy","MG52516","Andalatanosy","MG52516151",1647,45.5956,-24.6684
+"Ambovombe-Androy","MG52516","Anjeky Ankilikira","MG52516014",1648,46.239,-25.0583
+"Ambovombe-Androy","MG52516","Antanimora Atsimo","MG52516130",1649,45.6624,-24.8145
+"Ambovombe-Androy","MG52516","Erada","MG52516013",1650,45.9451,-25.2876
+"Ambovombe-Androy","MG52516","Imanombo","MG52516190",1651,45.8216,-24.4345
+"Ambovombe-Androy","MG52516","Jafaro","MG52516170",1652,45.5176,-24.9277
+"Ambovombe-Androy","MG52516","Maroalopoty","MG52516072",1653,46.2175,-25.1975
+"Ambovombe-Androy","MG52516","Maroalopoty","MG52516072",1654,46.2534,-25.1721
+"Ambovombe-Androy","MG52516","Marovato Befeno","MG52516112",1655,45.6872,-25.1334
+"Ambovombe-Androy","MG52516","Sihanamaro","MG52516111",1656,45.7727,-25.1814
+"Bekily","MG52518","Ambahita","MG52518151",1657,45.2608,-24.0075
+"Bekily","MG52518","Ambatosola","MG52518091",1658,45.3749,-24.0947
+"Bekily","MG52518","Anivorano Mitsinjo","MG52518290",1659,45.6233,-24.3511
+"Bekily","MG52518","Anja Nord","MG52518050",1660,45.2813,-24.2694
+"Bekily","MG52518","Ankaranabo Nord","MG52518031",1661,45.2859,-24.195
+"Bekily","MG52518","Antsakoamaro","MG52518070",1662,45.1835,-24.2433
+"Bekily","MG52518","Bekitro","MG52518230",1663,45.2971,-24.5508
+"Bekily","MG52518","Belindo Mahasoa","MG52518170",1664,45.4132,-24.4848
+"Bekily","MG52518","Beteza","MG52518190",1665,45.1266,-24.4489
+"Bekily","MG52518","Bevitiky","MG52518270",1666,45.3837,-24.6153
+"Bekily","MG52518","Maroviro","MG52518152",1667,45.3533,-23.856
+"Bekily","MG52518","Tsikolaky","MG52518110",1668,45.2235,-24.331
+"Bekily","MG52518","Manakompy","MG52518130",1669,45.3904,-24.3201
+"Beloha","MG52513","Beloha","MG52513010",1670,45.0577,-25.1732
+"Beloha","MG52513","Kopoky","MG52513050",1671,45.2683,-25.2939
+"Beloha","MG52513","Marolinta","MG52513070",1672,44.5147,-25.2001
+"Beloha","MG52513","Tranoroa","MG52513091",1673,45.0527,-24.7221
+"Beloha","MG52513","Tranovaho","MG52513030",1674,44.9876,-25.4394
+"Taolagnaro","MG53515","Analamary","MG53515252",1675,47.2203,-24.2455
+"Taolagnaro","MG53515","Analapatsy","MG53515114",1676,46.6958,-25.1675
+"Taolagnaro","MG53515","Andranobory","MG53515115",1677,46.5544,-25.1047
+"Taolagnaro","MG53515","Ankaramena","MG53515090",1678,46.7661,-25.0368
+"Mandoto","MG12120","Vasiana","MG12120130",1679,46.2358,-19.8261
