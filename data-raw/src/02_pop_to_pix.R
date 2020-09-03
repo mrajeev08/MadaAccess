@@ -7,18 +7,19 @@
 start <- Sys.time()
 
 # Set-up
+library(here)
 library(raster)
 library(data.table)
-source("R/functions/out.session.R")
-source("R/functions/match_pop.R")
+source("R/out.session.R")
+source("R/match_pop.R")
 
 # Load in frition surface and then convert to spatial pixels
-friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
+friction_masked <- raster(here("data-raw/outputs/rasters/friction_mada_masked.tif"))
 friction_pix <- as(friction_masked, "SpatialPixelsDataFrame") 
 friction_pix$match_id <- friction_pix@grid.index
 
 # WP 2015 original 
-wp_2015 <- raster("data/raw/WorldPop/MDG_ppp_2015_adj_v2.tif")
+wp_2015 <- raster(here("data-raw/inputs/rasters/WorldPop/MDG_ppp_2015_adj_v2.tif"))
 wp_2015_pix <- as(wp_2015, "SpatialPixelsDataFrame")
 
 # here minDimension which ranks intersections
@@ -39,9 +40,9 @@ pop <- raster(friction_pix["pop"]) # transform back to raster
 # should be true (or minimal difference)
 sum(pop[], na.rm = TRUE) - sum(wp_2015[], na.rm = TRUE)
 
-writeRaster(pop, "data/processed/rasters/wp_2015_1x1.tif", overwrite = TRUE, 
+writeRaster(pop, "data-raw/outputs/rasters/wp_2015_1x1.tif", overwrite = TRUE, 
             options=c("COMPRESS=LZW"))
 
 # Save session info
-out.session(path = "R/01_gis/02_pop_to_pix.R", filename = "output/log_local.csv")
+out.session(path = "data-raw/src/02_pop_to_pix.R", filename = "output/log_local.csv")
 

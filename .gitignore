@@ -16,6 +16,8 @@ sessionInfo.csv
 *.docx
 docs/*temp*
 *.html
-bash/*
+analysis/bash/
 output/
 tree.md
+data-raw/raw/WorldPop/
+data-raw/raw/ipm_data/
