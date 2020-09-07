@@ -40,3 +40,6 @@ mora_pop_comp <- data.table(commune = c("Ambohibary", "Moramanga", "Ampasimpotsy
                             notes = c("", rep("split between Ambohibary & Ampasimpotsy", 2)))
 write.csv(mora_pop_comp, "output/stats/mora_pop_comp.csv", row.names = FALSE)
 
+# For data documentation
+
+# Also missingness in bitedata
