@@ -3,25 +3,25 @@
 # ------------------------------------------------------------------------------------------------ #
 
 start <- Sys.time()
-source(here("R", "out.session.R"))
 
 # packages
 library(tidyverse)
 library(raster)
 library(sf)
 select <- dplyr::select
+source(here("R", "utils.R"))
+source(safe_path("R/out.session.R"))
 
 # data
-mada_districts <- st_read(here("data-raw", "out", "shapefiles", "mada_districts.shp"))
-mada_communes <- st_read(here("data-raw", "out", "shapefiles", "mada_communes.shp"))
-ctar_metadata <- read.csv(here("data-raw", "raw", "ctar_metadata.csv"))
-csbs <- read.csv(here("data-raw", "raw", "ipm_data", "csbs.csv"), stringsAsFactors = FALSE)
+mada_communes <- st_read(safe_path("data-raw/out/shapefiles/mada_communes.shp"))
+ctar_metadata <- read.csv(safe_path("data-raw/raw/ctar_metadata.csv"))
+csbs <- read.csv(safe_path("data-raw/raw/ipm_data/csbs.csv"), stringsAsFactors = FALSE)
 
 # get clinic commcodes & distcodes
 csbs <- st_as_sf(csbs, coords = c("xcoor", "ycoor"), 
                      crs = st_crs(mada_communes))
 csbs <- st_join(csbs, 
-                select(mada_communes, commcode, distcode, district, commune, pop), 
+                select(mada_communes, commcode, distcode, district, commune), 
                 join = st_intersects)
 
 # Process exisiting ctar data -------------------------------------------------------------
@@ -45,10 +45,10 @@ csb2 %>%
          long = st_coordinates(.)[, "X"], 
          lat = st_coordinates(.)[, "Y"]) -> csb2
 
-write.csv(st_drop_geometry(csb2), here("data-raw", "out", "clinics", "csb2.csv"), row.names = FALSE)
+write.csv(st_drop_geometry(csb2), safe_path("data-raw/out/clinics/csb2.csv"), row.names = FALSE)
 
 # Process additional scenarios -------------------------------------------------------------
-pop_1x1 <- raster(here("data-raw", "out", "rasters", "wp_2015_1x1.tif"))
+pop_1x1 <- raster(safe_path("data-raw/out/rasters/wp_2015_1x1.tif"))
 csb2$pop_dens <- extract(pop_1x1, csb2[, c("long", "lat")])
 
 # 1 per district
@@ -86,15 +86,21 @@ csb1 %>%
          lat = st_coordinates(.)[, "Y"]) %>%
   bind_rows(clinic_per_comm) ->  clinic_per_comm
 
-write.csv(st_drop_geometry(clinic_per_comm), here("data", "out", "clinics", "clinic_per_comm.csv"), 
-          row.names = FALSE)
-write.csv(st_drop_geometry(clinic_per_dist), here("data", "out", "clinics", "clinic_per_dist.csv"), 
-          row.names = FALSE)
-write.csv(st_drop_geometry(ctar_metadata), here("data", "out", "clinics", "ctar_metadata.csv"), 
-          row.names = FALSE)
+write_create(st_drop_geometry(clinic_per_comm),
+             safe_path("data/out/clinics/clinic_per_comm.csv"), 
+             write.csv,
+             row.names = FALSE)
+write_create(st_drop_geometry(clinic_per_dist), 
+             safe_path("data/out/clinics/clinic_per_dist.csv"), 
+             write.csv, 
+             row.names = FALSE)
+write_create(st_drop_geometry(ctar_metadata), 
+             safe_path("data/out/clinics/ctar_metadata.csv"), 
+             write.csv,
+             row.names = FALSE)
 
 # Session Info
-out.session(path = "data-raw/src/04_process_clinics.R", 
-            filename = here("analysis", "logs", "log_local.csv"), 
+out.session(path = "data-raw/src/03_clinics.R", 
+            filename = safe_path("analysis/logs/log_local.csv"), 
             start = start)
 

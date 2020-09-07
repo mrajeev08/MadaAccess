@@ -5,23 +5,24 @@
 # ------------------------------------------------------------------------------------------------ #
 
 # Packages
-library(here)
+library(magrittr)
 library(malariaAtlas) # for friction surface
 library(raster) # for reading in rasters
 require(sf) # for reading in shapefiles
 library(gdistance) # for making transition object
 library(here) # for paths
 library(data.table) # for out session 
-source(here("R", "out.session.R"))
-source(here("R", "match_pop.R"))
+source(here("R", "utils.R"))
+source(safe_path("R/out.session.R"))
+source(safe_path("R/match_pop.R"))
 
 # Shapefile for masking to (from OCHA)
 mada_districts <- 
-  here("data-raw", "raw", "shapefiles", "districts", "mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp") %>%
+  safe_path("data-raw/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp") %>%
   st_read() 
 
 # World Pop 2015 (Linnaird et al.)
-wp_2015 <- raster(here("data-raw", "raw", "rasters", "WorldPop", "MDG_ppp_2015_adj_v2.tif"))
+wp_2015 <- raster(safe_path("data-raw/raw/rasters/WorldPop/MDG_ppp_2015_adj_v2.tif"))
 
 # Masked friction surface
 friction_masked <- 
@@ -29,15 +30,18 @@ friction_masked <-
     surface = "A global friction surface enumerating land-based travel speed for a nominal year 2015",
     shp = mada_districts
   )
-writeRaster(friction_masked, 
-            here("data-raw", "out", "rasters", "friction_mada_masked.tif"), 
-            overwrite = TRUE)
+
+write_create(friction_masked, 
+             safe_path("data-raw/out/rasters/friction_mada_masked.tif"), 
+             writeRaster, 
+             overwrite = TRUE,
+             options=c("COMPRESS=LZW"))
 
 # Masked transition surface (geocorrected  transition matrix (i.e., the graph))
 trans <- transition(friction_masked, function(x) 1/mean(x), 8) 
 trans_gc <- geoCorrection(trans)
-saveRDS(trans_gc, 
-        here("data-raw", "out", "rasters", "trans_gc_masked.rds"))
+write_create(trans_gc,  safe_path("data-raw/out/rasters/trans_gc_masked.rds"),
+             saveRDS, overwrite = TRUE, options=c("COMPRESS=LZW"))
 
 
 # convert frition surface & world pop to spatial pixels
@@ -63,9 +67,9 @@ pop <- raster(friction_pix["pop"]) # transform back to raster
 # should be true (or minimal difference)
 sum(pop[], na.rm = TRUE) - sum(wp_2015[], na.rm = TRUE)
 
-writeRaster(pop, here("data-raw", "out", "rasters", "wp_2015_1x1.tif"), overwrite = TRUE, 
-            options=c("COMPRESS=LZW"))
+write_create(pop, safe_path("data-raw/out/rasters/wp_2015_1x1.tif"), 
+             writeRaster,  overwrite = TRUE, options=c("COMPRESS=LZW"))
 
 # Saving session info
 out.session(path = "data-raw/src/01_rasters.R", 
-            filename = here("analysis", "logs", "log_local.csv"))
+            filename = safe_path("analysis/logs/log_local.csv"))
