@@ -29,34 +29,45 @@ mada_districts %>%
   group_by(distcode) %>%
   summarize(geometry = st_union(geometry)) %>%
   left_join(st_drop_geometry(mada_districts[6:nrow(mada_districts), ])) %>%
-  mutate(ADM2_EN = recode(ADM2_EN, 
-                          `6e Arrondissement` = "Antananarivo Renivohitra")) %>%
+  mutate(ADM2_EN = recode(ADM2_EN,
+    `6e Arrondissement` = "Antananarivo Renivohitra"
+  )) %>%
   st_collection_extract(.) -> mada_districts
-  
+
 mada_communes %>%
-  mutate(distcode = substring(as.character(ADM2_PCODE), 1, 7),
-         ADM2_EN = case_when(distcode == "MG11101" ~ "Antananarivo Renivohitra",
-                             TRUE ~ ADM2_EN)) -> mada_communes
+  mutate(
+    distcode = substring(as.character(ADM2_PCODE), 1, 7),
+    ADM2_EN = case_when(
+      distcode == "MG11101" ~ "Antananarivo Renivohitra",
+      TRUE ~ ADM2_EN
+    )
+  ) -> mada_communes
 
 
 # Clean up names ----------------------------------------------------------
 # NOTE: var names have to be <= 10 characters long for ESRI shapefile output
 mada_districts %>%
   dplyr::select(distcode, district = ADM2_EN) %>%
-  mutate(long_cent = st_coordinates(st_centroid(.))[, 1], 
-         lat_cent = st_coordinates(st_centroid(.))[, 2]) -> mada_districts
+  mutate(as_tibble(st_coordinates(st_centroid(.))), .before = "geometry") %>%
+  rename(long_cent = X, lat_cent = Y) -> mada_districts
 
 mada_communes %>%
   dplyr::select(distcode, district = ADM2_EN, commcode = ADM3_PCODE, commune = ADM3_EN) %>%
-  mutate(long_cent = st_coordinates(st_centroid(.))[, 1], 
-         lat_cent = st_coordinates(st_centroid(.))[, 2]) -> mada_communes
+  mutate(as_tibble(st_coordinates(st_centroid(.))), .before = "geometry") %>%
+  rename(long_cent = X, lat_cent = Y) -> mada_communes
 
-write_create(mada_districts, safe_path("data-raw/out/shapefiles/mada_districts.shp"), 
-             st_write, delete_layer = TRUE)
-write_create(mada_communes, safe_path("data-raw/out/shapefiles/mada_communes.shp"), 
-             st_write, delete_layer = TRUE)
+write_create(mada_districts, safe_path("data-raw/out/shapefiles/mada_districts.shp"),
+  st_write,
+  delete_layer = TRUE
+)
+write_create(mada_communes, safe_path("data-raw/out/shapefiles/mada_communes.shp"),
+  st_write,
+  delete_layer = TRUE
+)
 
 # Saving session info
-out.session(path = "data-raw/src/02_shapefiles.R", 
-            filename = safe_path("analysis/logs/log_local.csv"), 
-            start = start)
+out.session(
+  path = "data-raw/src/02_shapefiles.R",
+  filename = safe_path("analysis/logs/log_local.csv"),
+  start
+)
