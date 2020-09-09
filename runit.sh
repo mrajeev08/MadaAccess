@@ -116,7 +116,7 @@ do
                 echo -e "${BRed}$f did not complete!${NC}"
                 if [ "$printerrors" = "1" ];
                 then
-                    grep "Error:" $out --color
+                    grep "Error" $out --color
                 fi
             fi
         fi
