@@ -12,13 +12,12 @@ library(here)
 
 # Source
 source(here("R", "utils.R"))
-source(safe_path("R/ttime_functions.R"))
-source(safe_path("R/out.session.R"))
+source(here_safe("R/ttime_functions.R"))
 
 # Load in GIS files
-mada_districts <- st_read(safe_path("data-raw/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp"))
-mada_communes <- st_read(safe_path("data-raw/raw/shapefiles/communes/mdg_admbnda_adm3_BNGRC_OCHA_20181031.shp"))
-ctar_metadata <- read.csv(safe_path("data-raw/raw/ctar_metadata.csv"))
+mada_districts <- st_read(here_safe("data-raw/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp"))
+mada_communes <- st_read(here_safe("data-raw/raw/shapefiles/communes/mdg_admbnda_adm3_BNGRC_OCHA_20181031.shp"))
+ctar_metadata <- read.csv(here_safe("data-raw/raw/ctar_metadata.csv"))
 
 # Fix up shapefiles ------------------------------------------------------
 # Get distcodes for both admin levels & dissolve tana polygons
@@ -56,18 +55,14 @@ mada_communes %>%
   mutate(as_tibble(st_coordinates(st_centroid(.))), .before = "geometry") %>%
   rename(long_cent = X, lat_cent = Y) -> mada_communes
 
-write_create(mada_districts, safe_path("data-raw/out/shapefiles/mada_districts.shp"),
+write_create(mada_districts, here_safe("data-raw/out/shapefiles/mada_districts.shp"),
   st_write,
   delete_layer = TRUE
 )
-write_create(mada_communes, safe_path("data-raw/out/shapefiles/mada_communes.shp"),
+write_create(mada_communes, here_safe("data-raw/out/shapefiles/mada_communes.shp"),
   st_write,
   delete_layer = TRUE
 )
 
 # Saving session info
-out.session(
-  path = "data-raw/src/02_shapefiles.R",
-  filename = safe_path("analysis/logs/log_local.csv"),
-  start
-)
+out.session(logfile = "logs/data_raw.csv", start = start, ncores = 1)

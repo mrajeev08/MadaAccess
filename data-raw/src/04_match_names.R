@@ -15,16 +15,15 @@ library(here)
 
 # source matching function
 source(here("R", "utils.R"))
-source(safe_path("R/out.session.R"))
-source(safe_path("R/match_names.R"))
+source(here_safe("R/match_names.R"))
 
 # Read in shapefiles
-mada_communes <- st_read(safe_path("data-raw/out/shapefiles/mada_communes.shp"))
-mada_districts <- st_read(safe_path("data-raw/out/shapefiles/mada_districts.shp"))
+mada_communes <- st_read(here_safe("data-raw/out/shapefiles/mada_communes.shp"))
+mada_districts <- st_read(here_safe("data-raw/out/shapefiles/mada_districts.shp"))
 
 # Match commune names in peripheral ARMC data -------------------------------------------------
 # automatch ones with < 3 fixed distance
-peripheral <- read.csv(safe_path("data-raw/raw/ipm_data/SaisieRage_DATA_2018-09-21_1755.csv"))
+peripheral <- read.csv(here_safe("data-raw/raw/ipm_data/SaisieRage_DATA_2018-09-21_1755.csv"))
 peripheral$distcode <- paste0(
   substring(peripheral$district, 1, 1),
   substring(peripheral$district, 3, 8)
@@ -37,7 +36,7 @@ peripheral_comm_matches <- match.admin(
   match_method = "osa", nested = TRUE
 )
 write_create(peripheral_comm_matches,
-  safe_path("data-raw/out/match_names/peripheral_comm_matches.csv"),
+  here_safe("data-raw/out/match_names/peripheral_comm_matches.csv"),
   write.csv,
   row.names = FALSE
 )
@@ -49,13 +48,13 @@ ipm_dist_matches <- match.admin(
   match_names = mada_districts$district, match_nest = NULL,
   match_method = "osa", nested = FALSE
 )
-write_create(ipm_dist_matches, safe_path("data-raw/out/match_names/ipm_dist_matches.csv"),
+write_create(ipm_dist_matches, here_safe("data-raw/out/match_names/ipm_dist_matches.csv"),
   write.csv,
   row.names = FALSE
 )
 
 # after manual matching of names in IPM data
-names_matched <- read.csv(safe_path("data-raw/misc/matched/ipm_dist_matched.csv"))
+names_matched <- read.csv(here_safe("data-raw/misc/matched/ipm_dist_matched.csv"))
 names_matched$distcode <- mada_districts$distcode[match(
   names_matched$match,
   tolower(mada_districts$district)
@@ -67,13 +66,13 @@ ipm_comm_matches <- match.admin(
   match_nest = mada_communes$distcode,
   match_method = "osa", nested = TRUE
 )
-write_create(ipm_comm_matches, safe_path("data-raw/out/match_names/ipm_comm_matches.csv"),
+write_create(ipm_comm_matches, here_safe("data-raw/out/match_names/ipm_comm_matches.csv"),
   write.csv,
   row.names = FALSE
 )
 
 # Match admin names in moramanga data ---------------------------------------------------------
-moramanga <- read.csv(safe_path("data-raw/raw/moramanga/CTAR_%28V3%29_20190918150219.csv"))
+moramanga <- read.csv(here_safe("data-raw/raw/moramanga/CTAR_%28V3%29_20190918150219.csv"))
 moramanga$commune <- sapply(strsplit(as.character(moramanga$Patient.Home), "\\("), "[", 1)
 moramanga$commune <- trimws(moramanga$commune, which = "right")
 moramanga$district <- sapply(strsplit(as.character(moramanga$Patient.Home), "\\, "), "[", 2)
@@ -84,7 +83,7 @@ moramanga_dist_matches <- match.admin(
   match_names = mada_districts$district, match_nest = NULL,
   match_method = "osa", nested = FALSE
 )
-write_create(moramanga_dist_matches, safe_path("data-raw/out/match_names/moramanga_dist_matches.csv"),
+write_create(moramanga_dist_matches, here_safe("data-raw/out/match_names/moramanga_dist_matches.csv"),
   write.csv,
   row.names = FALSE
 )
@@ -108,14 +107,10 @@ moramanga_comm_matches <- match.admin(
   match_method = "osa", nested = TRUE
 )
 moramanga_comm_matches <- filter(moramanga_comm_matches, !is.na(names_tomatch))
-write_create(moramanga_comm_matches, safe_path("data-raw/out/match_names/moramanga_comm_matches.csv"),
+write_create(moramanga_comm_matches, here_safe("data-raw/out/match_names/moramanga_comm_matches.csv"),
   write.csv,
   row.names = FALSE
 )
 
 # Saving session info
-out.session(
-  path = "data-raw/src/04_match_names.R",
-  filename = safe_path("analysis/logs/log_local.csv"),
-  start
-)
+out.session(logfile = "logs/data_raw.csv", start = start, ncores = 1)

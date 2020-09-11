@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------------------------------------ #
 
 start <- Sys.time()
-
+print(path.expand(sys.frames()[[1]]$ofile))
 # packages
 library(tidyverse)
 library(raster)
@@ -12,13 +12,12 @@ library(sf)
 library(here)
 select <- dplyr::select
 source(here("R", "utils.R"))
-source(safe_path("R/out.session.R"))
 
 # data
-mada_communes <- st_read(safe_path("data-raw/out/shapefiles/mada_communes.shp"))
-ctar_metadata <- read.csv(safe_path("data-raw/raw/ctar_metadata.csv"))
-csbs <- read.csv(safe_path("data-raw/raw/ipm_data/csbs.csv"), stringsAsFactors = FALSE)
-pop_1x1 <- raster(safe_path("data-raw/out/rasters/wp_2015_1x1.tif"))
+mada_communes <- st_read(here_safe("data-raw/out/shapefiles/mada_communes.shp"))
+ctar_metadata <- read.csv(here_safe("data-raw/raw/ctar_metadata.csv"))
+csbs <- read.csv(here_safe("data-raw/raw/ipm_data/csbs.csv"), stringsAsFactors = FALSE)
+pop_1x1 <- raster(here_safe("data-raw/out/rasters/wp_2015_1x1.tif"))
 
 # get clinic commcodes & distcodes
 csbs %>%
@@ -45,7 +44,7 @@ csb2 %>%
   slice(-c(apply(dist_mat, 1, which.min))) %>%
   mutate(clinic_id = 1:nrow(.) + 31) -> csb2
 
-write_create(st_drop_geometry(csb2), safe_path("data-raw/out/clinics/csb2.csv"),
+write_create(st_drop_geometry(csb2), here_safe("data-raw/out/clinics/csb2.csv"),
   write.csv,
   row.names = FALSE
 )
@@ -85,24 +84,20 @@ csb1 %>%
   bind_rows(clinic_per_comm) -> clinic_per_comm
 
 write_create(st_drop_geometry(clinic_per_comm),
-  safe_path("data-raw/out/clinics/clinic_per_comm.csv"),
+  here_safe("data-raw/out/clinics/clinic_per_comm.csv"),
   write.csv,
   row.names = FALSE
 )
 write_create(st_drop_geometry(clinic_per_dist),
-  safe_path("data-raw/out/clinics/clinic_per_dist.csv"),
+  here_safe("data-raw/out/clinics/clinic_per_dist.csv"),
   write.csv,
   row.names = FALSE
 )
 write_create(st_drop_geometry(ctar_metadata),
-  safe_path("data-raw/out/clinics/ctar_metadata.csv"),
+  here_safe("data-raw/out/clinics/ctar_metadata.csv"),
   write.csv,
   row.names = FALSE
 )
 
 # Session Info
-out.session(
-  path = "data-raw/src/03_clinics.R",
-  filename = safe_path("analysis/logs/log_local.csv"),
-  start
-)
+out.session(logfile = "logs/data_raw.csv", start = start, ncores = 1)

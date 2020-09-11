@@ -14,17 +14,16 @@ library(data.table)
 library(lubridate)
 library(here)
 source(here("R", "utils.R"))
-source(safe_path("R/out.session.R"))
 select <- dplyr::select
 
 # Read in shapefiles
-mada_communes <- st_read(safe_path("data-raw/out/shapefiles/mada_communes.shp"))
-mada_districts <- st_read(safe_path("data-raw/out/shapefiles/mada_districts.shp"))
+mada_communes <- st_read(here_safe("data-raw/out/shapefiles/mada_communes.shp"))
+mada_districts <- st_read(here_safe("data-raw/out/shapefiles/mada_districts.shp"))
 
 # Read in raw bite data
-peripheral <- read.csv(safe_path("data-raw/raw/ipm_data/SaisieRage_DATA_2018-09-21_1755.csv"))
-load(safe_path("data-raw/raw/ipm_data/ipm.rda"))
-moramanga <- read.csv(safe_path("data-raw/raw/moramanga/CTAR_%28V3%29_20190918150219.csv"))
+peripheral <- read.csv(here_safe("data-raw/raw/ipm_data/SaisieRage_DATA_2018-09-21_1755.csv"))
+load(here_safe("data-raw/raw/ipm_data/ipm.rda"))
+moramanga <- read.csv(here_safe("data-raw/raw/moramanga/CTAR_%28V3%29_20190918150219.csv"))
 
 # Match admin names --------------------------------------------------------------------------------
 # Peripheral data to the district
@@ -34,7 +33,7 @@ peripheral$distcode <- paste0(
 )
 
 # automatically fuzzy match communes using best fixed matches with minimum matching distance <= 2
-peripheral_comm_matches <- read.csv(safe_path("data-raw/out/match_names/peripheral_comm_matches.csv"))
+peripheral_comm_matches <- read.csv(here_safe("data-raw/out/match_names/peripheral_comm_matches.csv"))
 mada_communes$matchcode <- interaction(mada_communes$distcode, tolower(mada_communes$commune))
 peripheral_comm_matches %>%
   mutate(
@@ -56,7 +55,7 @@ peripheral %>%
   left_join(peripheral_comm_matches) -> peripheral
 
 # IPM data to the district
-names_matched <- read.csv(safe_path("data-raw/misc/matched/ipm_dist_matched.csv"))
+names_matched <- read.csv(here_safe("data-raw/misc/matched/ipm_dist_matched.csv"))
 names_matched$distcode <- mada_districts$distcode[match(
   names_matched$match,
   tolower(mada_districts$district)
@@ -64,7 +63,7 @@ names_matched$distcode <- mada_districts$distcode[match(
 IPM$distcode <- names_matched$distcode[match(tolower(IPM$fiv), names_matched$names_tomatch)]
 
 # automatically do communes that were matched to within 4 differences
-ipm_comm_matches <- read.csv(safe_path("data-raw/out/match_names/ipm_comm_matches.csv"))
+ipm_comm_matches <- read.csv(here_safe("data-raw/out/match_names/ipm_comm_matches.csv"))
 ipm_comm_matches %>%
   mutate(
     match = ifelse(min_fixed <= 2, as.character(fixed_best), NA),
@@ -164,11 +163,11 @@ moramanga %>%
 
 # Output master data and summary stats -------------------------------------------------------------
 national <- bind_rows(IPM_clean, peripheral_clean)
-write_create(national, safe_path("data-raw/out/bitedata/national.csv"),
+write_create(national, here_safe("data-raw/out/bitedata/national.csv"),
   write.csv,
   row.names = FALSE
 )
-write_create(moramanga_clean, safe_path("data-raw/out/bitedata/moramanga.csv"),
+write_create(moramanga_clean, here_safe("data-raw/out/bitedata/moramanga.csv"),
   write.csv,
   row.names = FALSE
 )
@@ -181,12 +180,10 @@ moramanga %>%
   bind_cols(select(moramanga_clean, known_cat1, commcode, distcode)) -> moramanga_ttimes
 moramanga_ttimes[moramanga_ttimes == TRUE] <- 1
 moramanga_ttimes[moramanga_ttimes == FALSE] <- 0
-write_create(moramanga_ttimes, safe_path("data-raw/out/bitedata/moramanga_ttimes.csv"),
+write_create(moramanga_ttimes, here_safe("data-raw/out/bitedata/moramanga_ttimes.csv"),
   write.csv,
   row.names = FALSE
 )
 
 # Saving session info
-out.session(path = "data-raw/src/05_bitedata.R",
-            filename = safe_path("analysis/logs/log_local.csv"),
-            start)
+out.session(logfile = "logs/data_raw.csv", start = start, ncores = 1)

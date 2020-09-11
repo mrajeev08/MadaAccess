@@ -15,16 +15,15 @@ library(gdistance) # for making transition object
 library(here) # for paths
 library(data.table) # for out session
 source(here("R", "utils.R"))
-source(safe_path("R/out.session.R"))
-source(safe_path("R/match_pop.R"))
+source(here_safe("R/match_pop.R"))
 
 # Shapefile for masking to (from OCHA)
 mada_districts <-
-  safe_path("data-raw/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp") %>%
+  here_safe("data-raw/raw/shapefiles/districts/mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp") %>%
   readOGR()
 
 # World Pop 2015 (Linnaird et al.)
-wp_2015 <- raster(safe_path("data-raw/raw/WorldPop/MDG_ppp_2015_adj_v2.tif"))
+wp_2015 <- raster(here_safe("data-raw/raw/WorldPop/MDG_ppp_2015_adj_v2.tif"))
 
 # Masked friction surface
 friction_masked <-
@@ -34,7 +33,7 @@ friction_masked <-
   )
 
 write_create(friction_masked,
-  safe_path("data-raw/out/rasters/friction_mada_masked.tif"),
+  here_safe("data-raw/out/rasters/friction_mada_masked.tif"),
   writeRaster,
   overwrite = TRUE,
   options = c("COMPRESS=LZW")
@@ -44,7 +43,7 @@ write_create(friction_masked,
 trans <- transition(friction_masked, function(x) 1 / mean(x), 8)
 trans_gc <- geoCorrection(trans)
 write_create(trans_gc,
-  safe_path("data-raw/out/rasters/trans_gc_masked.rds"),
+  here_safe("data-raw/out/rasters/trans_gc_masked.rds"),
   saveRDS,
   compress = "xz"
 )
@@ -75,14 +74,10 @@ pop <- raster(friction_pix["pop"]) # transform back to raster
 # should be true (or minimal difference)
 sum(pop[], na.rm = TRUE) - sum(wp_2015[], na.rm = TRUE)
 
-write_create(pop, safe_path("data-raw/out/rasters/wp_2015_1x1.tif"),
+write_create(pop, here_safe("data-raw/out/rasters/wp_2015_1x1.tif"),
   writeRaster,
   overwrite = TRUE, options = c("COMPRESS=LZW")
 )
 
 # Saving session info
-out.session(
-  path = "data-raw/src/01_rasters.R",
-  filename = safe_path("analysis/logs/log_local.csv"),
-  start
-)
+out.session(logfile = "logs/data_raw.csv", start = start, ncores = 1)
