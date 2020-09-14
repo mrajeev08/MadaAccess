@@ -2,10 +2,10 @@
 #' Comparing estimates of travel times from multiple sources:
 #'  1) MAP estimates using friction surface
 #'  2) Self-reported travel times of bite patients reporting to Moramanga ARMC
-#'  3) IPM driving times (from Helene and Luciano)                                                
+#'  3) IPM driving times (from Helene and Luciano)
 # ------------------------------------------------------------------------------------------------ #
 
-source('R/functions/out.session.R')
+source('R/utils.R')
 start <- Sys.time()
 
 # Set-up
@@ -17,52 +17,54 @@ library(data.table)
 library(doParallel)
 library(foreach)
 select <- dplyr::select
-source('R/functions/ttime_functions.R')
+source('R/ttime_functions.R')
 
 # data
-ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
-mada_communes <- st_read("data/processed/shapefiles/mada_communes.shp")
-base_times <- raster("output/ttimes/base/ttimes.tif")
-pop1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
-friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
+ctar_metadata <- read.csv(here_safe("data-raw/out/clinics/ctar_metadata.csv"))
+mada_communes <- st_read(here_safe("analysis/out/shapefiles/mada_communes.shp"))
+base_times <- raster(here_safe("analysis/out/ttimes/base/ttimes.tif"))
+pop1x1 <- raster(here_safe("data-raw/out/rasters/wp_2015_1x1.tif"))
+friction_masked <- raster(here_safe("data-raw/out/rasters/friction_mada_masked.tif"))
+
+ttimes_IPM <- read.csv(here_safe("data-raw/raw/ipm_data/ttimes_IPM.csv")) # fix so this is part of data!
+mora <- read.csv(here_safe("data-raw/out/bitedata/moramanga_ttimes.csv"))
 
 # Groundtruthing ------------------------------------------------------------------------------
 # Mora self reported ttimes
-mora <- read.csv("data/processed/bitedata/moramanga_ttimes.csv")
 mada_communes$catchment <- ctar_metadata$CTAR[mada_communes$catchment]
 mora %>%
-  left_join(select(st_drop_geometry(mada_communes), commcode, district, 
-                   from_lat = lat_cent, from_long = long_cent, 
-                   commune, pop, ttimes_wtd, ttimes_un, catchment), 
+  left_join(select(st_drop_geometry(mada_communes), commcode, district,
+                   from_lat = lat_cent, from_long = long_cent,
+                   commune, pop, ttimes_wtd, ttimes_un, catchment),
             by = c("commcode" = "commcode")) %>%
-  mutate(ttimes_est = ttimes_wtd/60, ttimes_un = ttimes_un/60) %>% 
+  mutate(ttimes_est = ttimes_wtd/60, ttimes_un = ttimes_un/60) %>%
   filter(catchment == "Moramanga") %>%
   mutate(multiple = rowSums(dplyr::select(., car:Pus)),
          mode = case_when(multiple > 1 ~ "Multiple",
-                          car == 1 ~ "Car", 
-                          Motorbike == 1 ~ "Motorbike", 
+                          car == 1 ~ "Car",
+                          Motorbike == 1 ~ "Motorbike",
                           foot == 1 ~ "Foot",
-                          Bus == 1 ~ "Bus", 
-                          Bicycle == 1 ~ "Bicycle", 
+                          Bus == 1 ~ "Bus",
+                          Bicycle == 1 ~ "Bicycle",
                           Pus == 1 ~ "Pus-pus",
                           Other == 1 ~ "Other"),
-         to_long = ctar_metadata$long[ctar_metadata$CTAR == "Moramanga"], 
-         to_lat  =  ctar_metadata$lat[ctar_metadata$CTAR == "Moramanga"], 
-         ttimes_reported = hours, 
+         to_long = ctar_metadata$long[ctar_metadata$CTAR == "Moramanga"],
+         to_lat  =  ctar_metadata$lat[ctar_metadata$CTAR == "Moramanga"],
+         ttimes_reported = hours,
          type = "commune_wtd") %>%
-  select(-(car:known_cat1), -ttimes_wtd) -> gtruth_mora 
+  select(-(car:known_cat1), -ttimes_wtd) -> gtruth_mora
 
-gtruth_mora$distance <- geosphere::distGeo(cbind(gtruth_mora$to_long, gtruth_mora$to_lat), 
-                              cbind(gtruth_mora$from_long, gtruth_mora$from_lat))/1000 # in km
+gtruth_mora$distance <- geosphere::distGeo(
+  cbind(gtruth_mora$to_long, gtruth_mora$to_lat),
+  cbind(gtruth_mora$from_long, gtruth_mora$from_lat))/1000 # in km
 
 # IPM groundtruthing (ttimes between points) ---------------------------------------------
-ttimes_IPM <- read.csv("data/raw/ttimes_IPM.csv")
 point_mat_to <- as.matrix(dplyr::select(ttimes_IPM, x = LongAriv, y = LatAriv))
 point_mat_from <- as.matrix(dplyr::select(ttimes_IPM, x = LongDep, y = LatDep))
 
 # for each start and end point
 # takes ~ 6 seconds per point
-cl <- makeCluster(3)
+cl <- makeCluster(detectCores() - 1)
 registerDoParallel(cl)
 
 system.time ({
@@ -71,29 +73,30 @@ system.time ({
           .packages = c("raster", "gdistance", "data.table")) %dopar% {
             ttimes <- get.ttimes(friction = friction_masked, shapefile = mada_communes,
                                  coords = points_to, trans_matrix_exists = TRUE,
-                                 filename_trans = "data/processed/rasters/trans_gc_masked.rds")
-            extract(ttimes, SpatialPoints(points_from)) 
+                                 filename_trans = "data-raw/out/rasters/trans_gc_masked.rds")
+            extract(ttimes, SpatialPoints(points_from))
           } -> ttimes_est
 })
 
-stopCluster(cl) 
+stopCluster(cl)
 
 ttimes_IPM %>%
   mutate(arrival = mdy_hm(paste(Date, Harrival)),
          depart = mdy_hm(paste(Date, Hdepart)),
-         ttimes_reported = as.numeric(arrival - depart)/60, 
-         ttimes_est = unlist(ttimes_est)/60, 
+         ttimes_reported = as.numeric(arrival - depart)/60,
+         ttimes_est = unlist(ttimes_est)/60,
          type = "point", mode = "Car") %>%
-  select(ttimes_est, ttimes_reported, 
-         from_lat = LatDep, from_long = LongDep, to_lat = LatAriv, to_long = LongAriv, 
+  select(ttimes_est, ttimes_reported,
+         from_lat = LatDep, from_long = LongDep, to_lat = LatAriv, to_long = LongAriv,
          type, mode) -> gtruth_IPM
-gtruth_IPM$distance <- geosphere::distGeo(cbind(gtruth_IPM$to_long, gtruth_IPM$to_lat), 
+gtruth_IPM$distance <- geosphere::distGeo(cbind(gtruth_IPM$to_long, gtruth_IPM$to_lat),
                                            cbind(gtruth_IPM$from_long, gtruth_IPM$from_lat))/1000 # in km
 gtruth_IPM$ttimes_est[is.infinite(gtruth_IPM$ttimes_est)] <- NA
 
 gtruth <- bind_rows(gtruth_IPM, gtruth_mora)
 
-write.csv(gtruth, "output/ttimes/gtruth_ttimes.csv", row.names = FALSE)
+write_create(gtruth, "analysis/out/ttimes/gtruth_ttimes.csv",
+             write.csv, row.names = FALSE)
 
 # Save session info ---------------------------------------------------------------------------
-out.session(path = "R/01_gis/06_groundtruth.R", filename = "output/log_local.csv", start = start)
+out.session("log/log_local.csv", start = start, ncores = detectCores() - 1)

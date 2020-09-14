@@ -21,18 +21,22 @@ pop_1x1 <- raster(here_safe("data-raw/out/rasters/wp_2015_1x1.tif"))
 
 # get clinic commcodes & distcodes
 csbs %>%
-  mutate(csbs, long = xcoor, lat = ycoor,
-         pop_dens = extract(pop_1x1, cbind(long, lat))) %>%
+  mutate(csbs,
+    long = xcoor, lat = ycoor,
+    pop_dens = extract(pop_1x1, cbind(long, lat))
+  ) %>%
   st_as_sf(coords = c("xcoor", "ycoor"), crs = st_crs(mada_communes)) %>%
   st_join(select(mada_communes, commcode, distcode, district, commune),
-          join = st_intersects) -> csbs
+    join = st_intersects
+  ) -> csbs
 
 # Process exisiting ctar data -------------------------------------------------------------
 ctar_metadata %>%
   mutate(ctar_metadata, long = LONGITUDE, lat = LATITUDE) %>%
   st_as_sf(coords = c("LONGITUDE", "LATITUDE"), crs = st_crs(mada_communes)) %>%
   st_join(select(mada_communes, commcode, distcode, district, commune),
-          join = st_intersects) %>%
+    join = st_intersects
+  ) %>%
   mutate(clinic_id = 1:nrow(ctar_metadata)) -> ctar_metadata
 
 # Process all csb IIs ------------------------------------------------------------------------

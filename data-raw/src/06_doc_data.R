@@ -4,6 +4,7 @@
 #' usethis::use_this to save as rda to data for lazy loading
 # ------------------------------------------------------------------------------------------------ #
 
+# TO DO: Add documentation for ipm ttime data & trans_gc!
 # Setup
 library(steward)
 library(usethis)
@@ -25,7 +26,7 @@ dict <- function(data) {
 
 # moramanga ----
 moramanga <- read.csv("data-raw/out/bitedata/moramanga.csv")
-mora_missing <- lapply(moramanga, function(x) round(sum(is.na(x)/nrow(moramanga))*100, 2))
+mora_missing <- lapply(moramanga, function(x) round(sum(is.na(x) / nrow(moramanga)) * 100, 2))
 
 stw_dataset(moramanga) %>%
   stw_mutate_meta(
@@ -35,58 +36,89 @@ stw_dataset(moramanga) %>%
     sources = list(
       list(
         title = "Data from previously published study, Rajeev et al. 2019 and continued data collection using the same methods",
-        path = "https://www.sciencedirect.com/science/article/pii/S0264410X18315202"))) %>%
+        path = "https://www.sciencedirect.com/science/article/pii/S0264410X18315202"
+      )
+    )
+  ) %>%
   stw_mutate_dict(
     date_reported = glue("Date patient reported, {mora_missing$date_reported}% NA"),
-    ctar = glue("Name of Anti-rabies medical center (ARMC) where patient reported to, ",
-                "{mora_missing$ctar}% NA"),
-    type = glue("type of patient consultation: {paste(levels(factor(moramanga$type)),
+    ctar = glue(
+      "Name of Anti-rabies medical center (ARMC) where patient reported to, ",
+      "{mora_missing$ctar}% NA"
+    ),
+    type = glue(
+      "type of patient consultation: {paste(levels(factor(moramanga$type)),
                  collapse = ', ')}; transfer is when a patient reported to another ARMC first; ",
-                 "{mora_missing$type}% NA"),
-    id_ctar = glue("Numeric id of ARMC corresponding to column in `ctar_metadata`, ",
-                   "{mora_missing$id_ctar}% NA"),
-    distcode= glue("District id corresponding to `distcode` column in `mada_districts` shapefile, ",
-                   "{mora_missing$distcode}% NA"),
-    commcode = glue("Commune id corresponding to `commcode` column in `mada_communes` shapefile, ",
-                    "{mora_missing$commcode}% NA"),
-    known_cat1 = glue("Whether patient reporting was seeking PEP for a Category I exposure by WHO classification, 1 indicates they yes",
-                      "{mora_missing$known_cat1}% NA"),
-    source = "The source of the data, the Moramanga Rabies Project") %>%
+      "{mora_missing$type}% NA"
+    ),
+    id_ctar = glue(
+      "Numeric id of ARMC corresponding to column in `ctar_metadata`, ",
+      "{mora_missing$id_ctar}% NA"
+    ),
+    distcode = glue(
+      "District id corresponding to `distcode` column in `mada_districts` shapefile, ",
+      "{mora_missing$distcode}% NA"
+    ),
+    commcode = glue(
+      "Commune id corresponding to `commcode` column in `mada_communes` shapefile, ",
+      "{mora_missing$commcode}% NA"
+    ),
+    known_cat1 = glue(
+      "Whether patient reporting was seeking PEP for a Category I exposure by WHO classification, 1 indicates they yes",
+      "{mora_missing$known_cat1}% NA"
+    ),
+    source = "The source of the data, the Moramanga Rabies Project"
+  ) %>%
   stw_to_roxygen() -> mora_doc
 
 usethis::use_data(moramanga, overwrite = TRUE, compress = "xz")
 
 # national ----
 national <- read.csv("data-raw/out/bitedata/national.csv")
-natl_missing <- lapply(national, function(x) round(sum(is.na(x)/nrow(national))*100, 2))
+natl_missing <- lapply(national, function(x) round(sum(is.na(x) / nrow(national)) * 100, 2))
 
 stw_dataset(national) %>%
   stw_mutate_meta(
     name = "national",
     title = "National ARMC patient data",
-    description = glue("Data on date of first report, home district (and commune when available) of ",
-                       "patient, and ctar reported to from {length(unique(national$id_ctar))} ARMC",
-                       "between {paste(year(range(national$date_reported, na.rm = TRUE)), collapse = ' - ')}, ",
-                       "serving multiple districts in Madagascar. Access to the anonymized databases are ",
-                       "available through data sharing agreements with IPM. These raw databases are **not** available publicly."),
+    description = glue(
+      "Data on date of first report, home district (and commune when available) of ",
+      "patient, and ctar reported to from {length(unique(national$id_ctar))} ARMC",
+      "between {paste(year(range(national$date_reported, na.rm = TRUE)), collapse = ' - ')}, ",
+      "serving multiple districts in Madagascar. Access to the anonymized databases are ",
+      "available through data sharing agreements with IPM. These raw databases are **not** available publicly."
+    ),
     sources = list(
       list(
-        title = "Data cleaned from RedCap databases maintained by IPM and the Ministry of Health which hold bite patient data from peripheral ARMC (outside of Antananarivo) and IPM (within Antananarivo) ARMC"))
+        title = "Data cleaned from RedCap databases maintained by IPM and the Ministry of Health which hold bite patient data from peripheral ARMC (outside of Antananarivo) and IPM (within Antananarivo) ARMC"
+      )
+    )
   ) %>%
   stw_mutate_dict(
     date_reported = glue("Date patient reported, {natl_missing$date_reported}% NA"),
-    ctar = glue("Name of Anti-rabies medical center (ARMC) where patient reported to, ",
-                "{natl_missing$ctar}% NA"),
-    type = glue("type of patient consultation: {paste(levels(factor(moramanga$type)),
+    ctar = glue(
+      "Name of Anti-rabies medical center (ARMC) where patient reported to, ",
+      "{natl_missing$ctar}% NA"
+    ),
+    type = glue(
+      "type of patient consultation: {paste(levels(factor(moramanga$type)),
                  collapse = ', ')}; transfer is when a patient reported to another ARMC first; ",
-                "{natl_missing$type}% NA"),
-    id_ctar = glue("Numeric id of ARMC corresponding to column in `ctar_metadata`, ",
-                   "{natl_missing$id_ctar}% NA"),
-    distcode= glue("District id corresponding to `distcode` column in `mada_districts` shapefile, ",
-                   "{natl_missing$distcode}% NA"),
-    commcode = glue("Commune id corresponding to `commcode` column in `mada_communes` shapefile, ",
-                    "{natl_missing$commcode}% NA.", " Note that these were fuzzy matched and are largely incomplete and may be incorrect."),
-    source = "The source of the data, either the peripheral RedCap database, which holds data for all ARMC excluding the IPM ARMC, or the IPM database") %>%
+      "{natl_missing$type}% NA"
+    ),
+    id_ctar = glue(
+      "Numeric id of ARMC corresponding to column in `ctar_metadata`, ",
+      "{natl_missing$id_ctar}% NA"
+    ),
+    distcode = glue(
+      "District id corresponding to `distcode` column in `mada_districts` shapefile, ",
+      "{natl_missing$distcode}% NA"
+    ),
+    commcode = glue(
+      "Commune id corresponding to `commcode` column in `mada_communes` shapefile, ",
+      "{natl_missing$commcode}% NA.", " Note that these were fuzzy matched and are largely incomplete and may be incorrect."
+    ),
+    source = "The source of the data, either the peripheral RedCap database, which holds data for all ARMC excluding the IPM ARMC, or the IPM database"
+  ) %>%
   stw_to_roxygen() -> national_doc
 
 usethis::use_data(national, overwrite = TRUE, compress = "xz")
@@ -102,7 +134,10 @@ stw_dataset(mora_ttimes) %>%
     sources = list(
       list(
         title = "Data from previously published study, Rajeev et al. 2019 and continued data collection using the same methods",
-        path = "https://www.sciencedirect.com/science/article/pii/S0264410X18315202"))) %>%
+        path = "https://www.sciencedirect.com/science/article/pii/S0264410X18315202"
+      )
+    )
+  ) %>%
   stw_mutate_dict(
     car = "patient traveled by car? (1 indicates yes)",
     Motorbike = "patient traveled by motorbike? (1 indicates yes)",
@@ -114,7 +149,7 @@ stw_dataset(mora_ttimes) %>%
     Other = "patient traveled by other means of transport? (1 indicates yes)",
     hours = "Travel time from patient home to clinic in hours",
     known_cat1 = "Whether the patient was reporting for a Category I exposure by WHO classification",
-    distcode= "District id corresponding to `distcode` column in `mada_districts` shapefile",
+    distcode = "District id corresponding to `distcode` column in `mada_districts` shapefile",
     commcode = "Commune id corresponding to `commcode` column in `mada_communes` shapefile"
   ) %>%
   stw_to_roxygen() -> mora_ttimes_doc
@@ -133,8 +168,10 @@ ctar_metadata %>%
     description = "This data includes information on the location and doses provisioned to ARMC across Madagascar",
     sources = list(
       list(
-        title = "IPM Vaccine Clinic"))
-    ) %>%
+        title = "IPM Vaccine Clinic"
+      )
+    )
+  ) %>%
   stw_mutate_dict(
     CTAR = "Name of ARMC",
     District = "District that ARMC is located in ",
@@ -170,9 +207,11 @@ csb2 %>%
     title = "CSB II locations in Madagascar",
     description = "Location data of Centre de Sante Niveau II (CSB II), a subset of public clinics and hospitals, in Madagascar. CSB II are larger and generally have more staff and services than CSB I (also public).",
     sources = list(
-    list(
-      title = "Full data on all geolocated clinics available upon request from the IPM GIS unit; raw data are *not* shared here."))
-    ) %>%
+      list(
+        title = "Full data on all geolocated clinics available upon request from the IPM GIS unit; raw data are *not* shared here."
+      )
+    )
+  ) %>%
   stw_mutate_dict(
     district = "Name of district where CSB II is located",
     distcode = "District id corresponding to distcode column in `mada_districts` shapefile",
@@ -198,9 +237,11 @@ clin_per_comm %>%
     title = "CSB I per II in each commune",
     description = glue("Locations of CSB (either level 1 or 2) in highest density area for each commune (n = {nrow(clin_per_comm)})"),
     sources = list(
-    list(
-      title = "Full data on all geolocated clinics available upon request from the IPM GIS unit; raw data are *not* shared here")
-    )) %>%
+      list(
+        title = "Full data on all geolocated clinics available upon request from the IPM GIS unit; raw data are *not* shared here"
+      )
+    )
+  ) %>%
   stw_mutate_dict(
     distcode = "District id corresponding to `distcode` column in `mada_districts` shapefile",
     district = "District name corresponding to `district` column in `mada_districts` shapefile",
@@ -210,9 +251,13 @@ clin_per_comm %>%
     lat = "Latitude",
     clinic_id = "clinic id used in analysis of expanding PEP",
     pop_dens = "Density of people in grid cell where clinic is located (estimated from `pop1x1`)",
-    type = glue("Type of clinic, ",
-                glue_collapse(paste(names(table(clin_per_comm$type)), '=',
-                                    table(clin_per_comm$type)), sep = ", "))
+    type = glue(
+      "Type of clinic, ",
+      glue_collapse(paste(
+        names(table(clin_per_comm$type)), "=",
+        table(clin_per_comm$type)
+      ), sep = ", ")
+    )
   ) %>%
   stw_to_roxygen() -> clin_per_comm_doc
 
@@ -229,8 +274,10 @@ clin_per_dist %>%
     description = glue("Locations of CSB II in location with highest population density for each district (n = {nrow(clin_per_dist)})"),
     sources = list(
       list(
-        title = "Full data on all geolocated clinics available upon request from the IPM GIS unit; raw data are *not* shared here")
-    )) %>%
+        title = "Full data on all geolocated clinics available upon request from the IPM GIS unit; raw data are *not* shared here"
+      )
+    )
+  ) %>%
   stw_mutate_dict(
     distcode = "District id corresponding to `distcode` column in `mada_districts` shapefile",
     district = "District name corresponding to `district` column in `mada_districts` shapefile",
@@ -258,10 +305,12 @@ mada_districts %>%
     title = "Administrative level 2 boundaries (District) for Madagascar",
     description = "sf object cleaned from original OCHA shapefile, retreived from HDX on 2018-10-31. The district polygons for Antananarivo were dissolved to a single polygon to correspond to administrative boundaries at time period of data.",
     sources = list(
-    list(
-      title = "United Nations Office for the Coordination of Humanitarian Affairs (OCHA) Regional Office for Southern Africa",
-      path = "https://data.world/ocha-rosa/26fa506b-0727-4d9d-a590-d2abee21ee22"))
-    ) %>%
+      list(
+        title = "United Nations Office for the Coordination of Humanitarian Affairs (OCHA) Regional Office for Southern Africa",
+        path = "https://data.world/ocha-rosa/26fa506b-0727-4d9d-a590-d2abee21ee22"
+      )
+    )
+  ) %>%
   stw_mutate_dict(
     distcode = "District id",
     district = "District name ",
@@ -272,8 +321,10 @@ mada_districts %>%
   stw_to_roxygen() -> mada_districts_doc
 
 # correct the sf format
-mada_districts_doc <- gsub("format A data frame", "format A simple feature object (from package `sf`) with data",
-                           mada_districts_doc)
+mada_districts_doc <- gsub(
+  "format A data frame", "format A simple feature object (from package `sf`) with data",
+  mada_districts_doc
+)
 usethis::use_data(mada_districts, overwrite = TRUE, compress = "xz")
 
 # mada_communes ----
@@ -288,7 +339,9 @@ mada_communes %>%
     sources = list(
       list(
         title = "United Nations Office for the Coordination of Humanitarian Affairs (OCHA) Regional Office for Southern Africa",
-        path = "https://data.world/ocha-rosa/26fa506b-0727-4d9d-a590-d2abee21ee22"))
+        path = "https://data.world/ocha-rosa/26fa506b-0727-4d9d-a590-d2abee21ee22"
+      )
+    )
   ) %>%
   stw_mutate_dict(
     distcode = "District id",
@@ -302,8 +355,10 @@ mada_communes %>%
   stw_to_roxygen() -> mada_communes_doc
 
 # correct the sf format
-mada_communes_doc <- gsub("format A data frame", "format A simple feature object (from package `sf`) with data",
-                           mada_communes_doc)
+mada_communes_doc <- gsub(
+  "format A data frame", "format A simple feature object (from package `sf`) with data",
+  mada_communes_doc
+)
 
 usethis::use_data(mada_communes, overwrite = TRUE, compress = "xz")
 
@@ -349,18 +404,18 @@ usethis::use_data(friction_masked, overwrite = TRUE, compress = "xz")
 pop1x1 <- raster("data-raw/out/rasters/wp_2015_1x1.tif")
 
 glue::glue(
-    "#' World Pop aggregated to friction surface ",
-    "#' ",
-    "#' World Pop 2015 dataset for Madagascar aggregated/resampled to the MAP friction surface. See `data-raw/src/01_rasters.R` for code. We used the older version of the dataset using Linaird et al. 2012 as it generated more comparable estimates to recent national and microcensus data.",
-    "#' ",
-    "#' @format A {nrow(pop1x1)} x {ncol(pop1x1)} raster at a resolution of 30 arcsec (approximately 1x1 km @ equator), the same raster as the friction surface",
-    "#' ",
-    "#' @source [Population Distribution, Settlement Patterns and Accessibility across Africa in 2010](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0031743)",
-    "#' ",
-    "\"pop1x1\"",
-    "",
-    .sep = "\n"
-  ) %>%
+  "#' World Pop aggregated to friction surface ",
+  "#' ",
+  "#' World Pop 2015 dataset for Madagascar aggregated/resampled to the MAP friction surface. See `data-raw/src/01_rasters.R` for code. We used the older version of the dataset using Linaird et al. 2012 as it generated more comparable estimates to recent national and microcensus data.",
+  "#' ",
+  "#' @format A {nrow(pop1x1)} x {ncol(pop1x1)} raster at a resolution of 30 arcsec (approximately 1x1 km @ equator), the same raster as the friction surface",
+  "#' ",
+  "#' @source [Population Distribution, Settlement Patterns and Accessibility across Africa in 2010](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0031743)",
+  "#' ",
+  "\"pop1x1\"",
+  "",
+  .sep = "\n"
+) %>%
   roxygen_substitute() -> pop1x1_doc
 
 usethis::use_data(pop1x1, overwrite = TRUE, compress = "xz")

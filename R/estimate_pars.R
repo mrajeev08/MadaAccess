@@ -1,6 +1,6 @@
-#' Estimate parameters using bayesian models in JAGS 
+#' Estimate parameters using bayesian models in JAGS
 #' @Details
-#' @param bites, ttimes, pop, ncovars, nlocs, catch, ncatches, start, end, group = data to pass for 
+#' @param bites, ttimes, pop, ncovars, nlocs, catch, ncatches, start, end, group = data to pass for
 #' fitting, see candidate_mods folder for more details
 #' @param pop_predict type of population scaling in the model
 #' @param intercept type of intercept in the model
@@ -24,59 +24,66 @@
 #' @return Summary of estimates from mcmc.
 #' @section Dependencies:
 #'     rjags, foreach
-#'   
-  
-estimate.pars <- function(data_df, covar_df, model_func, pars,
-                          trans = 1e5, chains = 3, adapt = 500, burn = 100, 
-                          iter = 10000, thinning = 5, 
-                          dic = TRUE, save = FALSE, pass_priors = NULL, 
-                          seed = NULL, suffix = NULL, ...) {
-  
-  
-  mod_name <- paste0(pars$scale, "_", pars$intercept, "_", pars$pop_predict, 
-                     ifelse(pars$OD == TRUE, "_OD", ""),
-                     ifelse(!is.null(suffix), suffix, ""))
-  
-  # get the model function and out its output to the function environment
-  list2env(model_func(summed = pars$summed, pop_predict = pars$pop_predict, OD = pars$OD, 
-                      bites = data_df$avg_bites, ttimes = covar_df$ttimes, 
-                      pop = covar_df$pop, group = covar_df$group, catch = covar_df$catch,
-                      ncovars = nrow(covar_df), nlocs = nrow(data_df), 
-                      ncatches = max(data_df$catch), start = covar_df$start, end = covar_df$end, 
-                      trans = trans), envir = environment())
+#'
 
-  if(!is.null(pass_priors)) {
+estimate.pars <- function(data_df, covar_df, model_func, pars,
+                          trans = 1e5, chains = 3, adapt = 500, burn = 100,
+                          iter = 10000, thinning = 5,
+                          dic = TRUE, save = FALSE, pass_priors = NULL,
+                          seed = NULL, suffix = NULL, ...) {
+  mod_name <- paste0(
+    pars$scale, "_", pars$intercept, "_", pars$pop_predict,
+    ifelse(pars$OD == TRUE, "_OD", ""),
+    ifelse(!is.null(suffix), suffix, "")
+  )
+
+  # get the model function and out its output to the function environment
+  list2env(model_func(
+    summed = pars$summed, pop_predict = pars$pop_predict, OD = pars$OD,
+    bites = data_df$avg_bites, ttimes = covar_df$ttimes,
+    pop = covar_df$pop, group = covar_df$group, catch = covar_df$catch,
+    ncovars = nrow(covar_df), nlocs = nrow(data_df),
+    ncatches = max(data_df$catch), start = covar_df$start, end = covar_df$end,
+    trans = trans
+  ), envir = environment())
+
+  if (!is.null(pass_priors)) {
     model <- pass.priors(prior_list = pass_priors, uninformed = "dnorm(0, 10^-3)", model)
   }
-  
+
   cat(model)
-  
-  if(!is.null(seed)) {
-    mcmc.combine <- function( ... ){
-      return(as.mcmc.list(sapply(list( ... ), mcmc)))
+
+  if (!is.null(seed)) {
+    mcmc.combine <- function(...) {
+      return(as.mcmc.list(sapply(list(...), mcmc)))
     }
-    
+
     foreach(i = 1:chains, .combine = mcmc.combine, .multicombine = TRUE) %do% {
-      inits <-  list(.RNG.name = 'base::Wichmann-Hill', .RNG.seed = seed + i)
-      jags_mod <- jags.model(textConnection(model), data = data, inits = inits, 
-                             n.chains = 1, n.adapt = adapt)
+      inits <- list(.RNG.name = "base::Wichmann-Hill", .RNG.seed = seed + i)
+      jags_mod <- jags.model(textConnection(model),
+        data = data, inits = inits,
+        n.chains = 1, n.adapt = adapt
+      )
       update(jags_mod, burn)
       samps <- coda.samples(jags_mod, pars, n.iter = iter, thin = thinning)
     } -> samps
-    
   } else {
-    jags_mod <- jags.model(textConnection(model), data = data, inits = inits, 
-                           n.chains = chains, n.adapt = adapt)
+    jags_mod <- jags.model(textConnection(model),
+      data = data, inits = inits,
+      n.chains = chains, n.adapt = adapt
+    )
     update(jags_mod, burn)
     samps <- coda.samples(jags_mod, pars, n.iter = iter, thin = thinning)
   }
-  
-  if(dic == TRUE) {
-    if(chains > 1) {
+
+  if (dic == TRUE) {
+    if (chains > 1) {
       # these inits will be the same as passed from the model script
       # DIC ests are thus not reproducible!
-      jags_mod <- jags.model(textConnection(model), data = data, inits = inits, 
-                             n.chains = chains, n.adapt = adapt)
+      jags_mod <- jags.model(textConnection(model),
+        data = data, inits = inits,
+        n.chains = chains, n.adapt = adapt
+      )
       update(jags_mod, burn)
       dic_est <- dic.samples(jags_mod, n.iter = iter, thin = thinning, type = "pD")
       samps <- list(samps = samps, dic = dic_est)
@@ -86,15 +93,15 @@ estimate.pars <- function(data_df, covar_df, model_func, pars,
   } else {
     samps <- list(samps = samps)
   }
-  
-  if(save == TRUE) {
+
+  if (save == TRUE) {
     ## Directory to output results
     dir_name <- paste0("output/mods/samps/", pars$data_source)
-    
+
     if (!dir.exists(dir_name)) {
       dir.create(dir_name, recursive = TRUE)
     }
-    saveRDS(samps, paste0(dir_name, "/", mod_name, ".rds")) 
+    saveRDS(samps, paste0(dir_name, "/", mod_name, ".rds"))
   }
   return(samps)
 }
@@ -108,9 +115,9 @@ estimate.pars <- function(data_df, covar_df, model_func, pars,
 #' @return The model text modified with the updated priors
 #' @section Dependencies:
 #'     glue
-#'     
+#'
 pass.priors <- function(prior_list, uninformed = "dnorm(0, 10^-3)", model) {
-  for(j in 1:length(prior_list)) {
+  for (j in 1:length(prior_list)) {
     prior_lookup <- glue("{names(prior_list)[j]} ~ {uninformed}\n")
     model <- gsub(prior_lookup, prior_list[[j]], model, fixed = TRUE)
   }

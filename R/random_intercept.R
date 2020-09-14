@@ -1,7 +1,6 @@
 # Models with random effect
 random_mod <- function(summed, pop_predict, OD, bites, ttimes, pop, group, catch,
                        ncovars, nlocs, ncatches, start, end, trans, ...) {
-  
   if (summed == TRUE) {
     model <- "model {
   
@@ -29,16 +28,17 @@ random_mod <- function(summed, pop_predict, OD, bites, ttimes, pop, group, catch
       }
   
     }"
-    
+
     # data
-    data <- list(bites = round(bites), ttimes = ttimes, pop = pop,
-                 catch = catch, ncatches = ncatches, group = group, 
-                 ncovars = ncovars, nlocs = nlocs, start = start, end = end)
-    
+    data <- list(
+      bites = round(bites), ttimes = ttimes, pop = pop,
+      catch = catch, ncatches = ncatches, group = group,
+      ncovars = ncovars, nlocs = nlocs, start = start, end = end
+    )
   }
-  
+
   # Model w/out latent var
-  if(summed == FALSE) {
+  if (summed == FALSE) {
     model <- "model {
       # Priors
       beta_0 ~ dnorm(0, 0.1) # Mean hyperparameter for random intercepts
@@ -59,30 +59,38 @@ random_mod <- function(summed, pop_predict, OD, bites, ttimes, pop, group, catch
           log(exp_bites[i]) <- alpha[catch[i]] + beta_ttimes*ttimes[i] # Insert OD param here
       }
     }"
-    
+
     # data
-    data <- list(bites = round(bites), ttimes = ttimes, pop = pop,
-                 catch = catch, ncatches = ncatches, nlocs = nlocs)
+    data <- list(
+      bites = round(bites), ttimes = ttimes, pop = pop,
+      catch = catch, ncatches = ncatches, nlocs = nlocs
+    )
   }
-  
+
   # params
   params <- c("alpha", "beta_0", "beta_ttimes", "sigma_0")
   # inits
-  inits <- list(alpha = rnorm(ncatches, 0, 1),
-                beta_0 = rnorm(1, 0, 1), 
-                beta_ttimes = rnorm(1, 0, 1),
-                sigma_0 = rlnorm(1))
-  
+  inits <- list(
+    alpha = rnorm(ncatches, 0, 1),
+    beta_0 = rnorm(1, 0, 1),
+    beta_ttimes = rnorm(1, 0, 1),
+    sigma_0 = rlnorm(1)
+  )
+
   # Pop options
-  if(pop_predict =="addPop") {
+  if (pop_predict == "addPop") {
     # edit model text accordingly
     model <- gsub("beta_ttimes ~ dnorm(0, 0.1)",
-                  "beta_ttimes ~ dnorm(0, 0.1)\n    beta_pop ~ dnorm(0, 0.1)", 
-                  model, fixed = TRUE)   # add extra params + priors
+      "beta_ttimes ~ dnorm(0, 0.1)\n    beta_pop ~ dnorm(0, 0.1)",
+      model,
+      fixed = TRUE
+    ) # add extra params + priors
     model <- gsub("*pop[i] # remove offset", "", model, fixed = TRUE) # remove the offset
     model <- gsub("alpha[catch[i]] + beta_ttimes*ttimes[i]",
-                  "alpha[catch[i]] + beta_ttimes*ttimes[i] + beta_pop*pop[i]/trans", 
-                  model, fixed = TRUE)    # change formula for exp_bites
+      "alpha[catch[i]] + beta_ttimes*ttimes[i] + beta_pop*pop[i]/trans",
+      model,
+      fixed = TRUE
+    ) # change formula for exp_bites
     # data add in trans
     data <- c(data, trans = trans)
     # params: add beta pop
@@ -90,50 +98,52 @@ random_mod <- function(summed, pop_predict, OD, bites, ttimes, pop, group, catch
     # inits: add beta pop
     inits <- c(inits, beta_pop = rnorm(1, 0, 1))
   }
-  
-  if(pop_predict =="onlyPop") {
+
+  if (pop_predict == "onlyPop") {
     # edit model text accordingly
     model <- gsub("beta_ttimes ~ dnorm(0, 0.1)",
-                  "beta_pop ~ dnorm(0, 0.1)", model, fixed = TRUE)   # remove extra params + priors
+      "beta_pop ~ dnorm(0, 0.1)", model,
+      fixed = TRUE
+    ) # remove extra params + priors
     model <- gsub("*pop[i] # remove offset", "", model, fixed = TRUE) # remove the offset
     model <- gsub("alpha[catch[i]] + beta_ttimes*ttimes[i]",
-                  "alpha[catch[i]] + beta_pop*pop[i]/trans",
-                  model, fixed = TRUE)   # change formula for exp_bites
+      "alpha[catch[i]] + beta_pop*pop[i]/trans",
+      model,
+      fixed = TRUE
+    ) # change formula for exp_bites
     # data add in trans
     data <- c(data, trans = trans)
     params <- c(params, "beta_pop")
-    
+
     # remove ttimes from every bit
     data[["ttimes"]] <- NULL
     inits[["beta_ttimes"]] <- NULL
     params <- params[params != "beta_ttimes"]
   }
-  
+
   # Overdispersion
   # Overdispersion
-  if(OD == TRUE) {
-    
-    OD_priors <- 
-    "sigma_e ~ dunif(0, 10)
+  if (OD == TRUE) {
+    OD_priors <-
+      "sigma_e ~ dunif(0, 10)
       tau_e <- pow(sigma_e, -2)     
       for(j in 1:nlocs){
         epsilon[j] ~ dnorm(0, tau_e) 
-      }" 
-    
+      }"
+
     # add lines for prior & param
     model <- gsub("# Insert OD prior here", OD_priors, model, fixed = TRUE)
     if (summed == FALSE) {
-      model <- gsub("# Insert OD param here", "+ epsilon[i]", model, fixed = TRUE)   
+      model <- gsub("# Insert OD param here", "+ epsilon[i]", model, fixed = TRUE)
     } else {
       model <- gsub("# Insert OD param here", "+ epsilon[group[i]]", model, fixed = TRUE)
     }
-    
+
     # add sigma_e to inits
     inits <- c(inits, sigma_e = rlnorm(1))
     # add sigma_e to param list
     params <- c(params, "sigma_e")
-  }   
-  
+  }
+
   return(list(model = model, inits = inits, params = params, data = data))
-  
 }
