@@ -98,9 +98,9 @@ do
         cmd=$(grep "sub_cmd"  "$f" | cut -f 2 -d =) # sub args from script
             if [ "$dryrun" = "1" ];
             then
-                echo "cluster cmd: sub $cmd"
+                echo "cluster cmd: sub $cmd -sp $f"
             else
-                sub $cmd
+                sub $cmd -sp $f
             fi
         fi
     else

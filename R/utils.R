@@ -3,7 +3,7 @@
 ##' Malavika Rajeev
 
 ## Function for writing out session info at end of each script run
-out.session <- function(logfile = "log.csv", start = NULL, ncores = 1) {
+out_session <- function(logfile = "log.csv", start = NULL, ncores = 1) {
 
   # find the path (only works if script is sourced or run from cmd line)
   path <- this_file()
@@ -12,9 +12,20 @@ out.session <- function(logfile = "log.csv", start = NULL, ncores = 1) {
     print("Running interactively, either use source or Rscript on the command line
           to save session info.")
   } else {
-    out <- devtools::session_info()
-    versions <- data.table::as.data.table(t(out$packages$loadedversion))
-    colnames(versions) <- out$packages$package
+
+    out <- sessionInfo()
+    attached <- lapply(out$otherPkgs, function(x) x["Version"])
+    loaded <- lapply(out$loadedOnly, function(x) x["Version"])
+    pkgs <- data.frame(packages = c(names(loaded), names(attached)),
+                       version = c(unlist(attached), unlist(loaded)),
+                       status = c(rep("attached", length(attached)),
+                                  rep("loaded", length(loaded))))
+
+    if (!is.null(start)) {
+      jobtime <- as.numeric(Sys.time() - start, units = "mins")
+    } else {
+      jobtime <- NA
+    }
 
     max_mem <- obj_size(sum(gc()[, ncol(gc())]))
 
@@ -24,21 +35,22 @@ out.session <- function(logfile = "log.csv", start = NULL, ncores = 1) {
       jobtime <- NULL
     }
 
-    toappend <- data.table::data.table(
+    # long format
+    toappend <- data.frame(
       ran = timestamp(),
       timestamp = format(Sys.time(), "%Y%m%d_%H%M%S"),
       jobtime, max_mem, ncores,
-      path, r_version = out$platform$version,
-      os = out$platform$os, system = out$platform$system,
-      timezone = out$platform$tz, versions
+      path, r_version = out$R.version$version.string,
+      os = out$running, system = out$platform,
+      timezone = out$platform$tz, pkgs
     )
 
     if (file.exists(logfile)) {
-      existing <- data.table::fread(logfile)
-      towrite <- rbind(existing, toappend, fill = TRUE)
-      data.table::fwrite(towrite, logfile)
+      existing <- read.csv(logfile, stringsAsFactors = FALSE)
+      towrite <- dplyr::bind_rows(existing, toappend)
+      write.csv(towrite, logfile, row.names = FALSE)
     } else {
-      write_create(toappend, logfile, data.table::fwrite)
+      write_create(toappend, logfile, write.csv)
     }
   }
 }
