@@ -18,7 +18,7 @@
 #' (pred_type = "bites") from poisson given expecatation
 #' @param pred_type If par_type = "point_est" uses point estimate of parameters.
 #' If par_type = "posterior" need to pass vectors (or matrix if passing known_alphas) with length
-#' equal to nsims (use \code[get.samps])
+#' equal to nsims (use \code[get_samps])
 #' for this.
 #' @param error_n set to 1 when generating expectated range of preds for a given covariate value,
 #' defaults to length of the data when predicting for a set of locations
@@ -26,7 +26,7 @@
 #' @return Matrix of simulated predictions (nrow = length of data, ncol = nsims)
 #' @section Dependencies: foreach
 
-predict.bites <- function(ttimes, pop, catch, names,
+predict_bites <- function(ttimes, pop, catch, names,
                           beta_ttimes, beta_0, beta_pop, sigma_0, known_alphas, sigma_e,
                           pop_predict = c("flatPop", "addPop", "onlyPop"),
                           intercept = c("random", "fixed"), trans = 1e5, known_catch = TRUE,
@@ -109,7 +109,7 @@ predict.bites <- function(ttimes, pop, catch, names,
 }
 
 #' Predict deaths from reported bite incidence
-#' Takes matrix of predicted reported bites from \code[predict.bites] and applies decision tree
+#' Takes matrix of predicted reported bites from \code[predict_bites] and applies decision tree
 #' framework to simulate reporting, deaths, and deaths averted.
 #' @param p_rab_min minimum estimate of proportion of reported bites that are rabies exposures
 #' @param p_rab_max maximum estimate of proportion of reported bites that are rabies exposures
@@ -131,7 +131,7 @@ predict.bites <- function(ttimes, pop, catch, names,
 #' to generate those predictions.
 #' @section Dependencies: triangle
 
-predict.deaths <- function(bite_mat, pop, p_rab_min = 0.2, p_rab_max = 0.6, p_rab_mode = NULL,
+predict_deaths <- function(bite_mat, pop, p_rab_min = 0.2, p_rab_max = 0.6, p_rab_mode = NULL,
                            exp_min = 15 / 1e5, exp_max = 76 / 1e5, exp_mode = NULL, rho_max = 0.9,
                            prob_death = 0.16, dist = "uniform", exp_scaled = NULL, ...) {
 
@@ -224,7 +224,7 @@ constrained_inc <- function(slope, pop, max, min) {
 #' @param x numeric number of bites reported in a given year
 #' @return List of simulated annual vial demand and average daily throughput.
 #' @section Dependencies: None
-get.vials <- function(x) {
+get_vials <- function(x) {
   day0 <- floor(runif(rpois(1, x), min = 1, max = 365))
   days <- tabulate(c(day0, day0 + 3, day0 + 7))
   return(list(
@@ -234,7 +234,7 @@ get.vials <- function(x) {
 }
 
 #' Draw independent samples from the posterior
-#' @details Helper function to sample posterior estimates (results saved from \code[estimate.pars]).
+#' @details Helper function to sample posterior estimates (results saved from \code[estimate_pars]).
 #' Loads an rds file identified through the parameters passed in the function.
 #' @param pop_predict type of population scaling in the model
 #' @param intercept type of intercept in the model
@@ -246,7 +246,7 @@ get.vials <- function(x) {
 #' @param hpd numeric 0 - 1, whether to draw from the higher posterior density and what level
 #' @return a matrix of independent draws from the posterior distributions of the sourced mcmc chains
 #' @section Dependencies: coda, glue
-get.samps <- function(pop_predict = "flatPop", data_source = "National", intercept = "random",
+get_samps <- function(pop_predict = "flatPop", data_source = "National", intercept = "random",
                       scale = "Commune", suff = "", parent_dir = "analysis/out/mods/samps/",
                       nsims = 1000, hpd = NULL) {
   samps <- readRDS(glue("{parent_dir}{data_source}/{scale}_{intercept}_{pop_predict}{suff}.rds"))[[1]]

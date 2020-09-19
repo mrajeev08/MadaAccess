@@ -196,7 +196,7 @@ foreach(i = 1:length(scenario_levs), .combine = "bind_rows") %do% {
   pts <- filter(all_pts, scenario <= scenario_levs[i])
   pts$scenario <- scenario_levs[i]
   point_mat_base <- as.matrix(dplyr::select(pts, Y_COORD = long, X_COORD = lat))
-  ttimes <- get.ttimes(
+  ttimes <- get_ttimes(
     friction = friction_masked, shapefile = mada_districts,
     coords = point_mat_base, trans_matrix_exists = TRUE,
     filename_trans = "data-raw/out/rasters/trans_gc_masked.rds"

@@ -1,6 +1,6 @@
 
 # Function for getting days to include via RLEs
-rle.days <- function(vec, threshold = 10) {
+rle_days <- function(vec, threshold = 10) {
   rle(vec) %>%
     unclass() %>%
     as.data.frame() %>%
@@ -58,12 +58,12 @@ clean_natl <- function(national, mada_districts, mada_communes, ctar_metadata,
       fill = list(no_patients = 0)
     ) -> throughput
 
-  # rle.days = Helper function for getting which days to include (moved to functions from data_functions.R)
+  # rle_days = Helper function for getting which days to include (moved to functions from data_functions.R)
   throughput %>%
     group_by(id_ctar) %>%
     arrange(date_reported, .by_group = TRUE) %>%
     mutate(
-      include_day = rle.days(no_patients, threshold = tput_thresh),
+      include_day = rle_days(no_patients, threshold = tput_thresh),
       mean_throughput = mean(no_patients[include_day == 1]),
       sd_throughput = sd(no_patients[include_day == 1]),
       year = year(date_reported)

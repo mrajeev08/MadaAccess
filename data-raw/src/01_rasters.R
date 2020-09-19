@@ -80,4 +80,4 @@ write_create(pop, here_safe("data-raw/out/rasters/wp_2015_1x1.tif"),
 )
 
 # Saving session info
-out_session(logfile = "logs/data_raw.csv", start = start, ncores = 1)
+out_session(logfile = here_safe("logs/data_raw.csv"), start = start, ncores = 1)

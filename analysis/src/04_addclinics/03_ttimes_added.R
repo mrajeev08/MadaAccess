@@ -35,7 +35,7 @@ clin_per_dist <- fread(here_safe("data-raw/out/clinics/clinic_per_dist.csv"))
 clin_per_dist[, candfile := fp(paste0("analysis/out/ttimes/candidates/clinic_",
                                       clinic_id, ".tif"))]
 
-base_df <- add.armc(
+base_df <- add_armc(
   base_df = base_df, cand_df = clin_per_dist,
   max_clinics = nrow(clin_per_dist),
   rank_metric = prop, thresh_met = 1e-4,
@@ -48,7 +48,7 @@ clin_per_comm <- fread(here_safe("data-raw/out/clinics/clinic_per_comm.csv"))
 clin_per_comm[, candfile := fp(paste0("analysis/out/ttimes/candidates/clinic_",
                                       clinic_id, ".tif"))]
 
-base_df <- add.armc(
+base_df <- add_armc(
   base_df = base_df, cand_df = clin_per_comm,
   max_clinics = nrow(clin_per_comm),
   rank_metric = prop,

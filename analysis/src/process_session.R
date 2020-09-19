@@ -8,9 +8,9 @@ library(lubridate)
 library(RCurl)
 library(glue)
 
-# Do out.session here so any packages used in this script get included too!
-source("R/functions/out.session.R")
-out.session("R/process_session.R", filename = "output/log_local")
+# Do out_session here so any packages used in this script get included too!
+source(here::here("R", "utils.R"))
+out_session("R/process_session.R", filename = "analysis/out/log_local")
 
 # Find all .R & .Rmd files 
 files <- list.files(recursive = TRUE)
@@ -18,14 +18,14 @@ files <- files[grep(".R$|.Rmd$", files)]
 files <- files[grep("archive", files, invert = TRUE)] # excluding these that are archived
 
 # Pull in local log
-log_local <- read.csv("output/log_local.csv", stringsAsFactors = FALSE)
+log_local <- read.csv("analysis/out/log_local.csv", stringsAsFactors = FALSE)
 log_local <- as.data.frame(apply(log_local, 2, function (x) as.character(x)), 
                            stringsAsFactors = FALSE)
 
 # Pull down log from cluster
 # Make sure you're vpn'd in before doing this
 # system("rsync -rvlzt --update mrajeev@della.princeton.edu:~/MadaAccess/log_cluster.csv ~/Documents/Projects/MadaAccess/output/")
-log_cluster <- read.csv("output/log_cluster.csv", stringsAsFactors = FALSE)
+log_cluster <- read.csv("analysis/out/log_cluster.csv", stringsAsFactors = FALSE)
 log_cluster <- as.data.frame(apply(log_cluster, 2, function (x) as.character(x)),
                              stringsAsFactors = FALSE)
 log_cluster %>%
@@ -43,7 +43,7 @@ log_local %>%
   bind_rows(log_cluster) -> log_scripts
 
 # write log out of when scripts last ran
-write.csv(log_scripts, "output/logs/log_last_ran.csv", row.names = FALSE)
+write.csv(log_scripts, "analysis/out/logs/log_last_ran.csv", row.names = FALSE)
 
 log_scripts %>%
   pivot_longer(-(ran:running), names_to = "pkgs", values_to = "version") %>%
@@ -65,5 +65,5 @@ source_urls[!exists] <- github_lookup[match(names(github_lookup), names(source_u
 pkgs_used$source <- source_urls
 
 # Write table & bib out for citing in supplement 
-write.csv(pkgs_used, "output/logs/pkgs_used.csv", row.names = FALSE)
+write.csv(pkgs_used, "analysis/out/logs/pkgs_used.csv", row.names = FALSE)
 write_bib(pkgs_used$pkgs, "docs/bib/refs_pkgs.bib")

@@ -95,7 +95,7 @@ mada_districts %>%
   rename(ctar = catchment) -> mada_districts
 
 # Bezier curves
-bez_pts <- get.bezier.pts(
+bez_pts <- get_bezier_pts(
   from = data.frame(
     long = ctar_todist_lines$from_long,
     lat = ctar_todist_lines$from_lat
@@ -125,7 +125,7 @@ ctar_todist_bez %>%
     group = interaction(distcode, ctar)
   ) -> ctar_todist_bez
 
-leg_pts <- get.bezleg(
+leg_pts <- get_bezleg(
   bbox = st_bbox(mada_districts), n_pts = 11, size_vec = c(100, 400, 1600, 5000),
   min_size = 5, offset_long = 0.4, offset_lat = -1.5
 )
@@ -226,7 +226,7 @@ comm_pts$from_long <- ctar_metadata$long[ctar_metadata$CTAR == "Moramanga"]
 comm_pts$from_lat <- ctar_metadata$lat[ctar_metadata$CTAR == "Moramanga"]
 
 # Get beziers
-bez_pts <- get.bezier.pts(
+bez_pts <- get_bezier_pts(
   from = data.frame(long = comm_pts$from_long, lat = comm_pts$from_lat),
   to = data.frame(long = comm_pts$to_long, lat = comm_pts$to_lat),
   frac = 0.5, transform = function(x) sqrt(1 / x) * 0.1
@@ -244,7 +244,7 @@ comms_to_plot <- filter(mada_communes, commcode %in% comms_to_plot$commcode)
 mora_district <- filter(mada_districts, district == "Moramanga")
 
 # Get legend
-leg_pts <- get.bezleg(
+leg_pts <- get_bezleg(
   bbox = bounds,
   n_pts = 11, size_vec = c(100, 200, 400, 1600),
   min_size = 5, offset_long = -0.1, offset_lat = -0.65

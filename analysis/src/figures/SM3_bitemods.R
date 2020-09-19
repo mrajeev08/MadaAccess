@@ -153,8 +153,8 @@ write_create(
 # Comparing models with overdispersion and without -----------------------------------------
 
 # Posteriors are now similar for all models
-all_samps_natl <- summarize.samps(parent_dir = "analysis/out/mods/samps/National/")
-all_samps_mora <- summarize.samps(parent_dir = "analysis/out/mods/samps/Moramanga/")
+all_samps_natl <- summarize_samps(parent_dir = "analysis/out/mods/samps/National/")
+all_samps_mora <- summarize_samps(parent_dir = "analysis/out/mods/samps/Moramanga/")
 all_samps_mora %>%
   bind_rows(all_samps_natl) %>%
   filter(pop_predict == "flatPop") %>%
@@ -370,7 +370,7 @@ names(model_cols) <- scale_labs
 cutoff_labs <- c("7" = "7 days", "15" = "15 days", "Inf" = "Uncorrected")
 
 # Posterior estimates
-all_samps_se <- summarize.samps(parent_dir = "analysis/out/mods/samps/National_se/")
+all_samps_se <- summarize_samps(parent_dir = "analysis/out/mods/samps/National_se/")
 all_samps_se %>%
   mutate(
     Parameter = fct_recode(Parameter,

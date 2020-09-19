@@ -17,7 +17,7 @@
 #' @param thinning number of iterations to thin at (i.e. save every n steps of each chain)
 #' @param dic whether to estimate the model dic
 #' @param save whether to save the mcmc chains
-#' @param pass_priors a list of priors to pass, uses the \code[pass.priors] functions to gsub out old
+#' @param pass_priors a list of priors to pass, uses the \code[pass_priors] functions to gsub out old
 #' priors
 #' @param seed seed to use for the jags model (if NULL will not be reproducible)
 #' @param suffix another label to pass when saving the object (i.e. to identify the saved files)
@@ -26,7 +26,7 @@
 #'     rjags, foreach
 #'
 
-estimate.pars <- function(data_df, covar_df, model = "random", pars,
+estimate_pars <- function(data_df, covar_df, model = "random", pars,
                           trans = 1e5, chains = 3, adapt = 500, burn = 100,
                           iter = 10000, thinning = 5,
                           dic = TRUE, save = FALSE, pass_priors = NULL,
@@ -51,17 +51,17 @@ estimate.pars <- function(data_df, covar_df, model = "random", pars,
   ), envir = environment())
 
   if (!is.null(pass_priors)) {
-    model <- pass.priors(prior_list = pass_priors, uninformed = "dnorm(0, 10^-3)", model)
+    model <- pass_priors(prior_list = pass_priors, uninformed = "dnorm(0, 10^-3)", model)
   }
 
   cat(model)
 
   if (!is.null(seed)) {
-    mcmc.combine <- function(...) {
+    mcmc_combine <- function(...) {
       return(as.mcmc.list(sapply(list(...), mcmc)))
     }
 
-    foreach(i = 1:chains, .combine = mcmc.combine, .multicombine = TRUE) %do% {
+    foreach(i = 1:chains, .combine = mcmc_combine, .multicombine = TRUE) %do% {
       inits <- list(.RNG.name = "base::Wichmann-Hill", .RNG.seed = seed + i)
       jags_mod <- jags.model(textConnection(model),
         data = data, inits = inits,
@@ -119,7 +119,7 @@ estimate.pars <- function(data_df, covar_df, model = "random", pars,
 #' @section Dependencies:
 #'     glue
 #'
-pass.priors <- function(prior_list, uninformed = "dnorm(0, 10^-3)", model) {
+pass_priors <- function(prior_list, uninformed = "dnorm(0, 10^-3)", model) {
   for (j in 1:length(prior_list)) {
     prior_lookup <- glue("{names(prior_list)[j]} ~ {uninformed}\n")
     model <- gsub(prior_lookup, prior_list[[j]], model, fixed = TRUE)

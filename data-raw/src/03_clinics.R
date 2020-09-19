@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------------------------------------ #
 
 start <- Sys.time()
-print(path.expand(sys.frames()[[1]]$ofile))
+
 # packages
 library(tidyverse)
 library(raster)
@@ -104,4 +104,4 @@ write_create(st_drop_geometry(ctar_metadata),
 )
 
 # Session Info
-out_session(logfile = "logs/data_raw.csv", start = start, ncores = 1)
+out_session(logfile = here_safe("logs/data_raw.csv"), start = start, ncores = 1)

@@ -105,7 +105,7 @@ mods_all <-
             inc_prior <- log(mean(data_df$avg_bites/data_df$pop))
             prior_list <- list(beta_0 = glue("beta_0 ~ dnorm({inc_prior}, 0.1)"))
 
-            out <- estimate.pars(data_df = data_df,
+            out <- estimate_pars(data_df = data_df,
                                  covar_df = covar_df,
                                  pars = j,
                                  data_source = j$data_source,
@@ -148,7 +148,7 @@ expectations <-
           .packages = c("data.table", "glue", "dplyr", "foreach"),
           .combine = rbind, .options.RNG = 1222) %dorng% {
 
-    posts <- as.data.frame(get.samps(pop_predict = j$pop_predict,
+    posts <- as.data.frame(get_samps(pop_predict = j$pop_predict,
                                      data_source = j$data_source,
                                      intercept = j$intercept,
                                      scale = j$scale,
@@ -157,7 +157,7 @@ expectations <-
                                      nsims = 10000))
 
     # at these travel times what are the expected ranges of bites predicted
-    bite_mat <- predict.bites(ttimes = ttimes_plot, pop = 1e5,
+    bite_mat <- predict_bites(ttimes = ttimes_plot, pop = 1e5,
                               catch = 1, names = NA,
                               beta_ttimes = posts$beta_ttimes, beta_0 = posts$beta_0,
                               beta_pop = posts$beta_pop, sigma_0 = posts$sigma_0,

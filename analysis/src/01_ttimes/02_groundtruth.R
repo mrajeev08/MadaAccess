@@ -81,7 +81,7 @@ system.time({
     points_from = iter(point_mat_from, by = "row"),
     .packages = c("raster", "gdistance", "data.table")
   ) %dopar% {
-    ttimes <- get.ttimes(
+    ttimes <- get_ttimes(
       friction = friction_masked, shapefile = mada_communes,
       coords = points_to, trans_matrix_exists = TRUE,
       filename_trans = "data-raw/out/rasters/trans_gc_masked.rds"

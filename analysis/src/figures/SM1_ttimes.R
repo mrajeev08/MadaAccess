@@ -134,7 +134,7 @@ mora_raw <- ggplot(
 # IPM data
 gtruth %>%
   filter(type == "point") -> gtruth_IPM
-bez_pts <- get.bezier.pts(
+bez_pts <- get_bezier_pts(
   from = data.frame(long = gtruth_IPM$from_long, lat = gtruth_IPM$from_lat),
   to = data.frame(long = gtruth_IPM$to_long, lat = gtruth_IPM$to_lat),
   frac = 0.5, transform = function(x) sqrt(1 / x) * 0.3

@@ -47,7 +47,7 @@ system.time({
     points = iter(point_mat_base, by = "row"),
     .packages = c("raster", "gdistance", "data.table")
   ) %dopar% {
-    ttimes <- get.ttimes(
+    ttimes <- get_ttimes(
       friction = friction_masked, shapefile = mada_districts,
       coords = points[, c("x", "y")], trans_matrix_exists = TRUE,
       filename_trans = "data-raw/out/rasters/trans_gc_masked.rds"
@@ -105,7 +105,7 @@ write_create(
 )
 
 # District
-district_df <- aggregate.admin(base_df = base_df, admin = "distcode", scenario = 0)
+district_df <- aggregate_admin(base_df = base_df, admin = "distcode", scenario = 0)
 district_maxcatch <- district_df[, .SD[prop_pop_catch == max(prop_pop_catch,
   na.rm = TRUE
 )],
@@ -123,7 +123,7 @@ write_create(
 )
 
 # Commune
-commune_df <- aggregate.admin(base_df = base_df, admin = "commcode", scenario = 0)
+commune_df <- aggregate_admin(base_df = base_df, admin = "commcode", scenario = 0)
 commune_maxcatch <- commune_df[, .SD[prop_pop_catch == max(prop_pop_catch,
   na.rm = TRUE
 )],

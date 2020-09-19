@@ -47,7 +47,7 @@ foreach(i = iter(metrics), .combine = rbind) %do% {
   dir <- fp(paste0("analysis/out/ttimes/tests/", i))
 
   # Rank clinics (need to check base_df not modified!)
-  add.armc(
+  add_armc(
     base_df = base_df, cand_df = clin_per_dist,
     max_clinics = nrow(clin_per_dist),
     rank_metric = rank_metric,

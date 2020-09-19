@@ -68,7 +68,7 @@ mods_all <-
             inc_prior <- log(mean(data_df$avg_bites/data_df$pop))
             prior_list <- list(beta_0 = glue("beta_0 ~ 0, 0.1)"))
 
-            out <- estimate.pars(data_df = data_df, covar_df = covar_df, pars = j,
+            out <- estimate_pars(data_df = data_df, covar_df = covar_df, pars = j,
                                  trans = 1e5, burn = 5000, chains = 3,
                                  adapt = 2500, iter = 60000, thinning = 5,
                                  dic = TRUE, save = TRUE, centered = FALSE,

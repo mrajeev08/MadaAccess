@@ -186,4 +186,4 @@ write_create(moramanga_ttimes, here_safe("data-raw/out/bitedata/moramanga_ttimes
 )
 
 # Saving session info
-out_session(logfile = "logs/data_raw.csv", start = start, ncores = 1)
+out_session(logfile = here_safe("logs/data_raw.csv"), start = start, ncores = 1)

@@ -1,12 +1,6 @@
-####################################################################################################
-##' Function for matching names between data and shapefiles
-##' Details: Match within districts for communes and output ranked matches to manually fix
-##' Author: Malavika Rajeev
-####################################################################################################
-
 #' Matching names in data to key
 #'
-#' \code{match.admin} ranks potential matches for a character vector
+#' \code{match_admin} ranks potential matches for a character vector
 #'
 #' Can be used with a nesting category (i.e. matching commune names within each district name)
 #' or for matching names in general. Provide vectors of names in data (data_names) to a vector of names
@@ -24,7 +18,7 @@
 #' the ranked fixed matches returned in columns (ranked by distance)
 #' @section Dependencies: stringdist, dplyr
 
-match.admin <- function(data_names, data_nest, match_names, match_nest, match_method, nested = TRUE) {
+match_admin <- function(data_names, data_nest, match_names, match_nest, match_method, nested = TRUE) {
   require(stringdist)
 
   ## trouble shooting

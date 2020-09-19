@@ -38,9 +38,9 @@ csbs_max[, candfile := fp(paste0(
   "analysis/out/ttimes/candidates/clinic_",
   clinic_id, ".tif"
 ))]
-max_stats <- update.base(base_df = base_df, cand_df = csbs_max, nsplit = 5)
+max_stats <- update_base(base_df = base_df, cand_df = csbs_max, nsplit = 5)
 
-max_dist <- aggregate.admin(
+max_dist <- aggregate_admin(
   base_df = max_stats, admin = "distcode",
   scenario = nrow(csbs_max)
 )
@@ -58,7 +58,7 @@ write_create(
   fwrite
 )
 
-max_comm <- aggregate.admin(
+max_comm <- aggregate_admin(
   base_df = max_stats, admin = "commcode",
   scenario = nrow(csbs_max)
 )

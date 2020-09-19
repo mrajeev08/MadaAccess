@@ -62,7 +62,7 @@ preds_mada <-
     covar_df$ttimes <- covar_df$ttimes_wtd / 60
 
 
-    posts <- as.data.frame(get.samps(
+    posts <- as.data.frame(get_samps(
       pop_predict = pars$pop_predict,
       data_source = pars$data_source,
       intercept = pars$intercept,
@@ -79,7 +79,7 @@ preds_mada <-
       )
     }
 
-    bite_mat <- predict.bites(
+    bite_mat <- predict_bites(
       ttimes = covar_df$ttimes, pop = covar_df$pop,
       catch = covar_df$catch, names = covar_df$distcode,
       beta_ttimes = posts$beta_ttimes, beta_0 = posts$beta_0,
@@ -141,7 +141,7 @@ outfit_mora <-
     mora_bites$ttimes <- mora_bites$ttimes_wtd / 60
 
 
-    posts <- as.data.frame(get.samps(
+    posts <- as.data.frame(get_samps(
       pop_predict = pars$pop_predict,
       data_source = pars$data_source,
       intercept = pars$intercept,
@@ -158,7 +158,7 @@ outfit_mora <-
       )
     }
 
-    bite_mat <- predict.bites(
+    bite_mat <- predict_bites(
       ttimes = mora_bites$ttimes, pop = mora_bites$pop,
       catch = mora_bites$catch, names = mora_bites$distcode,
       beta_ttimes = posts$beta_ttimes, beta_0 = posts$beta_0,
@@ -206,7 +206,7 @@ outfit_mada <-
 
     covar_df$ttimes <- covar_df$ttimes_wtd / 60
 
-    posts <- as.data.frame(get.samps(
+    posts <- as.data.frame(get_samps(
       pop_predict = pars$pop_predict,
       data_source = pars$data_source,
       intercept = pars$intercept,
@@ -216,7 +216,7 @@ outfit_mada <-
 
     known_alphas <- rep(NA, nrow(covar_df))
 
-    bite_mat <- predict.bites(
+    bite_mat <- predict_bites(
       ttimes = covar_df$ttimes, pop = covar_df$pop,
       catch = covar_df$catch, names = covar_df$distcode,
       beta_ttimes = posts$beta_ttimes, beta_0 = posts$beta_0,
@@ -261,7 +261,7 @@ ttimes_plot <- seq(0, 15, by = 0.025)
 
 expectations <-
   foreach(pars = iter(mods_flatPop, by = "row"), .combine = rbind) %do% {
-    posts <- as.data.frame(get.samps(
+    posts <- as.data.frame(get_samps(
       pop_predict = pars$pop_predict,
       data_source = pars$data_source,
       intercept = pars$intercept,
@@ -270,7 +270,7 @@ expectations <-
     ))
 
     # at these travel times what are the expected ranges of bites predicted
-    bite_mat <- predict.bites(
+    bite_mat <- predict_bites(
       ttimes = ttimes_plot, pop = 1e5,
       catch = 1, names = NA,
       beta_ttimes = posts$beta_ttimes, beta_0 = posts$beta_0,

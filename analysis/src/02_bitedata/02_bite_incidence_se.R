@@ -29,16 +29,16 @@ national %>%
                                by = "day"), id_ctar,
            fill = list(no_patients = 0)) -> patient_ts
 
-# rle.days = Helper function for getting which days to include
+# rle_days = Helper function for getting which days to include
 patient_ts %>%
   group_by(id_ctar) %>%
   arrange(date_reported, .by_group = TRUE) %>%
-  mutate(include_nozeros = rle.days(no_patients, threshold = 0),
-         include_5 = rle.days(no_patients, threshold = 5),
-         include_10 = rle.days(no_patients, threshold = 10),
-         include_15 = rle.days(no_patients, threshold = 15),
-         include_30 = rle.days(no_patients, threshold = 30),
-         include_all = rle.days(no_patients, threshold = Inf),
+  mutate(include_nozeros = rle_days(no_patients, threshold = 0),
+         include_5 = rle_days(no_patients, threshold = 5),
+         include_10 = rle_days(no_patients, threshold = 10),
+         include_15 = rle_days(no_patients, threshold = 15),
+         include_30 = rle_days(no_patients, threshold = 30),
+         include_all = rle_days(no_patients, threshold = Inf),
          year = year(date_reported)) -> throughput
 throughput$ctar <- ctar_metadata$CTAR[match(throughput$id_ctar,
                                             ctar_metadata$id_ctar)]
@@ -74,24 +74,24 @@ patient_ts %>%
 
 # Do average of 3 doses per patient at days 0, 3, 7 over 4 year period
 # Get completion of subsequent doses by clinic
-get.vials.3 <- function(x) {
+get_vials.3 <- function(x) {
   day0 <- floor(runif(x, min = 1, max = 365*4))
   days <- tabulate(c(day0, day0 + 3, day0 + 7))
   return(sum(ceiling(days)/2))
 }
 
-get.vials.4 <- function(x) {
+get_vials.4 <- function(x) {
   day0 <- floor(runif(x, min = 1, max = 365*4))
   days <- tabulate(c(day0, day0 + 3, day0 + 7, day0 + 28))
   return(sum(ceiling(days)/2))
 }
 
 mean.vials.3 <- function(patients, n){
-  mean(replicate(n, get.vials.3(patients)))
+  mean(replicate(n, get_vials.3(patients)))
 }
 
 mean.vials.4 <- function(patients, n){
-  mean(replicate(n, get.vials.4(patients)))
+  mean(replicate(n, get_vials.4(patients)))
 }
 
 ctar_bites %>%

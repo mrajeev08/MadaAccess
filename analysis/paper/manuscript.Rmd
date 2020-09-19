@@ -98,14 +98,14 @@ trans_perc <- function(x) {
 }
 
 ## data
-ctar_metadata <- fread(here("data/processed/clinics/ctar_metadata.csv"))
-district_bites <- fread(here("output/bites/district_bites.csv"))
-mora_bites <- fread(here("output/bites/mora_bites.csv"))
-mada_communes <- st_read(here("data/processed/shapefiles/mada_communes.shp"))
-mada_districts <- st_read(here("data/processed/shapefiles/mada_districts.shp"))
+ctar_metadata <- fread(here("data-raw/out/clinics/ctar_metadata.csv"))
+district_bites <- fread(here("analysis/out/bites/district_bites.csv"))
+mora_bites <- fread(here("analysis/out/bites/mora_bites.csv"))
+mada_communes <- st_read(here("analysis/out/shapefiles/mada_communes.shp"))
+mada_districts <- st_read(here("analysis/out/shapefiles/mada_districts.shp"))
 
 ## All preds (for abstract stats etc)
-natl_preds <- fread(here("output/preds/natl_preds.gz"))
+natl_preds <- fread(here("analysis/out/preds/natl_preds.gz"))
 natl_base <- natl_preds[scenario == 0]
 
 natl_preds %>%
@@ -113,13 +113,13 @@ natl_preds %>%
   mutate(prop_averted = averted_mean/(deaths_mean + averted_mean)) %>%
   select(prop_averted) -> prop_averted
 
-admin_base <- fread(here("output/preds/admin_preds_base.gz"))
+admin_base <- fread(here("analysis/out/preds/admin_preds_base.gz"))
 
 ## candidate points
-csbs <- fread(here("data/processed/clinics/csb2.csv"))
-clin_per_comm <- fread(here("data/processed/clinics/clinic_per_comm.csv"))
-clin_per_dist <- fread(here("data/processed/clinics/clinic_per_dist.csv"))
-missing_comms <- fread(here("output/stats/missing_comms.csv"))
+csbs <- fread(here("data-raw/out/clinics/csb2.csv"))
+clin_per_comm <- fread(here("data-raw/out/clinics/clinic_per_comm.csv"))
+clin_per_dist <- fread(here("data-raw/out/clinics/clinic_per_dist.csv"))
+missing_comms <- fread(here("analysis/out/stats/missing_comms.csv"))
 comms_no_clins <- nrow(mada_communes) - (nrow(clin_per_comm) + nrow(ctar_metadata) + nrow(clin_per_dist))
 csbs_max <- rbind(csbs, clin_per_comm[!(clinic_id %in% csbs$clinic_id)], fill = TRUE)
 
@@ -128,7 +128,7 @@ natl_preds %>%
   group_by(scale, data_source) %>%
   arrange(scenario) %>%
   mutate_at(vars(-c(group_cols(), scenario)), function(x) x/x[1]) -> props
-trends <- read.csv(here("output/stats/trends_adminpreds.csv"))
+trends <- read.csv(here("analysis/out/stats/trends_adminpreds.csv"))
 
 one_per_dist <- nrow(clin_per_dist)
 one_per_comm <- sort(natl_preds$scenario, decreasing = TRUE)[2]
@@ -218,7 +218,7 @@ We estimate deaths due to rabies as a function of the number of bites predicted 
 For $E_i$, we center the distribution at the lower end of our estimate of exposure incidence from the Moramanga District (42 exposures/100,000 persons). The range for $E_i$ is estimated using the approach used in [@whorabiesmodelingconsortiumPotentialImpactImproved2019] where rabies incidence in the dog population is estimated to be approximately 1% annually in the absence of dog vaccination, and that on average a rabid dog exposes 0.39 persons. These assumptions are derived from modeling and long term contact tracing data from the Serengeti District, Tanzania [@hampsonRabiesExposuresPostExposure2008; @hampsonSurveillanceEstablishElimination2016; @whorabiesmodelingconsortiumPotentialImpactImproved2019]. We then take the range of exposure incidence as the probability of exposure multiplied by the number of expected rabies cases in dogs assuming 1% incidence and the estimate of the dog population using a range of human to dog ratios (HDRs) of 5 (upper estimate) and 25 (lower estimate). As there is little data on dog populations in Madagascar [@andriamandimbySurveillanceControlRabies2013], this range of HDRs encompasses a wide range of observed HDRs across Africa [@knobelReevaluatingBurdenRabies2005; @sambo2018estimating], as well as recent subnational estimates from Madagascar [@leblancclaireRabiesMadagascarThreepronged2019], and also generates similar human exposure incidences as observed previously across Africa [@beyeneEstimatingBurdenRabies2018; @hampsonRabiesExposuresPostExposure2008]. See figure S4 for further details. 
 
 ```{r fig 1}
-include_graphics(here("figs/main/M1_sankey.jpeg"))
+include_graphics(here("analysis/figs/main/M1_sankey.jpeg"))
 ```
 
 *__Figure 1__. Decision tree for burden estimation. For a given administrative unit $i$, human deaths due to rabies ($D_i$) are calculated from model predicted bites ($B_i$). To get $R_i$, the number of reported bites that were rabies exposures, we multiply $B_i$ by $p_{rabid}$, the proportion of reported bites that are rabies exposures. $p_{rabid}$ is constrained such that reported rabies exposures cannot exceed total rabies exposures ($E_i$) and reporting cannot exceed a maximum ($p_{max}$). $R_i$ is subtracted from $E_i$ to get the number of unreported bites ($U_i$) and then multiplied by the probability of death given a rabies exposure ($p_{infect}$) to get the number of deaths due to rabies ($D_i$). Similarly, deaths averted by PEP are estimated by multiplying $R_i$ by $p_{infect}$, i.e. those who would have died given exposure, but instead received PEP. Both $E_i$ and $p_{rabid}$ are drawn from a triangular distribution; all parameter values and sources are listed in Table 1.*
@@ -273,7 +273,7 @@ Data collection from the Moramanga District was approved by the Princeton Univer
 
 ## Estimating travel times to the closest ARMC {#results-ttimes}
 ```{r ttime stats}
-ttime_stats <- read.csv(here("output/stats/prop_pop_ttimes.csv"))
+ttime_stats <- read.csv(here("analysis/out/stats/prop_pop_ttimes.csv"))
 # get prop of pop > 3 hrs away at baseline
 ttime_stats %>%
   filter(scenario == 0, !(cut_times %in% c("0-1", "1-2", "2-3"))) %$%
@@ -286,7 +286,7 @@ ttime_stats %>%
 Estimates of travel times to the closest ARMC vary greatly across the country (Fig 3A), with approximately `r round(prop_over3_base*100, 0)`% of the population estimated to live greater than 3 hrs away from a clinic (Fig 3B). However, we found that these estimates from the friction surface generally underestimate true driving times across the country and patient reported travel times to the Moramanga ARMC (Fig 3C), and that patient reported travel times were significantly more variable than estimates from the friction surface (Fig S1.2). The friction surface assumes that the fastest available mode of transport is used to travel each grid cell (i.e. the presence of a road in a given grid cell indicates that all travel through that grid cell will be at vehicle rather than walking speeds). However, patients reporting to the Moramanga ARMC report using mutliple modes of transport, with some cases of individuals walking multiple days to reach a clinic (Fig S1.3). Despite these discrepancies, travel time estimates from the friction surface correlate with the reported and groundtruthed driving times (Fig 3C, Fig S1.4). Travel times weighted by population at the grid cell level were a better predicter than unweighted travel times or distance (Table S1.1). Therefore we use this metric as a proxy for access at the commune/district level in subsequent analyses.
 
 ```{r fig M2}
-include_graphics(here("figs/main/M2_ttimes.jpeg"))
+include_graphics(here("analysis/figs/main/M2_ttimes.jpeg"))
 ```
 
 *__Figure 2A)__ Travel times to the closest ARMC estimated at an ~ 1 km^2^ scale for Madagascar. __B)__ Distribution of the population across travel times. __C)__ Correlation between patient reported travel times to the Moramanga ARMC and travel times weighted by population (mean at the commune level) and between reported driving times between GPS points and travel time estimates at the grid cell level. For the commune means, the vertical point lineranges show the 95% quantiles for reported travel times, and the point size shows the number of observations for each commune. The best fit lines (pink and purple lines) and 95% confidence interval (shading) from a linear model where observed travel times are predicted by estimated travel times for each data source are also shown. The dashed black line is the 1:1 line.* 
@@ -296,7 +296,7 @@ include_graphics(here("figs/main/M2_ttimes.jpeg"))
 We assigned each district or commune to a catchment based on which clinic was the closest for the majority of the population. While there are discrepancies between commune and district catchment assignments (Fig S2.1A), > 75% of the population in a given district or commune were closest to a single clinic (Fig S2.B). In addition, for the national data we found that for most districts, the majority of bites were reported to the closest clinic as estimated by our travel time metric (Fig 1A), and the majority of bites reported to a clinic came from within the catchment assigned by the travel time metric (Fig S2.1C). 
 
 ```{r fig M3 catchmaps}
-include_graphics(here("figs/main/M3_bitemaps.jpeg"))
+include_graphics(here("analysis/figs/main/M3_bitemaps.jpeg"))
 ```
 
 *__Figure 3A)__ The network of patient presentations at the district level for the __A)__ national data and __B)__ commune level for the Moramanga data: circles with a black outline represent the total number of patients reporting to each ARMC for which we have data. Color corresponds to the clinic catchment. Circles with a white outline are the total number of bites reported for that administrative unit (plotted as the centroid). Lines show which ARMC those patients reported to, with the line width proportional to number of patients from that district reporting to the ARMC; flows of less than 5 patients were excluded. Out-of-catchment reporting is indicated where points and line colors are mismatched. For panel __A)__ districts in catchments excluded due to lack of forms submitted by the clinic are colored in grey. For __B)__ the inset of Madagascar shows the location of the enlarged area plotted, which shows the district of Moramanga (outlined in black), all communes included in it's catchment (red polygons), and other communes where bites were reported to in grey.*
@@ -305,21 +305,21 @@ include_graphics(here("figs/main/M3_bitemaps.jpeg"))
 Clinic submission of forms was highly variable over the period covered by the dataset (Figure S2.1). We found that estimates of vial demand based on uncorrected bite patient numbers are generally lower than the true number of vials provisioned for those clinics with substantial undersubmission of forms (Figure S2.1B). Correcting patient numbers by under-submission of forms based on the 15 day consecutive day cut-off results in estimates of vial demand closer to the observed vials provisioned for the majority of clinics (Figure S2.2A and B). We excluded any clinics which submitted less than 10 forms (excluded `r nrow(ctar_metadata) - max(district_bites$catch)` catchments, in grey in Fig 3A). After additionally excluding any year with less than 25% of forms submitted, our final dataset consisted of estimates of average bite incidence for `r nrow(district_bites)` out for `r nrow(mada_districts)` districts total (Fig 4A), and `r nrow(mora_bites)` communes within the catchment of the Moramanga District (Fig 4B). 
 
 ```{r fig M4 biteinc}
-include_graphics(here("figs/main/M4_biteinc.jpeg"))
+include_graphics(here("analysis/figs/main/M4_biteinc.jpeg"))
 ```
 
 *__Figure 4.__ The estimated average annual bite incidence from the national and Moramanga data plotted at the __A)__ district scale (both datasets) and at the __B)__ commune scale (Moramanga dataset). Colors correspond to the clinic catchment, shape indicates the dataset, and the size of the point indicates the number of observations (i.e. the number of years for which data was available for the national data; note for Moramanga `r max(mora_bites$nobs, na.rm = TRUE)` months of data were used). The point lines indicate the range of estimated bite incidence for each district.*
   
   
 ```{r}
-outliers <- read.csv(here("output/stats/outliers.csv"))
+outliers <- read.csv(here("analysis/out/stats/outliers.csv"))
 ```
 
 Bite incidence estimates generally decreased with weighted travel times at both scales, although there was considerable variation between catchments for the magnitude of this relationship. For the national data, there were also two outliers, Toamasina II (the sub-urban commune surrounding the city of Toamasina) and Soanierana Ivongo, which both had higher bite incidence when compared to other districts with similar travel times. While the estimates from the Moramanga data showed higher reported incidence at low travel times at the commune level compared to the district estimates, when aggregated to the district, bite incidence estimates fell within the ranges observed from the national dataset.
 
 ## Modeling reported bite incidence as a function of travel times {#results-bitemods}
 ```{r}
-convergence <- read.csv(here("output/stats/convergence.csv"))
+convergence <- read.csv(here("analysis/out/stats/convergence.csv"))
 ```
 
 All models and posterior estimates of parameters converged (Gelman-Rubin diagnostic < `r round(max(convergence$val[convergence$OD != TRUE]), 3)`, @gelman2006data). All of the candidate models which included travel times produced similar predictions when compared to the observed data (Fig S3.2). Population size alone was the poorest fit to the data as estimated by DIC (Table S3.1), and models with population size as an additional covariate did not generate realistic predictions to the observed data or when used to predict out of fit (Figs S3.2 and S3.3). 
@@ -329,7 +329,7 @@ For the national data, including a random catchment effect improved predictions 
 As the prediction from the model fit to the Moramanga data without accounting for overdispersion falls within the prediction interval for the models fit to the national data (Fig 5A), for subsequent predictions of burden, we use the parameter estimates models fit to the national data, as they encompass the range of travel time effects observed in our datasets. In addition, our out of fit predictions to the data across scales suggest that the commune model is able to capture travel time impacts at this scale, therefore we use both the district and commune model to disaggregate burden to the finest scale possible given our modeling framework. 
 
 ```{r fig 5}
-include_graphics(here("figs/main/M5_mods.jpeg"))
+include_graphics(here("analysis/figs/main/M5_mods.jpeg"))
 ```
 
 _**Figure 5.** Travel times as a predictor of reported bite incidence per 100,000 persons. A) The estimated relationship between travel time in hours (x-axis) and mean annual bite incidence per 100,000 persons (y-axis). The lines are the mean estimates and the envelopes are the 95% prediction intervals for predictions generated by drawing 1000 independent samples from the parameter posterior distributions for three candidate models: model with travel times at the 1) commune and 2) district level fitted to the national data with an overdispersion parameter ($\sigma_e$) and 3) travel times at the commune level fitted to the Moramanga data with a fixed intercept and unadjusted for overdispersion. The envelopes show the 95% prediction interval. The points show the data used to fit the models: National data (circles) at the district level used to fit the District and Commune models, and Moramanga data (triangles) at the commune level used to fit the Moramanga model. The posterior distribution of parameters from the respective models for the B) model intercept, C) travel time effect, and D) the overdisperson parameter (for national data only)._  
@@ -358,7 +358,7 @@ kable(table1, digits = -0, col.names = c("Model", "Reported bite incidence per 1
     
     
 ```{r fig 6}
-include_graphics(here("figs/main/M6_burden_base.jpeg"))
+include_graphics(here("analysis/figs/main/M6_burden_base.jpeg"))
 ```
 
 *__Figure 6.__ Spatial variation in predicted incidence of human rabies deaths per 100, 000 persons. __A)__ for each district (y-axis) in Madagascar, where the diamonds show the predicted incidence for the district model and the squares show the incidence for the commune model fit to the National data for all communes in a district. Points are colored by and districts are ordered by travel times. The vertical lines show the average national incidence of human rabies deaths for the commune (grey) and district (black) models. Incidence mapped to the __B)__ commune level and __C)__ district level from the respective models; grey X’s show locations of current ARMC*
@@ -373,7 +373,7 @@ Vial demand also outpaces reductions in burden (Fig 7B), with more vials  needed
 
 
 ```{r fig 7}
-include_graphics(here("figs/main/M7_addARMC.jpeg"))
+include_graphics(here("analysis/figs/main/M7_addARMC.jpeg"))
 ```
 
 *__Figure 7. A)__ Decrease in deaths due to rabies, __B)__ increase in total # of vials as additional ARMC are added at the national level , and __C)__ increase in vials needed per death averted based on the two models of reported bites. Lines are the mean of 1000 simulations with envelopes representing 95% prediction intervals. The points show when all additional csb (N = `r max_added`) clinics have been added). *
@@ -412,20 +412,20 @@ mora_bites %>%
   filter(district == "Anosibe-An'ala") %>%
   summarize(pop = sum(pop, na.rm = TRUE), bites = sum(avg_bites, na.rm = TRUE), 
             inc = bites/pop*1e5) -> aa_bites
-mora_raw <- read.csv(here("data/processed/bitedata/moramanga.csv"))
+mora_raw <- read.csv(here("data-raw/out/bitedata/moramanga.csv"))
 mora_raw %>%
   filter(distcode == "MG33317") %>%
   summarize(prop_cat1 = sum(known_cat1)/n()) -> prop_cat1_AA
-admin_preds <- fread(here("output/preds/admin_preds_base.gz")) 
+admin_preds <- fread(here("analysis/out/preds/admin_preds_base.gz")) 
 admin_preds %>%
   mutate(distcode = substr(names, 1, 7)) %>%
   filter(distcode == "MG33317") %>%
   group_by(scale) %>%
   summarize(inc = sum(deaths_mean)/sum(pop)*1e5, bite_inc = sum(bites_mean)/sum(pop)*1e5) -> aa_preds
 
-ranked_clins <- fread(here("output/ttimes/addclinics/clinics_ranked.csv"))
+ranked_clins <- fread(here("analysis/out/ttimes/addclinics/clinics_ranked.csv"))
 aa_added <- min(ranked_clins[district == "Anosibe-An'ala"]$scenario)
-gtruth <- fread(here("output/ttimes/gtruth_ttimes.csv"))
+gtruth <- fread(here("analysis/out/ttimes/gtruth_ttimes.csv"))
 gtruth %>%
   filter(district == "Anosibe-An'ala") %>%
   summarize(mean = mean(ttimes_reported, na.rm = TRUE), 
@@ -466,7 +466,7 @@ Our estimates of vial demand depend on countrywide adoption of the new abridged 
 We predict that as clinics are expanded, overall throughput (i.e. the number of patients reporting daily to a clinic) will decrease. This may make provisioning PEP more challenging, as vial demand may become less predictable annually, resulting in stockouts or vaccine wastage. Establishing decentralized provisioning mechanisms, for example through combining provisioning of PEP with routine childhood vaccines, or novel methods for vaccine delivery (i.e. drone delivery of emergency medicine, [@boeras2019use]) may be potential ways to mitigate these challenges. Previous to 2006 when the nerve tissue vaccine was still in use, access to PEP in Madagascar was more widespread, with clinics able to request vaccine from IPM upon demand. However, once the more expensive Vero cell vaccine was implemented, vaccine provisioning to all clinics became too costly, resulting in provisioning to a subset of clinics [@andriamandimbySurveillanceControlRabies2013]. This suggests that wider spread vaccine provisioning is feasible given health infrastructure in Madagascar if cost barriers are removed. 
 
 ```{r}
-catch_trends <- fread(here("output/stats/trend_catches.csv"))
+catch_trends <- fread(here("analysis/out/stats/trend_catches.csv"))
 catch_trends %>% 
   group_by(scenario) %>% 
   summarize(mean_pops = mean(pops_mean)) %>%
@@ -496,7 +496,7 @@ We would like to thank all the clinicians and staff at the ARMC across the count
 ## S1. Estimating travel times to the closest ARMC {#S1}
 
 ```{r fig S1.1 inputs A friction B pop}
-include_graphics(here("figs/supplementary/S1.1_inputs.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S1.1_inputs.jpeg"))
 ```
 
 *__[Figure S1.1.]{#figS1.1}__ Raster inputs to estimate travel times to the closest ARMC for Madagascar __A)__ Friction surface of travel speeds (in minutes per meter) at an ~ 1x1 km scale __B)__ Population estimates resampled to the same friction surface.*
@@ -504,7 +504,7 @@ include_graphics(here("figs/supplementary/S1.1_inputs.jpeg"))
     
     
 ```{r fig S1.2 ttimes A Moramanga B Drive}
-include_graphics(here("figs/supplementary/S1.2_raw.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S1.2_raw.jpeg"))
 ```
 
 *__[Figure S1.2.]{#figS1.2}__ Source of true travel time estimates __A)__ Distribution of travel times estimated at the grid cell level and reported by patients for each commune where patient data were available from the Moramanga ARMC. __B)__ Reported driving times between locations, with the color corresponding to the total driving time and the size of the line showing the direction of travel (narrow to wide ~ origin to destination). Paths are bezier curves from origin to destination, but do not show actual paths driven.*
@@ -512,7 +512,7 @@ include_graphics(here("figs/supplementary/S1.2_raw.jpeg"))
   
 
 ```{r fig S1.3 travel modes}
-include_graphics(here("figs/supplementary/S1.3_modes.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S1.3_modes.jpeg"))
 ```
 
 *__[Figure S1.3.]{#figS1.3}__ Reported modes of transport used compared to reported travel times for patients reporting to the Moramanga ARMC.*
@@ -520,7 +520,7 @@ include_graphics(here("figs/supplementary/S1.3_modes.jpeg"))
     
   
 ```{r fig S1.4 lms ttimes}
-include_graphics(here("figs/supplementary/S1.4_lms.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S1.4_lms.jpeg"))
 ```
 
 *__[Figure S1.4.]{#figS1.4}__ Observed estimates of travel times (commune means of patient reported travel times and driving times between point locations) predicted by __A)__ Distance (km) (Euclidean distance between origin and destination for driving times and distance from the commune centroid to the Moramanga ARMC for commune means) __B)__ Travel time estimates and C) Travel time estimates weighted by population (for commune means only).*
@@ -529,7 +529,7 @@ include_graphics(here("figs/supplementary/S1.4_lms.jpeg"))
   
 *__[Table S1.1.]{#tabS1.1}__ R^2^ values from linear models with estimated access metrics predicting either driving times or commune means of patient reported travel times.*
 ```{r table S1.1 lms table}
-S1.1_table <- read.csv(here("output/stats/access_met_r2.csv"), row.names = 1)
+S1.1_table <- read.csv(here("analysis/out/stats/access_met_r2.csv"), row.names = 1)
 kable(S1.1_table, col.names = c("Predictor", "Driving times", 
                                 "Commune mean of patient reported travel times"))
 ```
@@ -537,7 +537,7 @@ kable(S1.1_table, col.names = c("Predictor", "Driving times",
   
 
 ```{r fig S1.5 output ttimes A district B commune}
-include_graphics(here("figs/supplementary/S1.5_outputs.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S1.5_outputs.jpeg"))
 ```
 
 *__[Figure S1.5.]{#figS1.5}__ Estimates of mean travel times weighted by population at the __A)__ District __B)__ Commune scale.*
@@ -547,7 +547,7 @@ include_graphics(here("figs/supplementary/S1.5_outputs.jpeg"))
   
   
 ```{r fig S2.1 A catchments B closest C Prop bites}
-include_graphics(here("figs/supplementary/S2.1_catchments.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S2.1_catchments.jpeg"))
 ```
 
 *__[Figure S2.1]{#figS2.1}A)__ Catchments as assigned by closest clinic for the majority of the population within a commune (polygon fill) or which a district (polygon outline). Admin units where the fill and border colors do not match show places where assigned catchments differ at the district vs commune scale. __B)__ Distribution of the proportion of the population in a given administrative unit (district or commune) served by the catchment assigned. __C)__ The proportion of bites reported to each clinic which originated from a district within the assigned catchment.*
@@ -555,7 +555,7 @@ include_graphics(here("figs/supplementary/S2.1_catchments.jpeg"))
   
 
 ```{r fig 2.2 form sub A time series B reporting C vial comp}
-include_graphics(here("figs/supplementary/S2.2_vialcomps.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S2.2_vialcomps.jpeg"))
 ```
 
 *__[Figure S2.2.]{#figS2.2}A)__ The daily time series of the number of forms submitted by each clinic, with periods of time where no forms were submitted for >= 15 days excluded (in white). __B)__ Estimates for the proportion of forms submitted for each clinic (points are the estimate for each year) calculated as the # of days in a year which were not excluded based on the  criteria of 15 consecutive days of non-submission/365. __C)__ The difference between log(estimated) and log(observed) vials provisioned for the period of 2013 -  2017 for each clinic correcting for undersubmission (squares) using the 15 day cut-off show in A and B, vs. not correcting for undersubmission (circles). We did not have data on vials provisioned for IPM.*
@@ -566,7 +566,7 @@ include_graphics(here("figs/supplementary/S2.2_vialcomps.jpeg"))
   
   
 ```{r fig S3.1 corr pop ttimes}
-include_graphics(here("figs/supplementary/S3.1_corrs.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S3.1_corrs.jpeg"))
 ```
 _**Figure S3.1.** Correlation between travel time in hours (the average weighted by the population) and population size of administrative units at the district and commune scale._\
 
@@ -576,7 +576,7 @@ _**Figure S3.1.** Correlation between travel time in hours (the average weighted
 
 *__Table S3.1.__ DIC Estimates for all models. Models with the lowest DIC for each dataset and scale of covariate are in bold.  For the column pop effect, addPop = models with population size as additional covariate, onlyPop = models with population as only covariate, flatPop = models with population as offset in model. For the intercept type: random = random intercept by catchment, fixed = a single fixed intercept was estimated).*
 ```{r table S3.1 dic}
-model_ests <- read.csv(here("output/mods/estimates.csv"))
+model_ests <- read.csv(here("analysis/out/mods/estimates.csv"))
 model_ests %>%
   filter(OD == FALSE) %>%
   select(params, Mean, pop_predict, intercept, data_source, scale) %>%
@@ -595,7 +595,7 @@ knitr::kable(dic_ranks,
 
   
 ```{r fig S3.2 obs vs predicted}
-include_graphics(here("figs/supplementary/S3.2_fitted.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S3.2_fitted.jpeg"))
 ```
 
 _**Figure S3.2. Prediction to data used to fit each model.** Log of the observed bites against the log of predicted bites generated from sampling 1000 independent draws from the posterior distributions for each parameter, with the points the mean of the predictions and the linerange the 95% prediction intervals. Columns are by the type of model intercept (either a fixed intercept or a random intercept by catchment) and rows are the type of model structure with respect to the population covariate (addPop = population size as additional covariate, onlyPop = population as only covariate, flatPop = population as offset in model). Colors show which data set  was used for fitting and the scale of the model (Moramanga = Moramanga data with covariates at the commune level, Commune = National data with covariates at the commune level, District = National data with covariates at the district level)._\
@@ -603,7 +603,7 @@ _**Figure S3.2. Prediction to data used to fit each model.** Log of the observed
 <br/>
 
 ```{r fig S3.3 out of fit}
-include_graphics(here("figs/supplementary/S3.3_outfit.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S3.3_outfit.jpeg"))
 ```
 
 _**Figure S3.3. Out of fit predictions to data.** Log of the observed bites against the log of predicted bites for data not used to fit the model. Predictions were generated by sampling 1000 independent draws from the posterior distributions for each parameter, with the points the mean of the predictions and the linerange the 95% prediction intervals. The first two columns are the predictions from the commune and district model fitted to the national data for the Moramanga data with fixed and random intercepts. The third column are predictions from models fitted to the Moramanga data for the national data at the commune and district scale (only fixed intercept models). Rows are the type of model structure with respect to the population covariate and colors show which data set was used for fitting as per Figure S3.2._
@@ -612,7 +612,7 @@ _**Figure S3.3. Out of fit predictions to data.** Log of the observed bites agai
 
 
 ```{r fig S3.4 od comp posts}
-include_graphics(here("figs/supplementary/S3.4_posts_all.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S3.4_posts_all.jpeg"))
 ```
 
 _**Figure S3.4.** Posterior estimates of parameters from models with travel time and population as an offset (flatPop in figures S3.2 & S3.3), comparing models accounting for overdispersion ($\sigma_e$) compared to models with no overdispersion parameter. For the Moramanga model, as data came from a single catchment, models with a random catchment effect ($\sigma_0$) were not fitted._
@@ -620,7 +620,7 @@ _**Figure S3.4.** Posterior estimates of parameters from models with travel time
   
   
 ```{r fig S3.5 od comp preds}
-include_graphics(here("figs/supplementary/S3.5_preds_OD.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S3.5_preds_OD.jpeg"))
 ```
 
 _**Figure S3.5.** Predicted relationship between travel times (in hours) and reported bite incidence per 100,000 persons, generated from sampling 1000 independent draws from the posterior distributions for each parameter, with the line the mean of the predictions and the envelopes showing the 95% prediction intervals. Rows are by the type of model intercept (either a fixed intercept or a random intercept by catchment) and columns are whether the model estimated an overdispersion parameter. The points show the data used to fit the models (the National dataset), as well as the Moramanga dataset._\
@@ -628,7 +628,7 @@ _**Figure S3.5.** Predicted relationship between travel times (in hours) and rep
   
 
 ```{r fig S3.6 random vs od}
-include_graphics(here("figs/supplementary/S3.6_posts_intercepts.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S3.6_posts_intercepts.jpeg"))
 ```
 
 _**Figure S3.6.** Posterior estimates of the catchment intercepts ($\alpha$ parameters, with $\beta_0$ the estimated mean intercept) for models with and without an overdispersion parameter._\
@@ -636,7 +636,7 @@ _**Figure S3.6.** Posterior estimates of the catchment intercepts ($\alpha$ para
   
   
 ```{r fig S3.7 random vs od}
-include_graphics(here("figs/supplementary/S3.7_preds_ODcomp.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S3.7_preds_ODcomp.jpeg"))
 ```
 
 _**Figure S3.7.** Predicted relationship between travel times (in hours) and reported bite incidence per 100,000 persons for random intercept model without overdispersion vs. fixed intercept model with overdispersion, generated from sampling 1000 independent draws from the posterior distributions for each parameter, with the line the mean of the predictions and the envelopes showing the 95% prediction intervals. The points show the data used to fit the models (the National dataset), as well as the Moramanga dataset._\
@@ -644,7 +644,7 @@ _**Figure S3.7.** Predicted relationship between travel times (in hours) and rep
   
   
 ```{r fig S3.8 rep cutoff posts}
-include_graphics(here("figs/supplementary/S3.8_posts_rep_se.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S3.8_posts_rep_se.jpeg"))
 ```
 
 _**Figure S3.8.** Posterior estimates for models with population as an offset and an overdispersion parameter. Columns show estimates from models fitted to the national dataset (1) corrected for both undersubmission by correcting for periods of at least 7 days where zero patient forms where submiited, (2) correcting for periods of 15 days where zero patient forms where submiited, and (3) with the raw data not correcting for undersubmission. ._\
@@ -652,7 +652,7 @@ _**Figure S3.8.** Posterior estimates for models with population as an offset an
   
 
 ```{r fig S3.9 rep cutoff preds}
-include_graphics(here("figs/supplementary/S3.9_preds_rep_se.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S3.9_preds_rep_se.jpeg"))
 ```
 
 _**Figure S3.9.** The estimated relationship between travel time in hours (x-axis) and mean annual bite incidence per 100,000 persons (y-axis) for models with population as an offset and an overdispersion parameter. Panels show predictions from models fitted to the national dataset 1) correcting for periods of at least 7 days where zero patient forms where submiited (a less stringent cutoff resulting in lower estimates of the proportion of forms submitted and thus higher estimates of reported bite incidence), (2) correcting for periods of 15 days where zero patient forms where submitted, as presented in the main analysis, and (3) with the raw data not correcting for undersubmission (resulting in lower estimates of reported bite incidence). Predictions were generated from sampling 1000 independent draws from the posterior distributions for each parameter, with the line the mean of the predictions and the envelopes showing the 95% prediction intervals. The points show the data used to fit the models._
@@ -661,7 +661,7 @@ _**Figure S3.9.** The estimated relationship between travel time in hours (x-axi
 ## S4. Range of rabies exposure incidence in people
 
 ```{r fig S4.1 exp range}
-include_graphics(here("figs/supplementary/S4.1_exprange.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S4.1_exprange.jpeg"))
 ```
 
 _**Figure S4.1.** Estimated exposures per 100,000 given a range of human to dog ratios (HDRs, x-axis) and annual dog rabies incidence (y axis), assuming that each dog on average exposes 0.39 persons [@hampsonSurveillanceEstablishElimination2016]. The black dashed lines show the range of human to dog ratios (HDRs) we use in the main analysis to estimate the range of human exposure incidence (where the red horizontal line and black dashed lines intersect). The grey dashed lines show the HDRs estimated from the Moramanga district from a recent study [@leblancclaireRabiesMadagascarThreepronged2019]. The cells with red outlines show the range of estimated exposure incidence from a previous study of bite patients in Moramanga District [@rajeevHealthcareUtilizationProvisioning2018]._
@@ -671,51 +671,51 @@ _**Figure S4.1.** Estimated exposures per 100,000 given a range of human to dog 
   
   
 ```{r fig S5.1 metrics}
-include_graphics(here("figs/supplementary/S5.1_tests.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S5.1_tests.jpeg"))
 ```
 _**Figure S5.1.** Comparing metrics for ranking clinics for targeted expansion to 83 additional districts (so that each district has an ARMC). We simulated expansion using three different ranking metrics: 1) reduction in mean travel times (green line) 2) the proportion of the population for which travel times were reduced (red dashed line) and 3) the proportion of the population for which travel times were reduced weighted by the reduction in travel times (pink dashed line). For each of these, we simulated burden using our decision tree framework (y axis is the mean of 1000 simulations of annual deaths at the national level). The blue lines show 10 simulations of randomly expanding access on reducing burden as a comparator. The panels show to the commune and district model of reported bite incidence. _
   
   
 ```{r fig S5.2 add clinics}
-include_graphics(here("figs/supplementary/S5.2_ARMCadded.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S5.2_ARMCadded.jpeg"))
 ```
 _**Figure S5.2.** Map of the location and at what step each clinic was added. The circles are each of the CSB II across the country sized by the resulting average reduction in burden (based on smoothed annual burden estimates from the commune model, see inset). The large white crosses show the location of the existing 31 ARMC in Madagascar and the smaller white crosses are the additional CSB II in the country which were added in the final step but not ranked._
   
   
 ```{r fig S5.3 map shifts}
-include_graphics(here("figs/supplementary/S5.3_map_shifts.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S5.3_map_shifts.jpeg"))
 ```
 _**Figure S5.3.** Maps of how travel times change as clinics are added at the **A)** ~1 x 1 km grid cell **B)** commune and **C)** district scales. The columns are ordered by the number or clinics at each step: baseline (N = 31), + 83 (1 per district), + 200, + 600, + 1406 (1 per commune), and max (+ 1696 clinics, all additional CSB IIs in the country). Grey pixels show the location of ARMC at each step. Commune and district values are the average grid cell travel times weighted by the population in each cell._
   
   
 ```{r fig S5.4 travel times(a) bite inc(b)}
-include_graphics(here("figs/supplementary/S5.4_ttimes_bites.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S5.4_ttimes_bites.jpeg"))
 ```
 _**Figure S5.4.** Shifts in estimated **A)** travel times (hrs, x-axis is square root transformed), **B)** bite incidence per 100,000 persons and boxplots showing the median for communes and district models (colors) as clinics are added._
   
   
 ```{r fig S5.5 reporting(a) death inc(b)}
-include_graphics(here("figs/supplementary/S5.5_reporting_shifts.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S5.5_reporting_shifts.jpeg"))
 ```
 _**Figure S5.5.** Shifts in estimated **A)** reporting, **B)** death incidence per 100,000 persons for the commune and district models (colors) as clinics are added._
   
   
 ```{r fig S5.6 catch(a) vials(b) throughput(c)}
-include_graphics(here("figs/supplementary/S5.6_clinic_shifts.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S5.6_clinic_shifts.jpeg"))
 ```
 _**Figure S5.6.** Shifts in average clinic **A)** catchment population size, **B)** annual vial demand, and **C)** daily throughput (i.e. average number of patients reporting each day) given estimates of bite incidence for the commune and district models (colors). For vial demand estimation, catchment population sizes are the same for each model as these populations are allocated at the grid cell level (i.e. population in a grid cell is allocated to the clinic catchment it is closest to in terms of travel times regardless of district or commune). All x-axes are log transformed._
   
   
 
 ```{r fig S5.7 comm network}
-include_graphics(here("figs/supplementary/S5.7_comm_map.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S5.7_comm_map.jpeg"))
 ```
 
 _**Figure S5.7.** Shifts in where bites are reported to as clinics are added for the commune model. The circles show the clinic locations for each scenario, with size propotional to the annual average bites reported to that clinic. Lines show where the bites are reported from (commune centroid) also proportional to the number of bites. The polygon shading shows the commune level reported bite incidence._
   
   
 ```{r fig S5.8 dist network}
-include_graphics(here("figs/supplementary/S5.8_dist_map.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S5.8_dist_map.jpeg"))
 ```
 
 _**Figure S5.8.** Shifts in where bites are reported to as clinics are added for the district model. The circles show the clinic locations for each scenario, with size propotional to the annual average bites reported to that clinic. Lines show where the bites are reported from (commune centroid) also proportional to the number of bites. The polygon shading shows the district level reported bite incidence._
@@ -724,7 +724,7 @@ _**Figure S5.8.** Shifts in where bites are reported to as clinics are added for
 ## S6. Sensitivity of burden estimates to parameter assumptions {#S6}
 
 ```{r se tables}
-se_pars <- read.csv(here("output/sensitivity/se_pars.csv"))
+se_pars <- read.csv(here("analysis/out/sensitivity/se_pars.csv"))
 
 se_pars %>%
   pivot_longer(exp_min:beta_0) %>%
@@ -766,7 +766,7 @@ _*95% CI of estimate from @changaluchaNeedImproveAccess2018 _
   
 
 ```{r fig S6.1 base se}
-include_graphics(here("figs/supplementary/S6.1_base_se.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S6.1_base_se.jpeg"))
 ```
 
 _**Figure S6.1.** A) Range of estimates of the estimate average deaths at the national level for range of parameter estimates (point shows the estimate presented in the main analyses and the ends show the upper and lower estimates for the parameter range) and B)  estimates for the predicted relationship between travel times and incidence of human rabies deaths across the same parameter ranges (line shows the estimate presented in the main analyses and the envelope shows the upper and lower estimates for the parameter range) for the two models (colors). See Table S6.1 & 2 for ranges used for each parameter._
@@ -774,7 +774,7 @@ _**Figure S6.1.** A) Range of estimates of the estimate average deaths at the na
   
 
 ```{r fig S6.2 add se}
-include_graphics(here("figs/supplementary/S6.2_addARMC_se.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S6.2_addARMC_se.jpeg"))
 ```
 
 _**Figure S6.2.** A) Estimates of the maximum proportion reduction of deaths from the baseline for range of parameter estimates (point shows the estimate presented in the main analyses and the ends show the upper and lower estimates for the parameter range) and B) estimates for how human rabies decreases proportional to the baseline as clinics are added for these same parameter ranges (line shows the mean estimate presented in the main analyses and the envelope shows the mean estimates for the parameters fixed at the upper and lower range) for the two models (colors). See Table S6.1 & 2 for ranges used for each parameter._
@@ -782,7 +782,7 @@ _**Figure S6.2.** A) Estimates of the maximum proportion reduction of deaths fro
   
   
 ```{r fig S6.3 vial se}
-include_graphics(here("figs/supplementary/S6.3_vial_se.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S6.3_vial_se.jpeg"))
 ```
 
 _**Figure S6.3.** A) Estimates of the baseline vial demand for where each parameter was set to the upper and lower estimat of parameter estimates (point shows the estimate presented in the main analyses and the ends show the upper and lower estimates for the parameter range) and B) estimates for how vial demand increases as clinics are added for these same parameter ranges (line shows the mean estimate presented in the main analyses and the envelope shows the mean estimates for the parameters fixed at the upper and lower range) for the two models (colors) for the two models (colors). See Table S6.1 & 2 for ranges used for each parameter._
@@ -790,14 +790,14 @@ _**Figure S6.3.** A) Estimates of the baseline vial demand for where each parame
   
 
 ```{r fig S6.4 scaling factors}
-include_graphics(here("figs/supplementary/S6.4_scaling_rels.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S6.4_scaling_rels.jpeg"))
 ```
 
 *__Figure S6.4.__ Range of constrained scaling factors generated for district and commune population size so that underlying rabies exposures either A) decreases with increasing population size or B) increases with increasing population size across a fixed range of exposure incidence (15.6 - 76 exposures/100k persons). Lines show the expected relationship, with points showing where administrative units fall along this curve, and maps show how this results in variation in assumed exposure incidence spatially at the commune and district level.*
   
   
 ```{r fig S6.5 scaling se}
-include_graphics(here("figs/supplementary/S6.5_scaling_se.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S6.5_scaling_se.jpeg"))
 ```
 
 *__Figure S6.5.__ Predicted relationship between A) travel times and rabies death incidence per 100k persons and B) the proportional reduction in deaths from the baseline as clinics are added for the district model vs. commune models (colors) with columns comparing the baseline (presented in main analyses) and assumptions of rabies exposure incidence increasing or decreasing with human population size (shapes). The points show the mean estimates from 1000 simulations and the lineranges show the 95% prediction intervals.*

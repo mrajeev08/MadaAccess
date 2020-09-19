@@ -28,8 +28,8 @@ run_scenarios <- function(lookup, ttimes_dir = "analysis/out/ttimes/",
     j = iter(lookup, by = "row"), .combine = multicomb,
     .packages = c("data.table", "foreach", "triangle", "glue"), .options.RNG = rng_seed,
     .export = c(
-      "get.samps", "predict.bites", "predict.deaths", "summarize_mats",
-      "constrained_inc", "get.vials"
+      "get_samps", "predict_bites", "predict_deaths", "summarize_mats",
+      "constrained_inc", "get_vials"
     )
   ) %dorng% { # have to export funcs when in function
 
@@ -46,7 +46,7 @@ run_scenarios <- function(lookup, ttimes_dir = "analysis/out/ttimes/",
 
     # first do bite preds
     if (par_type == "posterior") {
-      posts <- as.data.frame(get.samps(
+      posts <- as.data.frame(get_samps(
         pop_predict = j$pop_predict,
         data_source = j$data_source,
         intercept = j$intercept,
@@ -57,7 +57,7 @@ run_scenarios <- function(lookup, ttimes_dir = "analysis/out/ttimes/",
       posts <- j
     }
 
-    bite_mat <- predict.bites(
+    bite_mat <- predict_bites(
       ttimes = ttimes, pop = comm$pop_admin,
       catch = comm$catchment, names = comm$commcode,
       beta_ttimes = posts$beta_ttimes, beta_0 = posts$beta_0,
@@ -86,7 +86,7 @@ run_scenarios <- function(lookup, ttimes_dir = "analysis/out/ttimes/",
         inc_scaled <- NULL
       }
 
-      all_mats <- predict.deaths(bite_mat,
+      all_mats <- predict_deaths(bite_mat,
         pop = comm$pop_admin,
         p_rab_min = j$p_rab_min, p_rab_max = j$p_rab_max,
         rho_max = j$rho_max, exp_min = j$exp_min, exp_max = j$exp_max,
@@ -145,7 +145,7 @@ run_scenarios <- function(lookup, ttimes_dir = "analysis/out/ttimes/",
 
       catch_mat <- as.matrix(bites_by_catch[, .SD, .SDcols = cols])
 
-      vial_preds <- sapply(catch_mat, get.vials)
+      vial_preds <- sapply(catch_mat, get_vials)
       vials <- matrix(unlist(vial_preds["vials", ]),
         nrow = nrow(catch_mat),
         ncol = ncol(catch_mat)

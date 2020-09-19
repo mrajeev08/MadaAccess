@@ -14,7 +14,7 @@
 #' Details: adapted from Dudas et al. Curonia
 #' https://github.com/evogytis/baltic/blob/master/curonia.ipynb
 #' Output = data.frame with to/mid/from
-get.bezier.pts <- function(from, to, frac = 0.8, transform = function(x) sqrt(1 / x) * 0.5) {
+get_bezier_pts <- function(from, to, frac = 0.8, transform = function(x) sqrt(1 / x) * 0.5) {
   sign <- ifelse(from[, "long"] > to[, "long"], -1, 1)
   slope <- (to[, "lat"] - from[, "lat"]) / (to[, "long"] - from[, "long"])
   distance <- sqrt((to[, "lat"] - from[, "lat"])^2 + (to[, "long"] - from[, "long"])^2)
@@ -47,7 +47,7 @@ get.bezier.pts <- function(from, to, frac = 0.8, transform = function(x) sqrt(1 
 #' @section Dependencies:
 #'     List dependencies here, i.e. packages and other functions
 #'
-get.bezleg <- function(bbox, n_pts, size_vec, min_size, offset_long, offset_lat) {
+get_bezleg <- function(bbox, n_pts, size_vec, min_size, offset_long, offset_lat) {
   long_min <- bbox$xmin + offset_long # pulls it in from bbox edge
   long_max <- bbox$xmax - offset_long # pulls it in from bbox edge
   lat_pt <- bbox$ymin + offset_lat # pulls it down away from Mada
@@ -60,7 +60,7 @@ get.bezleg <- function(bbox, n_pts, size_vec, min_size, offset_long, offset_lat)
   long_from <- rev(long[(floor(n_pts / 2) + 2):(n_pts - 1)])
   lat_from <- rep(lat_pt, length(long_from))
 
-  bez_pts <- get.bezier.pts(
+  bez_pts <- get_bezier_pts(
     from = data.frame(long = long_from, lat = lat_from),
     to = data.frame(long = long_to, lat = lat_to),
     frac = 0.5, transform = function(x) x / 2

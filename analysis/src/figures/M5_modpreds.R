@@ -70,8 +70,8 @@ ggplot(
   cowplot::theme_minimal_grid() -> mod_preds
 
 # Plot posterior ests ------------------------------------------------------------------
-all_samps_natl <- summarize.samps(parent_dir = "analysis/out/mods/samps/National/")
-all_samps_mora <- summarize.samps(parent_dir = "analysis/out/mods/samps/Moramanga/")
+all_samps_natl <- summarize_samps(parent_dir = "analysis/out/mods/samps/National/")
+all_samps_mora <- summarize_samps(parent_dir = "analysis/out/mods/samps/Moramanga/")
 all_samps_natl %>%
   filter(pop_predict == "flatPop", intercept == "fixed", OD == TRUE) %>%
   bind_rows(filter(all_samps_mora, pop_predict == "flatPop", OD == FALSE)) -> all_samps

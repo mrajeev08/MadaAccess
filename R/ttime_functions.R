@@ -1,5 +1,5 @@
 # 1. Get travel times -----------------------------------------------------------------------------
-#' \code{get.ttimes} calculates the minimum travel times/distance for an input raster to
+#' \code{get_ttimes} calculates the minimum travel times/distance for an input raster to
 #' an input set of
 #' GPS points.
 #' This function uses the friction surface from the Malaria Atlas Project. Script adapted
@@ -18,7 +18,7 @@
 #' @section Dependencies:
 #'  Packages: gdistance, raster, sf, sp
 
-get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
+get_ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
                        filename_trans) {
 
   # crop friction surface to shapefile
@@ -49,7 +49,7 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 
 # 2. Getting ranked clinics and district/commune covariates  ----------------------------------
 #' Rank clinics and summarize travel times and catchments at admin level
-#' \code{add.armc} gets ranked ARMC and associated travel times and catchments at the district and
+#' \code{add_armc} gets ranked ARMC and associated travel times and catchments at the district and
 #' commune levels using catchment matrix of travel times at each grid cell (rows) for each clinic
 #' (columns) to rank which order clinics should be added based on how adding them shifts the
 #' distribution of travel times at the population level.
@@ -81,7 +81,7 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #'     Packages: data.table, foreach
 
 # Pass through base df, otherwise you need all the vectors!
-add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, rank_metric,
+add_armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, rank_metric,
                      base_scenario = 0, thresh_met = 0, overwrite = TRUE, random = TRUE) {
 
   base <- copy(base_df) # so as not to modify global env
@@ -141,13 +141,13 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, ran
           (!is.na(new_ttimes) & is.na(ttimes)), clin_chosen$clinic_id, catchment)
       )]
 
-    district_df <- aggregate.admin(base_df = base, admin = "distcode", scenario = i + base_scenario)
+    district_df <- aggregate_admin(base_df = base, admin = "distcode", scenario = i + base_scenario)
     district_maxcatch <- district_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)],
       by = .(distcode, scenario)
     ]
 
     # Commune
-    commune_df <- aggregate.admin(base_df = base, admin = "commcode", scenario = i + base_scenario)
+    commune_df <- aggregate_admin(base_df = base, admin = "commcode", scenario = i + base_scenario)
     commune_maxcatch <- commune_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)],
       by = .(commcode, scenario)
     ]
@@ -176,7 +176,7 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, ran
 }
 
 # Get grid cell catchments for set of clinics ------------------------------------------------
-update.base <- function(cand_df, base_df, nsplit = 2) {
+update_base <- function(cand_df, base_df, nsplit = 2) {
   setDTthreads(1)
 
   base <- copy(base_df)
@@ -293,7 +293,7 @@ process_ttimes <- function(dir_name = "analysis/out/ttimes/addclinics",
 }
 
 # Separate function for aggregate to admin ----------------------------------------------------
-aggregate.admin <- function(base_df, admin = "distcode", scenario) {
+aggregate_admin <- function(base_df, admin = "distcode", scenario) {
   setDTthreads(1)
 
   base <- copy(base_df)

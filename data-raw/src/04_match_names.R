@@ -28,7 +28,7 @@ peripheral$distcode <- paste0(
   substring(peripheral$district, 1, 1),
   substring(peripheral$district, 3, 8)
 )
-peripheral_comm_matches <- match.admin(
+peripheral_comm_matches <- match_admin(
   data_names = peripheral$commune,
   data_nest = peripheral$distcode,
   match_names = mada_communes$commune,
@@ -43,7 +43,7 @@ write_create(peripheral_comm_matches,
 
 # Match admin names in IPM data ---------------------------------------------------------------
 load("data-raw/raw/ipm_data/ipm.rda")
-ipm_dist_matches <- match.admin(
+ipm_dist_matches <- match_admin(
   data_names = IPM$fiv, data_nest = NULL,
   match_names = mada_districts$district, match_nest = NULL,
   match_method = "osa", nested = FALSE
@@ -60,7 +60,7 @@ names_matched$distcode <- mada_districts$distcode[match(
   tolower(mada_districts$district)
 )]
 IPM$distcode <- names_matched$distcode[match(tolower(IPM$fiv), names_matched$names_tomatch)]
-ipm_comm_matches <- match.admin(
+ipm_comm_matches <- match_admin(
   data_names = IPM$fir, data_nest = IPM$distcode,
   match_names = mada_communes$commune,
   match_nest = mada_communes$distcode,
@@ -78,7 +78,7 @@ moramanga$commune <- trimws(moramanga$commune, which = "right")
 moramanga$district <- sapply(strsplit(as.character(moramanga$Patient.Home), "\\, "), "[", 2)
 moramanga$district <- gsub(" \\(District\\)", "", moramanga$district)
 
-moramanga_dist_matches <- match.admin(
+moramanga_dist_matches <- match_admin(
   data_names = moramanga$district, data_nest = NULL,
   match_names = mada_districts$district, match_nest = NULL,
   match_method = "osa", nested = FALSE
@@ -99,7 +99,7 @@ moramanga$distcode <- moramanga_dist_matches$distcode[match(
   tolower(moramanga$district),
   moramanga_dist_matches$names_tomatch
 )]
-moramanga_comm_matches <- match.admin(
+moramanga_comm_matches <- match_admin(
   data_names = moramanga$commune,
   data_nest = moramanga$distcode,
   match_names = mada_communes$commune,
@@ -113,4 +113,4 @@ write_create(moramanga_comm_matches, here_safe("data-raw/out/match_names/moraman
 )
 
 # Saving session info
-out_session(logfile = "logs/data_raw.csv", start = start, ncores = 1)
+out_session(logfile = here_safe("logs/data_raw.csv"), start = start, ncores = 1)

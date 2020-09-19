@@ -46,7 +46,7 @@ foreach(
   points = iter(candidates, by = "row"),
   .packages = c("raster", "gdistance", "data.table")
 ) %dopar% {
-  ttimes <- get.ttimes(
+  ttimes <- get_ttimes(
     friction = friction_masked, shapefile = mada_districts,
     coords = points[, c("x", "y")], trans_matrix_exists = TRUE,
     filename_trans = "data-raw/out/rasters/trans_gc_masked.rds"

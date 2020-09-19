@@ -5,7 +5,7 @@
 #' @return A data.table with all samples melted and with iteration number, chain, and model attributes
 #' @section Dependencies:
 #'     data.table, coda
-summarize.samps <- function(parent_dir = "analysis/out/mods/samps/") {
+summarize_samps <- function(parent_dir = "analysis/out/mods/samps/") {
   require(coda)
 
   # list files
