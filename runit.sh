@@ -20,6 +20,16 @@ usage=$(cat <<-END
 END
 )
 
+chs=$(cat <<-END
+How do you want to run the cluster jobs?
+    1 | local (in parallel with available cores on your local computer)
+    2 | serial (run without a parallel backend locally)
+    3 | della (you have access to the della cluster and have set up the sub utility cmd)
+    4 | skip  (do not run the cluster jobs.)
+Your choice:
+END
+)
+
 # Set up
 quiet=0
 dryrun=0
@@ -71,13 +81,14 @@ BRed='\033[1;31m' # Bold Red
 
 # Processing stdout & stderr
 
-
 if [ "$cl" = "1" ] && [ "$dryrun" = "0" ];
 then
-    read -p "Running cluster jobs, are you vpn'd in to della (y/n)?" choice
+read -p "$chs" choice
     case "$choice" in
-        y|Y ) echo "Running cluster jobs!";;
-        n|N ) exit;;
+        1|local ) arg=local; echo "Running locally and in parallel!";;
+        2|serial ) arg=serial;echo "Running serially!";;
+        3|della ) arg=della ; echo "Running on della!";;
+        4|skip ) cl=0; echo "Skipping cluster jobs!";;
         * ) echo "invalid";exit;;
     esac
 fi
@@ -89,18 +100,37 @@ do
     continue
     fi
 
-    if grep -q "log_cluster" "$f";
+    if grep -q "sub_cmd" "$f";
     then
         if [ "$cl" = "0" ];
-        then 
-        echo "cluster job not run: $f"
+        then
+            echo "cluster job not run: $f"
         else
-        cmd=$(grep "sub_cmd"  "$f" | cut -f 2 -d =) # sub args from script
-            if [ "$dryrun" = "1" ];
+            if [ "$arg" = "della"  ];
             then
-                echo "cluster cmd: sub $cmd -sp $f"
+                cmd=$(grep "sub_cmd"  "$f" | cut -f 2 -d =) # sub args from script
+                if [ "$dryrun" = "1" ];
+                then
+                    echo "cluster cmd: sub $cmd -sp $f"
+                else
+                    sub $cmd -sp $f
+                fi
             else
-                sub $cmd -sp $f
+                if [ "$dryrun" = "1" ];
+                then
+                    echo "local: $f $arg"
+                else
+                    if Rscript --vanilla "$f" "$arg" &> $out;
+                    then
+                        echo  -e "${BCyan}$f completed.${NC}"
+                    else
+                        echo -e "${BRed}$f did not complete!${NC}"
+                        if [ "$printerrors" = "1" ];
+                        then
+                            grep "Error" $out --color
+                        fi
+                    fi
+                fi
             fi
         fi
     else

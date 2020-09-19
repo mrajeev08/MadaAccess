@@ -3,7 +3,7 @@
 #' Details: Pulling in district and commune estimates of travel times as clinics are added
 # ------------------------------------------------------------------------------------------------ #
 
-source("R/functions/out.session.R")
+source(here::here("R", "utils.R"))
 start <- Sys.time()
 
 # Set up
@@ -47,8 +47,8 @@ hdr_from_inc(inc = 110)
 # How to show relationship between these things ...
 var_df <- expand.grid(
   hdr_val = seq(2, 40, by = 1),
-  p_exp =  0.38,
-  dog_inc =  seq(0.005, 0.02, by = 0.001)
+  p_exp = 0.38,
+  dog_inc = seq(0.005, 0.02, by = 0.001)
 )
 
 var_df %>%
@@ -59,12 +59,14 @@ var_df %>%
   )) -> inc_exps
 
 inc_labs <-
-  as_labeller(c(
-    `0.38` = "p[exp] == 0.38",
-    `0.2` = "p[exp] == 0.2",
-    `0.5` = "p[exp] == 0.5"
-  ),
-  label_parsed)
+  as_labeller(
+    c(
+      `0.38` = "p[exp] == 0.38",
+      `0.2` = "p[exp] == 0.2",
+      `0.5` = "p[exp] == 0.5"
+    ),
+    label_parsed
+  )
 
 S4.1_exprange <-
   ggplot(data = inc_exps, aes(
@@ -76,7 +78,7 @@ S4.1_exprange <-
       labels = c("1 - 15", "15 - 42", "42 - 76", "76 - 110", "110 +")
     ),
     color = ifelse(exp_inc > 42 &
-                     exp_inc < 110, "red", NA)
+      exp_inc < 110, "red", NA)
   )) +
   geom_tile() +
   geom_hline(yintercept = 0.01, color = "red") +
@@ -91,14 +93,13 @@ S4.1_exprange <-
   scale_color_identity(guide = "none") +
   theme_minimal_grid()
 
-ggsave(
-  "figs/supplementary/S4.1_exprange.jpeg",
+write_create(
   S4.1_exprange,
+  here_safe("analysis/figs/supplementary/S4.1_exprange.jpeg"),
+  ggsave_it,
   height = 8,
   width = 8
 )
 
 # Saving session info
-out.session(path = "R/figures/SM4_exprange.R",
-            filename = "output/log_local.csv",
-            start = start)
+out_session(logfile = here_safe("logs/log_local.csv"), start = start, ncores = 1)

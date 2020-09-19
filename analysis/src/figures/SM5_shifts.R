@@ -4,7 +4,7 @@
 # ------------------------------------------------------------------------------------------------ #
 
 start <- Sys.time()
-source("R/functions/out.session.R")
+source(here::here("R", "utils.R"))
 
 # Libraries and packages
 library(data.table)
@@ -13,36 +13,35 @@ library(sf)
 library(ggridges)
 library(patchwork)
 library(raster)
-library(rasterVis)
 library(cowplot)
 library(glue)
 library(gdistance)
 library(foreach)
 select <- dplyr::select
-source("R/functions/ttime_functions.R")
-source("R/functions/geom_raincloud.R")
+source("R/ttime_functions.R")
+source("R/geom_raincloud.R")
 
 # Pull in data
-ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
-csbs <- fread("data/processed/clinics/csb2.csv")
+ctar_metadata <- read.csv(here_safe("data-raw/out/clinics/ctar_metadata.csv"))
+csbs <- fread(here_safe("data-raw/out/clinics/csb2.csv"))
 
-mada_districts <- st_read("data/processed/shapefiles/mada_districts_simple.shp")
-mada_communes <- st_read("data/processed/shapefiles/mada_communes_simple.shp")
+mada_districts <- st_read(here_safe("analysis/out/shapefiles/mada_districts_simple.shp"))
+mada_communes <- st_read(here_safe("analysis/out/shapefiles/mada_communes_simple.shp"))
 
-friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
-base_times <- raster("output/ttimes/base/ttimes.tif")
-pop_1x1 <- raster("data/processed/rasters/wp_2015_1x1.tif")
+friction_masked <- raster(here_safe("data-raw/out/rasters/friction_mada_masked.tif"))
+base_times <- raster(here_safe("analysis/out/ttimes/base/ttimes.tif"))
+pop_1x1 <- raster(here_safe("data-raw/out/rasters/wp_2015_1x1.tif"))
 
 # Commune/District preds
-commune_maxcatch <- fread("output/ttimes/addclinics/commpreds_max.csv")
-district_maxcatch <- fread("output/ttimes/addclinics/distpreds_max.gz")
+commune_maxcatch <- fread(here_safe("analysis/out/ttimes/addclinics/commpreds_max.csv"))
+district_maxcatch <- fread(here_safe("analysis/out/ttimes/addclinics/distpreds_max.gz"))
 district_maxcatch$scale <- "District"
 commune_maxcatch$scale <- "Commune"
 scenario_to_plot <- rbind(data.table(district_maxcatch), data.table(commune_maxcatch), fill = TRUE)
 
 # Added clinics & steps
-clins_per_comm <- nrow(read.csv("data/processed/clinics/clinic_per_comm.csv"))
-clins_ranked <- fread("output/ttimes/addclinics/clinics_ranked.csv")
+clins_per_comm <- nrow(read.csv(here_safe("data-raw/out/clinics/clinic_per_comm.csv")))
+clins_ranked <- fread("analysis/out/ttimes/addclinics/clinics_ranked.csv")
 max_added <- sort(unique(commune_maxcatch$scenario), decreasing = TRUE)[2]
 max_csb <- max(commune_maxcatch$scenario)
 scenario_labs <- c(
@@ -61,7 +60,7 @@ names(scale_labs) <- scale_levs
 names(model_cols) <- scale_levs
 
 # Which metric ------------------------------------------------------------------------------
-tests <- fread("output/ttimes/tests/test_preds.csv")
+tests <- fread(here_safe("analysis/out/ttimes/tests/test_preds.csv"))
 tests %>%
   mutate(type = case_when(
     grepl("random", metric) ~ "random",
@@ -95,11 +94,15 @@ ggplot(
   ) -> S5.1_tests
 
 
-ggsave("figs/supplementary/S5.1_tests.jpeg", S5.1_tests, width = 8, height = 6)
+write_create(S5.1_tests,
+  here_safe("analysis/figs/supplementary/S5.1_tests.jpeg"),
+  ggsave_it,
+  width = 8, height = 6
+)
 
 
 # Clinics added ------------------------------------------------------------------------------
-natl_preds <- fread("output/preds/natl_preds.gz")
+natl_preds <- fread(here_safe("analysis/out/preds/natl_preds.gz"))
 natl_preds %>%
   filter(scale == "Commune") %>%
   mutate(scenario = as.numeric(scenario)) %>%
@@ -172,7 +175,10 @@ S5.2_map + S5.2_inset + guide_area() +
   theme(plot.margin = margin(25, 25, 10, 0)) -> S5.2_ARMCadded
 
 
-ggsave("figs/supplementary/S5.2_ARMCadded.jpeg", S5.2_ARMCadded, width = 8, height = 8)
+write_create(S5.2_ARMCadded,
+  here_safe("analysis/figs/supplementary/S5.2_ARMCadded.jpeg"), ggsave_it,
+  width = 8, height = 8
+)
 
 # Plots of how ttimes change ----------------------------------------------------------------
 ttime_cols <- c("#fff7f3", "#fde0dd", "#fcc5c0", "#fa9fb5", "#f768a1", "#dd3497", "#ae017e", "#7a0177")
@@ -193,7 +199,7 @@ foreach(i = 1:length(scenario_levs), .combine = "bind_rows") %do% {
   ttimes <- get.ttimes(
     friction = friction_masked, shapefile = mada_districts,
     coords = point_mat_base, trans_matrix_exists = TRUE,
-    filename_trans = "data/processed/rasters/trans_gc_masked.rds"
+    filename_trans = "data-raw/out/rasters/trans_gc_masked.rds"
   )
   names(ttimes) <- "ttimes"
   ttimes_df <- as.data.frame(ttimes, xy = TRUE)
@@ -228,10 +234,14 @@ S5.3A <- ggplot() +
   theme(strip.text.x = element_text(hjust = 0.5, margin = margin(0.1, 0.1, 0.1, 0.1, "cm")))
 
 S5.3B <- ggplot() +
-  geom_sf(data = mada_communes, 
-          aes(fill = cut(ttimes_wtd / 60, breaks = ttime_breaks, labels = ttime_labs)), color = NA) +
-  scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
-                    drop = FALSE) +
+  geom_sf(
+    data = mada_communes,
+    aes(fill = cut(ttimes_wtd / 60, breaks = ttime_breaks, labels = ttime_labs)), color = NA
+  ) +
+  scale_fill_manual(
+    values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
+    drop = FALSE
+  ) +
   geom_point(data = scenario_pts, aes(x = long, y = lat), shape = ".", color = "grey50", alpha = 0.75) +
   facet_wrap(~scenario, nrow = 1, labeller = as_labeller(scenario_labs)) +
   theme_void() +
@@ -240,13 +250,19 @@ S5.3B <- ggplot() +
   labs(tag = "B")
 
 S5.3C <- ggplot() +
-  geom_sf(data = mada_districts, 
-               aes(fill = cut(ttimes_wtd / 60, breaks = ttime_breaks, labels = ttime_labs)),
-          color = NA) +
-  scale_fill_manual(values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
-                    drop = FALSE, guide = "none") +
-  geom_point(data = scenario_pts, aes(x = long, y = lat), color = "grey50", alpha = 0.75, 
-             shape = ".") +
+  geom_sf(
+    data = mada_districts,
+    aes(fill = cut(ttimes_wtd / 60, breaks = ttime_breaks, labels = ttime_labs)),
+    color = NA
+  ) +
+  scale_fill_manual(
+    values = ttime_cols, na.translate = FALSE, name = "Travel times \n (hrs)",
+    drop = FALSE, guide = "none"
+  ) +
+  geom_point(
+    data = scenario_pts, aes(x = long, y = lat), color = "grey50", alpha = 0.75,
+    shape = "."
+  ) +
   facet_wrap(~scenario, nrow = 1, labeller = as_labeller(scenario_labs)) +
   theme_void() +
   coord_sf(clip = "off") +
@@ -256,15 +272,20 @@ S5.3C <- ggplot() +
 S5.3 <- S5.3A / S5.3B / S5.3C
 
 # Save as tiff otherwise too slow!
-ggsave("figs/supplementary/S5.3_map_shifts.tiff", S5.3,
+write_create(S5.3,
+             here_safe("analysis/figs/supplementary/S5.3_map_shifts.tiff"),
+             ggsave_it,
   height = 8, width = 10, compression = "lzw",
   device = "tiff", dpi = 300, type = "cairo"
 )
 
-ggsave("figs/supplementary/S5.3_map_shifts.jpeg", S5.3, height = 8, width = 10)
+write_create(S5.3,
+  here_safe("analysis/figs/supplementary/S5.3_map_shifts.jpeg"), ggsave_it,
+  height = 8, width = 10
+)
 
 # Decreases in ttimes, bite incidence, and reporting ------------------------------------
-admin_preds <- fread("output/preds/admin_preds.gz")
+admin_preds <- fread(here_safe("analysis/out/preds/admin_preds.gz"))
 admin_preds_filtered <- filter(admin_preds, scenario %in% scenario_levs)
 
 # Shifts in ttimes and bite incidence ------------------------------------
@@ -326,7 +347,9 @@ ggplot(
 
 S5.4 <- (ttimes_dist | bites_dist)
 
-ggsave("figs/supplementary/S5.4_ttimes_bites.jpeg", S5.4, width = 8, height = 6)
+write_create(S5.4, here_safe("analysis/figs/supplementary/S5.4_ttimes_bites.jpeg"), ggsave_it,
+  width = 8, height = 6
+)
 
 # Shifts in reporting and death incidence ------------------------------------
 ggplot(
@@ -385,7 +408,11 @@ ggplot(
   ) -> deaths_dist
 
 S5.5 <- (reporting_dist | deaths_dist)
-ggsave("figs/supplementary/S5.5_reporting_shifts.jpeg", S5.5, width = 8, height = 6)
+write_create(S5.5,
+  here_safe("analysis/figs/supplementary/S5.5_reporting_shifts.jpeg"),
+  ggsave_it,
+  width = 8, height = 6
+)
 
 # write out stats
 admin_preds %>%
@@ -404,16 +431,16 @@ admin_preds %>%
     deaths_lower = quantile(deaths_mean / pop * 1e5, probs = 0.975),
     deaths_mean = mean(deaths_mean / pop * 1e5)
   ) -> trend_preds
-write.csv(trend_preds, "output/stats/trends_adminpreds.csv", row.names = FALSE)
+write.csv(trend_preds, "analysis/out/stats/trends_adminpreds.csv", row.names = FALSE)
 
 # Shifts in clinic stats ----------------------------------------------------------------
-commune_allcatch <- fread("output/ttimes/addclinics/commpreds_all.csv")
+commune_allcatch <- fread(here_safe("analysis/out/ttimes/addclinics/commpreds_all.csv"))
 commune_allcatch %>%
   group_by(catchment, scenario) %>%
   summarize(pop_catch = sum(prop_pop_catch * pop_admin)) %>%
   mutate(scale = "Commune") -> catch_pops
 
-bites_by_catch <- fread("output/preds/catch_preds.gz")
+bites_by_catch <- fread(here_safe("analysis/out/preds/catch_preds.gz"))
 
 # Filtered scenarios
 catch_pops_filtered <- filter(catch_pops, scenario %in% scenario_levs)
@@ -510,7 +537,11 @@ ggplot(
   ) -> tp_dist
 
 S5.6_clinic_shifts <- catchpop_dist / (vials_dist | tp_dist) + plot_layout(heights = c(1, 2), guides = "collect")
-ggsave("figs/supplementary/S5.6_clinic_shifts.jpeg", S5.6_clinic_shifts, height = 8, width = 8)
+write_create(S5.6_clinic_shifts,
+  here_safe("analysis/figs/supplementary/S5.6_clinic_shifts.jpeg"),
+  ggsave_it,
+  height = 8, width = 8
+)
 
 # Catchment stats
 # Means of catchment pops, throughput, vials
@@ -533,11 +564,11 @@ bites_by_catch %>%
     vials_mean = mean(vials_mean)
   ) -> catch_means
 catch_trends <- left_join(trend_catch_pops, catch_means)
-write.csv(catch_trends, "output/stats/trend_catches.csv", row.names = FALSE)
+write.csv(catch_trends, "analysis/out/stats/trend_catches.csv", row.names = FALSE)
 
 # Flows of where bites reported to ----------------------------------------------------------
 # Prop of bites in catchment
-props_by_catch <- fread("output/preds/prop_preds.gz")
+props_by_catch <- fread(here_safe("analysis/out/preds/prop_preds.gz"))
 props_by_catch_filtered <- props_by_catch[scenario %in% scenario_levs]
 
 # left join with props by catch
@@ -563,8 +594,10 @@ clinic_bites <- left_join(clinic_bites, select(mada_communes, commcode, long_cen
 clinic_bites$line_size <- clinic_bites$prop_bites_mean * clinic_bites$bites_mean
 
 # Get bite incidence @ comm level
-gg_commune <- left_join(select(admin_preds_filtered, names, scenario, scale, bites_mean), 
-                        mada_communes, by = c("names" = "commcode"))
+gg_commune <- left_join(select(admin_preds_filtered, names, scenario, scale, bites_mean),
+  mada_communes,
+  by = c("names" = "commcode")
+)
 
 step_cols <- rev(c("#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#084594"))
 step_breaks <- c(-1, 0, 83, 200, 400, 800, 1000, max_added, max_csb)
@@ -612,7 +645,11 @@ S5.7_comm <- ggplot() +
   theme_map() +
   guides(fill = guide_legend(override.aes = list(size = 3)))
 
-ggsave("figs/supplementary/S5.7_comm_map.jpeg", S5.7_comm, height = 8, width = 8)
+write_create(S5.7_comm,
+  here_safe("analysis/figs/supplementary/S5.7_comm_map.jpeg"),
+  ggsave_it,
+  height = 8, width = 8
+)
 
 S5.8_dist <- ggplot() +
   geom_sf(
@@ -653,7 +690,10 @@ S5.8_dist <- ggplot() +
   guides(fill = guide_legend(override.aes = list(size = 3)))
 
 
-ggsave("figs/supplementary/S5.8_dist_map.jpeg", S5.8_dist, height = 8, width = 8)
+ggsave(S5.8_dist,
+  "analysis/figs/supplementary/S5.8_dist_map.jpeg", ggsave_it,
+  height = 8, width = 8
+)
 
 # Session Info
-out.session(path = "R/SM5_shifts.R", filename = "output/log_local.csv", start = start)
+out_session(logfile = here_safe("logs/log_local.csv"), start = start, ncores = 1)

@@ -1,11 +1,11 @@
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 #' Scaling sensitivity analyses
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 
-source("R/functions/out.session.R")
 start <- Sys.time()
+source(here::here("R", "utils.R"))
 
-# Libraries and scripts
+# pkgs
 library(data.table)
 library(foreach)
 library(iterators)
@@ -14,12 +14,12 @@ library(tidyverse)
 library(cowplot)
 library(patchwork)
 library(glue)
-source("R/functions/predict_functions.R")
+source(here_safe("R/predict_functions.R"))
 
 # Relationship + map for each scale & direction ---------------------------------
-scaling_df <- fread("output/sensitivity/scaling.csv")
-mada_districts <- st_read("data/processed/shapefiles/mada_districts_simple.shp")
-mada_communes <- st_read("data/processed/shapefiles/mada_communes_simple.shp")
+scaling_df <- fread(here_safe("analysis/out/sensitivity/scaling.csv"))
+mada_districts <- st_read(here_safe("analysis/out/shapefiles/mada_districts_simple.shp"))
+mada_communes <- st_read(here_safe("analysis/out/shapefiles/mada_communes_simple.shp"))
 
 # Scale
 scale_levs <- c("Commune", "District")
@@ -63,8 +63,10 @@ mada_communes$scale <- "Commune"
 mada_districts$scale <- "District"
 gg_all <- bind_rows(mada_communes, mada_districts)
 gg_all %>%
-  mutate(id = case_when(scale == "Commune" ~ commcode, 
-                        scale == "District" ~ distcode)) %>%
+  mutate(id = case_when(
+    scale == "Commune" ~ commcode,
+    scale == "District" ~ distcode
+  )) %>%
   left_join(inc_scaled_admin, by = c("scale" = "scale", "id" = "names")) -> gg_all
 
 scaling_labs <- c(neg = "Incidence decreases \n with pop", pos = "Incidence increases \n with pop")
@@ -124,13 +126,17 @@ pos_B <- pos_rel + pos_map + plot_layout(widths = c(1, 2))
 
 # fig S6.4
 S6.4_scaling_rels <- (neg_A / pos_B) + plot_layout(guides = "collect")
-ggsave("figs/supplementary/S6.4_scaling_rels.jpeg", S6.4_scaling_rels, width = 10, height = 10)
+write_create(S6.4_scaling_rels,
+  "analysis/figs/supplementary/S6.4_scaling_rels.jpeg",
+  ggsave_it,
+  width = 10, height = 10
+)
 
-# Baseline deaths mean ----------------------------------------------------------
-baseline <- fread("output/preds/admin_preds.gz")[scenario == 0]
-base_scaled <- fread("output/sensitivity/burden_baseline_scaled.gz")
-add_scaled <- fread("output/sensitivity/burden_addclinics_scaled.gz")
-add_base <- fread("output/preds/natl_preds.gz")
+# Baseline deaths mean ---------------------------------------------------------
+baseline <- fread(here_safe("analysis/out/preds/admin_preds.gz"))[scenario == 0]
+base_scaled <- fread(here_safe("analysis/out/sensitivity/burden_baseline_scaled.gz"))
+add_scaled <- fread(here_safe("analysis/out/sensitivity/burden_addclinics_scaled.gz"))
+add_base <- fread(here_safe("analysis/out/preds/natl_preds.gz"))
 
 # Baseline ----------------------------------
 scaling_labs <- c(
@@ -244,7 +250,13 @@ add_scaling_B <- ggplot(
 
 # fig S6.5
 S6.5_scaling_se <- (base_scaling_A / add_scaling_B) + plot_layout(heights = c(1.5, 2), guides = "collect")
-ggsave("figs/supplementary/S6.5_scaling_se.jpeg", S6.5_scaling_se, width = 10, height = 10)
+write_create(
+  S6.5_scaling_se,
+  here_safe("analysis/figs/supplementary/S6.5_scaling_se.jpeg"),
+  ggsave_it,
+  width = 10,
+  height = 10
+)
 
 # Saving session info
-out.session(path = "R/figures/SM6_scaling_se.R", filename = "output/log_local.csv", start = start)
+out_session(logfile = here_safe("logs/log_local.csv"), start = start, ncores = 1)

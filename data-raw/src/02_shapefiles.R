@@ -65,4 +65,4 @@ write_create(mada_communes, here_safe("data-raw/out/shapefiles/mada_communes.shp
 )
 
 # Saving session info
-out.session(logfile = "logs/data_raw.csv", start = start, ncores = 1)
+out_session(logfile = "logs/data_raw.csv", start = start, ncores = 1)
