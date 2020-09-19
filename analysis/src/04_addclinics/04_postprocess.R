@@ -1,14 +1,18 @@
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 #' Getting other scenarios (i.e. given all csbs, 1 per district, 1 per commune)
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 
-#sub_cmd=-sn -t 12 -n 5 -sp "./R/04_addclinics/04_postprocess.R" -jn process -wt 2m -n@
+# sub_cmd=-sn -t 12 -n 5 -jn process -wt 2m
 
-# set up cluster on single node with do Parallel
-library(doParallel)
-cl <- makeCluster(5)
-registerDoParallel(cl)
-start <- Sys.time()
+# Set it up
+source(here::here("R", "utils.R"))
+set_up <- setup_cl(mpi = FALSE)
+
+if (!set_up$slurm) fp <- here::here else fp <- cl_safe
+
+cl <- make_cl(set_up$ncores)
+register_cl(cl)
+print(paste("Cluster size:", cl_size(cl)))
 
 # Libraries
 library(raster)
@@ -19,48 +23,73 @@ library(foreach)
 library(iterators)
 
 # Source
-source("R/functions/out.session.R")
-source("R/functions/ttime_functions.R")
+source(here_safe("R/ttime_functions.R"))
 
 # all candidate points
-ctar_metadata <- fread("data/processed/clinics/ctar_metadata.csv")
-csbs <- fread("data/processed/clinics/csb2.csv")
-clin_per_comm <- fread("data/processed/clinics/clinic_per_comm.csv")
-base_df <- fread("output/ttimes/base/grid_df.gz")
+ctar_metadata <- fread(here_safe("data-raw/out/clinics/ctar_metadata.csv"))
+csbs <- fread(here_safe("data-raw/out/clinics/csb2.csv"))
+clin_per_comm <- fread(here_safe("data-raw/out/clinics/clinic_per_comm.csv"))
+base_df <- fread(cl_safe("analysis/out/ttimes/base/grid_df.gz"))
 
-# Match up with which file & band
-brick_dt <- get.bricks(brick_dir = "/scratch/gpfs/mrajeev/output/ttimes/candidates")
 
 # Max (with all csb2s + 1 per comm) ------------------------------------------------
 csbs_max <- rbind(csbs, clin_per_comm[!(clinic_id %in% csbs$clinic_id)], fill = TRUE)
-csbs_max <- brick_dt[csbs_max, on = "clinic_id"]
+csbs_max[, candfile := fp(paste0(
+  "analysis/out/ttimes/candidates/clinic_",
+  clinic_id, ".tif"
+))]
 max_stats <- update.base(base_df = base_df, cand_df = csbs_max, nsplit = 5)
 
-max_dist <- aggregate.admin(base_df = max_stats, admin = "distcode", 
-                            scenario = nrow(csbs_max))
-max_dist_maxcatch <- max_dist[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
+max_dist <- aggregate.admin(
+  base_df = max_stats, admin = "distcode",
+  scenario = nrow(csbs_max)
+)
+max_dist_maxcatch <- max_dist[, .SD[prop_pop_catch == max(prop_pop_catch,
+                                                          na.rm = TRUE)],
                               by = .(distcode, scenario)]
-fwrite(max_dist, "output/ttimes/addclinics/district_allcatch_max.gz")
-fwrite(max_dist_maxcatch, "output/ttimes/addclinics/district_maxcatch_max.gz")
+write_create(
+  max_dist,
+  fp("analysis/out/ttimes/addclinics/district_allcatch_max.gz"),
+  fwrite
+)
+write_create(
+  max_dist_maxcatch,
+  fp("analysis/out/ttimes/addclinics/district_maxcatch_max.gz"),
+  fwrite
+)
 
-max_comm <- aggregate.admin(base_df = max_stats, admin = "commcode", 
-                            scenario = nrow(csbs_max))
-max_comm_maxcatch <- max_comm[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)], 
-                              by = .(commcode, scenario)]
-fwrite(max_comm, "output/ttimes/addclinics/commune_allcatch_max.gz")
-fwrite(max_comm_maxcatch, "output/ttimes/addclinics/commune_maxcatch_max.gz")
+max_comm <- aggregate.admin(
+  base_df = max_stats, admin = "commcode",
+  scenario = nrow(csbs_max)
+)
+max_comm_maxcatch <- max_comm[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)],
+  by = .(commcode, scenario)
+]
+write_create(
+  max_comm,
+  fp("analysis/out/ttimes/addclinics/commune_allcatch_max.gz"),
+  fwrite
+)
+write_create(
+  max_comm_maxcatch,
+  fp("analysis/out/ttimes/addclinics/commune_maxcatch_max.gz"),
+  fwrite
+)
 
 print("done max")
 
-# Merge all scenarios -----------------------------------------------------------------
-# This will write out to addclinics folder
-process_ttimes(dir_name = "output/ttimes/addclinics", include_base = TRUE,
-               base_dir = "output/ttimes/base")
+# Merge all scenarios ----------------------------------------------------------
+process_ttimes(
+  dir_name = fp("analysis/out/ttimes/addclinics"), include_base = TRUE,
+  base_dir = fp("analysis/out/ttimes/base")
+)
 
 # Parse these from bash for where to put things
-syncto <- "~/Documents/Projects/MadaAccess/output/ttimes/addclinics/"
-syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/output/ttimes/addclinics/*"
+syncto <- "~/Documents/Projects/MadaAccess/analysis/out/ttimes/addclinics/"
+syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/MadaAccess/analysis/out/ttimes/addclinics/*"
 
-# Save session info
-out.session(path = "R/04_addclinics/04_postprocess.R", filename = "log_cluster.csv", 
-            start = start)
+# Close out
+out_session(logfile = set_up$logfile, start = set_up$start, ncores = set_up$ncores)
+close_cl(cl)
+
+print("Done:)")

@@ -1,19 +1,21 @@
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 #' Incrementally adding clinics based on travel times
-#'  Getting travel time estimates and catchments for districts/communes as clinics are added
-#'   Code should be run in parallel with shared memory if large input cand_mat
-#'   On the Della cluster at Princeton with 18 cores, it takes approximately 1 hr 10 minutes; 
-#'   On MacOS with 16 GB 1867 MHz DDR3 and 2.9 GHz Intel Core i5 with three cores, 
-#'   it takes approximately 10 hours
-# ------------------------------------------------------------------------------------------------ #
+#'  Getting travel time estimates and catchments for districts/communes
+#'  as clinics are added
+#'  Code should be run in parallel if possible
+# ------------------------------------------------------------------------------
 
-#sub_cmd=-sn -t 24 -n 10 -sp "./R/04_addclinics/03_ttimes_added.R" -jn addclinics -wt 60m -n@
-  
-# set up cluster on single node with do Parallel
-library(doParallel)
-cl <- makeCluster(10)
-registerDoParallel(cl)
-start <- Sys.time()
+# sub_cmd=-sn -t 12 -n 10 -jn addclinics -wt 5m
+
+# Set it up
+source(here::here("R", "utils.R"))
+set_up <- setup_cl(mpi = FALSE)
+
+if (!set_up$slurm) fp <- here::here else fp <- cl_safe
+
+cl <- make_cl(set_up$ncores)
+register_cl(cl)
+print(paste("Cluster size:", cl_size(cl)))
 
 # Libraries
 library(foreach)
@@ -23,50 +25,45 @@ library(data.table)
 library(raster)
 
 # Source
-source("R/functions/out.session.R")
-source("R/functions/ttime_functions.R")
+source(here_safe("R/ttime_functions.R"))
 
-# baseline rasters 
-base_df <- fread("output/ttimes/base/grid_df.gz")
-brick_dt <- get.bricks(brick_dir = "/scratch/gpfs/mrajeev/output/ttimes/candidates")
+# baseline rasters
+base_df <- fread(fp("analysis/out/ttimes/base/grid_df.gz"))
 
 # Add one per district first
-clin_per_dist <- fread("data/processed/clinics/clinic_per_dist.csv")
-clin_per_dist <- brick_dt[clin_per_dist, on = "clinic_id"]
+clin_per_dist <- fread(here_safe("data-raw/out/clinics/clinic_per_dist.csv"))
+clin_per_dist[, candfile := fp(paste0("analysis/out/ttimes/candidates/clinic_",
+                                      clinic_id, ".tif"))]
 
-prop <- function(base_df, cand_ttimes, thresh_ttimes) {
-  
-  inds <- which(cand_ttimes < base_df$ttimes & base_df$ttimes >= thresh_ttimes
-                & !is.na(base_df$prop_pop))
-  
-  sum(base_df$prop_pop[inds], na.rm = TRUE) # prop pop only
-}
-
-system.time({
-  add.armc(base_df = base_df, cand_df = clin_per_dist, max_clinics = nrow(clin_per_dist), 
-           rank_metric = prop, thresh_met = 1e-4,
-           thresh_ttimes = 3*60, dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics", 
-           base_scenario = 0, overwrite = TRUE, random = FALSE)
-})
+base_df <- add.armc(
+  base_df = base_df, cand_df = clin_per_dist,
+  max_clinics = nrow(clin_per_dist),
+  rank_metric = prop, thresh_met = 1e-4,
+  thresh_ttimes = 3 * 60, dir_name = fp("analysis/out/ttimes/addclinics"),
+  base_scenario = 0, overwrite = TRUE, random = FALSE
+)
 
 # Then add one per commune
-clin_per_comm <- fread("data/processed/clinics/clinic_per_comm.csv")
-clin_per_comm <- brick_dt[clin_per_comm, on = "clinic_id"]
+clin_per_comm <- fread(here_safe("data-raw/out/clinics/clinic_per_comm.csv"))
+clin_per_comm[, candfile := fp(paste0("analysis/out/ttimes/candidates/clinic_",
+                                      clinic_id, ".tif"))]
 
-system.time({
-  add.armc(base_df = base_df, cand_df = clin_per_comm, max_clinics = nrow(clin_per_comm),
-           rank_metric = prop,
-           thresh_ttimes = 3*60, thresh_met = 1e-4, 
-           dir_name = "/scratch/gpfs/mrajeev/output/ttimes/addclinics",
-           base_scenario = nrow(clin_per_dist), overwrite = FALSE, random = FALSE) # so will append to previous run
-})
+base_df <- add.armc(
+  base_df = base_df, cand_df = clin_per_comm,
+  max_clinics = nrow(clin_per_comm),
+  rank_metric = prop,
+  thresh_ttimes = 3 * 60, thresh_met = 1e-4,
+  dir_name = fp("analysis/out/ttimes/addclinics"),
+  base_scenario = nrow(clin_per_dist), overwrite = FALSE, # so will append to previous run
+  random = FALSE
+)
 
 # Parse these from bash for where to put things
-syncto <- "~/Documents/Projects/MadaAccess/output/ttimes/"
-syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/addclinics"
+syncto <- "~/Documents/Projects/MadaAccess/analysis/out/ttimes/"
+syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/MadaAccess/analysis/out/ttimes/addclinics"
 
 # Close out
-file_path <- "R/04_addclinics/03_ttimes_added.R"
-out.session(path = file_path, filename = "log_cluster.csv", start = start)
-stopCluster(cl)
-print("Done remotely:)")
+out_session(logfile = set_up$logfile, start = set_up$start, ncores = set_up$ncores)
+close_cl(cl)
+
+print("Done:)")

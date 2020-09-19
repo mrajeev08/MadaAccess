@@ -1,17 +1,19 @@
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 #' Getting travel times for each grid cell for each clinic
-#' Code should be run in parallel and data is split to make easier to work with/store
-#' Adjust the chunksize option based on memory limitations
-# ------------------------------------------------------------------------------------------------ #
+#' Code should be run in parallel and data is split to make easier to download
+# ------------------------------------------------------------------------------
 
-#sub_cmd=-t 12 -n 31 -sp "./R/04_addclinics/01_ttimes_candidates.R" -jn candidates -wt 2m -n@
-  
-# Init MPI Backend
-library(doMPI)
-cl <- startMPIcluster()
-clusterSize(cl) # this just tells you how many you've got
-registerDoMPI(cl)
-start <- Sys.time()
+# sub_cmd:=-t 12 -n 31 -jn candidates -wt 2m  -md "gdal"
+
+# Set it up
+source(here::here("R", "utils.R"))
+set_up <- setup_cl(mpi = TRUE)
+
+if(!set_up$slurm) fp <- here::here else fp <- cl_safe
+
+cl <- make_cl(set_up$ncores)
+register_cl(cl)
+print(paste("Cluster size:", cl_size(cl)))
 
 # Libraries
 library(sf)
@@ -22,57 +24,49 @@ library(gdistance)
 library(iterators)
 library(data.table)
 library(glue)
+source(here_safe("R/ttime_functions.R"))
 
-# Source scripts
-source("R/functions/out.session.R")
-source("R/functions/ttime_functions.R")
-
-# Load in GIS files 
-mada_districts <- st_read("data/processed/shapefiles/mada_districts.shp")
-ctar_metadata <- read.csv("data/processed/clinics/ctar_metadata.csv")
-friction_masked <- raster("data/processed/rasters/friction_mada_masked.tif")
+# Load in GIS files
+mada_districts <- st_read(fp("analysis/out/shapefiles/mada_districts.shp"))
+ctar_metadata <- read.csv(here_safe("data-raw/out/clinics/ctar_metadata.csv"))
+friction_masked <- raster(here_safe("data-raw/out/rasters/friction_mada_masked.tif"))
 
 # candidate points
-csbs <- fread("data/processed/clinics/csb2.csv")
-clin_per_comm <- fread("data/processed/clinics/clinic_per_comm.csv")
+csbs <- fread(here_safe("data-raw/out/clinics/csb2.csv"))
+clin_per_comm <- fread(here_safe("data-raw/out/clinics/clinic_per_comm.csv"))
 clin_per_comm <- clin_per_comm[!(clinic_id %in% csbs$clinic_id) & clinic_id > 31][, pop_dens := NULL]
-csbs <- rbind(csbs, clin_per_comm)
+csbs <- rbind(csbs, clin_per_comm, fill = TRUE)
 setorder(csbs, clinic_id) # make sure they're in the right order
-point_mat_candidates <- as.matrix(select(csbs, long, lat))
-rownames(point_mat_candidates) <- csbs$clinic_id
 
-out_dir <- "/scratch/gpfs/mrajeev/output/ttimes/candidates/"
+csbs %>%
+  dplyr::select(x = long, y = lat, clinic_id) %>%
+  as.matrix(.) -> candidates
 
-if(!dir.exists(out_dir)) dir.create(out_dir)
+foreach(
+  points = iter(candidates, by = "row"),
+  .packages = c("raster", "gdistance", "data.table")
+) %dopar% {
+  ttimes <- get.ttimes(
+    friction = friction_masked, shapefile = mada_districts,
+    coords = points[, c("x", "y")], trans_matrix_exists = TRUE,
+    filename_trans = "data-raw/out/rasters/trans_gc_masked.rds"
+  )
+  write_create(ttimes,
+    fp(paste0(
+      "analysis/out/ttimes/candidates/clinic_",
+      points[, "clinic_id"],
+      ".tif"
+    )),
+    writeRaster,
+    overwrite = TRUE,
+    options = c("COMPRESS=LZW")
+  )
+} -> stacked_ttimes
 
-system.time ({
-  foreach(point_sub = iter(point_mat_candidates, by = "row", chunksize = 25),    
-          .packages = c("raster", "gdistance", "glue", "foreach", "iterators")) %dopar% {
-    
-    foreach(points = iter(point_sub, by = "row")) %do% {
-              
-      ttimes <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
-                           coords = points, trans_matrix_exists = TRUE,
-                           filename_trans = "data/processed/rasters/trans_gc_masked.rds")
-      
-    } -> stacked_ttimes
+# Keep the outputs on the cluster (otherwise takes a while to pulldown)
 
-    stacked_ttimes <- brick(stacked_ttimes)
-    names(stacked_ttimes) <- rownames(point_sub)
-    file_name <- glue("candmat_cand{rownames(point_sub)[1]}_cand{rownames(point_sub)[nrow(point_sub)]}.tif")
-    writeRaster(stacked_ttimes, filename = paste0(out_dir, file_name),
-                overwrite = TRUE, options = c("INTERLEAVE=BAND", "COMPRESS=LZW"))    
-  }
-})
+# Close out
+out_session(logfile = set_up$logfile, start = set_up$start, ncores = set_up$ncores)
+close_cl(cl)
 
-# Parse these from bash for where to put things
-syncto <- "~/Documents/Projects/MadaAccess/output/ttimes/"
-syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/output/ttimes/candidates"
-
-file_path <- "R/04_addclinics/01_ttimes_candidates.R"
-
-out.session(path = file_path, filename = "log_cluster.csv", start = start)
-closeCluster(cl)
-mpi.quit()
-print("Done remotely:)")
-
+print("Done:)")

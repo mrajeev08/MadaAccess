@@ -1,7 +1,7 @@
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 #' Batch functions
 #' Functions for running preds & mods across scenarios
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 
 #' Run preds for set of scenarios
 #' Description
@@ -11,14 +11,18 @@
 #' @section Dependencies:
 #'     List dependencies here, i.e. packages and other functions
 
-run_scenarios <- function(lookup, directory = "output/ttimes/", pred_type = c("vials", "burden"),
+run_scenarios <- function(lookup, ttimes_dir = "analysis/out/ttimes/",
+                          mod_dir = "analysis/out/mods/samps/",
+                          pred_type = c("vials", "burden"),
                           par_type = "posterior", scaled = FALSE,
-                          colnames_max, colnames_all, colnames_j, admin_to_keep, catch_keep = TRUE,
-                          multicomb = function(x, ...) {
-                            mapply(rbind, x, ..., SIMPLIFY = FALSE)
-                          },
+                          colnames_max, colnames_all, colnames_j,
+                          admin_to_keep, catch_keep = TRUE,
                           rng_seed = 23481, sims = 1000) {
   setDTthreads(1)
+
+  multicomb = function(x, ...) {
+    mapply(rbind, x, ..., SIMPLIFY = FALSE)
+  }
 
   foreach(
     j = iter(lookup, by = "row"), .combine = multicomb,
@@ -30,7 +34,7 @@ run_scenarios <- function(lookup, directory = "output/ttimes/", pred_type = c("v
   ) %dorng% { # have to export funcs when in function
 
     # read in data
-    comm <- fread(cmd = paste("grep -w ", j$loop, " ", directory, "/commpreds_max.csv",
+    comm <- fread(cmd = paste("grep -w ", j$loop, " ", ttimes_dir, "/commpreds_max.csv",
       sep = ""
     ), col.names = colnames_max)
 
@@ -47,7 +51,7 @@ run_scenarios <- function(lookup, directory = "output/ttimes/", pred_type = c("v
         data_source = j$data_source,
         intercept = j$intercept,
         scale = j$scale, suff = ifelse(j$OD == TRUE, "_OD", ""),
-        parent_dir = "output/mods/samps/", sims
+        parent_dir = mod_dir, sims
       ))
     } else {
       posts <- j
@@ -116,7 +120,7 @@ run_scenarios <- function(lookup, directory = "output/ttimes/", pred_type = c("v
     # Then vials
     if ("vials" %in% pred_type) {
       comm_all <- fread(
-        cmd = paste("grep -w ", j$loop, " ", directory,
+        cmd = paste("grep -w ", j$loop, " ", ttimes_dir,
           "/commpreds_all.csv",
           sep = ""
         ),

@@ -1,73 +1,82 @@
-# ------------------------------------------------------------------------------------------------ #
-#' Getting sensitivity to parameter assumptions for burden & impact of expanding access                          
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
+#' Getting sensitivity to parameter assumptions for burden &
+#' impact of expanding access
+# ------------------------------------------------------------------------------
 
-#sub_cmd=-t 12 -n 30 -mem 4000 -sp "./R/05_predictions/03_preds_se.R" -jn preds_se -wt 5m -n@
+# sub_cmd=-t 12 -n 30 -jn preds_se -wt 2m
 
-# Init MPI Backend
-library(doMPI)
-cl <- startMPIcluster()
-clusterSize(cl) # this just tells you how many you've got
-registerDoMPI(cl)
-start <- Sys.time()
+# Set it up
+source(here::here("R", "utils.R"))
+set_up <- setup_cl(mpi = TRUE)
+if(!set_up$slurm) fp <- here::here else fp <- cl_safe
+cl <- make_cl(set_up$ncores)
+register_cl(cl)
+print(paste("Cluster size:", cl_size(cl)))
 
-# Set up ------------------------------------------------------------------------------------
+# pkgs
 library(data.table)
 library(foreach)
 library(doRNG)
 library(iterators)
 library(tidyverse)
 library(triangle)
-source("R/functions/out.session.R")
-source("R/functions/predict_functions.R")
-source("R/functions/batch_functions.R")
+source(here_safe("R/predict_functions.R"))
+source(here_safe("R/batch_functions.R"))
 select <- dplyr::select
 
 # Set-up these two vectors for reading in data using cmd line args
-scenario_loop <- unique(fread("output/ttimes/addclinics/commpreds_max.csv")$lookup)
-se_pars <- fread("output/sensitivity/se_pars.csv")
+scenario_loop <- unique(fread(fp("analysis/out/ttimes/addclinics/commpreds_max.csv"))$lookup)
+se_pars <- fread(fp("analysis/out/sensitivity/se_pars.csv"))
 
 # reverse so bigger dfs don't slow everything down
 lookup <- expand_grid(loop = rev(scenario_loop), se_pars)
 
 # Do burden -----------------------------------------------------------------
-all_preds <- run_scenarios(lookup = lookup, pred_type = "burden", 
-                           par_type = "point_est", scaled = FALSE,
-                           directory = "output/ttimes/addclinics",
-                           colnames_max = colnames(fread("output/ttimes/addclinics/commpreds_max.csv")), 
-                           colnames_all = colnames(fread("output/ttimes/addclinics/commpreds_all.csv")),
-                           colnames_j = c("scale", "data_source", "vary", "direction"), 
-                           admin_to_keep = "scenario_0", 
-                           multicomb = function(x, ...) { mapply(rbind, x, ..., SIMPLIFY = FALSE)}, 
-                           rng_seed = 23492, sims = 1000)
+all_preds <- run_scenarios(
+  lookup = lookup, pred_type = "burden",
+  par_type = "point_est", scaled = FALSE,
+  ttimes_dir = fp("analysis/out/ttimes/addclinics"),
+  mod_dir = fp("analysis/out/mods/samps/"),
+  colnames_max = colnames(fread(fp("analysis/out/ttimes/addclinics/commpreds_max.csv"))),
+  colnames_all = colnames(fread(fp("analysis/out/ttimes/addclinics/commpreds_all.csv"))),
+  colnames_j = c("scale", "data_source", "vary", "direction"),
+  admin_to_keep = "scenario_0",
+  rng_seed = 23492, sims = 1000
+)
 
 # Write out data
-fwrite(all_preds$admin_preds, "output/sensitivity/burden_baseline_se.gz") 
-fwrite(all_preds$natl_preds, "output/sensitivity/burden_addclinics_se.gz") 
+write_create(all_preds$admin_preds,
+             fp("analysis/out/sensitivity/burden_baseline_se.gz"),
+             fwrite)
+write_create(all_preds$natl_preds,
+             fp("analysis/out/sensitivity/burden_addclinics_se.gz"),
+             fwrite)
 
 # Do vials -----------------------------------------------------------------
 lookup <- filter(lookup, grepl("beta|sigma", vary))
-vial_se_pars <- fread("output/sensitivity/se_pars.csv")[grep("beta|sigma", vary)]
+vial_se_pars <- fread(fp("analysis/out/sensitivity/se_pars.csv"))[grep("beta|sigma", vary)]
 
-all_preds <- run_scenarios(lookup = lookup, pred_type = "vials", 
-                           par_type = "point_est", scaled = FALSE, catch_keep = FALSE, 
-                           directory = "output/ttimes/addclinics",
-                           colnames_max = colnames(fread("output/ttimes/addclinics/commpreds_max.csv")), 
-                           colnames_all = colnames(fread("output/ttimes/addclinics/commpreds_all.csv")),
-                           colnames_j = c("scale", "data_source", "vary", "direction"), 
-                           admin_to_keep = NULL, 
-                           multicomb = function(x, ...) { mapply(rbind, x, ..., SIMPLIFY = FALSE)}, 
-                           rng_seed = 2342, sims = 1000)
-fwrite(all_preds$natl_preds, "output/sensitivity/vials_se.gz")
-
-# Close out
-file_path <- "R/05_predictions/03_preds_se.R"
-out.session(path = file_path, filename = "log_cluster.csv", start = start)
+all_preds <- run_scenarios(
+  lookup = lookup, pred_type = "vials",
+  par_type = "point_est", scaled = FALSE, catch_keep = FALSE,
+  ttimes_dir = fp("analysis/out/ttimes/addclinics/"),
+  mod_dir = fp("analysis/out/mods/samps/"),
+  colnames_max = colnames(fread(fp("analysis/out/ttimes/addclinics/commpreds_max.csv"))),
+  colnames_all = colnames(fread(fp("analysis/out/ttimes/addclinics/commpreds_all.csv"))),
+  colnames_j = c("scale", "data_source", "vary", "direction"),
+  admin_to_keep = NULL,
+  rng_seed = 2342, sims = 1000
+)
+write_create(all_preds$natl_preds,
+             fp("analysis/out/sensitivity/vials_se.gz"),
+             fwrite)
 
 # Parse these from bash for where to put things
-syncto <- "~/Documents/Projects/MadaAccess/output/sensitivity/"
-syncfrom <- "mrajeev@della.princeton.edu:~/MadaAccess/output/sensitivity/*"
+syncto <- "~/Documents/Projects/MadaAccess/analysis/out/sensitivity/"
+syncfrom <- "mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/MadaAccess/analysis/out/sensitivity/*"
 
-closeCluster(cl)
-mpi.quit()
-print("Done remotely:)")
+# Close out
+out_session(logfile = set_up$logfile, start = set_up$start, ncores = set_up$ncores)
+close_cl(cl)
+
+print("Done:)")

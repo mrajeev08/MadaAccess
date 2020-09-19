@@ -247,7 +247,7 @@ get.vials <- function(x) {
 #' @return a matrix of independent draws from the posterior distributions of the sourced mcmc chains
 #' @section Dependencies: coda, glue
 get.samps <- function(pop_predict = "flatPop", data_source = "National", intercept = "random",
-                      scale = "Commune", suff = "", parent_dir = "output/mods/samps/",
+                      scale = "Commune", suff = "", parent_dir = "analysis/out/mods/samps/",
                       nsims = 1000, hpd = NULL) {
   samps <- readRDS(glue("{parent_dir}{data_source}/{scale}_{intercept}_{pop_predict}{suff}.rds"))[[1]]
   samp_mat <- do.call(rbind, samps)
