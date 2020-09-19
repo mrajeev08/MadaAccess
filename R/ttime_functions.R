@@ -83,6 +83,7 @@ get.ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 # Pass through base df, otherwise you need all the vectors!
 add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, rank_metric,
                      base_scenario = 0, thresh_met = 0, overwrite = TRUE, random = TRUE) {
+
   base <- copy(base_df) # so as not to modify global env
   cand <- copy(cand_df) # so as not to modify global env
 
@@ -90,8 +91,8 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, ran
 
   # Pull in references to files (that way not as big!)
   cand_list <- vector("list", nrow(cand))
-  foreach(j = 1:nrow(cand), .packages = "raster") %do% {
-    cand_list[[j]] <- raster(cand$candfile[j], band = cand$band[j])
+  for(j in 1:nrow(cand)) {
+    cand_list[[j]] <- raster(cand$candfile[j])
   }
 
   # Make the directory if it doesn't exist
@@ -171,7 +172,7 @@ add.armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, ran
       "Commune"
     ))
   }
-  # No return just the base_df in the global environment is changed now
+  return(base_df) # return updated baseline
 }
 
 # Get grid cell catchments for set of clinics ------------------------------------------------
@@ -184,7 +185,7 @@ update.base <- function(cand_df, base_df, nsplit = 2) {
   cand_list <- vector("list", nrow(cand_df))
 
   foreach(j = 1:nrow(cand_df), .packages = "raster") %do% {
-    cand_list[[j]] <- raster(cand_df$candfile[j], band = cand_df$band[j])
+    cand_list[[j]] <- raster(cand_df$candfile[j])
   }
 
   names(cand_list) <- cand_df$clinic_id
@@ -253,8 +254,10 @@ update.base <- function(cand_df, base_df, nsplit = 2) {
 #' @section Dependencies:
 #'     List dependencies here, i.e. packages and other functions
 
-process_ttimes <- function(dir_name = "output/ttimes/addclinics", include_base = TRUE,
-                           base_dir = "output/ttimes/base") {
+process_ttimes <- function(dir_name = "analysis/out/ttimes/addclinics",
+                           include_base = TRUE,
+                           base_dir = "analysis/out/ttimes/base") {
+
   files <- list.files(dir_name, full.names = TRUE)
 
   comm_all <- rbindlist(lapply(grep("commune_allcatch", files, value = TRUE), fread), fill = TRUE)
@@ -287,27 +290,6 @@ process_ttimes <- function(dir_name = "output/ttimes/addclinics", include_base =
 
   fwrite(comm_all, paste0(dir_name, "/commpreds_all.csv"))
   fwrite(comm_max, paste0(dir_name, "/commpreds_max.csv"))
-}
-
-# Get brick list ------------------------------------------------------------------------------
-get.bricks <- function(brick_dir = "output/ttimes/candidates") {
-  setDTthreads(1)
-
-  bricks <- list.files(brick_dir, full.names = TRUE)
-
-  foreach(i = iter(bricks), .combine = rbind) %do% {
-    cands <- as.numeric(gsub("[.a-z]", "", grep("cand[0-9]", unlist(strsplit(i, "_")),
-      value = TRUE
-    )))
-    out <- data.table(
-      clinic_id = min(cands):max(cands), candfile = i, min = min(cands),
-      max = max(cands)
-    )
-    out[, band := (clinic_id - min + 1)]
-    out
-  } -> brick_dt
-
-  return(brick_dt)
 }
 
 # Separate function for aggregate to admin ----------------------------------------------------
@@ -343,4 +325,26 @@ aggregate.admin <- function(base_df, admin = "distcode", scenario) {
   setnames(admin_df, "get", admin)
 
   return(admin_df)
+}
+
+# Candidate functions here
+prop_wtd <- function(base_df, cand_ttimes, thresh_ttimes) {
+  inds <- which(cand_ttimes < base_df$ttimes & base_df$ttimes >= thresh_ttimes
+                & !is.na(base_df$prop_pop))
+  sum(base_df$prop_pop[inds] * # pop affected
+        ((base_df$ttimes[inds] - cand_ttimes[inds]) / base_df$ttimes[inds]),
+      na.rm = TRUE
+  ) # weighted by reduction
+}
+
+prop <- function(base_df, cand_ttimes, thresh_ttimes) {
+  inds <- which(cand_ttimes < base_df$ttimes & base_df$ttimes >= thresh_ttimes
+                & !is.na(base_df$prop_pop))
+  sum(base_df$prop_pop[inds], na.rm = TRUE) # prop pop only
+}
+
+mean_tt <- function(base_df, cand_ttimes, thresh_ttimes) {
+  inds <- which(cand_ttimes < base_df$ttimes & base_df$ttimes >= thresh_ttimes
+                & !is.na(base_df$prop_pop))
+  mean(base_df$ttimes[inds] - cand_ttimes[inds], na.rm = TRUE) # prop pop only
 }

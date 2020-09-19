@@ -20,8 +20,8 @@ library(fasterize)
 library(here)
 
 # Source
-source("R/ttime_functions.R")
-source("R/utils.R")
+source(here::here("R", "utils.R"))
+source(here_safe("R/ttime_functions.R"))
 
 # Load in GIS files
 mada_districts <- st_read(here_safe("data-raw/out/shapefiles/mada_districts.shp"))
@@ -31,41 +31,51 @@ friction_masked <- raster(here_safe("data-raw/out/rasters/friction_mada_masked.t
 pop1x1 <- raster(here_safe("data-raw/out/rasters/wp_2015_1x1.tif"))
 
 # Get the minimum ttimes for each clinic ------------------------------------
-prop_pop <- pop1x1/sum(values(pop1x1), na.rm = TRUE)
+prop_pop <- pop1x1 / sum(values(pop1x1), na.rm = TRUE)
 
 # Get candidate points as matrix
 # takes ~ 6 seconds per point
-point_mat_base <- as.matrix(dplyr::select(ctar_metadata, x = long, y = lat))
+ctar_metadata %>%
+ dplyr::select(x = long, y = lat, clinic_id) %>%
+ as.matrix(.) -> point_mat_base
 
 cl <- makeCluster(detectCores() - 1)
 registerDoParallel(cl)
 
-system.time ({
-  foreach(points = iter(point_mat_base, by = "row"),
-          .packages = c("raster", "gdistance", "data.table")) %dopar% {
-            ttimes <- get.ttimes(friction = friction_masked, shapefile = mada_districts,
-                                 coords = points, trans_matrix_exists = TRUE,
-                                 filename_trans = "data-raw/out/rasters/trans_gc_masked.rds")
-          } -> stacked_ttimes
+system.time({
+  foreach(
+    points = iter(point_mat_base, by = "row"),
+    .packages = c("raster", "gdistance", "data.table")
+  ) %dopar% {
+    ttimes <- get.ttimes(
+      friction = friction_masked, shapefile = mada_districts,
+      coords = points[, c("x", "y")], trans_matrix_exists = TRUE,
+      filename_trans = "data-raw/out/rasters/trans_gc_masked.rds"
+    )
+    write_create(ttimes,
+                 here_safe(paste0("analysis/out/ttimes/candidates/clinic_",
+                                  points[, "clinic_id"])),
+                 writeRaster,
+                 overwrite = TRUE,
+                 options = c("COMPRESS=LZW"))
+  } -> stacked_ttimes
 })
 
 stopCluster(cl)
 
-# write the brick
+# Get minimum travel times
 bricked <- brick(stacked_ttimes)
 names(bricked) <- 1:31
-write_create(bricked,
-             here_safe("analysis/out/ttimes/candidates/candmat_cand1_cand31.tif"),
-             writeRaster, overwrite = TRUE,
-             options = c("INTERLEAVE=BAND", "COMPRESS=LZW"))
-
-# Get minimum travel times and write out to tiff
 ttimes_base <- min(bricked, na.rm = TRUE)
 catchment <- which.min(bricked)
+
+# write out the baseline raster
 write_create(ttimes_base,
-             here_safe("analysis/out/ttimes/base/ttimes.tif"),
-             writeRaster, overwrite = TRUE,
-             options = c("INTERLEAVE=BAND", "COMPRESS=LZW"))
+  here_safe("analysis/out/ttimes/base/ttimes.tif"),
+  writeRaster,
+  overwrite = TRUE,
+  options = c("INTERLEAVE=BAND", "COMPRESS=LZW")
+)
 
 # Get vals by  districts/communes -------------------------------------------
 mada_districts %>%
@@ -76,57 +86,80 @@ mada_communes %>%
   mutate(id = 1:nrow(.)) %>%
   fasterize(., friction_masked, field = "id") -> commune_id
 
-base_df <- data.table(distcode = mada_districts$distcode[district_id[]],
-                      commcode = mada_communes$commcode[commune_id[]],
-                      pop = pop1x1[], prop_pop = prop_pop[],
-                      ttimes = ttimes_base[], catchment = catchment[])
+base_df <- data.table(
+  distcode = mada_districts$distcode[district_id[]],
+  commcode = mada_communes$commcode[commune_id[]],
+  pop = pop1x1[], prop_pop = prop_pop[],
+  ttimes = ttimes_base[], catchment = catchment[]
+)
 
 # Fix Nosy Komba so it has max ttimes in mainland Nosy Be & catchment of Nosy Be
 base_df[commcode == "MG71718002"]$ttimes <- max(base_df[distcode == "MG71718"]$ttimes,
-                                                na.rm = TRUE)
+  na.rm = TRUE
+)
 base_df[commcode == "MG71718002"]$catchment <- base_df[distcode == "MG71718"]$catchment[1]
-write_create(base_df,
-             here_safe("analysis/out/ttimes/base/grid_df.gz"),
-             fwrite)
+write_create(
+  base_df,
+  here_safe("analysis/out/ttimes/base/grid_df.gz"),
+  fwrite
+)
 
 # District
 district_df <- aggregate.admin(base_df = base_df, admin = "distcode", scenario = 0)
-district_maxcatch <- district_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)],
-                                 by = .(distcode, scenario)]
-write_create(district_df,
-             here_safe("analysis/out/ttimes/base/district_allcatch.gz"),
-             fwrite)
-write_create(district_maxcatch,
-             here_safe("analysis/out/ttimes/base/district_maxcatch.gz"),
-             fwrite)
+district_maxcatch <- district_df[, .SD[prop_pop_catch == max(prop_pop_catch,
+  na.rm = TRUE
+)],
+by = .(distcode, scenario)
+]
+write_create(
+  district_df,
+  here_safe("analysis/out/ttimes/base/district_allcatch.gz"),
+  fwrite
+)
+write_create(
+  district_maxcatch,
+  here_safe("analysis/out/ttimes/base/district_maxcatch.gz"),
+  fwrite
+)
 
 # Commune
 commune_df <- aggregate.admin(base_df = base_df, admin = "commcode", scenario = 0)
-commune_maxcatch <- commune_df[, .SD[prop_pop_catch == max(prop_pop_catch, na.rm = TRUE)],
-                               by = .(commcode, scenario)]
-write_create(commune_df,
-             here_safe("analysis/out/ttimes/base/commune_allcatch.gz"),
-             fwrite)
-write_create(commune_maxcatch,
-             here_safe("analysis/out/ttimes/base/commune_maxcatch.gz"),
-             fwrite)
+commune_maxcatch <- commune_df[, .SD[prop_pop_catch == max(prop_pop_catch,
+  na.rm = TRUE
+)],
+by = .(commcode, scenario)
+]
+write_create(
+  commune_df,
+  here_safe("analysis/out/ttimes/base/commune_allcatch.gz"),
+  fwrite
+)
+write_create(
+  commune_maxcatch,
+  here_safe("analysis/out/ttimes/base/commune_maxcatch.gz"),
+  fwrite
+)
 
-# Make shapefiles -----------------------------------------------------------------------------
+# Make shapefiles --------------------------------------------------------------
 
 # Match up to CTAR
 district_maxcatch %>%
-  mutate(id_ctar = ctar_metadata$id_ctar[catchment], # by row number
-         catchment = ctar_metadata$CTAR[catchment]) -> district_maxcatch
+  mutate(
+    id_ctar = ctar_metadata$id_ctar[catchment], # by row number
+    catchment = ctar_metadata$CTAR[catchment]
+  ) -> district_maxcatch
 
 commune_maxcatch %>%
-  mutate(id_ctar = ctar_metadata$id_ctar[catchment], # by row number
-         catchment = ctar_metadata$CTAR[catchment]) -> commune_maxcatch
+  mutate(
+    id_ctar = ctar_metadata$id_ctar[catchment], # by row number
+    catchment = ctar_metadata$CTAR[catchment]
+  ) -> commune_maxcatch
 
 # Clean up names
 # var names have to be <= 10 characters long for ESRI shapefile output
 mada_districts %>%
   left_join(district_maxcatch) %>%
-  rename(pop = pop_admin, pop_catch = prop_pop_catch)-> mada_districts
+  rename(pop = pop_admin, pop_catch = prop_pop_catch) -> mada_districts
 
 mada_communes %>%
   left_join(commune_maxcatch) %>%
@@ -134,23 +167,34 @@ mada_communes %>%
 
 # Write out the shapefiles for analyses (overwrite)
 write_create(mada_districts,
-             here_safe("analysis/out/shapefiles/mada_districts.shp"),
-             st_write,
-             delete_layer = TRUE)
+  here_safe("analysis/out/shapefiles/mada_districts.shp"),
+  st_write,
+  delete_layer = TRUE
+)
 write_create(mada_communes,
-             here_safe("analysis/out/shapefiles/mada_communes.shp"),
-             st_write,
-             delete_layer = TRUE)
+  here_safe("analysis/out/shapefiles/mada_communes.shp"),
+  st_write,
+  delete_layer = TRUE
+)
 
 # Also simplified shapefiles for lightweight (plotting, etc)
 mada_districts <- rmapshaper::ms_simplify(mada_districts)
 mada_communes <- rmapshaper::ms_simplify(mada_communes)
 
-st_write(mada_districts, "analysis/out/shapefiles/mada_districts_simple.shp",
-         delete_layer = TRUE)
-st_write(mada_communes, "analysis/out/shapefiles/mada_communes_simple.shp",
-         delete_layer = TRUE)
+write_create(mada_districts,
+  here_safe("analysis/out/shapefiles/mada_districts_simple.shp"),
+  st_write,
+  delete_layer = TRUE
+)
+
+write_create(mada_communes,
+  here_safe("analysis/out/shapefiles/mada_communes_simple.shp"),
+  st_write,
+  delete_layer = TRUE
+)
 
 # Saving session info
-out.session(logfile = "logs/log_local.csv", start = start,
-            ncores = detectCores() - 1)
+out_session(
+  logfile = "logs/log_local.csv", start = start,
+  ncores = detectCores() - 1
+)

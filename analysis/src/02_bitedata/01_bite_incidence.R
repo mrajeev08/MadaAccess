@@ -1,8 +1,10 @@
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 #' Getting district/commune bite incidence
-#' Agreggating data by admin unit and by year to get average annual incidence for National
-#' and Moramanga data
-# ------------------------------------------------------------------------------------------------ #
+#' Agreggating data by admin unit and by year to get average annual incidence for
+#' National and Moramanga data
+# ------------------------------------------------------------------------------
+
+start <- Sys.time()
 
 # Libraries
 library(tidyverse)
@@ -12,15 +14,15 @@ library(lubridate)
 select <- dplyr::select
 
 # Source scripts
-source("R/functions/out.session.R")
-source("R/functions/data_functions.R")
+source(here::here("R", "utils.R"))
+source(here_safe("R/data_functions.R"))
 
 # Read in data
-national <- fread("data/processed/bitedata/national.csv")
-moramanga <- fread("data/processed/bitedata/moramanga.csv")
-ctar_metadata <- fread("data/processed/clinics/ctar_metadata.csv")
-mada_communes <- st_read("data/processed/shapefiles/mada_communes.shp")
-mada_districts <- st_read("data/processed/shapefiles/mada_districts.shp")
+national <- fread(here_safe("data-raw/out/bitedata/national.csv"))
+moramanga <- fread(here_safe("data-raw/out/bitedata/moramanga.csv"))
+ctar_metadata <- fread(here_safe("data-raw/out/clinics/ctar_metadata.csv"))
+mada_communes <- st_read(here_safe("analysis/out/shapefiles/mada_communes.shp"))
+mada_districts <- st_read(here_safe("analysis/out/shapefiles/mada_districts.shp"))
 
 # Prep shapefiles
 ctar_metadata <- ctar_to_exclude(national, ctar_metadata, min_forms = 10)
@@ -40,9 +42,9 @@ natl <- clean_natl(national, mada_districts, mada_communes, ctar_metadata,
 mora_bites <- clean_mora(moramanga, mada_communes, mada_districts, natl$district_bites)
 
 # Write out bite data and covariate data
-fwrite(natl$district_bites, "output/bites/district_bites.csv")
-fwrite(natl$comm_covars, "output/bites/comm_covars.csv")
-fwrite(mora_bites, "output/bites/mora_bites.csv")
+write_create(natl$district_bites, "analysis/out/bites/district_bites.csv", fwrite)
+write_create(natl$comm_covars, "analysis/out/bites/comm_covars.csv", fwrite)
+write_create(mora_bites, "analysis/out/bites/mora_bites.csv", fwrite)
 
 # Save session info
-out.session(path = "R/02_bitedata/03_estimate_biteinc.R", filename = "output/log_local.csv")
+out_session(logfile = "logs/log_local.csv", start = start, ncores = 1)

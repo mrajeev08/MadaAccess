@@ -9,8 +9,10 @@ out_session <- function(logfile = "log.csv", start = NULL, ncores = 1) {
   path <- this_file()
 
   if (is.null(path)) {
-    print("Running interactively, either use source or Rscript on the command line
-          to save session info.")
+    cat("
+    Running interactively, either use source or Rscript on the command line
+    to save session info."
+        )
   } else {
 
     out <- sessionInfo()
@@ -42,7 +44,7 @@ out_session <- function(logfile = "log.csv", start = NULL, ncores = 1) {
       jobtime, max_mem, ncores,
       path, r_version = out$R.version$version.string,
       os = out$running, system = out$platform,
-      timezone = out$platform$tz, pkgs
+      timezone = Sys.timezone(), pkgs
     )
 
     if (file.exists(logfile)) {
@@ -124,8 +126,13 @@ here_safe <- function(path, sep = "/") {
   do.call(here::here, as.list(path_list))
 }
 
-# setting up cluster vs local (I'm not sure if this will work because of environments)
+# getting safe paths on cluster gpfs (for reading & writing)
+# a linux system so "/" path separators are fine!
+cl_safe <- function(path, dir = "/scratch/gpfs/mrajeev/MadaAccess") {
+  paste0(dir, "/", path)
+}
 
+# setting up cluster vs local (I'm not sure if this will work because of environments)
 setup_cl <- function(slurm = Sys.getenv("SLURM_JOB_ID") != "",
                      args = commandArgs(trailingOnly = TRUE),
                      local_logfile = "test_local.csv",
@@ -136,22 +143,25 @@ setup_cl <- function(slurm = Sys.getenv("SLURM_JOB_ID") != "",
   if (!slurm) {
     logfile <- local_logfile
 
-    if (!is.na(args[1])) {
+    if (args[1] == "local") {
       # set up local cluster
       ncores <- parallel::detectCores() - 1
-      make_cl <<- function() {
-        parallel::makeCluster(parallel::detectCores() - 1)
+      make_cl <<- function(...) {
+        parallel::makeCluster(...)
       }
       register_cl <<- doParallel::registerDoParallel
       close_cl <<- parallel::stopCluster
+      cl_size <<- function(cl) {
+        foreach::getDoParWorkers()
+      }
     }
 
-    if (is.na(args[1])) {
+    if (args[1] == "serial") {
       # Look for the name of the script and how long it will take in the log
       ncores <- 1
-      make_cl <<- function() {} # empty func
-      close_cl <<- register_cl <<- function(cl) {} # dummy functions
-      print("Running serially (not in parallel!)")
+      make_cl <<- function(...) {} # empty func (will return NULL)
+      cl_size <<- function(...) {1}
+      close_cl <<- register_cl <<- function(cl) {invisible(cl)} # dummy functions
     }
   }
 
@@ -163,6 +173,7 @@ setup_cl <- function(slurm = Sys.getenv("SLURM_JOB_ID") != "",
       ncores <- ncores - 1
       make_cl <<- doMPI::startMPIcluster
       register_cl <<- doMPI::registerDoMPI
+      cl_size <<- doMPI::clusterSize
       close_cl <<- function(cl) {
         doMPI::closeCluster(cl)
         Rmpi::mpi.quit()
@@ -170,16 +181,15 @@ setup_cl <- function(slurm = Sys.getenv("SLURM_JOB_ID") != "",
     }
 
     if (mpi == FALSE) {
-      make_cl <<- function() {
-        parallel::makeCluster(parallel::detectCores() - 1)
-      }
+      make_cl <<- parallel::makeCluster
       register_cl <<- doParallel::registerDoParallel
+      cl_size <<- function(cl) {
+        foreach::getDoParWorkers()
+      }
       close_cl <<- parallel::stopCluster
     }
   }
 
-  print("Setup complete, remember that you did some global function assignments
-        (make_cl, register_cl, & close_cl)!")
   return(list(
     start = start, ncores = ncores, slurm = slurm,
     logfile = logfile
