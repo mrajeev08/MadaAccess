@@ -11,6 +11,7 @@ set_up <- setup_cl(mpi = TRUE)
 if(!set_up$slurm) fp <- here::here else fp <- cl_safe
 
 cl <- make_cl(set_up$ncores)
+register_cl(cl)
 print(paste("Cluster size:", cl_size(cl)))
 
 # pkgs

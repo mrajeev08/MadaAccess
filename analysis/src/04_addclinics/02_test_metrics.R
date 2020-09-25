@@ -3,6 +3,7 @@
 # ------------------------------------------------------------------------------
 
 # sub_cmd=-sn -t 12 -n 10 -jn testmets -wt 5m
+# skipit
 
 # Set it up
 source(here::here("R", "utils.R"))

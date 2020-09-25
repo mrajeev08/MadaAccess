@@ -23,7 +23,7 @@ national %>%
          !is.na(distcode), !is.na(id_ctar)) %>%
   mutate(date_reported = ymd(date_reported)) %>%
   group_by(date_reported, id_ctar) %>%
-  summarise(no_patients = n()) %>%
+  summarise(no_patients = sum(no_patients, na.rm = TRUE)) %>%
   ungroup() %>%
   complete(date_reported = seq(min(date_reported), max(date_reported),
                                by = "day"), id_ctar,
@@ -67,7 +67,7 @@ prop.f <- function(num, denom) num/denom # helper function
 # Getting bites at the ctar level over 4 year period
 patient_ts %>%
   group_by(id_ctar) %>%
-  summarize(no_patients = sum(no_patients)) %>%
+  summarize(no_patients = sum(no_patients, na.rm = TRUE)) %>%
   left_join(reporting_total) %>%
   mutate_at(vars(starts_with("include")),
             prop.f, num = quote(no_patients)) -> ctar_bites

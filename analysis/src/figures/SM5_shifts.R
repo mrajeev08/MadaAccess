@@ -1,7 +1,7 @@
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 #' Plotting scenario shifts
 #' Pulling in district and commune estimates of travel times as clinics are added
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 
 start <- Sys.time()
 source(here::here("R", "utils.R"))
@@ -35,9 +35,6 @@ pop_1x1 <- raster(here_safe("data-raw/out/rasters/wp_2015_1x1.tif"))
 # Commune/District preds
 commune_maxcatch <- fread(here_safe("analysis/out/ttimes/addclinics/commpreds_max.csv"))
 district_maxcatch <- fread(here_safe("analysis/out/ttimes/addclinics/distpreds_max.gz"))
-district_maxcatch$scale <- "District"
-commune_maxcatch$scale <- "Commune"
-scenario_to_plot <- rbind(data.table(district_maxcatch), data.table(commune_maxcatch), fill = TRUE)
 
 # Added clinics & steps
 clins_per_comm <- nrow(read.csv(here_safe("data-raw/out/clinics/clinic_per_comm.csv")))
@@ -46,11 +43,15 @@ max_added <- sort(unique(commune_maxcatch$scenario), decreasing = TRUE)[2]
 max_csb <- max(commune_maxcatch$scenario)
 scenario_labs <- c(
   "Baseline\n (N = 31)", glue("1 per district\n (+ {114 - 31})"), "+ 200",
-  "+ 600", glue("1 per commune\n (+ {clins_per_comm - 31})"),
+  "+ 600", glue("Max clinics added\n (+ {max_added})"),
   glue("All addtl CSB II\n (+ {max_csb})")
 )
 scenario_levs <- c(0, 114 - 31, 200, 600, max_added, max_csb)
 names(scenario_labs) <- scenario_levs
+
+# Filter to those scenarios
+commune_maxcatch <- filter(commune_maxcatch, scenario %in% scenario_levs)
+district_maxcatch <- filter(district_maxcatch, scenario %in% scenario_levs)
 
 # Scale
 scale_levs <- c("Commune", "District")
@@ -59,7 +60,7 @@ model_cols <- c("#0B775E", "#35274A")
 names(scale_labs) <- scale_levs
 names(model_cols) <- scale_levs
 
-# Which metric ------------------------------------------------------------------------------
+# Which metric -----------------------------------------------------------------
 tests <- fread(here_safe("analysis/out/ttimes/tests/test_preds.csv"))
 tests %>%
   mutate(type = case_when(
@@ -100,8 +101,7 @@ write_create(S5.1_tests,
   width = 8, height = 6
 )
 
-
-# Clinics added ------------------------------------------------------------------------------
+# Clinics added ----------------------------------------------------------------
 natl_preds <- fread(here_safe("analysis/out/preds/natl_preds.gz"))
 natl_preds %>%
   filter(scale == "Commune") %>%
@@ -118,10 +118,10 @@ natl_preds %>%
   right_join(clins_ranked) -> clins_ranked
 
 step_cols <- rev(c("#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5"))
-step_breaks <- c(0, 83, 200, 400, 800, 1000, max_added)
+step_breaks <- c(0, 83, 200, 400, 600, 1000, max_added)
 step_labs <- c(
-  "+ 1 - 83", "+ 84 - 200", "+ 201 - 400", "+ 401 - 600", "+ 601 - 1200",
-  glue("+ 1201 - {max_added}")
+  "+ 1 - 83", "+ 84 - 200", "+ 201 - 400", "+ 401 - 600", "+ 601 - 1000",
+  glue("+ 1000 - {max_added}")
 )
 names(step_cols) <- step_labs
 
@@ -152,14 +152,14 @@ ggplot() +
   guides(fill = guide_legend(override.aes = list(size = 3))) -> S5.2_map
 
 ggplot(data = clins_ranked, aes(x = scenario)) +
-  geom_line(aes(y = deaths_mean), color = "#0B775E") +
   geom_line(aes(y = smoothed_deaths),
     color = "#0B775E",
-    size = 4, alpha = 0.5
+    size = 4, alpha = 1
   ) +
   labs(x = "# Additional ARMC", y = "Average annual deaths \n (smoothed)") +
-  theme_minimal_hgrid() +
+  theme_minimal_hgrid(font_size = 11) +
   theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
     panel.background = element_rect(fill = "gray92"),
     panel.grid.major = element_line(color = "white")
   ) -> S5.2_inset
@@ -174,13 +174,12 @@ S5.2_map + S5.2_inset + guide_area() +
   plot_layout(design = layout, guides = "collect") +
   theme(plot.margin = margin(25, 25, 10, 0)) -> S5.2_ARMCadded
 
-
 write_create(S5.2_ARMCadded,
   here_safe("analysis/figs/supplementary/S5.2_ARMCadded.jpeg"), ggsave_it,
   width = 8, height = 8
 )
 
-# Plots of how ttimes change ----------------------------------------------------------------
+# Plots of how ttimes change ----------------------------------
 ttime_cols <- c("#fff7f3", "#fde0dd", "#fcc5c0", "#fa9fb5", "#f768a1", "#dd3497", "#ae017e", "#7a0177")
 ttime_breaks <- c(-0.1, 1, 2, 4, 6, 8, 10, 12, Inf)
 ttime_labs <- c("< 1", "< 2", "< 4", "< 6", "< 8", "< 10", "< 15", "15 +")
@@ -211,6 +210,14 @@ foreach(i = 1:length(scenario_levs), .combine = "bind_rows") %do% {
 
 all_times_df$ttimes <- ifelse(is.infinite(all_times_df$ttimes), NA, all_times_df$ttimes)
 
+# also pull in travel times @ commune and district level
+mada_communes %>%
+  select(commcode) %>%
+  left_join(commune_maxcatch) -> comm_to_plot
+mada_districts %>%
+  select(distcode) %>%
+  left_join(district_maxcatch) -> dist_to_plot
+
 S5.3A <- ggplot() +
   geom_raster(data = all_times_df, aes(
     x = x, y = y,
@@ -229,13 +236,14 @@ S5.3A <- ggplot() +
   ) +
   facet_wrap(~scenario, nrow = 1, labeller = as_labeller(scenario_labs)) +
   theme_void() +
-  coord_cartesian(clip = "off") +
+  coord_quickmap(clip = "off") +
   labs(tag = "A") +
-  theme(strip.text.x = element_text(hjust = 0.5, margin = margin(0.1, 0.1, 0.1, 0.1, "cm")))
+  theme(strip.text.x = element_text(hjust = 0.5,
+                                    margin = margin(0.1, 0.1, 0.1, 0.1, "cm")))
 
 S5.3B <- ggplot() +
   geom_sf(
-    data = mada_communes,
+    data = comm_to_plot,
     aes(fill = cut(ttimes_wtd / 60, breaks = ttime_breaks, labels = ttime_labs)), color = NA
   ) +
   scale_fill_manual(
@@ -251,7 +259,7 @@ S5.3B <- ggplot() +
 
 S5.3C <- ggplot() +
   geom_sf(
-    data = mada_districts,
+    data = dist_to_plot,
     aes(fill = cut(ttimes_wtd / 60, breaks = ttime_breaks, labels = ttime_labs)),
     color = NA
   ) +
@@ -566,7 +574,7 @@ bites_by_catch %>%
 catch_trends <- left_join(trend_catch_pops, catch_means)
 write.csv(catch_trends, "analysis/out/stats/trend_catches.csv", row.names = FALSE)
 
-# Flows of where bites reported to ----------------------------------------------------------
+# Flows of where bites reported to ----------------------
 # Prop of bites in catchment
 props_by_catch <- fread(here_safe("analysis/out/preds/prop_preds.gz"))
 props_by_catch_filtered <- props_by_catch[scenario %in% scenario_levs]
@@ -594,10 +602,11 @@ clinic_bites <- left_join(clinic_bites, select(mada_communes, commcode, long_cen
 clinic_bites$line_size <- clinic_bites$prop_bites_mean * clinic_bites$bites_mean
 
 # Get bite incidence @ comm level
-gg_commune <- left_join(select(admin_preds_filtered, names, scenario, scale, bites_mean),
-  mada_communes,
-  by = c("names" = "commcode")
-)
+mada_communes %>%
+  select(names = "commcode") %>%
+  left_join(select(admin_preds_filtered, names, scenario, pop,
+                   scale, bites_mean)) -> gg_commune
+
 
 step_cols <- rev(c("#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#084594"))
 step_breaks <- c(-1, 0, 83, 200, 400, 800, 1000, max_added, max_csb)
@@ -610,7 +619,7 @@ names(step_cols) <- step_labs
 S5.7_comm <- ggplot() +
   geom_sf(
     data = filter(gg_commune, scale == "Commune"),
-    aes(geometry = geometry, alpha = bites_mean / pop * 1e5),
+    aes(alpha = bites_mean / pop * 1e5),
     fill = model_cols["Commune"], color = NA
   ) +
   geom_segment(
@@ -654,7 +663,7 @@ write_create(S5.7_comm,
 S5.8_dist <- ggplot() +
   geom_sf(
     data = filter(gg_commune, scale == "District"),
-    aes(geometry = geometry, alpha = bites_mean / pop * 1e5),
+    aes(alpha = bites_mean / pop * 1e5),
     fill = model_cols["District"], color = NA
   ) +
   geom_segment(
@@ -690,10 +699,13 @@ S5.8_dist <- ggplot() +
   guides(fill = guide_legend(override.aes = list(size = 3)))
 
 
-ggsave(S5.8_dist,
-  "analysis/figs/supplementary/S5.8_dist_map.jpeg", ggsave_it,
+write_create(
+  S5.8_dist,
+  here_safe("analysis/figs/supplementary/S5.8_dist_map.jpeg"),
+  ggsave_it,
   height = 8, width = 8
 )
 
 # Session Info
 out_session(logfile = here_safe("logs/log_local.csv"), start = start, ncores = 1)
+

@@ -54,10 +54,11 @@ system.time({
     )
     write_create(ttimes,
                  here_safe(paste0("analysis/out/ttimes/candidates/clinic_",
-                                  points[, "clinic_id"])),
+                                  points[, "clinic_id"], ".tif")),
                  writeRaster,
                  overwrite = TRUE,
                  options = c("COMPRESS=LZW"))
+    ttimes
   } -> stacked_ttimes
 })
 

@@ -3,7 +3,7 @@
 #' Pulling in district and commune estimates of travel times as clinics are added
 # ------------------------------------------------------------------------------
 
-# sub_cmd=-t 12 -n 30 -jn preds -wt 2m
+# sub_cmd=-t 12 -n 30 -jn preds -wt 5m
 
 # Set it up
 source(here::here("R", "utils.R"))
@@ -12,6 +12,8 @@ set_up <- setup_cl(mpi = TRUE)
 if(!set_up$slurm) fp <- here::here else fp <- cl_safe
 
 cl <- make_cl(set_up$ncores)
+register_cl(cl)
+
 print(paste("Cluster size:", cl_size(cl)))
 
 # pkgs

@@ -3,7 +3,7 @@
 #' impact of expanding access
 # ------------------------------------------------------------------------------
 
-# sub_cmd=-t 12 -n 30 -jn preds_se -wt 2m
+# sub_cmd=-t 12 -n 31 -jn preds_se -wt 5m
 
 # Set it up
 source(here::here("R", "utils.R"))
@@ -54,7 +54,6 @@ write_create(all_preds$natl_preds,
 
 # Do vials -----------------------------------------------------------------
 lookup <- filter(lookup, grepl("beta|sigma", vary))
-vial_se_pars <- fread(fp("analysis/out/sensitivity/se_pars.csv"))[grep("beta|sigma", vary)]
 
 all_preds <- run_scenarios(
   lookup = lookup, pred_type = "vials",

@@ -115,21 +115,21 @@ gtruth_comp_C <- ggplot(
   geom_linerange(aes(ymax = upper, ymin = lower), size = 1, alpha = 0.5) +
   scale_size_identity(
     breaks = log(c(5, 25, 100) + 5), labels = c("5", "25", "100+"),
-    guide = "legend", name = "No. of observations \n (for commune mean)"
+    guide = "legend", name = "No. of observations \n (for patient reported \n travel times)"
   ) +
   geom_smooth(method = "lm", aes(color = type, fill = type), alpha = 0.5, size = 1) +
   scale_shape_manual(
-    values = c(21, 22), labels = c("Commune mean", "Grid cell"),
-    name = "Type of estimate"
+    values = c(21, 22), labels = c("Patient reported", "Driving times"),
+    name = "Type of travel time estimate"
   ) +
   scale_color_manual(
     values = c("#665565", "#CC575F"),
-    labels = c("Commune mean", "Grid cell"),
+    labels = c("Patient reported", "Driving times"),
     name = "Type of estimate"
   ) +
   scale_fill_manual(
     values = c("#665565", "#CC575F"),
-    labels = c("Commune mean", "Grid cell"),
+    labels = c("Patient reported", "Driving times"),
     name = "Type of estimate"
   ) +
   geom_abline(slope = 1, intercept = 0, linetype = 2) +

@@ -28,7 +28,7 @@ mada_communes <- st_read(here_safe("analysis/out/shapefiles/mada_communes.shp"))
 base_times <- raster(here_safe("analysis/out/ttimes/base/ttimes.tif"))
 pop1x1 <- raster(here_safe("data-raw/out/rasters/wp_2015_1x1.tif"))
 friction_masked <- raster(here_safe("data-raw/out/rasters/friction_mada_masked.tif"))
-ttimes_IPM <- read.csv(here_safe("data-raw/raw/ipm_data/ttimes_IPM.csv")) # fix so this is part of data!
+ttimes_IPM <- read.csv(here_safe("data-raw/misc/ttimes_IPM.csv")) # fix so this is part of data!
 mora <- read.csv(here_safe("data-raw/out/bitedata/moramanga_ttimes.csv"))
 
 # Groundtruthing ---------------------------------------------------------------

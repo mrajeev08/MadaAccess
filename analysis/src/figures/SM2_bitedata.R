@@ -74,7 +74,7 @@ catch_by_scale_B <- ggplot(data = catch_plot, aes(x = pop_catch, fill = scale)) 
 
 national %>%
   group_by(distcode, id_ctar) %>%
-  summarize(count = n()) %>%
+  summarize(count = sum(no_patients, na.rm = TRUE)) %>%
   filter(!is.na(id_ctar), distcode %in% mada_districts$distcode) -> bites_dist
 bites_dist$catch <- mada_districts$catchment[match(bites_dist$distcode, mada_districts$distcode)]
 bites_dist$actual_catch <- ctar_metadata$id_ctar[match(bites_dist$catch, ctar_metadata$CTAR)]
@@ -93,8 +93,8 @@ moramanga$actual_catch <- ctar_metadata$id_ctar[match(moramanga$catch, ctar_meta
 
 moramanga %>%
   mutate(in_catch = ifelse(actual_catch == id_ctar, 1, 0)) %>%
-  summarize(total = n(),
-            bites_catch = sum(in_catch, na.rm = TRUE),
+  summarize(total = sum(no_patients, na.rm = TRUE),
+            bites_catch = sum(total[in_catch == 1], na.rm = TRUE),
             prop_in_catch = bites_catch/total) -> prop_mora
 
 catch_by_data_C <- ggplot(data = prop_dist, aes(x = prop_in_catch)) +

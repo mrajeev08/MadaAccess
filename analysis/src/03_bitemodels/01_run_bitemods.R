@@ -66,13 +66,13 @@ mods_all <-
             covar_df$ttimes <-covar_df$ttimes_wtd/60
 
             inc_prior <- log(mean(data_df$avg_bites/data_df$pop))
-            prior_list <- list(beta_0 = glue("beta_0 ~ 0, 0.1)"))
+            prior_list <- list(beta_0 = glue("beta_0 ~ dnorm({inc_prior}, 0.1)"))
 
             out <- estimate_pars(data_df = data_df, covar_df = covar_df, pars = j,
                                  trans = 1e5, burn = 5000, chains = 3,
                                  adapt = 2500, iter = 60000, thinning = 5,
                                  dic = TRUE, save = TRUE, centered = FALSE,
-                                 pass_priors = prior_list, seed = jags_seed,
+                                 priors = prior_list, seed = jags_seed,
                                  out_dir = fp("analysis/out/mods/samps/"))
 
             samps <- out[["samps"]]

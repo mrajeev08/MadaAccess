@@ -1,8 +1,8 @@
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 #' Making maps for figure 1 of ctar and patient locations
 #' network style figure for vizualizing where patients are reporting to in each
 #' district
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 
 start <- Sys.time()
 source(here::here("R", "utils.R"))
@@ -26,7 +26,11 @@ mada_communes <- st_read(here_safe("analysis/out/shapefiles/mada_communes_simple
 mada_districts <- st_read(here_safe("analysis/out/shapefiles/mada_districts_simple.shp"))
 source("R/bezier.R")
 
-# matching up metadata -------------------------------------------------------------------------
+# Read in data on estimated bite incidence
+district_bites <- fread(here_safe("analysis/out/bites/district_bites.csv"))
+mora_bites <- fread(here_safe("analysis/out/bites/mora_bites.csv"))
+
+# matching up metadata ---------------------------------------------------------
 # Centers submitting < 10 forms
 no_data <- c(
   "Fianarantsoa", "Ambatomainty", "Ambovombe Androy", "Tsiroanomandidy",
@@ -50,10 +54,10 @@ names(catch_fills) <- ctar_metadata$CTAR
 catch_cols[ctar_metadata$CTAR %in% no_data] <- "grey50" # exclude ones with less than 10 forms
 
 # Helper functions for sizing lines & circles uniformly
-size_pts <- function(x) log(x)
+size_pts <- function(x) log(x) * 0.7
 size_lines <- function(x) log(x) * 0.75
 
-# Mapping raw data: National at district level ---------------------------------------------
+# Mapping raw data: National at district level ---------------------------------
 # Get the # of bites reported from each district (total)
 national %>%
   filter(
@@ -61,7 +65,7 @@ national %>%
     year(date_reported) < 2018, type == "new", !is.na(distcode), !is.na(id_ctar)
   ) %>%
   group_by(distcode) %>%
-  summarize(count = n()) %>%
+  summarize(count = sum(no_patients, na.rm = TRUE)) %>%
   left_join(select(mada_districts,
     long = long_cent, lat = lat_cent, distcode = distcode,
     ctar = catchment
@@ -71,7 +75,7 @@ national %>%
 # Get the # of bites reported to each CTAR
 national %>%
   group_by(id_ctar) %>%
-  summarize(count = n()) %>%
+  summarize(count = sum(no_patients, na.rm = TRUE)) %>%
   left_join(select(ctar_metadata, ctar = CTAR, distcode, id_ctar)) %>%
   left_join(select(mada_districts, distcode, long_cent, lat_cent)) %>%
   filter(!is.na(id_ctar)) -> ctar_pts
@@ -79,7 +83,7 @@ national %>%
 # Get the # of bites reported to each CTAR from each district
 national %>%
   group_by(distcode, id_ctar) %>%
-  summarize(count = n()) %>%
+  summarize(count = sum(no_patients, na.rm = TRUE)) %>%
   ungroup() %>%
   left_join(select(mada_districts, to_long = long_cent, to_lat = lat_cent, distcode)) %>%
   left_join(select(ctar_metadata, id_ctar, ctar = CTAR, ctar_distcode = distcode)) %>%
@@ -154,14 +158,14 @@ mada_map_A <- ggplot() +
   geom_point(
     data = ctar_pts, aes(
       x = long_cent, y = lat_cent,
-      size = size_pts(count) * 0.8, fill = ctar
+      size = size_pts(count), fill = ctar
     ),
     shape = 21, color = "black", stroke = 1.2
   ) +
   geom_point(
     data = dist_pts, aes(
       x = long, y = lat, fill = ctar,
-      size = size_pts(count) * 0.75
+      size = size_pts(count)
     ),
     shape = 21, color = "white", alpha = 1, stroke = 0.5
   ) +
@@ -180,7 +184,7 @@ mada_map_A <- ggplot() +
   geom_point(
     data = filter(leg_pts, index != 2),
     aes(
-      x = long, y = lat, size = size_pts(sizes) * 0.8, color = ptcol,
+      x = long, y = lat, size = size_pts(sizes), color = ptcol,
       stroke = ptcol
     ), fill = "grey50",
     shape = 21
@@ -200,15 +204,15 @@ mada_map_A <- ggplot() +
   scale_fill_manual(values = catch_cols, guide = "none") +
   scale_size_identity("Reported bites", guide = "none") +
   labs(tag = "A") +
-  theme_map(font_size = 12) +
   north(data = mada_districts, anchor = c(x = 52, y = -14.5), symbol = 9) +
   scalebar(
     data = mada_districts, dist = 100, dist_unit = "km",
     transform = TRUE, model = "WGS84", anchor = c(x = 52, y = -24.73),
-    height = 0.01, angle = 45, hjust = 1
-  )
+    height = 0.01, angle = 45, hjust = 1, st.size = 3
+  ) +
+  theme_map(font_size = 10)
 
-# Mapping raw data: Moramanga at commune level --------------------------------------------------
+# Mapping raw data: Moramanga at commune level ---------------------------------
 moramanga %>%
   mutate(date_reported = ymd(date_reported)) %>%
   filter(
@@ -216,7 +220,7 @@ moramanga %>%
     type == "new"
   ) %>%
   group_by(commcode) %>%
-  summarize(count = n()) %>%
+  summarize(count = sum(no_patients, na.rm = TRUE)) %>%
   left_join(select(mada_communes,
     to_long = long_cent,
     to_lat = lat_cent, commcode, ctar = catchment
@@ -266,7 +270,7 @@ mora_map_B <- ggplot() +
   geom_point(
     data = filter(comm_pts, commcode == "MG33314010"),
     aes(x = to_long, y = to_lat, fill = ctar),
-    shape = 21, size = size_pts(sum(comm_pts$count, na.rm = TRUE)) * 0.8, color = "black",
+    shape = 21, size = size_pts(sum(comm_pts$count, na.rm = TRUE)), color = "black",
     stroke = 1.2
   ) +
   geom_bezier2(
@@ -280,7 +284,7 @@ mora_map_B <- ggplot() +
   geom_point(
     data = comm_pts, aes(
       x = to_long, y = to_lat, fill = ctar,
-      size = size_pts(count) * 0.75
+      size = size_pts(count)
     ),
     shape = 21, color = "white", alpha = 1
   ) +
@@ -308,7 +312,7 @@ mora_map_B <- ggplot() +
     data = filter(ungroup(leg_pts), long == min(long) | long == max(long)),
     aes(x = long, y = lat, label = c("District", "ARMC")), hjust = c(1, 1),
     angle = 90,
-    nudge_y = -0.1
+    nudge_y = -0.09
   ) +
   scale_discrete_manual(aes = "stroke", values = c(1.2, 0.5), guide = "none") +
   scale_fill_manual(values = catch_fills, na.value = "grey50", guide = "none") +
@@ -316,16 +320,18 @@ mora_map_B <- ggplot() +
   scale_size_identity("Reported bites", guide = "none") +
   guides(size = guide_legend(override.aes = list(color = "grey50"))) +
   labs(tag = "B") +
-  theme_map(font_size = 12) +
-  theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) +
   north(data = mada_districts, anchor = c(x = 49.5, y = -17.48), symbol = 9, scale = 0.02) +
   scalebar(
     data = mada_districts, dist = 20, dist_unit = "km",
     transform = TRUE, model = "WGS84", anchor = c(x = 49.5, y = -19.82),
-    height = 0.0025, st.dist = 0.005, angle = 45, hjust = 1
-  )
+    height = 0.0025, st.dist = 0.005, angle = 45, hjust = 1, st.size = 3
+  ) +
+  theme_map(font_size = 10) +
+  theme(plot.margin = unit(c(1, 1, 1, 1), "cm"))
 
-# Inset of Mora catchment in Mada --------------------------------------------------------------
+
+
+# Inset of Mora catchment in Mada ----------------------------------------------
 mora_catch <- st_union(comms_to_plot)
 mada_out <- st_union(mada_districts)
 
@@ -340,7 +346,86 @@ layout_inset <- c(
   patchwork::area(t = 1, b = 1, l = 1, r = 1)
 )
 layout_mora <- mora_map_B + map_inset + plot_layout(design = layout_inset)
-figM3_bitemaps <- mada_map_A + layout_mora
+figM3_top <- mada_map_A + layout_mora
+
+# District bite incidence estimates --------------------------------------------
+district_bites %>%
+  select(
+    group_name = distcode, pop, catchment, ttimes_wtd, avg_bites, min_bites, max_bites,
+    sd_bites,
+    nobs
+  ) %>%
+  mutate(
+    dataset = "National",
+    nobs = ifelse(is.na(nobs), 1, nobs)
+  ) -> bites_plot
+
+mora_bites %>%
+  select(group_name = distcode, pop, catchment, ttimes_wtd, avg_bites) %>%
+  group_by(group_name, catchment) %>%
+  summarize(avg_bites = sum(avg_bites)) %>%
+  filter(avg_bites > 10) %>%
+  mutate(
+    pop = mada_districts$pop[match(group_name, mada_districts$distcode)],
+    ttimes_wtd = mada_districts$ttimes_wtd[match(group_name, mada_districts$distcode)],
+    dataset = "Moramanga", nobs = 4
+  ) %>%
+  bind_rows(bites_plot) -> all_bites
+
+size_labs <- c("1" = 1.5, "2" = 2, "3" = 2.5, "4" = 3)
+
+bites_district <- ggplot(all_bites, aes(x = ttimes_wtd / 60, fill = catchment)) +
+  geom_linerange(aes(ymin = min_bites / pop * 1e5, ymax = max_bites / pop * 1e5, color = catchment)) +
+  geom_point(aes(
+    y = avg_bites / pop * 1e5, shape = factor(dataset),
+    size = factor(nobs)
+  ), color = "grey50", alpha = 0.75) +
+  scale_size_manual(
+    values = size_labs, labels = names(size_labs),
+    name = "Number of \nobservations:",
+    guide = guide_legend(override.aes = list(shape = 21, fill = "grey"))
+  ) +
+  scale_shape_manual(values = c(25, 21), name = "Dataset:") +
+  scale_fill_manual(values = catch_cols, guide = "none") +
+  scale_color_manual(values = catch_cols, guide = "none") +
+  ylab("Annual bites per 100k \n at district scale") +
+  xlab("Travel times (hrs)") +
+  labs(tag = "C") +
+  theme_minimal_hgrid(font_size = 10) +
+  theme(legend.position = "top", legend.box = "vertical")
+
+
+# Commune bite incidence (Moramanga) -------------------------------------------
+bites_commune <- ggplot(mora_bites, aes(x = ttimes_wtd / 60)) +
+  geom_point(aes(y = avg_bites / pop * 1e5, fill = catchment),
+             color = "grey50", shape = 25, size = 3,
+             alpha = 0.75
+  ) +
+  scale_fill_manual(values = catch_cols, guide = "none") +
+  ylab("Annual bites per 100k\n at commune scale") +
+  xlab("Travel times (hrs)") +
+  labs(tag = "D") +
+  theme_minimal_hgrid(font_size = 10) +
+  theme(legend.position = "top", legend.box = "vertical")
+
+# fig of bite incidence across scales (RN: M4)
+bite_inc_scales <- bites_district / bites_commune
+write_create(
+  bite_inc_scales,
+  here_safe("analysis/figs/main/M4_biteinc.jpeg"),
+  ggsave_it,
+  height = 7, width = 5
+)
+write_create(
+  bite_inc_scales,
+  here_safe("analysis/figs/main/M4_biteinc.tiff"),
+  ggsave_it,
+  dpi = 300, height = 7, width = 5,
+  compression = "lzw", type = "cairo"
+)
+
+figM3_bottom <- bites_district | bites_commune
+figM3_bitemaps <- figM3_top / figM3_bottom + plot_layout(heights = c(3.5, 1))
 
 # for inline figs
 write_create(

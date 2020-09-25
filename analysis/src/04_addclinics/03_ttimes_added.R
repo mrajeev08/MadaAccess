@@ -5,7 +5,8 @@
 #'  Code should be run in parallel if possible
 # ------------------------------------------------------------------------------
 
-# sub_cmd=-sn -t 12 -n 10 -jn addclinics -wt 5m
+# sub_cmd=-sn -t 12 -n 12 -jn addclinics -wt 5m
+# skipit
 
 # Set it up
 source(here::here("R", "utils.R"))
@@ -39,6 +40,7 @@ base_df <- add_armc(
   base_df = base_df, cand_df = clin_per_dist,
   max_clinics = nrow(clin_per_dist),
   rank_metric = prop, thresh_met = 1e-4,
+  ttimes_min = 30,
   thresh_ttimes = 3 * 60, dir_name = fp("analysis/out/ttimes/addclinics"),
   base_scenario = 0, overwrite = TRUE, random = FALSE
 )
@@ -53,6 +55,7 @@ base_df <- add_armc(
   max_clinics = nrow(clin_per_comm),
   rank_metric = prop,
   thresh_ttimes = 3 * 60, thresh_met = 1e-4,
+  ttimes_min = 30,
   dir_name = fp("analysis/out/ttimes/addclinics"),
   base_scenario = nrow(clin_per_dist), overwrite = FALSE, # so will append to previous run
   random = FALSE

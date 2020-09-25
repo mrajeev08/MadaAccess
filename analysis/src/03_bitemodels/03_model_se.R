@@ -67,7 +67,7 @@ foreach(p = 1:length(rep_cut), .combine = comb, .multicombine = TRUE,
 
           # Output as list and then do multicombine
           list(district_bites, comm_covars)
-        } -> master_data
+  } -> master_data
 
 bitedata_se <- master_data[[1]]
 commcovar_se <- master_data[[2]]
@@ -112,7 +112,7 @@ mods_all <-
                                  scale = j$scale, trans = 1e5, burn = 5000,
                                  chains = 3, adapt = 2500, iter = 60000, thinning = 5,
                                  dic = TRUE, save = TRUE, centered = FALSE,
-                                 pass_priors = prior_list, seed = jags_seed,
+                                 priors = prior_list, seed = jags_seed,
                                  out_dir = fp("analysis/out/mods/samps/"),
                                  suffix = paste0("_repcut", j$rep_cutoff))
 
@@ -135,7 +135,6 @@ mods_all <-
           }
 
 warnings()
-print("did I make it here?")
 write_create(mods_all, fp("analysis/out/mods/estimates_se.csv"),
              write.csv, row.names = FALSE)
 
