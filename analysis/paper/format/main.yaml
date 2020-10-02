@@ -1,0 +1,78 @@
+---
+title: "How geographic access to care shapes disease burden: the current impact of post-exposure prophylaxis and potential for expanded access to prevent human rabies deaths in Madagascar"
+author:
+  - Malavika Rajeev:
+      email: mrajeev@princeton.edu
+      institute: [Princeton]
+      correspondence: true
+  - Hélène Guis:
+      institute: [IPMepi, cirad, astre, fofifa]
+      correspondence: false
+  - Glenn Edosoa:
+      institute: [OMS]
+      correspondence: false
+  - Chantal Hanitriniaina:
+      institute: [UoA]
+      correspondence: false
+  - Anjasoa Randrianarijaona:
+      institute: [IPMepi]
+      correspondence: false
+  - Reziky Tiandraza Mangahasimbola:
+      institute: [IPMepi]
+      correspondence: false
+  - Fleur Hierink:
+      institute: [Geneva]
+      correspondence: false
+  - Ravo Ramiandrasoa:
+      institute: [IPMvacc]
+      correspondence: false
+  - José Nely:
+      institute: [smeetn]
+  - Jean-Michel Heraud:
+      institute: [IPMviro]
+      correspondence: false
+  - Soa Fy Andriamandimby:
+      institute: [IPMviro]
+      correspondence: false
+  - Laurence Baril:
+      institute: [IC]
+      correspondence: false
+      equal_contributor: "yes"
+  - C.J.E. Metcalf:
+      institute: [Princeton]
+      correspondence: false
+      equal_contributor: "yes"
+  - Katie Hampson:
+      institute: [Glasgow]
+      correspondence: false
+      equal_contributor: "yes"
+institute:
+  - Princeton: Department of Ecology and Evolutionary Biology, Princeton University, Princeton, United States
+  - IPMepi: Epidemiology and Clinical Research Unit, Institut Pasteur de Madagascar, Antananarivo, Madagascar
+  - cirad: CIRAD, UMR ASTRE, Antananarivo, Madagascar
+  - astre: ASTRE, Univ Montpellier, CIRAD, INRAE, Montpellier, France
+  - fofifa: FOFIFA-DRZVP, Antananarivo, Madagascar6 World Health Organization, Madagascar
+  - smeetn: Service contre les Maladies Endémo-épidémiques et Tropicales  Négligées, Ministère de la Santé Publique, Antananarivo, Madagascar
+  - OMS: Chargé des Maladies Tropicales Négligées, Organisation mondiale de la Santé Madagascar, Antananarivo, Madagascar
+  - UoA: Mention Zoologie et Biodiversité Animale, Faculté des Sciences, Université d’Antananarivo, Antananarivo, Madagascar
+  - Geneva: Institute of Global Health, Faculty of Medicine, University of Geneva, Geneva, Switzerland
+  - IPMvacc: Vaccination Center, Institut Pasteur de Madagascar, Antananarivo, Madagascar
+  - IPMviro: Virology Unit, Institut Pasteur de Madagascar, Antananarivo, Madagascar
+  - IC: Institut Pasteur du Cambodge (previously Epidemiology and Clinical Research Unit at Institut pasteur de Madagascar)
+  - Glasgow: Boyd Orr Centre for Population and Ecosystem Health, Institute of Biodiversity, Animal Health and Comparative Medicine, University of Glasgow, Glasgow, UK
+date: ""
+link-citations: no
+output:
+  bookdown::word_document2:
+    pandoc_args:
+      - --csl=format/plos-neglected-tropical-diseases.csl
+      - --filter=pandoc-crossref
+      - --lua-filter=format/scholarly-metadata.lua
+      - --lua-filter=format/author-info-blocks.lua
+      - --lua-filter=format/pagebreak.lua
+      - --lua-filter=format/multiple-bibliographies.lua
+      - --reference-doc=format/reference_main.docx
+keywords: "canine rabies, post-exposure prophylaxis, Gavi, Zero by 30, access to care"
+bibliography_main: ["bib/refs_all.bib"]
+bibliography_supextra: ["bib/refs_supextra.bib"]
+---

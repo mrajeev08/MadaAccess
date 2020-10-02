@@ -6,7 +6,7 @@ usage=$(cat <<-END
     then in the order they are numbered. Defaults to running all scripts
     in subdirectories of directory R:
         runit -d "R/*/*"
-
+    You can skip a script by including a commented line with the word "skipit" in the script.
     accepted options are:
     -h, --help          show help message and exit
     -d, --dir           the directory path, quoted
@@ -17,6 +17,7 @@ usage=$(cat <<-END
     -q, --quiet         whether to show messages, warnings, and errors from R; defaults to showing all
                         pass the arg to suppress these
     --printErrors       whether to print errors regardless of quiet argument
+    --force             if you want to force the skipped jobs to run
 END
 )
 
@@ -36,7 +37,7 @@ dryrun=0
 cl=0
 FILES="R/*/*.R"
 printerrors=0
-
+skip=1
 while [ "$1" != "" ]; do
     case $1 in
     -d | --dir )           shift
@@ -49,6 +50,8 @@ while [ "$1" != "" ]; do
     --printErrors )         printerrors=1
                             ;;
     -cl | --cluster )       cl=1
+                            ;;
+    --force )               skip=0
                             ;;
     -h | --help )           echo "$usage"
                             exit
@@ -95,8 +98,9 @@ fi
 
 for f in $FILES
 do
-    if grep -q "functions" <<< "$f";
+    if grep -q "skipit" "$f" ;
     then
+    echo -e "${Red}Skipping job: $f ${NC}"
     continue
     fi
 
@@ -113,13 +117,15 @@ do
                 then
                     echo "cluster cmd: sub $cmd -sp $f"
                 else
+                    echo -e "${Blue}Cluster job: $f${NC}"
                     sub $cmd -sp $f
                 fi
             else
                 if [ "$dryrun" = "1" ];
                 then
-                    echo "local: $f $arg"
+                    echo -e "${Blue}Local job ($arg): $f ${NC}"
                 else
+                    echo -e "${Blue}Local job ($arg): $f ${NC}"
                     if Rscript --vanilla "$f" "$arg" &> $out;
                     then
                         echo  -e "${BCyan}$f completed.${NC}"
@@ -136,12 +142,12 @@ do
     else
         if [ "$dryrun" = "1" ];
         then
-            echo "local: $f"
+            echo -e "${Blue}Local job: $f ${NC}"
         else
-            echo "local: $f"
+            echo -e "${Blue}Local job: $f ${NC}"
             if Rscript --vanilla "$f" &> $out;
             then
-                echo  -e "${BCyan}$f completed.${NC}"
+                echo -e "${BCyan}$f completed.${NC}"
             else
                 echo -e "${BRed}$f did not complete!${NC}"
                 if [ "$printerrors" = "1" ];

@@ -19,31 +19,12 @@
 #' @section Dependencies: stringdist, dplyr
 
 match_admin <- function(data_names, data_nest, match_names, match_nest, match_method, nested = TRUE) {
-  require(stringdist)
 
-  ## trouble shooting
-  # match_method = "osa"
-  #
-  # ## For nested = TRUE
-  # data_names = as.character(peripheral$commune)
-  # data_nest = as.character(peripheral$distcode)
-  # match_names = as.character(mada_communes$commune)
-  # match_nest = as.character(mada_communes$distcode)
-  # nested = TRUE
-  # match_method = "osa"
-  #
-  # ## Test for nested = FALSE
-  # data_names = as.character(IPM$fiv)
-  # data_nest = NULL
-  # match_names = as.character(mada_districts$ADM2_EN)
-  # match_nest = NULL
-  # nested = FALSE
-
-  ## Make sure they are character vectors
+  # Make sure they are character vectors
   if (class(data_names) != "character") data_names <- as.character(data_names)
   if (class(match_names) != "character") match_names <- as.character(match_names)
 
-  ## If nested rank matches within nested factor
+  # If nested rank matches within nested factor
   if (nested == TRUE) {
     if (class(data_nest) != "character") data_nest <- as.character(data_nest)
     if (class(match_nest) != "character") match_nest <- as.character(match_nest)
@@ -53,24 +34,24 @@ match_admin <- function(data_names, data_nest, match_names, match_nest, match_me
 
     for (i in 1:length(unique_nests)) {
 
-      ## make sure lower case and unique
+      # make sure lower case and unique
       matches <- tolower(match_names[match_nest == unique_nests[i]])
       tomatch <- unique(tolower(data_names[data_nest == unique_nests[i]]))
 
-      ## should have some tomatch in each nest and also more than one potential match
+      # should have some tomatch in each nest and also more than one potential match
       if (length(tomatch) > 0 & length(matches) > 1) {
 
-        ## do simple lev. distances with stringdistmatrix with a match threshold
+        # do simple lev. distances with stringdistmatrix with a match threshold
         distance <- stringdistmatrix(tomatch, matches, method = match_method)
         ranked_matches <- t(apply(distance, 1, function(x) matches[order(x)]))
         min_dist <- apply(distance, 1, min)
 
-        ## also partial distances
+        # also partial distances
         partial <- adist(tomatch, matches, partial = TRUE)
         min_part <- apply(partial, 1, min)
         partial_matches <- t(apply(partial, 1, function(x) matches[order(x)]))
 
-        ## make df
+        # make df
         df <- data.frame(list(
           names_tomatch = tomatch, nest = unique_nests[i],
           fixed_best = ranked_matches[, 1], min_fixed = min_dist,
@@ -90,24 +71,24 @@ match_admin <- function(data_names, data_nest, match_names, match_nest, match_me
       if (length(tomatch) == 0) {
         next
       } else {
-        match_df <- bind_rows(match_df, df) ## bind rows here
+        match_df <- bind_rows(match_df, df) # bind rows here
       }
     }
   } else {
     tomatch <- unique(tolower(data_names))
     matches <- tolower(match_names)
 
-    ## do simple lev. distances with stringdistmatrix
+    # do simple lev. distances with stringdistmatrix
     distance <- stringdistmatrix(tomatch, matches, method = match_method)
     ranked_matches <- t(apply(distance, 1, function(x) matches[order(x)]))
     min_dist <- apply(distance, 1, min)
 
-    ## then partial matching
+    # then partial matching
     partial <- adist(tomatch, matches, partial = TRUE)
     min_part <- apply(partial, 1, min)
     partial_matches <- t(apply(partial, 1, function(x) matches[order(x)]))
 
-    ## make df
+    # make df
     match_df <- data.frame(list(
       names_tomatch = tomatch,
       fixed_best = ranked_matches[, 1], min_fixed = min_dist,

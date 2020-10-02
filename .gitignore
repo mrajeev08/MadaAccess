@@ -6,7 +6,7 @@
 .Rapp.history
 lit/
 .httr-oauth
-data_raw/
+data-raw/log.csv
 data/
 sync/
 archive/
@@ -25,3 +25,4 @@ docs
 analysis/out/
 analysis/figs/
 analysis/slurm/
+zenodo
