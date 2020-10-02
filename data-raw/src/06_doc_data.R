@@ -5,6 +5,7 @@
 # ------------------------------------------------------------------------------------------------ #
 
 # TO DO: Add documentation for ipm ttime data & trans_gc!
+# skipit
 # Setup
 library(steward)
 library(usethis)
@@ -15,7 +16,6 @@ library(stringr)
 library(raster)
 library(sf)
 library(data.table)
-library(fasterize)
 
 # helper function to spit out data into console
 dict <- function(data) {
@@ -423,3 +423,5 @@ usethis::use_data(pop1x1, overwrite = TRUE, compress = "xz")
 # Compile and write out all data documentation ------------------------------------------------
 objs <- ls()
 writeLines(sapply(objs[grep("doc", objs)], get), "R/data.R")
+
+out_session(logfile = here_safe("data-raw/log.csv"), start = start, ncores = 1)

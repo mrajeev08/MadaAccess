@@ -1,12 +1,13 @@
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 #' Generating clean data sets
-#' Taking raw data from 1) Peripheral clinics, 2) IPM clinic, and 3) Moramanga clinic and
+#' Taking raw data from 1) Peripheral clinics, 2) IPM clinic, and 3) Moramanga
+#' clinic and
 #' combining into cleaned Moramanga and National datasets
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 
 start <- Sys.time()
 
-# Set-up --------------------------------------------------------------------------------------
+# Set-up -----------------------------------------------------------------------
 library(stringdist)
 library(sf)
 library(dplyr)
@@ -25,7 +26,7 @@ peripheral <- read.csv(here_safe("data-raw/raw/ipm_data/SaisieRage_DATA_2018-09-
 load(here_safe("data-raw/raw/ipm_data/ipm.rda"))
 moramanga <- read.csv(here_safe("data-raw/raw/moramanga/CTAR_%28V3%29_20190918150219.csv"))
 
-# Match admin names --------------------------------------------------------------------------------
+# Match admin names ------------------------------------------------------------
 # Peripheral data to the district
 peripheral$distcode <- paste0(
   substring(peripheral$district, 1, 1),
@@ -116,7 +117,7 @@ moramanga %>%
   mutate(matchcode_data = interaction(distcode, tolower(commune))) %>%
   left_join(moramanga_comm_matches) -> moramanga
 
-# Format other columns  ---------------------------------------------------------------------------
+# Format other columns  --------------------------------------------------------
 # Date reported, CTAR, type, commcode, distcode, notes
 # + ttimes & transport type for mora data
 
@@ -127,9 +128,11 @@ peripheral %>%
     source = "peripheral"
   ) %>%
   select(
-    date_reported, type, ctar, id_ctar, distcode, commcode,
+    date_reported, type, ctar, id_ctar, distcode,
     source
-  ) -> peripheral_clean
+  ) %>%
+  group_by(across()) %>%
+  summarize(no_patients = n()) -> peripheral_clean
 
 # IPM
 IPM %>%
@@ -142,7 +145,9 @@ IPM %>%
     date_reported = ymd(dat_consu),
     ctar = "IPM", id_ctar = 5, source = "IPM"
   ) %>%
-  select(date_reported, type, ctar, id_ctar, distcode, commcode, source) -> IPM_clean
+  select(date_reported, type, ctar, id_ctar, distcode, source) %>%
+  group_by(across()) %>%
+  summarize(no_patients = n()) -> IPM_clean
 
 # Moramanga bite data
 moramanga %>%
@@ -161,18 +166,7 @@ moramanga %>%
     source
   ) -> moramanga_clean
 
-# Output master data and summary stats -------------------------------------------------------------
-national <- bind_rows(IPM_clean, peripheral_clean)
-write_create(national, here_safe("data-raw/out/bitedata/national.csv"),
-  write.csv,
-  row.names = FALSE
-)
-write_create(moramanga_clean, here_safe("data-raw/out/bitedata/moramanga.csv"),
-  write.csv,
-  row.names = FALSE
-)
-
-# Also write out travel time data from Mora --------------------------------------------------------
+# Also write out travel time data from Mora ------------------------------------
 moramanga %>%
   select(contains("transport"), contains("hours")) %>%
   setNames(lapply(strsplit(names(.), ".", fixed = TRUE), function(x) x[length(x)])) %>%
@@ -180,10 +174,28 @@ moramanga %>%
   bind_cols(select(moramanga_clean, known_cat1, commcode, distcode)) -> moramanga_ttimes
 moramanga_ttimes[moramanga_ttimes == TRUE] <- 1
 moramanga_ttimes[moramanga_ttimes == FALSE] <- 0
+
 write_create(moramanga_ttimes, here_safe("data-raw/out/bitedata/moramanga_ttimes.csv"),
+             write.csv,
+             row.names = FALSE
+)
+
+# Output master data and summary stats -----------------------------------------
+national <- bind_rows(IPM_clean, peripheral_clean)
+write_create(national, here_safe("data-raw/out/bitedata/national.csv"),
+  write.csv,
+  row.names = FALSE
+)
+
+# aggregate mora bite data
+moramanga_clean %>%
+  group_by(across()) %>%
+  summarize(no_patients = n()) -> moramanga_clean
+
+write_create(moramanga_clean, here_safe("data-raw/out/bitedata/moramanga.csv"),
   write.csv,
   row.names = FALSE
 )
 
 # Saving session info
-out_session(logfile = here_safe("logs/data_raw.csv"), start = start, ncores = 1)
+out_session(logfile = here_safe("data-raw/log.csv"), start = start, ncores = 1)

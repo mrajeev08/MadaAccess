@@ -1,0 +1,44 @@
+﻿Section,TrajetID,LocDepart,LatDep,LongDep,LocArrival,LatAriv,LongAriv,Hdepart,Harrival,RoadName,TypeRoad,Date,Vehicle,KMdriver,Comments
+1,SouthTaoTulear,Taolagnaro,-25.042176,46.995687,Amboasary-Atsimo,-25.03939,46.384384,11:20,14:50,RN13,dirt,12/29/19,private 4x4,,"Used to be a tarred road (several decades ago), now there is much more dirt than asphalt"
+2,SouthTaoTulear,Amboasary-Atsimo,-25.03939,46.384384,Ambovombe,-25.178459,46.087917,15:00,16:03,RN13,dirt,12/29/19,private 4x4,,"Used to be a tarred road (several decades ago), now there is much more dirt than asphalt"
+3,SouthTaoTulear,Ambovombe,-25.178459,46.087917,Tsiombe,-25.316821,45.486437,6:23,8:33,RN10,dirt,12/30/19,private 4x4,,
+4,SouthTaoTulear,Tsiombe,-25.316821,45.486437,Lavanono,-25.428794,44.938997,9:58,12:15,RN10,dirt,12/30/19,private 4x4,,
+5,SouthTaoTulear,Lavanono,-25.428794,44.938997,Beloha,-25.17297,45.058901,6:20,7:29,RN10,dirt,12/31/19,private 4x4,,
+6,SouthTaoTulear,Beloha,-25.17297,45.058901,River Linta near Ejeda,-24.351846,44.506266,8:37,9:45,RN10,dirt,12/31/19,private 4x4,,
+7,SouthTaoTulear,River Linta near Ejeda,-24.351846,44.506266,Cross near Ampanihy,-24.707054,44.736623,9:50,11:21,RN10,dirt,12/31/19,private 4x4,,
+8,SouthTaoTulear,Cross near Ampanihy,-24.707054,44.736623,Itampolo,-24.684291,43.945099,11:26,16:25,RN10,dirt,12/31/19,private 4x4,,
+9,SouthTaoTulear,Itampolo,-24.684291,43.945099,Ambolo,-24.072018,43.676769,16:15,18:23,RN10,dirt,1/1/20,private 4x4,,sand
+10,SouthTaoTulear,Ambolo,-24.072018,43.676769,Anakao,-23.64341,43.652738,11:05,12:35,RN10,dirt,1/1/20,private 4x4,,sand
+11,WestTanaMaha,Antananarivo,-18.902608,47.54627,Beanana,-17.050724,46.810564,10:00,18:00,RN4,tarred,10/1/19,IPM 4x4,330,
+12,WestTanaMaha,Maevatanana,-16.947792,46.826705,Ampapamena,-16.044809,47.629446,8:00,13:00,RN4-RN6,tarred,10/5/19,IPM 4x4,180,"last bit is not tarred, but most of the road is tarred; gps point may not be on road, it is trap location within village"
+13,WestTanaMaha,Majunga,-15.720896,46.325211,Tsararano,-16.179749,46.670792,9:15,12:30,RN4,tarred,10/14/19,IPM 4x4,98,"gps point may not be on road, it is trap location within village"
+14,WestTanaMaha,Maevatanana,-16.947792,46.826705,Antananarivo,-18.902608,47.54627,11:30,18:50,RN4,tarred,10/21/19,IPM 4x4,316,
+15,North,Antananarivo,-18.902608,47.54627,Ambondromamy,-16.433062,47.15324,10:00,19:00,RN6,tarred,10/1/19,IPM 4x4,417,
+16,North,Diego,-12.313017,49.29361,Ambanja,-13.673806,48.455402,7:13,16:00,RN6,tarred,10/15/19,IPM 4x4,247,
+17,South,Antananarivo,-18.902608,47.54627,Fianarantsoa,-21.440271,47.096736,9:10,20:30,RN7,tarred,10/1/19,IPM 4x4,431,same as section 32
+18,South,Fianarantsoa,-21.440271,47.096736,Sakaraha,-22.911082,44.531608,5:00,12:00,RN7,tarred,10/2/19,IPM 4x4,388,
+19,South,Sakaraha,-22.911082,44.531608,Betioky,-23.718189,44.380799,12:30,19:00,RN7-RN10,tarred and dirt,10/2/19,IPM 4x4,152,tarred at first and dirt for last section
+20,South,Betioky,-23.718189,44.380799,Ampanihy,-24.693931,44.746349,5:00,12:00,RN10,dirt,10/3/19,IPM 4x4,134,same as section 23 but opposite direction
+21,South,Ampanihy,-24.693931,44.746349,Tranoroa,-24.708221,45.063947,14:13,16:00,RN10,dirt,10/3/19,IPM 4x4,53,same as section 22 but opposite direction
+22,South,Tranoroa,-24.708221,45.063947,Ampanihy,-24.693931,44.746349,8:00,9:30,RN10,dirt,10/6/19,IPM 4x4,53,same as section 21 but opposite direction
+23,South,Ampanihy,-24.693931,44.746349,Betioky,-23.718189,44.380799,10:00,15:30,RN10,dirt,10/9/19,IPM 4x4,134,same as section 20 but opposite direction
+24,South,Betioky,-23.718189,44.380799,Tulear,-23.353403,43.674233,9:00,14:00,RN7-RN10,dirt,10/12/19,IPM 4x4,160,
+25,South,Tulear,-23.353403,43.674233,Mahaboboka,-22.896969,44.345773,14:15,16:20,RN7,tarred,10/12/19,IPM 4x4,104,
+26,South,Tulear,-23.353403,43.674233,Ankilimalinike,-22.960316,43.562932,13:30,14:12,RN9,tarred,10/15/19,IPM 4x4,73,same as section 27 but opposite direction
+27,South,Ankilimalinike,-22.960316,43.562932,Tulear,-23.353403,43.674233,8:30,10:00,RN9,tarred,10/18/19,IPM 4x4,82,same as section 26 but opposite direction
+28,South,Tulear,-23.353403,43.674233,Sakaraha,-22.911082,44.531608,6:10,8:10,RN7,tarred,10/19/19,IPM 4x4,134,
+29,South,Sakaraha,-22.911082,44.531608,Fianarantsoa,-21.440271,47.096736,8:40,16:15,RN7,tarred,10/19/19,IPM 4x4,383,
+30,South,Fianarantsoa,-21.440271,47.096736,Antsirabe,-19.858114,47.033997,16:50,21:00,RN7,tarred,10/19/19,IPM 4x4,29,
+31,South,Antsirabe,-19.858114,47.033997,Antananarivo,-18.902608,47.54627,5:00,10:30,RN7,tarred,10/20/19,IPM 4x4,173,
+32,SouthEast,Antananarivo,-18.902608,47.54627,Fianarantsoa,-21.440271,47.096736,8:00,18:30,RN7,tarred,10/1/19,IPM 4x4,410,same as section 17
+33,SouthEast,Fianarantsoa,-21.440271,47.096736,Ihosy,-22.402436,46.127138,7:00,18:20,RN7,tarred,10/2/19,IPM 4x4,211,
+34,SouthEast,Ihosy,-22.402436,46.127138,Ambalavao,-21.832777,46.934539,7:30,19:10,RN7,tarred,10/5/19,IPM 4x4,153,
+35,SouthEast,Ambalavao,-21.832777,46.934539,Farafangana,-22.817171,47.817226,5:30,20:10,RN7-RN25-RN12,tarred,10/8/19,IPM 4x4,447,Ambalavao - Lokomby - Nato - Farafangana
+36,SouthEast,Vohipeno,-22.351085,47.827711,Manakara,-22.14637,48.022275,7:30,20:00,RN12,tarred,10/14/19,IPM 4x4,61,
+37,SouthEast,Manakara,-22.14637,48.022275,Ambositra,-20.532185,47.244791,5:00,19:25,RN12-RN25,tarred,10/17/19,IPM 4x4,320,
+38,SouthEast,Ambositra,-20.532185,47.244791,Antsirabe,-19.858114,47.033997,7:45,19:00,RN7,tarred,10/20/19,IPM 4x4,102,
+39,SouthEast,Antsirabe,-19.858114,47.033997,Antananarivo,-18.902608,47.54627,8:30,13:05,RN7,tarred,10/21/19,IPM 4x4,137,
+40,East,Antananarivo,-18.902608,47.54627,Tanambe,-17.36266,48.453692,8:00,18:00,RN2-RN44-RN3A,tarred and dirt,10/8/19,IPM 4x4,321,tarred and then dirt
+41,East,Tanambe,-17.36266,48.453692,Tamatave,-18.151876,49.390906,8:00,17:30,RN2-RN44-RN3A,tarred and dirt,10/12/19,IPM 4x4,484,dirt and then tarred
+42,East,Tamatave,-18.151876,49.390906,Antananarivo,-18.902608,47.54627,7:30,16:00,RN2,tarred,10/16/19,IPM 4x4,341,
+43,Tsiro,Antananarivo,-18.902608,47.54627,Tsiroanomandidy,-18.770984,46.048413,9:30,20:00,RN1,tarred,10/1/19,IPM 4x4,230,

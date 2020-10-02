@@ -1,12 +1,12 @@
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 #' Cleaning district and commune names
 #' Details: Using some manual and some fuzzy  matching for administrative units for the three
 #' data sets
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 
 start <- Sys.time()
 
-# Set-up --------------------------------------------------------------------------------------
+# Set-up -----------------------------------------------------------------------
 library(stringdist)
 library(data.table)
 library(sf)
@@ -21,7 +21,7 @@ source(here_safe("R/match_names.R"))
 mada_communes <- st_read(here_safe("data-raw/out/shapefiles/mada_communes.shp"))
 mada_districts <- st_read(here_safe("data-raw/out/shapefiles/mada_districts.shp"))
 
-# Match commune names in peripheral ARMC data -------------------------------------------------
+# Match commune names in peripheral ARMC data ----------------------------------
 # automatch ones with < 3 fixed distance
 peripheral <- read.csv(here_safe("data-raw/raw/ipm_data/SaisieRage_DATA_2018-09-21_1755.csv"))
 peripheral$distcode <- paste0(
@@ -41,7 +41,7 @@ write_create(peripheral_comm_matches,
   row.names = FALSE
 )
 
-# Match admin names in IPM data ---------------------------------------------------------------
+# Match admin names in IPM data ------------------------------------------------
 load("data-raw/raw/ipm_data/ipm.rda")
 ipm_dist_matches <- match_admin(
   data_names = IPM$fiv, data_nest = NULL,
@@ -71,7 +71,7 @@ write_create(ipm_comm_matches, here_safe("data-raw/out/match_names/ipm_comm_matc
   row.names = FALSE
 )
 
-# Match admin names in moramanga data ---------------------------------------------------------
+# Match admin names in moramanga data ------------------------------------------
 moramanga <- read.csv(here_safe("data-raw/raw/moramanga/CTAR_%28V3%29_20190918150219.csv"))
 moramanga$commune <- sapply(strsplit(as.character(moramanga$Patient.Home), "\\("), "[", 1)
 moramanga$commune <- trimws(moramanga$commune, which = "right")
@@ -113,4 +113,4 @@ write_create(moramanga_comm_matches, here_safe("data-raw/out/match_names/moraman
 )
 
 # Saving session info
-out_session(logfile = here_safe("logs/data_raw.csv"), start = start, ncores = 1)
+out_session(logfile = here_safe("data-raw/log.csv"), start = start, ncores = 1)
