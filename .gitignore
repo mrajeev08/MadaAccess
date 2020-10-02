@@ -19,8 +19,7 @@ docs/*temp*
 analysis/bash/
 output/
 tree.md
-data-raw/raw/WorldPop/
-data-raw/raw/ipm_data/
+data-raw/raw
 docs
 analysis/out/
 analysis/figs/
