@@ -9,7 +9,9 @@ source(here::here("R", "utils.R"))
 
 # Libraries
 library(patchwork)
-library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(forcats)
 library(ggforce)
 library(sf)
 library(data.table)

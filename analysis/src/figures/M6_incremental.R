@@ -6,7 +6,7 @@ source(here::here("R", "utils.R"))
 start <- Sys.time()
 
 # Set up
-library(tidyverse)
+library(ggplot2)
 library(data.table)
 library(patchwork)
 library(cowplot)
@@ -100,16 +100,16 @@ vials_per_death <- ggplot(
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
-figM7 <- burden / vials / vials_per_death + plot_layout(guides = "collect")
+addARMC <- burden / vials / vials_per_death + plot_layout(guides = "collect")
 write_create(
-  figM7,
-  "analysis/figs/main/M7_addARMC.jpeg",
+  addARMC,
+  "analysis/figs/main/M6_addARMC.jpeg",
   ggsave_it,
   device = "jpeg", height = 8.75, width = 8
 )
 write_create(
-  figM7,
-  "analysis/figs/main/M7_addARMC.tiff",
+  addARMC,
+  "analysis/figs/main/M6_addARMC.tiff",
   ggsave_it,
   device = "tiff", dpi = 300, height = 8.75, width = 7.5,
   compression = "lzw", type = "cairo"

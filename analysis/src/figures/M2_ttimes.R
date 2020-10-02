@@ -6,7 +6,8 @@ start <- Sys.time()
 source(here::here("R", "utils.R"))
 
 # Set-up
-library(tidyverse)
+library(ggplot2)
+library(dplyr)
 library(raster)
 library(patchwork)
 library(cowplot)
@@ -65,8 +66,6 @@ baseline_df %>%
   )) %>%
   group_by(cut_times) %>%
   summarize(prop_pop = sum(prop_pop, na.rm = TRUE)) -> prop_pop_ttimes
-
-# write.csv(prop_pop_ttimes, "analysis/out/stats/prop_pop_ttimes") # write prop_pop_ttimes for stats
 
 prop_B <- ggplot(data = prop_pop_ttimes, aes(
   x = cut_times, y = prop_pop,

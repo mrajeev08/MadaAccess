@@ -7,7 +7,10 @@ source(here::here("R", "utils.R"))
 
 # Libraries and scripts
 library(data.table)
-library(tidyverse)
+library(tidyr)
+library(forcats)
+library(ggplot2)
+library(dplyr)
 library(cowplot)
 library(patchwork)
 library(glue)

@@ -8,7 +8,8 @@ source(here::here("R", "utils.R"))
 
 # Libraries and packages
 library(data.table)
-library(tidyverse)
+library(ggplot2)
+library(dplyr)
 library(sf)
 library(ggridges)
 library(patchwork)

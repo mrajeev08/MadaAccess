@@ -9,7 +9,7 @@ start <- Sys.time()
 # Set-up -----------------------------------------------------------------------
 library(data.table)
 library(iterators)
-library(tidyverse)
+library(dplyr)
 library(glue)
 library(foreach)
 select <- dplyr::select
@@ -23,19 +23,6 @@ district_bites <- fread(here_safe("analysis/out/bites/district_bites.csv"))
 comm_covars <- fread(here_safe("analysis/out/bites/comm_covars.csv"))
 mora_bites <- fread(here_safe("analysis/out/bites/mora_bites.csv"))
 model_ests <- read.csv(here_safe("analysis/out/mods/estimates.csv"))
-
-# Check convergence ------------------------------------------------------------
-model_ests %>%
-  select(data_source, scale, pop_predict, intercept, OD, val = psrf_upper) %>%
-  mutate(type = "psrf_upper") -> psrf
-model_ests %>%
-  select(data_source, scale, pop_predict, intercept, OD, val = mpsrf) %>%
-  mutate(type = "mpsrf") -> mpsrf
-convergence <- bind_rows(mpsrf, psrf)
-write_create(convergence,
-             "analysis/out/stats/convergence.csv",
-             write.csv,
-             row.names = FALSE)
 
 # Observed vs. Predicted for all models ----------------------------------------
 # filter to unique combinations

@@ -6,7 +6,8 @@ source(here::here("R", "utils.R"))
 start <- Sys.time()
 
 # libraries
-library(tidyverse)
+library(ggplot2)
+library(dplyr)
 library(data.table)
 library(sf)
 library(patchwork)
@@ -142,15 +143,16 @@ district_burden <- ggplot() +
 burden_base <- (compare_burden | ((comm_burden / district_burden) +
   plot_layout(nrow = 2, guides = "collect"))) +
   plot_layout(widths = c(1, 2))
+
 write_create(
   burden_base,
-  "analysis/figs/main/M6_burden_base.jpeg",
+  "analysis/figs/main/M5_burden_base.jpeg",
   ggsave_it,
   height = 14, width = 10
 )
 write_create(
   burden_base,
-  "analysis/figs/main/M6_burden_base.tiff",
+  "analysis/figs/main/M5_burden_base.tiff",
   ggsave_it,
   dpi = 300, device = "tiff", height = 8.75, width = 7.5,
   compression = "lzw", type = "cairo"

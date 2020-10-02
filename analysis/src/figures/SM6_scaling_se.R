@@ -7,130 +7,12 @@ source(here::here("R", "utils.R"))
 
 # pkgs
 library(data.table)
-library(foreach)
-library(iterators)
-library(sf)
-library(tidyverse)
+library(tidyr)
+library(ggplot2)
+library(dplyr)
 library(cowplot)
 library(patchwork)
-library(glue)
 source(here_safe("R/predict_functions.R"))
-
-# Relationship + map for each scale & direction ---------------------------------
-scaling_df <- fread(here_safe("analysis/out/sensitivity/scaling.csv"))
-mada_districts <- st_read(here_safe("analysis/out/shapefiles/mada_districts_simple.shp"))
-mada_communes <- st_read(here_safe("analysis/out/shapefiles/mada_communes_simple.shp"))
-
-# Scale
-scale_levs <- c("Commune", "District")
-scale_labs <- c("Commune", "District")
-model_cols <- c("#0B775E", "#35274A")
-names(scale_labs) <- scale_levs
-names(model_cols) <- scale_levs
-
-# Scaled incidence hypothetical
-pop_vals <- seq(1000, 1e6, by = 10)
-foreach(j = iter(scaling_df, by = "row"), .combine = rbind) %do% {
-  inc_scaled <- constrained_inc(
-    slope = j$sfactor,
-    pop = pop_vals - j$trans,
-    max = 76 / 1e5, min = 15 / 1e5
-  )
-  out <- data.table(pop = pop_vals, inc_scaled, j)
-} -> inc_scaled_rel
-
-# Scaled incidence at district & commune level
-foreach(j = iter(scaling_df, by = "row"), .combine = rbind) %do% {
-  if (j$scale == "Commune") {
-    names <- mada_communes$commcode
-    pop <- mada_communes$pop
-  }
-
-  if (j$scale == "District") {
-    names <- mada_districts$distcode
-    pop <- mada_districts$pop
-  }
-
-  inc_scaled <- constrained_inc(
-    slope = j$sfactor,
-    pop = pop - j$trans,
-    max = 76 / 1e5, min = 15 / 1e5
-  )
-  out <- data.table(names, pop, inc_scaled, j)
-} -> inc_scaled_admin
-
-mada_communes$scale <- "Commune"
-mada_districts$scale <- "District"
-gg_all <- bind_rows(mada_communes, mada_districts)
-gg_all %>%
-  mutate(id = case_when(
-    scale == "Commune" ~ commcode,
-    scale == "District" ~ distcode
-  )) %>%
-  left_join(inc_scaled_admin, by = c("scale" = "scale", "id" = "names")) -> gg_all
-
-scaling_labs <- c(neg = "Incidence decreases \n with pop", pos = "Incidence increases \n with pop")
-
-neg_rel <- ggplot(data = filter(inc_scaled_rel, scaling == "neg")) +
-  geom_line(aes(x = pop, y = inc_scaled * 1e5, color = scale), size = 2, alpha = 0.75) +
-  geom_jitter(
-    data = filter(inc_scaled_admin, scaling == "neg"),
-    aes(x = pop, y = inc_scaled * 1e5, color = scale), alpha = 0.5,
-    shape = 1, size = 2
-  ) +
-  scale_x_continuous(trans = "log", breaks = c(1000, 1e4, 1e5, 1e6)) +
-  scale_color_manual(values = model_cols, labels = scale_labs, name = "Scale", guide = "none") +
-  labs(x = "Population", y = "Exposure incidence \n per 100k", tag = "A") +
-  theme_minimal_hgrid() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-neg_map <- ggplot(data = filter(gg_all, scaling == "neg")) +
-  geom_sf(aes(alpha = inc_scaled * 1e5, fill = scale), color = NA) +
-  scale_fill_manual(values = model_cols, guide = "none") +
-  scale_alpha_continuous(
-    range = c(0.15, 1), breaks = c(0, 15, 25, 50, 76),
-    name = "Exposures \n per 100k",
-    guide = guide_legend(override.aes = list(fill = "#0B775E"))
-  ) +
-  facet_grid(scaling ~ scale, labeller = labeller(scaling = scaling_labs)) +
-  theme_map()
-
-neg_A <- neg_rel + neg_map + plot_layout(widths = c(1, 2))
-
-pos_rel <- ggplot(data = filter(inc_scaled_rel, scaling == "pos")) +
-  geom_line(aes(x = pop, y = inc_scaled * 1e5, color = scale), size = 2, alpha = 0.75) +
-  geom_jitter(
-    data = filter(inc_scaled_admin, scaling == "pos"),
-    aes(x = pop, y = inc_scaled * 1e5, color = scale), alpha = 0.5, shape = 1,
-    size = 2
-  ) +
-  scale_x_continuous(trans = "log", breaks = c(1000, 1e4, 1e5, 1e6)) +
-  scale_color_manual(values = model_cols, labels = scale_labs, name = "Scale") +
-  labs(x = "Population", y = "Exposure incidence \n per 100k", tag = "B") +
-  theme_minimal_hgrid() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-pos_map <- ggplot(data = filter(gg_all, scaling == "pos")) +
-  geom_sf(aes(alpha = inc_scaled * 1e5, fill = scale), color = NA) +
-  scale_fill_manual(values = model_cols, guide = "none") +
-  scale_alpha_continuous(
-    range = c(0.15, 1), breaks = c(0, 15, 25, 50, 76),
-    name = "Exposures \n per 100k",
-    guide = guide_legend(override.aes = list(fill = "#35274A"))
-  ) +
-  facet_grid(scaling ~ scale, labeller = labeller(scaling = scaling_labs)) +
-  theme_map() +
-  theme(strip.text.x = element_blank())
-
-pos_B <- pos_rel + pos_map + plot_layout(widths = c(1, 2))
-
-# fig S6.4
-S6.4_scaling_rels <- (neg_A / pos_B) + plot_layout(guides = "collect")
-write_create(S6.4_scaling_rels,
-  "analysis/figs/supplementary/S6.4_scaling_rels.jpeg",
-  ggsave_it,
-  width = 10, height = 10
-)
 
 # Baseline deaths mean ---------------------------------------------------------
 baseline <- fread(here_safe("analysis/out/preds/admin_preds.gz"))[scenario == 0]
@@ -143,6 +25,13 @@ scaling_labs <- c(
   neg = "Incidence decreases \n with pop", pos = "Incidence increases \n with pop",
   base = "Baseline (no scaling)"
 )
+
+# Scale
+scale_levs <- c("Commune", "District")
+scale_labs <- c("Commune", "District")
+model_cols <- c("#0B775E", "#35274A")
+names(scale_labs) <- scale_levs
+names(model_cols) <- scale_levs
 
 base_scaled %>%
   select(-(p_rabid_mean:rabid_exps_lower)) %>%
@@ -248,11 +137,13 @@ add_scaling_B <- ggplot(
   labs(x = "# Additional ARMC", y = "Proportion of deaths \n compared to baseline", tag = "B") +
   theme(strip.text.y = element_blank())
 
-# fig S6.5
-S6.5_scaling_se <- (base_scaling_A / add_scaling_B) + plot_layout(heights = c(1.5, 2), guides = "collect")
+# fig S6.4
+scaling_se <- (base_scaling_A / add_scaling_B) + plot_layout(heights = c(1.5, 2),
+                                                             guides = "collect")
+
 write_create(
-  S6.5_scaling_se,
-  here_safe("analysis/figs/supplementary/S6.5_scaling_se.jpeg"),
+  scaling_se,
+  here_safe("analysis/figs/supplementary/S6.4_scaling_se.jpeg"),
   ggsave_it,
   width = 10,
   height = 10

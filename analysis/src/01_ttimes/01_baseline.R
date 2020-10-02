@@ -105,6 +105,22 @@ write_create(
   fwrite
 )
 
+# Do some summarizing here for stats in paper
+ttime_breaks <- c(-0.1, 1, 2, 3, 4, 6, 8, 10, 15, Inf)
+ttime_labs <- c("< 1", "1 - 2", "2 - 3", "3 - 4", "4 - 6",  "6 - 8", "8 - 10", "10 - 15", "15 +")
+
+base_df %>%
+  filter(!is.na(pop), !is.infinite(ttimes), !is.na(ttimes)) %>%
+  mutate(cut_times = cut(ttimes/60, breaks = ttime_breaks,
+                         labels = ttime_labs)) %>%
+  group_by(cut_times) %>%
+  summarize(prop_pop = sum(prop_pop, na.rm = TRUE)) -> prop_pop_ttimes
+
+write_create(prop_pop_ttimes,
+             here_safe("analysis/out/stats/prop_pop_ttimes.csv"),
+             fwrite)
+
+
 # District
 district_df <- aggregate_admin(base_df = base_df, admin = "distcode", scenario = 0)
 district_maxcatch <- district_df[, .SD[prop_pop_catch == max(prop_pop_catch,

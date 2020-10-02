@@ -17,7 +17,6 @@ print(paste("Cluster size:", cl_size(cl)))
 
 # Libraries
 library(foreach)
-library(tidyverse)
 library(iterators)
 library(data.table)
 library(raster)

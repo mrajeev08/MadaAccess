@@ -6,7 +6,8 @@ start <- Sys.time()
 
 # Set up
 library(data.table)
-library(tidyverse)
+library(dplyr)
+library(tidyr)
 library(foreach)
 library(iterators)
 select <- dplyr::select

@@ -5,7 +5,9 @@
 start <- Sys.time()
 
 # Set up
-library(tidyverse)
+library(tidyr)
+library(readr)
+library(dplyr)
 library(data.table)
 library(lubridate)
 select <- dplyr::select
@@ -132,6 +134,17 @@ ctar_metadata %>%
                              name == "include_15" ~ 15,
                              name == "include_30" ~ 30,
                              name == "include_all" ~ Inf)) -> vial_ests
+
+vial_ests %>%
+  group_by(cut_off) %>%
+  summarize(sse = sum((vials_observed - value)^2),
+            nobs = n()) %>%
+  mutate(mse = sqrt(sse/nobs)) -> vial_mse
+
+write_create(vial_mse,
+             here_safe("analysis/out/stats/vial_mse.csv"),
+             write_csv)
+
 vial_ests %>%
   pivot_wider(names_from = "vials", names_prefix = "mean",
               values_from = "value") -> vial_comp
@@ -142,7 +155,8 @@ reporting %>%
   right_join(filter(vial_comp, cut_off == 15 | cut_off == Inf)) -> vials_to_plot
 
 # output vials_to_plot
-write_create(vials_to_plot, "analysis/out/sensitivity/vial_comp.csv",
+write_create(vials_to_plot,
+             here_safe("analysis/out/sensitivity/vial_comp.csv"),
              write_csv)
 
 # Saving session info

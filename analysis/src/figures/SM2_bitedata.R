@@ -7,7 +7,8 @@ source(here::here("R", "utils.R"))
 start <- Sys.time()
 
 # Libraries
-library(tidyverse)
+library(ggplot2)
+library(dplyr)
 library(sf)
 library(data.table)
 library(lubridate)
@@ -91,16 +92,11 @@ moramanga <- fread(here_safe("data-raw/out/bitedata/moramanga.csv"))
 moramanga$catch <- mada_communes$catchment[match(moramanga$commcode, mada_communes$commcode)]
 moramanga$actual_catch <- ctar_metadata$id_ctar[match(moramanga$catch, ctar_metadata$CTAR)]
 
-moramanga %>%
-  mutate(in_catch = ifelse(actual_catch == id_ctar, 1, 0)) %>%
-  summarize(total = sum(no_patients, na.rm = TRUE),
-            bites_catch = sum(total[in_catch == 1], na.rm = TRUE),
-            prop_in_catch = bites_catch/total) -> prop_mora
 
 catch_by_data_C <- ggplot(data = prop_dist, aes(x = prop_in_catch)) +
   geom_histogram(breaks = c(seq(0, 1, by = 0.1)), color = "white", size = 3, fill = "#35274A",
                  alpha = 0.75) +
-  geom_vline(xintercept = prop_mora$prop_in_catch,
+  geom_vline(xintercept = sum(moramanga$actual_catch %in% "8")/nrow(moramanga),
              color = "#0B775E", alpha = 0.75,
              linetype = 1) +
   labs(x = "Proportion of bites \n from within assigned catchment", y = "Number of clinics",

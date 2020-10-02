@@ -16,7 +16,8 @@ register_cl(cl)
 print(paste("Cluster size:", cl_size(cl)))
 
 # Set up
-library(tidyverse)
+library(dplyr)
+library(tidyr)
 library(data.table)
 library(sf)
 library(lubridate)

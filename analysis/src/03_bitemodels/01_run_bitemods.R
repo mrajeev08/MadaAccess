@@ -51,7 +51,7 @@ mods %>%
          data_df = case_when(data_source %in% "Moramanga" ~ "mora_bites",
                              data_source %in% "National" ~ "district_bites")) -> mods
 
-seeds <- 150 + 1:nrow(mods)
+seeds <- 140 + 1:nrow(mods)
 
 # For each of those opts
 mods_all <-

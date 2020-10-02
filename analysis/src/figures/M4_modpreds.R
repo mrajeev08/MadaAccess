@@ -11,8 +11,9 @@ source(here_safe("R/summarize_samps.R"))
 
 # libraries
 library(foreach)
+library(dplyr)
 library(iterators)
-library(tidyverse)
+library(ggplot2)
 library(glue)
 library(patchwork)
 library(cowplot)
@@ -101,20 +102,20 @@ ggplot(data = all_samps, aes(x = Parameter, y = value, fill = interaction(data_s
   labs(y = "Posterior estimates", tag = "B") +
   theme_minimal_hgrid() -> posts
 
-mods <- (mod_preds | posts) + plot_layout(guides = "collect")
+mods <- (mod_preds | posts) + plot_layout(guides = "collect", widths = c(2, 1))
 
 write_create(
   mods,
-  "analysis/figs/main/M5_mods.tiff",
+  "analysis/figs/main/M4_mods.tiff",
   ggsave_it,
-  dpi = 300, height = 8, width = 7.5,
+  dpi = 300, height = 6, width = 7.5,
   compression = "lzw", type = "cairo"
 )
 write_create(
   mods,
-  "analysis/figs/main/M5_mods.jpeg",
+  "analysis/figs/main/M4_mods.jpeg",
   ggsave_it,
-  height = 8, width = 7.5
+  height = 6, width = 7.5
 )
 
 # Session Info

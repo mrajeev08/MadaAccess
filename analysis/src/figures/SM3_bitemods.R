@@ -10,7 +10,9 @@ start <- Sys.time()
 source(here_safe("R/summarize_samps.R"))
 
 # libraries
-library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(forcats)
 library(cowplot)
 library(data.table)
 library(foreach)
