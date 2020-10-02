@@ -3,7 +3,7 @@
 #' impact of expanding access
 # ------------------------------------------------------------------------------
 
-# sub_cmd=-t 12 -n 31 -jn preds_se -wt 5m
+# sub_cmd=-t 12 -n 41 -jn preds_se -wt 5m
 
 # Set it up
 source(here::here("R", "utils.R"))

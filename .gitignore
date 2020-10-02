@@ -22,6 +22,6 @@ tree.md
 data-raw/raw
 docs
 analysis/out/
-analysis/figs/
 analysis/slurm/
 zenodo
+logs

@@ -58,7 +58,7 @@ institute:
   - Geneva: Institute of Global Health, Faculty of Medicine, University of Geneva, Geneva, Switzerland
   - IPMvacc: Vaccination Center, Institut Pasteur de Madagascar, Antananarivo, Madagascar
   - IPMviro: Virology Unit, Institut Pasteur de Madagascar, Antananarivo, Madagascar
-  - IC: Institut Pasteur du Cambodge (previously Epidemiology and Clinical Research Unit at Institut pasteur de Madagascar)
+  - IC: Institut Pasteur du Cambodge (previously Epidemiology and Clinical Research Unit at Institut Pasteur de Madagascar)
   - Glasgow: Boyd Orr Centre for Population and Ecosystem Health, Institute of Biodiversity, Animal Health and Comparative Medicine, University of Glasgow, Glasgow, UK
 date: ""
 nocite: '@*'
@@ -92,6 +92,8 @@ bibliography_supextra: ["bib/refs_supextra.bib"]
 ---
 
 ```{r setupmain, include=FALSE}
+start <- Sys.time()
+
 # Libraries
 library(knitr)
 library(dplyr)
@@ -158,6 +160,9 @@ one_per_comm <- sort(natl_preds$scenario, decreasing = TRUE)[2]
 no_figs <- FALSE
 if(no_figs) include_graphics <- function(x, ...) { return(invisible(NULL)) }
 
+# for logging dependencies
+out_session("logs/log_local.csv", start = start, 
+            ncores = 1)
 ```
 
 \newpage
@@ -171,7 +176,7 @@ Post-exposure prophylaxis (PEP) is highly effective at preventing human rabies d
 We use travel times to the closest clinic providing PEP (N=31) as a proxy for access. We find that travel times strongly predict reported bite incidence across the country. Using resulting estimates in an adapted decision tree framework we extrapolate rabies deaths and reporting and find that geographic access to PEP shapes burden sub-nationally. We estimate 960 human rabies deaths annually (95% Prediction Intervals (PI):`r round(natl_base$deaths_lower[1], -1)` - `r round(natl_base$deaths_upper[1], -1)`), with PEP averting an additional 800 deaths (95% PI: `r round(natl_base$averted_mean[1], -1)` (95% PI: `r round(natl_base$averted_lower[1], -1)` - `r round(natl_base$averted_upper[1], -1)`) each year. Under these assumptions, we find that expanding PEP to one clinic per district could reduce deaths by `r glue("{trans_perc((1 - props$deaths_mean[props$scenario == 83 & props$scale == 'Commune']))}%")`, but even with all major health centers provisioning PEP (`r max(natl_preds$scenario)` additional clinics), we still expect substantial rabies mortality. Our quantitative estimates are most sensitive to assumptions of underlying rabies exposure incidence, but qualitative patterns of the impacts of travel times and expanded PEP access are robust.
 
 ## Conclusions & Significance
-PEP is effective at preventing rabies deaths, and in the absence of strong surveillance, targeting underserved populations may be the most equitable way to provision PEP. Our framework could be used to guide PEP expansion and improve targeting of interventions in similar endemic settings where PEP access is geographically restricted. While better PEP access should save many lives, improved outreach and surveillance is needed and if rolled out with Gavi investment could catalyse countries' progress towards achieving zero rabies deaths.
+PEP is effective at preventing rabies deaths, and in the absence of strong surveillance, targeting underserved populations may be the most equitable way to provision PEP. Our framework could be used to guide PEP expansion and improve targeting of interventions in similar endemic settings where PEP access is geographically restricted. While better PEP access should save many lives, improved outreach and surveillance is needed and if rolled out with Gavi investment could catalyze progress towards achieving zero rabies deaths.
 
 # Author Summary 
 Canine rabies causes an estimated 60,000 deaths each year across the world, primarily in low- and middle-income countries where people have limited access to both human vaccines (post-exposure prophylaxis or PEP) and dog rabies vaccines. Given that we have the tools to prevent rabies deaths, a global target has been set to eliminate deaths due to canine rabies by 2030, and recently, Gavi, a multilateral organization that aims to improve access to vaccines in the poorest countries, added human rabies vaccine to it’s portfolio. In this study, we estimated reported bite incidence in relation to travel times to clinics provisioning PEP, and extrapolate human rabies deaths in Madagascar. We find that PEP currently averts around `r round(natl_base$averted_mean[1], -2)` deaths each year, but that the burden remains high (`r round(natl_base$deaths_mean[1], -2)` deaths/ year), particularly in remote, hard-to-reach areas. We show that expanding PEP availability to more clinics could significantly reduce rabies deaths in Madagascar, but our results suggest that expansion alone will not eliminate deaths. Combining PEP expansion with outreach, surveillance, and mass dog vaccination programs will be necessary to move Madagascar, and other Low- and Middle-Income countries, forward on the path to rabies elimination.
@@ -484,6 +489,7 @@ We thank all the clinicians and staff at the ARMC across the country. We are gra
 ```{r fig S1.1 inputs A friction B pop}
 include_graphics(here("analysis/figs/supplementary/S1.1_inputs.jpeg"))
 ```
+
 ### *Fig S1.1. Raster inputs to estimate travel times to the closest ARMC for Madagascar.*
 _(A) Friction surface of travel speeds (in minutes per meter) at an ~ 1x1 km scale. (B) Population estimates resampled to the same friction surface._
 
@@ -512,6 +518,7 @@ include_graphics(here("analysis/figs/supplementary/S1.4_lms.jpeg"))
 
 ### *Fig S1.4. Observed estimates of travel times (commune means of patient reported travel times and driving times between point locations).*
 _Predicted by (A) Distance (km) (Euclidean distance between origin and destination for driving times and distance from the commune centroid to the Moramanga ARMC for commune means) (B) Travel time estimates and (C) Travel time estimates weighted by population (for commune means only)._   
+
 \newpage
 
 ### *Table S1.1. R^2^ values from linear models with estimated access metrics predicting either driving times or commune means of patient reported travel times.*
@@ -522,7 +529,7 @@ kable(S1.1_table, col.names = c("Predictor", "Driving times",
       digits = 3)
 ```
   
- \newpage
+\newpage
  
 
 ```{r fig S1.5 output ttimes A district B commune}
@@ -581,6 +588,7 @@ To test how well our models predicted the data, we sampled parameter estimates f
 ```{r fig S3.1 corr pop ttimes}
 include_graphics(here("analysis/figs/supplementary/S3.1_corrs.jpeg"))
 ```
+
 ### *Fig S3.1. Correlation between travel time in hours (the average weighted by the population) and population size of administrative units at the district and commune scale.*
 
 \newpage
@@ -622,6 +630,7 @@ knitr::kable(select(dic_ranks, -min),
 ```{r fig S3.2 obs vs predicted, out.width="65%"}
 include_graphics(here("analysis/figs/supplementary/S3.2_fitted.jpeg"))
 ```
+
 ### *Fig S3.2. Prediction to data used to fit each model.*
 *Log of the observed bites against the log of predicted bites generated from sampling 1000 independent draws from the posterior distributions for each parameter, with the points the mean of the predictions and the linerange the 95% prediction intervals. Columns are by the type of model intercept (either a fixed intercept or a random intercept by catchment) and rows are the type of model structure with respect to the population covariate (addPop = population size as additional covariate, onlyPop = population as only covariate, flatPop = population as offset in model). Colors show which data set was used for fitting and the scale of the model (Moramanga = Moramanga data with covariates at the commune level, Commune = National data with covariates at the commune level, District = National data with covariates at the district level).*
 
@@ -719,6 +728,7 @@ include_graphics(here("analysis/figs/supplementary/S4.2_scaling_rels.jpeg"))
 ```{r fig S5.1 metrics}
 include_graphics(here("analysis/figs/supplementary/S5.1_tests.jpeg"))
 ```
+
 ### *Fig S5.1. Comparing metrics for ranking clinics for targeted expansion.*  
 *We simulated expansion using three different ranking metrics: 1) reduction in mean travel times (green line) 2) the proportion of the population for which travel times were reduced (red dashed line) and 3) the proportion of the population for which travel times were reduced weighted by the reduction in travel times (pink dashed line). For each of these, we simulated burden using our decision tree framework (y axis is the mean of 1000 simulations of annual deaths at the national level). The blue lines show 10 simulations of randomly expanding access on reducing burden as a comparator. The panels show to the commune and district model of reported bite incidence.*
 \newpage
@@ -727,6 +737,7 @@ include_graphics(here("analysis/figs/supplementary/S5.1_tests.jpeg"))
 ```{r fig S5.2 add clinics}
 include_graphics(here("analysis/figs/supplementary/S5.2_ARMCadded.jpeg"))
 ```
+
 ### *Fig S5.2. Map of the location and at what step each clinic was added.*
 *The circles are each of the CSB II across the country sized by the resulting average reduction in burden (based on smoothed annual burden estimates from the commune model, see inset). The large white crosses show the location of the existing 31 ARMC in Madagascar and the smaller white crosses are the additional CSB II in the country which were added in the final step but not ranked.* 
 \newpage
@@ -734,6 +745,7 @@ include_graphics(here("analysis/figs/supplementary/S5.2_ARMCadded.jpeg"))
 ```{r fig S5.3 map shifts}
 include_graphics(here("analysis/figs/supplementary/S5.3_map_shifts.jpeg"))
 ```
+
 ### *Fig S5.3. Maps of how travel times change as clinics are added.*
 *(A) at the ~1 x 1 km grid cell (B) commune and (C) district scales. The columns are ordered by the number or clinics at each step: baseline (N = 31), + 83 (1 per district), + 200, + 600, + 1406 (1 per commune), and max (+ 1696 clinics, all additional CSB IIs in the country). Grey pixels show the location of ARMC at each step. Commune and district values are the average grid cell travel times weighted by the population in each cell.*
 \newpage
@@ -741,6 +753,7 @@ include_graphics(here("analysis/figs/supplementary/S5.3_map_shifts.jpeg"))
 ```{r fig S5.4 travel times(a) bite inc(b)}
 include_graphics(here("analysis/figs/supplementary/S5.4_ttimes_bites.jpeg"))
 ```
+
 ### *Fig S5.4. Shifts in key metrics as clinics are added.* 
 *(A) travel times (hrs, x-axis is square root transformed), (B) bite incidence per 100,000 persons and boxplots showing the median for communes and district models (colors).*
  \newpage
@@ -748,6 +761,7 @@ include_graphics(here("analysis/figs/supplementary/S5.4_ttimes_bites.jpeg"))
 ```{r fig S5.5 reporting(a) death inc(b)}
 include_graphics(here("analysis/figs/supplementary/S5.5_reporting_shifts.jpeg"))
 ```
+
 ### *Fig S5.5. Shifts in  key metrics as clinics are added.*
 *(A) reporting, (B) death incidence per 100,000 persons for the commune and district models (colors) as clinics are added.*
 \newpage
@@ -865,3 +879,4 @@ include_graphics(here("analysis/figs/supplementary/S6.4_scaling_se.jpeg"))
 ## S8. Additional supplementary references {#srefextra}
 ::: {#refs_supextra}
 :::
+

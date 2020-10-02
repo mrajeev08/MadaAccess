@@ -1,0 +1,32 @@
+"CTAR","District","id_ctar","year_opened","doses_2010","doses_2011","doses_2012","doses_2013","doses_2014","doses_2015","doses_2016","doses_2017","color","notes","long","lat","commcode","distcode","district","commune","clinic_id"
+"Ambatomainty","Ambatomainty",NA,2010,160,150,100,100,100,200,0,200,"#FCC56F",NA,45.665056,-17.695978,"MG44417011","MG44417","Ambatomainty","Ambatomainty",1
+"Ambatondrazaka","Ambatondrazaka",7,2010,600,1050,1200,1550,1300,900,1400,2250,"#FFDBE5",NA,48.427714,-17.827098,"MG33313010","MG33313","Ambatondrazaka","Ambatondrazaka",2
+"Ambositra","Ambositra",30,2010,200,250,300,300,700,1220,900,750,"#7A4900",NA,47.241949,-20.541096,"MG22203010","MG22203","Ambositra","Ambositra I",3
+"Ambovombe Androy","Ambovombe-Androy",NA,2010,175,200,100,100,300,400,400,200,"#CBCDD2",NA,46.090171,-25.179129,"MG52516011","MG52516","Ambovombe-Androy","Ambovombe",4
+"Antsirabe","Antsirabe I",13,2010,1100,2000,2000,2400,3000,2350,1910,2100,"#0000A6",NA,47.031998,-19.863613,"MG12108001","MG12108","Antsirabe I","Antsenakely Andraikiba",5
+"Antsiranana","Antsiranana I",10,2010,200,600,300,450,1050,900,1050,500,"#EFF2F1",NA,49.293782,-12.285258,"MG71715009","MG71715","Antsiranana I","Diego Suarez",6
+"Antsohihy","Antsohihy",14,2010,600,600,400,750,900,1200,1100,950,"#99d8c9",NA,47.984594,-14.874373,"MG42413010","MG42413","Antsohihy","Antsohihy",7
+"Bekily","Bekily",12,2014,NA,NA,NA,175,340,0,180,100,"#B79762",NA,45.318265,-24.220634,"MG52518010","MG52518","Bekily","Morafeno Bekily",8
+"Fianarantsoa","Fianarantsoa I",2,2010,750,750,775,600,1050,700,1550,900,"#004D43",NA,47.085264,-21.443708,"MG21201002","MG21201","Fianarantsoa I","Tanana Ambany",9
+"Ihosy","Ihosy",16,2010,500,800,600,400,600,450,600,400,"#8FB0FF",NA,46.131772,-22.40342,"MG24216010","MG24216","Ihosy","Ihosy",10
+"IPM","Antananarivo Renivohitra",5,2010,NA,NA,NA,NA,NA,NA,NA,NA,"#997D87",NA,47.546393,-18.902442,"MG11101003","MG11101","Antananarivo Renivohitra","3e Arrondissement",11
+"Maevatanana","Maevatanana",17,2010,200,320,600,500,600,400,600,200,"#FD9C54",NA,46.832413,-16.950751,"MG43404010","MG43404","Maevatanana","Maevatanana I",12
+"Mahajanga","Mahajanga I",18,2010,960,720,960,490,960,960,1350,1070,"#8362B5","offset position to match raster",46.305997,-15.7161,"MG41401001","MG41401","Mahajanga I","Mahajanga",13
+"Maintirano","Maintirano",19,2010,250,200,100,100,600,500,1150,0,"#578FB0",NA,44.023285,-18.062014,"MG44421010","MG44421","Maintirano","Maintirano",14
+"Manakara","Manakara Atsimo",31,2010,360,590,600,1000,900,900,800,650,"#5A0007",NA,48.009406,-22.149067,"MG23210010","MG23210","Manakara Atsimo","Manakara",15
+"Mandritsara","Mandritsara",15,2012,NA,550,200,900,900,1150,800,1000,"#809693",NA,48.826894,-15.846132,"MG42410010","MG42410","Mandritsara","Mandritsara",16
+"Manja","Manja",23,2014,NA,NA,NA,NA,100,50,100,50,"#D16100",NA,44.329435,-21.433354,"MG54502010","MG54502","Manja","Manja",17
+"Maroantsetra","Maroantsetra",4,2010,60,60,150,150,0,100,200,0,"#1B4400",NA,49.733626,-15.437209,"MG32303010","MG32303","Maroantsetra","Maroantsetra",18
+"Marolambo","Marolambo",NA,2014,NA,NA,NA,NA,100,150,50,150,"#4FC601",NA,48.131474,-20.047674,"MG31309010","MG31309","Marolambo","Marolambo",19
+"Miarinarivo","Miarinarivo",21,2010,350,300,425,350,350,500,535,750,"#3B5DFF",NA,46.906718,-18.955469,"MG13112010","MG13112","Miarinarivo","Miarinarivo I",20
+"Moramanga","Moramanga",8,2011,85,850,1000,764,1000,1000,1100,1800,"#4A3B53",NA,48.238305,-18.948497,"MG33314010","MG33314","Moramanga","Moramanga",21
+"Morondava","Morondava",22,2010,450,700,400,400,700,550,600,450,"#FF2F80",NA,44.298096,-20.298613,"MG54508010","MG54508","Morondava","Morondava",22
+"Nosy be","Nosy-Be",9,2010,240,320,350,600,0,100,350,300,"#61615A",NA,48.264551,-13.400584,"MG71718001","MG71718","Nosy-Be","Hell-Ville",23
+"Sainte Marie","Sainte Marie",NA,2010,0,350,200,0,100,0,0,100,"#BA0900",NA,49.854105,-16.998974,"MG32302019","MG32302","Sainte Marie","Sainte Marie",24
+"Sambava","Sambava",24,2014,650,500,500,800,850,800,1000,700,"#6B7900",NA,50.131076,-14.264613,"MG72711010","MG72711","Sambava","Sambava Cu",25
+"Soanierana Ivongo","Soanierana Ivongo",1,2010,NA,NA,NA,NA,600,1000,1500,1450,"#00C2A0",NA,49.587473,-16.921092,"MG32318011","MG32318","Soanierana Ivongo","Soanierana Ivongo",26
+"Taolagnaro","Taolagnaro",25,2010,600,200,400,400,500,600,100,450,"#FFAA92",NA,46.981242,-25.023013,"MG53515010","MG53515","Taolagnaro","Fort-Dauphin",27
+"Toamasina","Toamasina I",28,2010,1500,3200,3000,4650,4500,4700,4020,3700,"#FF90C9","offset position to match raster",49.41616,-18.141944,"MG31301005","MG31301","Toamasina I","Ankirihiry",28
+"Toliara","Toliary-I",26,2010,300,300,800,800,400,600,800,500,"#B903AA",NA,43.675883,-23.352736,"MG51501001","MG51501","Toliary-I","Tanambao I",29
+"Tsiroanomandidy","Tsiroanomandidy",27,2010,500,500,625,875,750,750,1100,1000,"#FEFFE6",NA,46.048191,-18.773509,"MG14111010","MG14111","Tsiroanomandidy","Tsiroanomandidy Ville",30
+"Vangaindrano","Vangaindrano",3,NA,600,1300,700,1000,1100,800,600,1200,"#E9E9D2",NA,47.6,-23.35,"MG25214010","MG25214","Vangaindrano","Vangaindrano",31
