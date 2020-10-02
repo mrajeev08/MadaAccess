@@ -1,5 +1,13 @@
-
 # Function for getting days to include via RLEs
+#' Title
+#'
+#' @param vec
+#' @param threshold
+#'
+#' @return
+#' @export
+#'
+#' @examples
 rle_days <- function(vec, threshold = 10) {
   rle(vec) %>%
     unclass() %>%
@@ -20,6 +28,16 @@ rle_days <- function(vec, threshold = 10) {
   return(include)
 }
 
+#' Title
+#'
+#' @param national
+#' @param ctar_metadata
+#' @param min_forms
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ctar_to_exclude <- function(national, ctar_metadata, min_forms = 10) {
   national %>%
     filter(
@@ -40,6 +58,19 @@ ctar_to_exclude <- function(national, ctar_metadata, min_forms = 10) {
 }
 
 # Function for getting bite estimates?
+#' Title
+#'
+#' @param national
+#' @param mada_districts
+#' @param mada_communes
+#' @param ctar_metadata
+#' @param reporting_thresh
+#' @param tput_thresh
+#'
+#' @return
+#' @export
+#'
+#' @examples
 clean_natl <- function(national, mada_districts, mada_communes, ctar_metadata,
                        reporting_thresh = 0.25,
                        tput_thresh = 15) {
@@ -51,7 +82,7 @@ clean_natl <- function(national, mada_districts, mada_communes, ctar_metadata,
 
   national %>%
     group_by(date_reported, id_ctar) %>%
-    summarise(no_patients = n()) %>%
+    summarise(no_patients = sum(no_patients, na.rm = TRUE)) %>%
     ungroup() %>%
     complete(
       date_reported = seq(min(date_reported), max(date_reported), by = "day"), id_ctar,
@@ -79,18 +110,17 @@ clean_natl <- function(national, mada_districts, mada_communes, ctar_metadata,
   national %>%
     filter(
       distcode %in% mada_districts$distcode,
-      id_ctar %in% ctar_metadata$id_ctar[!is.na(ctar_metadata$id_ctar)],
-      type == "new"
-    ) -> national
+      id_ctar %in% ctar_metadata$id_ctar[!is.na(ctar_metadata$id_ctar)]) -> national
 
   national %>%
-    left_join(select(throughput, date_reported, id_ctar, include_day, year)) -> bites
+    left_join(select(throughput, date_reported, id_ctar, include_day,
+                     year)) -> bites
 
   # Getting district level exclusion criteria
   # if submitted less than 10 forms total
   national %>%
     group_by(id_ctar) %>%
-    summarize(total_forms = n()) %>%
+    summarize(total_forms = sum(no_patients, na.rm = TRUE)) %>%
     complete(id_ctar = ctar_metadata$id_ctar, fill = list(total_forms = 0)) %>%
     right_join(ctar_metadata) %>%
     mutate(
@@ -100,15 +130,18 @@ clean_natl <- function(national, mada_districts, mada_communes, ctar_metadata,
 
   # Getting bite incidence estimates for all districts
   bites %>%
-    # filter based on throughput
-    filter(include_day == 1) %>%
+    filter(include_day == 1,     # filter based on throughput
+           type == "new") %>%    # and to new patients
     group_by(year, distcode) %>%
-    summarize(bites = n()) -> bites_district
+    summarize(bites = sum(no_patients, na.rm = TRUE)) -> bites_district
+
   bites_district$CTAR <- mada_districts$catchment[match(
     bites_district$distcode,
     mada_districts$distcode
   )]
+
   bites_district$id_ctar <- ctar_metadata$id_ctar[match(bites_district$CTAR, ctar_metadata$CTAR)]
+
   bites_district %>%
     left_join(reporting) %>%
     filter(reporting > reporting_thresh) %>% # dont include any district for which catchment clinic had
@@ -152,6 +185,17 @@ clean_natl <- function(national, mada_districts, mada_communes, ctar_metadata,
 }
 
 # Moramanga data
+#' Title
+#'
+#' @param moramanga
+#' @param mada_communes
+#' @param mada_districts
+#' @param district_bites
+#'
+#' @return
+#' @export
+#'
+#' @examples
 clean_mora <- function(moramanga, mada_communes, mada_districts, district_bites) {
 
   # Communes
@@ -167,7 +211,7 @@ clean_mora <- function(moramanga, mada_communes, mada_districts, district_bites)
       month_date <= "2019-06-01", !is.na(commcode)
     ) %>%
     group_by(commcode, month_date) %>%
-    summarize(bites = n()) %>%
+    summarize(bites = sum(no_patients, na.rm =TRUE)) %>%
     ungroup() %>%
     complete(
       month_date = seq(min(month_date), max(month_date), by = "month"),

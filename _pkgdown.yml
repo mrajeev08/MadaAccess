@@ -1,0 +1,16 @@
+navbar:
+  structure:
+    left:
+    - home
+    - intro
+    - reference
+    - manuscript
+    - tutorials
+    right: github
+  components:
+    home:
+      icon: fas fa-home fa-lg
+      href: index.html
+    reference:
+      text: Functions
+      href: reference/index.html

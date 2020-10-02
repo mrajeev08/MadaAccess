@@ -1,9 +1,16 @@
-# Utility functions for this project --------------------------------------
-##' Edited Nov 2019
-##' Malavika Rajeev
+# Utility functions --------------------------------------
 
-## Function for writing out session info at end of each script run
-out_session <- function(logfile = "log.csv", start = NULL, ncores = 1) {
+#' Title
+#'
+#' @param logfile
+#' @param start
+#' @param ncores
+#'
+#' @return
+#' @export
+#'
+#' @examples
+out_session <- function(logfile = "logs/log_local.csv", start = NULL, ncores = 1) {
 
   # find the path (only works if script is sourced or run from cmd line)
   path <- this_file()
@@ -19,9 +26,9 @@ out_session <- function(logfile = "log.csv", start = NULL, ncores = 1) {
     attached <- lapply(out$otherPkgs, function(x) x["Version"])
     loaded <- lapply(out$loadedOnly, function(x) x["Version"])
     pkgs <- data.frame(packages = c(names(loaded), names(attached)),
-                       version = c(unlist(attached), unlist(loaded)),
-                       status = c(rep("attached", length(attached)),
-                                  rep("loaded", length(loaded))))
+                       version = c(unlist(loaded), unlist(attached)),
+                       status = c(rep("loaded", length(loaded)),
+                                  rep("attached", length(attached))))
 
     if (!is.null(start)) {
       jobtime <- as.numeric(Sys.time() - start, units = "mins")
@@ -52,15 +59,33 @@ out_session <- function(logfile = "log.csv", start = NULL, ncores = 1) {
       towrite <- dplyr::bind_rows(existing, toappend)
       write.csv(towrite, logfile, row.names = FALSE)
     } else {
-      write_create(toappend, logfile, write.csv)
+      write_create(toappend, logfile, write.csv, row.names = FALSE)
     }
   }
 }
 
 
+
+#' Title
+#'
+#' @param mb
+#'
+#' @return
+#' @keywords internal
+#'
+#' @examples
 obj_size <- function(mb) {
   ifelse(mb / 1000 > 1, paste(round(mb / 1000, 2), "Gb"), paste(round(mb, 2), "Mb"))
 }
+
+#' Title
+#'
+#' @param min
+#'
+#' @return
+#' @keywords internal
+#'
+#' @examples
 
 timing <- function(min) {
   if (min / 60 > 1) tim <- paste(round(min / 60, 2), "hr")
@@ -75,6 +100,12 @@ timing <- function(min) {
 # https://stackoverflow.com/questions/1815606/determine-path-of-the-executing-script
 # I want the relative path!
 
+#' Title
+#'
+#' @return
+#' @keywords internal
+#'
+#' @examples
 this_file <- function() {
   cmdArgs <- commandArgs(trailingOnly = FALSE)
   match <- sub("--file=", "", cmdArgs[grep("--file=", cmdArgs)])
@@ -95,6 +126,17 @@ this_file <- function() {
   }
 }
 
+#' Title
+#'
+#' @param obj
+#' @param path
+#' @param write_function
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 write_create <- function(obj, path, write_function, ...) {
   dir_name <- dirname(path)
 
@@ -116,11 +158,30 @@ write_create <- function(obj, path, write_function, ...) {
 }
 
 # a ggsave function with arguments switched
+#' Title
+#'
+#' @param plot
+#' @param filename
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggsave_it <- function(plot, filename, ...) {
   ggsave(filename, plot, ...)
 }
 
 # getting safe paths with here without using comma's
+#' Title
+#'
+#' @param path
+#' @param sep
+#'
+#' @return
+#' @export
+#'
+#' @examples
 here_safe <- function(path, sep = "/") {
   path_list <- unlist(strsplit(path, sep))
   do.call(here::here, as.list(path_list))
@@ -128,22 +189,44 @@ here_safe <- function(path, sep = "/") {
 
 # getting safe paths on cluster gpfs (for reading & writing)
 # a linux system so "/" path separators are fine!
+#' Title
+#'
+#' @param path
+#' @param dir
+#'
+#' @return
+#' @export
+#'
+#' @examples
 cl_safe <- function(path, dir = "/scratch/gpfs/mrajeev/MadaAccess") {
   paste0(dir, "/", path)
 }
 
 # setting up cluster vs local (I'm not sure if this will work because of environments)
+#' Title
+#'
+#' @param slurm
+#' @param type
+#' @param local_logfile
+#' @param cluster_logfile
+#' @param mpi
+#'
+#' @return
+#' @export
+#'
+#' @examples
 setup_cl <- function(slurm = Sys.getenv("SLURM_JOB_ID") != "",
-                     args = commandArgs(trailingOnly = TRUE),
-                     local_logfile = "test_local.csv",
-                     cluster_logfile = "test_cluster.csv",
+                     type = commandArgs(trailingOnly = TRUE)[1],
+                     local_logfile = "logs/log_local.csv",
+                     cluster_logfile = "logs/log_cluster.csv",
                      mpi = TRUE) {
   start <- Sys.time()
 
   if (!slurm) {
+
     logfile <- local_logfile
 
-    if (args[1] == "local") {
+    if (type %in% "local") {
       # set up local cluster
       ncores <- parallel::detectCores() - 1
       make_cl <<- function(...) {
@@ -154,9 +237,7 @@ setup_cl <- function(slurm = Sys.getenv("SLURM_JOB_ID") != "",
       cl_size <<- function(cl) {
         foreach::getDoParWorkers()
       }
-    }
-
-    if (args[1] == "serial") {
+    } else {
       # Look for the name of the script and how long it will take in the log
       ncores <- 1
       make_cl <<- function(...) {} # empty func (will return NULL)

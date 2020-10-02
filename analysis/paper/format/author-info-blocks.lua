@@ -81,7 +81,7 @@ local function create_equal_contributors_block(authors, mark)
   local contributors = {
     pandoc.Superscript(mark'equal_contributor'),
     pandoc.Space(),
-    pandoc.Str 'These authors contributed equally to this work.'
+    pandoc.Str 'Joint senior authors.'
   }
   return List:new{pandoc.Para(contributors)}
 end

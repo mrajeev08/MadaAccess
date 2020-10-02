@@ -81,58 +81,70 @@ get_ttimes <- function(friction, shapefile, coords, trans_matrix_exists = TRUE,
 #'     Packages: data.table, foreach
 
 # Pass through base df, otherwise you need all the vectors!
-add_armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, rank_metric,
-                     base_scenario = 0, thresh_met = 0, overwrite = TRUE, random = TRUE) {
+add_armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name,
+                     rank_metric, base_scenario = 0, thresh_met = 0,
+                     ttimes_min = 0, overwrite = TRUE, random = TRUE) {
 
   base <- copy(base_df) # so as not to modify global env
   cand <- copy(cand_df) # so as not to modify global env
+  added <- vector() # to track clinic id's added
 
   setDTthreads(1)
-
-  # Pull in references to files (that way not as big!)
-  cand_list <- vector("list", nrow(cand))
-  for(j in 1:nrow(cand)) {
-    cand_list[[j]] <- raster(cand$candfile[j])
-  }
 
   # Make the directory if it doesn't exist
   if (!dir.exists(dir_name)) dir.create(dir_name, recursive = TRUE)
 
   for (i in 1:max_clinics) {
+
+    if(thresh_ttimes < ttimes_min) {
+      break
+    }
+
     if (random == TRUE) {
 
       # Randomly add clinics
-      ranks <- sample(1:length(cand_list), length(cand_list), replace = FALSE)
+      ranks <- sample(1:nrow(cand), nrow(cand), replace = FALSE)
     } else {
 
       # Dummy sum prop to be replaced inside loop
       ranks <- 0
 
-      while (sum(ranks, na.rm = TRUE) == 0 & length(cand_list) > 1) {
-        foreach(j = iter(cand_list), .combine = c, .packages = "raster") %dopar% {
-          rank_metric(base, cand_ttimes = j[], thresh_ttimes)
+      while (sum(ranks, na.rm = TRUE) == 0 & nrow(cand) > 1) {
+        foreach(j = iter(cand, by = "row"), .combine = c,
+                .packages = "raster") %dopar% {
+          rank_metric(base, cand_ttimes = raster(j$candfile)[], thresh_ttimes)
         } -> ranks
 
         # If no candidates that would shift travel times above the threshold
         # Then adjust threshold down
         if (sum(ranks, na.rm = TRUE) == 0 | length(ranks[ranks >= thresh_met]) == 0) {
           thresh_ttimes <- 0.75 * thresh_ttimes
+          ranks <- 0 # reset to 0 if all below the threshold!
+          # and reset so that candidates are any that were not already selected!
+          cand <- cand_df[!(clinic_id %in% added)]
         }
       }
     }
 
-    clin_chosen <- cand[which.max(ranks), ]
+    clin_chosen <- cand[which.max(ranks)]
+    added <- c(added, clin_chosen$clinic_id)
     metric_val <- max(ranks[!is.infinite(ranks)], na.rm = TRUE)
-    rank_df <- data.table(scenario = i + base_scenario, clin_chosen, metric_val)
-    new_ttimes <- cand_list[[which.max(ranks)]][] # add to base
+    rank_df <- data.table(scenario = i + base_scenario, clin_chosen,
+                          metric_val, thresh_ttimes)
+    new_ttimes <- raster(cand$candfile[which.max(ranks)])[] # add to base
 
-    # Take out the max one
-    cand <- cand[-which.max(ranks), ]
-    cand_list <- cand_list[-which.max(ranks)]
+    # Take out the max one and any that had ranks below threshold metric
+    cand <- cand[-c(which.max(ranks), which(ranks < thresh_met))] # can handle duplicated indices
+
+    if(nrow(cand) == 0) {
+      # reset here if after selection there are no candidates left!
+      cand <- cand_df[!(clinic_id %in% added)]
+      # also the travel time threshold
+      thresh_ttimes <- 0.75 * thresh_ttimes
+    }
 
     # Aggregating to district & commune
     # If ttimes improved then, new ttimes replaces the baseline and catchment
-
     base[, c("ttimes", "catchment") :=
       .(
         fifelse((new_ttimes < ttimes & !is.na(new_ttimes)) |
@@ -168,11 +180,15 @@ add_armc <- function(base_df, cand_df, max_clinics, thresh_ttimes, dir_name, ran
     }
 
     print(paste(
-      i, "clinic added:", clin_chosen$district, "District", clin_chosen$commune,
+      i, "clinics added:", clin_chosen$district, "District", clin_chosen$commune,
       "Commune"
     ))
+    print(paste(
+      "Currently", nrow(cand), "candidates, with a travel time threshold of",
+      round(thresh_ttimes, 2), "mins."
+    ))
   }
-  return(base_df) # return updated baseline
+  return(base) # return updated baseline
 }
 
 # Get grid cell catchments for set of clinics ------------------------------------------------
@@ -191,7 +207,8 @@ update_base <- function(cand_df, base_df, nsplit = 2) {
   names(cand_list) <- cand_df$clinic_id
 
   # Split candidates
-  out <- split(cand_list, rep(1:nsplit, each = (ceiling(length(cand_list) / nsplit))))
+  out <- split(cand_list,
+               rep(1:nsplit, each = (ceiling(length(cand_list) / nsplit))))
 
   multicomb <- function(x, ...) {
     mapply(cbind, x, ..., SIMPLIFY = FALSE)

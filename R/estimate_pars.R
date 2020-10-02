@@ -17,7 +17,7 @@
 #' @param thinning number of iterations to thin at (i.e. save every n steps of each chain)
 #' @param dic whether to estimate the model dic
 #' @param save whether to save the mcmc chains
-#' @param pass_priors a list of priors to pass, uses the \code[pass_priors] functions to gsub out old
+#' @param priors a list of priors to pass, uses the \code[pass_priors] functions to gsub out old
 #' priors
 #' @param seed seed to use for the jags model (if NULL will not be reproducible)
 #' @param suffix another label to pass when saving the object (i.e. to identify the saved files)
@@ -29,7 +29,7 @@
 estimate_pars <- function(data_df, covar_df, model = "random", pars,
                           trans = 1e5, chains = 3, adapt = 500, burn = 100,
                           iter = 10000, thinning = 5,
-                          dic = TRUE, save = FALSE, pass_priors = NULL,
+                          dic = TRUE, save = FALSE, priors = NULL,
                           seed = NULL, suffix = NULL,
                           out_dir = "analysis/out/mods/samps/", ...) {
   mod_name <- paste0(
@@ -50,8 +50,9 @@ estimate_pars <- function(data_df, covar_df, model = "random", pars,
     trans = trans
   ), envir = environment())
 
-  if (!is.null(pass_priors)) {
-    model <- pass_priors(prior_list = pass_priors, uninformed = "dnorm(0, 10^-3)", model)
+  if (!is.null(priors)) {
+    model <- pass_priors(prior_list = priors,
+                         uninformed = "dnorm(0, 0.1)", model)
   }
 
   cat(model)
@@ -98,7 +99,7 @@ estimate_pars <- function(data_df, covar_df, model = "random", pars,
   }
 
   if (save == TRUE) {
-    ## Directory to output results
+    # Directory to output results
     dir_name <- paste0(out_dir, pars$data_source)
 
     if (!dir.exists(dir_name)) {
@@ -119,7 +120,7 @@ estimate_pars <- function(data_df, covar_df, model = "random", pars,
 #' @section Dependencies:
 #'     glue
 #'
-pass_priors <- function(prior_list, uninformed = "dnorm(0, 10^-3)", model) {
+pass_priors <- function(prior_list, uninformed = "dnorm(0, 0.1)", model) {
   for (j in 1:length(prior_list)) {
     prior_lookup <- glue("{names(prior_list)[j]} ~ {uninformed}\n")
     model <- gsub(prior_lookup, prior_list[[j]], model, fixed = TRUE)
@@ -240,7 +241,7 @@ fixed_mod <- function(summed, pop_predict, OD, bites, ttimes, pop, group, catch,
   # Overdispersion
   if (OD == TRUE) {
     OD_priors <-
-      "sigma_e ~ dunif(0, 10)
+      "sigma_e ~ dunif(0, 5)
     tau_e <- pow(sigma_e, -2)
     for(j in 1:nlocs){
       epsilon[j] ~ dnorm(0, tau_e)
@@ -270,7 +271,7 @@ random_mod <- function(summed, pop_predict, OD, bites, ttimes, pop, group, catch
     model <- "model {
 
       # Priors
-      sigma_0 ~ dunif(0, 10) # SD hyperparameter for random intercepts
+      sigma_0 ~ dunif(0, 5) # SD hyperparameter for random intercepts
       tau_0 <- pow(sigma_0, -2)
       for (i in 1:ncatches) {
           alpha[i] ~ dnorm(beta_0, tau_0) # Random intercepts
@@ -307,7 +308,7 @@ random_mod <- function(summed, pop_predict, OD, bites, ttimes, pop, group, catch
     model <- "model {
       # Priors
       beta_0 ~ dnorm(0, 0.1) # Mean hyperparameter for random intercepts
-      sigma_0 ~ dunif(0, 100) # SD hyperparameter for random intercepts
+      sigma_0 ~ dunif(0, 5) # SD hyperparameter for random intercepts
       tau_0 <- pow(sigma_0, -2)
       for (i in 1:ncatches) {
         alpha[i] ~ dnorm(beta_0, tau_0) # Random intercepts
@@ -390,7 +391,7 @@ random_mod <- function(summed, pop_predict, OD, bites, ttimes, pop, group, catch
   # Overdispersion
   if (OD == TRUE) {
     OD_priors <-
-      "sigma_e ~ dunif(0, 10)
+      "sigma_e ~ dunif(0, 5)
       tau_e <- pow(sigma_e, -2)
       for(j in 1:nlocs){
         epsilon[j] ~ dnorm(0, tau_e)

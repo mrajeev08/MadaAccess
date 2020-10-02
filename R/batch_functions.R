@@ -1,12 +1,21 @@
-# ------------------------------------------------------------------------------
-#' Batch functions
-#' Functions for running preds & mods across scenarios
-# ------------------------------------------------------------------------------
-
 #' Run preds for set of scenarios
 #' Description
 #' Details
-#' @param Paramters
+#'
+#' @param lookup
+#' @param ttimes_dir
+#' @param mod_dir
+#' @param pred_type
+#' @param par_type
+#' @param scaled
+#' @param colnames_max
+#' @param colnames_all
+#' @param colnames_j
+#' @param admin_to_keep
+#' @param catch_keep
+#' @param rng_seed
+#' @param sims
+#'
 #' @return Returned
 #' @section Dependencies:
 #'     List dependencies here, i.e. packages and other functions
@@ -26,7 +35,8 @@ run_scenarios <- function(lookup, ttimes_dir = "analysis/out/ttimes/",
 
   foreach(
     j = iter(lookup, by = "row"), .combine = multicomb,
-    .packages = c("data.table", "foreach", "triangle", "glue"), .options.RNG = rng_seed,
+    .packages = c("data.table", "foreach", "triangle", "glue"),
+    .options.RNG = rng_seed,
     .export = c(
       "get_samps", "predict_bites", "predict_deaths", "summarize_mats",
       "constrained_inc", "get_vials"
@@ -233,7 +243,13 @@ run_scenarios <- function(lookup, ttimes_dir = "analysis/out/ttimes/",
 #' Helper for processing matrices
 #' Description
 #' Details
-#' @param Paramters
+#'
+#' @param mats
+#' @param combine_func
+#' @param mean_func
+#' @param upper_func
+#' @param lower_func
+#'
 #' @return Returned
 #' @section Dependencies:
 #'     List dependencies here, i.e. packages and other functions
