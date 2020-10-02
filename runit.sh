@@ -6,7 +6,7 @@ usage=$(cat <<-END
     then in the order they are numbered. Defaults to running all scripts
     in subdirectories of directory R:
         runit -d "R/*/*"
-
+    You can skip a script by including a commented line with the word "skipit" in the script.
     accepted options are:
     -h, --help          show help message and exit
     -d, --dir           the directory path, quoted
@@ -17,6 +17,17 @@ usage=$(cat <<-END
     -q, --quiet         whether to show messages, warnings, and errors from R; defaults to showing all
                         pass the arg to suppress these
     --printErrors       whether to print errors regardless of quiet argument
+    --force             if you want to force the skipped jobs to run
+END
+)
+
+chs=$(cat <<-END
+How do you want to run the cluster jobs?
+    1 | local (in parallel with available cores on your local computer)
+    2 | serial (run without a parallel backend locally)
+    3 | della (you have access to the della cluster and have set up the sub utility cmd)
+    4 | skip  (do not run the cluster jobs.)
+Your choice:
 END
 )
 
@@ -26,7 +37,7 @@ dryrun=0
 cl=0
 FILES="R/*/*.R"
 printerrors=0
-
+skip=1
 while [ "$1" != "" ]; do
     case $1 in
     -d | --dir )           shift
@@ -39,6 +50,8 @@ while [ "$1" != "" ]; do
     --printErrors )         printerrors=1
                             ;;
     -cl | --cluster )       cl=1
+                            ;;
+    --force )               skip=0
                             ;;
     -h | --help )           echo "$usage"
                             exit
@@ -71,52 +84,75 @@ BRed='\033[1;31m' # Bold Red
 
 # Processing stdout & stderr
 
-
 if [ "$cl" = "1" ] && [ "$dryrun" = "0" ];
 then
-    read -p "Running cluster jobs, are you vpn'd in to della (y/n)?" choice
+read -p "$chs" choice
     case "$choice" in
-        y|Y ) echo "Running cluster jobs!";;
-        n|N ) exit;;
+        1|local ) arg=local; echo "Running locally and in parallel!";;
+        2|serial ) arg=serial;echo "Running serially!";;
+        3|della ) arg=della ; echo "Running on della!";;
+        4|skip ) cl=0; echo "Skipping cluster jobs!";;
         * ) echo "invalid";exit;;
     esac
 fi
 
 for f in $FILES
 do
-    if grep -q "functions" <<< "$f";
+    if grep -q "skipit" "$f" ;
     then
+    echo -e "${Red}Skipping job: $f ${NC}"
     continue
     fi
 
-    if grep -q "log_cluster" "$f";
+    if grep -q "sub_cmd" "$f";
     then
         if [ "$cl" = "0" ];
-        then 
-        echo "cluster job not run: $f"
+        then
+            echo "cluster job not run: $f"
         else
-        cmd=$(grep "sub_cmd"  "$f" | cut -f 2 -d =) # sub args from script
-            if [ "$dryrun" = "1" ];
+            if [ "$arg" = "della"  ];
             then
-                echo "cluster cmd: sub $cmd"
+                cmd=$(grep "sub_cmd"  "$f" | cut -f 2 -d =) # sub args from script
+                if [ "$dryrun" = "1" ];
+                then
+                    echo "cluster cmd: sub $cmd -sp $f"
+                else
+                    echo -e "${Blue}Cluster job: $f${NC}"
+                    sub $cmd -sp $f
+                fi
             else
-                sub $cmd
+                if [ "$dryrun" = "1" ];
+                then
+                    echo -e "${Blue}Local job ($arg): $f ${NC}"
+                else
+                    echo -e "${Blue}Local job ($arg): $f ${NC}"
+                    if Rscript --vanilla "$f" "$arg" &> $out;
+                    then
+                        echo  -e "${BCyan}$f completed.${NC}"
+                    else
+                        echo -e "${BRed}$f did not complete!${NC}"
+                        if [ "$printerrors" = "1" ];
+                        then
+                            grep "Error" $out --color
+                        fi
+                    fi
+                fi
             fi
         fi
     else
         if [ "$dryrun" = "1" ];
         then
-            echo "local: $f"
+            echo -e "${Blue}Local job: $f ${NC}"
         else
-            echo "local: $f"
+            echo -e "${Blue}Local job: $f ${NC}"
             if Rscript --vanilla "$f" &> $out;
             then
-                echo  -e "${BCyan}$f completed.${NC}"
+                echo -e "${BCyan}$f completed.${NC}"
             else
                 echo -e "${BRed}$f did not complete!${NC}"
                 if [ "$printerrors" = "1" ];
                 then
-                    grep "Error:" $out --color
+                    grep "Error" $out --color
                 fi
             fi
         fi

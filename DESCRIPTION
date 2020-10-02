@@ -1,0 +1,17 @@
+Package: MadaAccess
+Title: MadaAccess Research Compendium
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Malavika",
+           family = "Rajeev",
+           role = c("aut", "cre"),
+           email = "mrajeev@princeton.edu",
+           comment = c(ORCID = "0000-0001-6030-4995"))
+Description: Research compendium accompanying manuscript on access to human rabies vaccine in Madagascar.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Depends: 
+    R (>= 2.10)
