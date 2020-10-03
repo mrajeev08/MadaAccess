@@ -41,7 +41,7 @@ log_scripts %>%
   dplyr::distinct() -> log_last_ran
 
 # write log out of when scripts last ran
-write_create(log_scripts,
+write_create(log_last_ran,
              here_safe("logs/log_last_ran.csv"),
              write.csv,
              row.names = FALSE)
@@ -64,9 +64,9 @@ pkgs_used %>%
 
 # Write table & bib out for citing in supplement
 write_create(pkgs_used,
-             here_safe("analysis/out/logs/pkgs_used.csv"),
+             here_safe("logs/pkgs_used.csv"),
              write.csv,
              row.names = FALSE)
-write_create(pkgs_used$pkgs,
-             here_safe("docs/bib/refs_pkgs.bib"),
+write_create(pkgs_used$packages,
+             here_safe("analysis/paper/bib/refs_pkgs.bib"),
              write_bib)

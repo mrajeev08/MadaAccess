@@ -12,7 +12,7 @@ split_render(manuscript = "analysis/paper/manuscript.Rmd",
 # Internal steps
 # Convert to pdf (using system & this:
 # stack exchange answer)
-system("rm analysis/paper/subfiles/*.pdf") # clean first
+system("rm -r analysis/paper/subfiles/*.pdf") # clean first
 system("bash analysis/paper/subfiles/word2pdf.sh")
 
 # Push up to google drive (single document)

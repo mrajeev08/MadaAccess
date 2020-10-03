@@ -1,4 +1,5 @@
 #  Access to PEP in Madagascar
+[![DOI](https://zenodo.org/badge/149655745.svg)](https://zenodo.org/badge/latestdoi/149655745)
 
 This repository containes code for the following manuscript:
 

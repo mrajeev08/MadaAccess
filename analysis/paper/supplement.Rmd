@@ -66,7 +66,6 @@ nocite: '@*'
 link-citations: no
 output:
   bookdown::word_document2:
-    toc: true
     pandoc_args:
       - --csl=format/plos-neglected-tropical-diseases.csl
       - --filter=pandoc-crossref
@@ -193,6 +192,7 @@ include_graphics(here("analysis/figs/supplementary/S1.4_lms.jpeg"))
 
 ### *Fig S1.4. Observed estimates of travel times (commune means of patient reported travel times and driving times between point locations).*
 _Predicted by (A) Distance (km) (Euclidean distance between origin and destination for driving times and distance from the commune centroid to the Moramanga ARMC for commune means) (B) Travel time estimates and (C) Travel time estimates weighted by population (for commune means only)._   
+
 \newpage
 
 ### *Table S1.1. R^2^ values from linear models with estimated access metrics predicting either driving times or commune means of patient reported travel times.*
@@ -203,7 +203,7 @@ kable(S1.1_table, col.names = c("Predictor", "Driving times",
       digits = 3)
 ```
   
- \newpage
+\newpage
  
 
 ```{r fig S1.5 output ttimes A district B commune}
