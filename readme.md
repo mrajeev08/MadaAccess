@@ -57,7 +57,7 @@ To run the steps which were completed on a cluster, you will need to pass the `-
 ```
 and then enter 1 to run the scripts in parallel or 2 to run serially on your local computer. 
 
-Some of these analysis steps require significant compute time & RAM, see the requirements [here](). If you do have ssh access to a remote cluster with a slurm scheduler and want to run jobs, I wrote this() shell utility to run the cluster jobs which you could adapt accordingly.
+Some of these analysis steps require significant compute time & RAM, see the requirements [here](logs/log_last_ran.csv). If you do have ssh access to a remote cluster with a slurm scheduler and want to run jobs, I wrote this() shell utility to run the cluster jobs which you could adapt accordingly.
 
 To see the help for `runit.sh`, run `./runit.sh -h` on the command line. 
 
