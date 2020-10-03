@@ -3,7 +3,7 @@
 
 
 # And make sure all cluster results are pulled down (may take a bit!) (only will pull down if newer than local ones
-# rsync -rLvzt --update --exclude "*.DS_Store*"  mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/MadaAccess/analysis/out/* ~/Documents/Projects/MadaAccess/analysis/out
+# rsync -rLvzt --update --exclude "*.DS_Store*" --exclude "ttimes/candidates/*" mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/MadaAccess/analysis/out/* ~/Documents/Projects/MadaAccess/analysis/out
 
 if [ ! -d "zenodo" ];
 then

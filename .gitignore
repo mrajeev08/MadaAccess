@@ -1,5 +1,5 @@
 .Rproj.user
-*.Rproj
+.Rproj
 .Rhistory
 .RData
 .Ruserdata
@@ -24,4 +24,5 @@ docs
 analysis/out/
 analysis/slurm/
 zenodo
-logs
+zenodo.zip
+vignettes
