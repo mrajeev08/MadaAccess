@@ -1,9 +1,9 @@
 #  Access to PEP in Madagascar
-[![DOI](https://zenodo.org/badge/149655745.svg)](https://zenodo.org/badge/latestdoi/149655745)
+[![DOI](https://zenodo.org/badge/149655745.svg)](https://zenodo.org/badge/latestdoi/149655745) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4064313.svg)](https://doi.org/10.5281/zenodo.4064313)
 
 This repository accompanies the manuscript:
 
-*Rajeev, M. et al. How access to care shapes disease burden: the current impact of post-exposure prophylaxis and potential for expanded access to prevent human rabies deaths in Madagascar*. [add medrxiv link once up]
+*Rajeev, M. et al. How access to care shapes disease burden: the current impact of post-exposure prophylaxis and potential for expanded access to prevent human rabies deaths in Madagascar*. [medrxiv preprint here](https://www.medrxiv.org/content/10.1101/2020.10.02.20205948v1)
 
 Code to reproduce the analyses and figures are in [analysis/src](analysis/src). The Rmarkdown document and associated supporting files to reproduce the manuscript are in [analysis/paper](analysis/paper).
 
