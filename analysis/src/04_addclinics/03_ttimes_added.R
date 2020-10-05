@@ -6,7 +6,6 @@
 # ------------------------------------------------------------------------------
 
 # sub_cmd=-sn -t 12 -n 12 -jn addclinics -wt 5m
-# skipit
 
 # Set it up
 source(here::here("R", "utils.R"))

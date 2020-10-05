@@ -4,7 +4,6 @@
 # ------------------------------------------------------------------------------
 
 # sub_cmd:=-t 12 -n 31 -jn candidates -wt 2m  -md "gdal"
-# skipit
 
 # Set it up
 source(here::here("R", "utils.R"))

@@ -4,7 +4,6 @@
 
 library(dplyr)
 library(readr)
-library(knitr)
 library(lubridate)
 source(here::here("R", "utils.R"))
 
@@ -18,7 +17,7 @@ log_local <- read_csv("logs/log_local.csv")
 
 # Pull down log from cluster
 # Make sure you're vpn'd in before doing this
-# system("rsync -rvlzt --update mrajeev@della.princeton.edu:~/MadaAccess/log_cluster.csv ~/Documents/Projects/MadaAccess/logs/")
+system("rsync -rvlzt --update mrajeev@della.princeton.edu:~/MadaAccess/logs/log_cluster.csv ~/Documents/Projects/MadaAccess/logs/")
 log_cluster <- read_csv("logs/log_cluster.csv")
 
 # Process the logs to get the package list
@@ -48,9 +47,13 @@ write_create(log_last_ran,
 
 log_scripts %>%
   ungroup() %>%
-  select(packages, version, status) %>%
+  dplyr::select(packages, version, status) %>%
   distinct() %>%
-  filter(status == "attached") %>%
+  filter(status == "attached" | (packages %in% c("Rmpi", # some loaded pkgs also
+                                                  "rgdal",
+                                                  "scales",
+                                                  "ggbeeswarm",
+                                                  "ggh4x"))) %>%
   group_by(packages) %>%
   filter(version == min(version)) -> pkgs_used
 

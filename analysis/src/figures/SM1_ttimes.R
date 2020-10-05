@@ -1,6 +1,6 @@
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 #' SM 1. GIS inputs and comparison to data
-# ------------------------------------------------------------------------------------------------ #
+# ------------------------------------------------------------------------------
 
 source(here::here("R", "utils.R"))
 start <- Sys.time()
@@ -29,7 +29,7 @@ mada_districts <- st_read(here_safe("analysis/out/shapefiles/mada_districts_simp
 friction <- raster(here_safe("data-raw/out/rasters/friction_mada_masked.tif"))
 pop1x1 <- raster(here_safe("data-raw/out/rasters/wp_2015_1x1.tif"))
 
-# Plotting GIS inputs (friction + pop) --------------------------------------------------------
+# Plotting GIS inputs (friction + pop) -----------------------------------------
 friction_df <- as.data.frame(friction, xy = TRUE)
 pop_df <- as.data.frame(pop1x1, xy = TRUE)
 
@@ -80,7 +80,7 @@ write_create(
   width = 12
 )
 
-# Raw data: groundtruthing ----------------------------------------------------------------------
+# Raw data: groundtruthing -----------------------------------------------------
 gtruth <- read.csv(here_safe("analysis/out/ttimes/gtruth_ttimes.csv"))
 baseline <- fread(here_safe("analysis/out/ttimes/base/grid_df.gz"))
 
@@ -167,7 +167,7 @@ write_create(
   height = 7
 )
 
-# Mode of travel ------------------------------------------------------------------------------
+# Mode of travel ---------------------------------------------------------------
 gtruth %>%
   filter(type != "point", !is.na(mode)) %>%
   group_by(mode) %>%
@@ -198,7 +198,7 @@ write_create(
   width = 6
 )
 
-# Comparing different metrics of access -------------------------------------------------------
+# Comparing different metrics of access ----------------------------------------
 # Plots comparing ttimes_wtd / unwtd / distance @ commune/district/grid scales
 gtruth %>%
   filter(type == "commune_wtd", !is.na(ttimes_reported)) %>%
@@ -286,7 +286,7 @@ metric <- c("Weighted travel times (hrs)", "Unweighted travel times (hrs)", "Dis
 comp <- data.frame(metric, points, communes)
 write.csv(comp, "analysis/out/stats/access_met_r2.csv")
 
-# Plotting GIS outputs (ttimes @ grid/district/commune) ------------------------------------------
+# Plotting GIS outputs (ttimes @ grid/district/commune) ------------------------
 ttime_cols <- c(
   "#fff7f3", "#fde0dd", "#fcc5c0", "#fa9fb5", "#f768a1", "#dd3497", "#ae017e",
   "#7a0177", "#49006a"

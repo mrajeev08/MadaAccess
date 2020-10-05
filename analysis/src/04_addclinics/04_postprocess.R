@@ -3,7 +3,6 @@
 # ------------------------------------------------------------------------------
 
 # sub_cmd=-sn -t 12 -n 5 -jn process -wt 2m
-# skipit
 
 # Set it up
 source(here::here("R", "utils.R"))

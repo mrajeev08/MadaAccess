@@ -214,6 +214,54 @@ mada_map_A <- ggplot() +
   ) +
   theme_map(font_size = 10)
 
+
+striking_img <- ggplot() +
+  geom_sf(
+    data = mada_districts,
+    aes(fill = ctar),
+    color = "white", alpha = 0.5
+  ) +
+  geom_bezier2(
+    data = filter(ctar_todist_bez, count > 4, distcode != dist_ctar),
+    aes(
+      x = long, y = lat, group = fct_reorder(group, total_lines, .desc = TRUE),
+      color = ctar, size = ifelse(index == 1, 0.05, size_lines(count))
+    ), n = 1000,
+    alpha = 0.8
+  ) +
+  geom_point(
+    data = ctar_pts, aes(
+      x = long_cent, y = lat_cent,
+      size = size_pts(count), fill = ctar
+    ),
+    shape = 21, color = "black", stroke = 1.2
+  ) +
+  geom_point(
+    data = dist_pts, aes(
+      x = long, y = lat, fill = ctar,
+      size = size_pts(count)
+    ),
+    shape = 21, color = "white", alpha = 1, stroke = 0.5
+  ) +
+  geom_point(
+    data = filter(ctar_all, exclude == 1), aes(x = long_cent, y = lat_cent),
+    shape = 1, stroke = 1, color = "black"
+  ) +
+  scale_discrete_manual(aes = "stroke", values = c(1.2, 0.5), guide = "none") +
+  scale_color_manual(values = catch_fills, guide = "none") +
+  scale_fill_manual(values = catch_cols, guide = "none") +
+  scale_size_identity("Reported bites", guide = "none") +
+  theme_map(font_size = 10)
+
+# for plos
+write_create(
+  striking_img,
+  here_safe("analysis/figs/striking_img.tiff"),
+  ggsave_it,
+  dpi = 400, height = 8.75, width = 7.5,
+  compression = "lzw", type = "cairo"
+)
+
 # Mapping raw data: Moramanga at commune level ---------------------------------
 moramanga %>%
   mutate(date_reported = ymd(date_reported)) %>%

@@ -10,8 +10,8 @@
 ## -q for quietly
 
 # Push up the scripts to home
-rsync -rLvztq --update --exclude '*.git' --exclude '.gitignore' --exclude "data-raw/raw*" --exclude "*.DS_Store*" --exclude ".Rproj*" --exclude analysis/out --exclude analysis/paper --exclude "renv*" --exclude ".Rprofile" figs --exclude docs --exclude archive --exclude ~/Documents/Projects/MadaAccess mrajeev@della.princeton.edu:~/
+rsync -rLvzt --update --exclude '*.git' --exclude '.gitignore' --exclude "data-raw/raw*" --exclude "*.DS_Store*" --exclude ".Rproj*" --exclude analysis/out --exclude analysis/paper --exclude "renv*" --exclude ".Rprofile" --exclude docs --exclude archive --exclude "zenodo*" ~/Documents/Projects/MadaAccess mrajeev@della.princeton.edu:~/
 
 # Push up the outputs to scratch (so always working from there for outputs)
-rsync -rLvztq --update --exclude "*.DS_Store*" ~/Documents/Projects/MadaAccess/analysis/out mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/MadaAccess/analysis/
+rsync -rLvzt --update --exclude "*.DS_Store*" ~/Documents/Projects/MadaAccess/analysis/out mrajeev@della.princeton.edu:/scratch/gpfs/mrajeev/MadaAccess/analysis/
 

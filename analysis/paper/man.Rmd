@@ -146,10 +146,6 @@ one_per_comm <- sort(natl_preds$scenario, decreasing = TRUE)[2]
 
 no_figs <- FALSE
 if(no_figs) include_graphics <- function(x, ...) { return(invisible(NULL)) }
-
-# for logging dependencies
-out_session("logs/log_local.csv", start = start, 
-            ncores = 1)
 ```
 
 \newpage
@@ -457,8 +453,7 @@ Our study suggests that rabies deaths in Madagascar disproportionately occur in 
 
 # Acknowledgements 
 
-We thank all the clinicians and staff at the ARMC across the country. We are grateful to IPM and the Ministry of Public Health who collect and maintain data on PEP provisioning. In particular, we thank the GIS unit for assistance with spatial data, Michael Luciano Tantely for sharing driving time data, and Claire Leblanc, Rila Ratovoson, and Daouda Kassie for sharing results of their work in the Moramanga District. In addition, we thank Jean Hyacinthe Randrianarisoa, Ranaivoarimanana, Fierenantsoa Randriamahatana, Esther Noiarisaona, Cara Brook, Amy Winter, Christian Ranaivoson, John Friar, and Amy Wesolowski for assistance. This work was funded by grants from the Center for Health and Wellbeing and the Department of Ecology and Evolutionary Biology at Princeton University to CJEM and MR. MR is supported by an NSF Graduate Research Fellowship. KH is supported by the Wellcome Trust (207569/Z/17/Z). 
-
+We thank all the clinicians and staff at the ARMC across the country. We are grateful to IPM and the Ministry of Public Health who collect and maintain data on PEP provisioning. In particular, we thank the GIS unit for assistance with spatial data, Michael Luciano Tantely for sharing driving time data, and Claire Leblanc, Rila Ratovoson, and Daouda Kassie for sharing results of their work in the Moramanga District. In addition, we thank Jean Hyacinthe Randrianarisoa, Ranaivoarimanana, Fierenantsoa Randriamahatana, Esther Noiarisaona, Cara Brook, Amy Winter, Christian Ranaivoson, John Friar, and Amy Wesolowski for assistance. 
 \newpage
 
 # References 
