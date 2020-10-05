@@ -26,3 +26,5 @@ analysis/slurm/
 zenodo
 zenodo.zip
 vignettes
+logs/log_cluster.csv
+logs/log_local.csv
