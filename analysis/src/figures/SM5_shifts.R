@@ -45,7 +45,7 @@ max_csb <- max(commune_maxcatch$scenario)
 scenario_labs <- c(
   "Baseline\n (N = 31)", glue("1 per district\n (+ {114 - 31})"), "+ 200",
   "+ 600", glue("Max clinics added\n (+ {max_added})"),
-  glue("All addtl CSB II\n (+ {max_csb})")
+  glue("All addtl primary clinics\n (+ {max_csb})")
 )
 scenario_levs <- c(0, 114 - 31, 200, 600, max_added, max_csb)
 names(scenario_labs) <- scenario_levs
@@ -613,7 +613,7 @@ step_cols <- rev(c("#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292
 step_breaks <- c(-1, 0, 83, 200, 400, 800, 1000, max_added, max_csb)
 step_labs <- c(
   "baseline", "+ 1 - 83", "+ 84 - 200", "+ 201 - 400", "+ 401 - 600", "+ 601 - 1200",
-  glue("+ 1201 - {max_added}"), "All addtl CSB IIs"
+  glue("+ 1201 - {max_added}"), "All addtl primary clinics"
 )
 names(step_cols) <- step_labs
 

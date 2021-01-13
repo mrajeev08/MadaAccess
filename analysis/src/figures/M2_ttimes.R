@@ -116,7 +116,8 @@ gtruth_comp_C <- ggplot(
     breaks = log(c(5, 25, 100) + 5), labels = c("5", "25", "100+"),
     guide = "legend", name = "No. of observations \n (for patient reported \n travel times)"
   ) +
-  geom_smooth(method = "lm", aes(color = type, fill = type), alpha = 0.5, size = 1) +
+  geom_smooth(method = "lm", aes(color = type), fill = NA,
+              alpha = 0.5, size = 1) +
   scale_shape_manual(
     values = c(21, 22), labels = c("Patient reported", "Driving times"),
     name = "Type of travel time estimate"

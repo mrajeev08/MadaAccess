@@ -2,51 +2,9 @@
 title: "Supplementary Appendix"
 subtitle: "How geographic access to care shapes disease burden: the current impact of post-exposure prophylaxis and potential for expanded access to prevent human rabies deaths in Madagascar"
 author:
-  - Malavika Rajeev:
+  - Malavika Rajeev et al.:
       email: mrajeev@princeton.edu
-      institute: [Princeton]
       correspondence: true
-  - Hélène Guis:
-      institute: [IPMepi, cirad, astre, fofifa]
-      correspondence: false
-  - Glenn Edosoa:
-      institute: [OMS]
-      correspondence: false
-  - Chantal Hanitriniaina:
-      institute: [UoA]
-      correspondence: false
-  - Anjasoa Randrianarijaona:
-      institute: [IPMepi]
-      correspondence: false
-  - Reziky Tiandraza Mangahasimbola:
-      institute: [IPMepi]
-      correspondence: false
-  - Fleur Hierink:
-      institute: [Geneva]
-      correspondence: false
-  - Ravo Ramiandrasoa:
-      institute: [IPMvacc]
-      correspondence: false
-  - José Nely:
-      institute: [smeetn]
-  - Jean-Michel Heraud:
-      institute: [IPMviro]
-      correspondence: false
-  - Soa Fy Andriamandimby:
-      institute: [IPMviro]
-      correspondence: false
-  - Laurence Baril:
-      institute: [IC]
-      correspondence: false
-      equal_contributor: "yes"
-  - C.J.E. Metcalf:
-      institute: [Princeton]
-      correspondence: false
-      equal_contributor: "yes"
-  - Katie Hampson:
-      institute: [Glasgow]
-      correspondence: false
-      equal_contributor: "yes"
 institute:
   - Princeton: Department of Ecology and Evolutionary Biology, Princeton University, Princeton, United States
   - IPMepi: Epidemiology and Clinical Research Unit, Institut Pasteur de Madagascar, Antananarivo, Madagascar
@@ -66,9 +24,9 @@ nocite: '@*'
 link-citations: no
 output:
   bookdown::word_document2:
+    toc: true
     pandoc_args:
       - --csl=format/plos-neglected-tropical-diseases.csl
-      - --filter=pandoc-crossref
       - --lua-filter=format/scholarly-metadata.lua
       - --lua-filter=format/author-info-blocks.lua
       - --lua-filter=format/pagebreak.lua

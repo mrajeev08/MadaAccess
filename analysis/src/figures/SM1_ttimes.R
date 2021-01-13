@@ -236,7 +236,7 @@ S1.4_lms <- ggplot(
   aes(x = value, y = mean, color = type, shape = type), alpha = 0.75
 ) +
   geom_point() +
-  geom_smooth(method = "lm", aes(color = type, fill = type)) +
+  geom_smooth(method = "lm", aes(color = type), fill = NA) +
   scale_shape_discrete(
     name = "Type of estimate",
     labels = c(

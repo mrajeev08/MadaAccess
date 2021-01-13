@@ -18,6 +18,7 @@ library(glue)
 # Baseline burden (univariate) ----------------------------------------------------------------
 base_se_admin <- fread(here_safe("analysis/out/sensitivity/burden_baseline_se.gz"))
 baseline <- fread(here_safe("analysis/out/preds/admin_preds.gz"))[scenario == 0]
+se_pars <-  fread(here_safe("analysis/out/sensitivity/se_pars.csv"))
 
 # At national level ----------------------------------------------------------------
 # Labels and colors
@@ -53,20 +54,65 @@ base_se$vary <- factor(base_se$vary, levels = rev(c(
   "p_rabid", "p_death", "human_exp"
 )))
 
-base_natl_A <- ggplot(
+# range of pars used
+se_pars %>%
+  pivot_longer(exp_min:beta_0) %>%
+  mutate(value = case_when(name %in% c("exp_min", "exp_max") ~ round(value*1e5, 2),
+                           !(name %in% c("exp_min", "exp_max")) ~ round(value, 2))) %>%
+  filter(!(name %in% c("exp_max", "p_rab_max"))) %>%
+  mutate(name = case_when(name %in% c("exp_min") ~ "human_exp",
+                          name %in% c("p_rab_min") ~ "p_rabid",
+                          TRUE ~ name)) %>%
+  group_by(scale, par = name) %>%
+  summarize(upper = max(value), lower = min(value),
+            dummy = "") -> pars
+# order them correctly & name them correctly
+pars$par <- factor(pars$par,
+                   levels = c("beta_ttimes", "beta_0", "sigma_e", "rho_max",
+                              "p_rabid", "p_death", "human_exp")
+)
+pars$par <- fct_recode(pars$par,
+                       `beta[t]` = "beta_ttimes", `beta[0]` = "beta_0",
+                       `sigma[e]` = "sigma_e", `rho[max]` = "rho_max",
+                       `p[rabid]` = "p_rabid", `p[death]` = "p_death",
+                       `E[i]` = "human_exp"
+)
+
+base_pars_A <-
+  ggplot(
+    data = pars,
+    aes(x = dummy, color = scale, fill = scale)
+  ) +
+  geom_errorbar(aes(ymax = upper, ymin = lower), position = position_dodge(width = 0.1)) +
+  scale_y_continuous(labels = function(y) round(y, 2)) +
+  scale_color_manual(values = model_cols, guide = "none") +
+  facet_wrap(~par, ncol = 1, scales = "free", strip.position = "left",
+             labeller = labeller(par = label_parsed)) +
+  coord_flip() +
+  labs(y = "Range used", x = "Parameter", tag = "A") +
+  theme_minimal_hgrid() +
+  theme(strip.text.y.left = element_text(angle = 0),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid.major = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text = element_text(size = 10),
+        panel.spacing = unit(0.01, "lines"),
+        )
+
+base_natl_B <- ggplot(
   data = filter(base_se, name == "deaths_mean"),
   aes(x = vary, y = value, color = scale, fill = scale)
 ) +
   geom_ribbon(aes(ymax = max, ymin = min), color = NA, alpha = 0.25) + # dummy to get legend right
   geom_point(position = position_dodge(width = 0.25)) +
   geom_errorbar(aes(ymax = max, ymin = min), position = position_dodge(width = 0.25)) +
-  scale_x_discrete(labels = par_labs) +
+  scale_x_discrete(labels = rep("", length(par_labs))) +
   scale_color_manual(
     values = model_cols, labels = scale_labs, aesthetics = c("color", "fill"),
     name = "Scale"
   ) +
   coord_flip() +
-  labs(y = "Average deaths (national)", x = "Parameter", tag = "A") +
+  labs(y = "Average deaths (national)", x = "", tag = "B") +
   theme_minimal_grid()
 
 # At admin level ----------------------------------------------------------------
@@ -99,7 +145,7 @@ base_admin_summ$vary <- fct_recode(base_admin_summ$vary,
   `p[rabid]` = "p_rabid", `p[death]` = "p_death",
   `E[i]` = "human_exp"
 )
-base_admin_B <- ggplot(data = base_admin_summ, aes(x = ttimes, y = base, color = scale)) +
+base_admin_C <- ggplot(data = base_admin_summ, aes(x = ttimes, y = base, color = scale)) +
   geom_line(alpha = 0.75) +
   geom_ribbon(aes(ymax = min, ymin = max, fill = scale), color = NA, alpha = 0.25) +
   scale_color_manual(
@@ -110,7 +156,7 @@ base_admin_B <- ggplot(data = base_admin_summ, aes(x = ttimes, y = base, color =
     scales = "free_x",
     labeller = labeller(scale = c("Commune" = "", "District" = ""), vary = label_parsed)
   ) +
-  labs(y = "Deaths per 100k", x = "Travel times (hrs)", tag = "B") +
+  labs(y = "Deaths per 100k", x = "Travel times (hrs)", tag = "C") +
   theme_minimal_hgrid() +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
@@ -118,8 +164,11 @@ base_admin_B <- ggplot(data = base_admin_summ, aes(x = ttimes, y = base, color =
     panel.grid = element_line(color = "white", size = 0.5)
   )
 
+S6.1_base_se <- base_pars_A +
+  base_natl_B +
+  base_admin_C +
+  plot_layout(guides = "collect", widths = c(1.25, 2, 2))
 
-S6.1_base_se <- base_natl_A + base_admin_B + plot_layout(guides = "collect")
 write_create(S6.1_base_se,
   here_safe("analysis/figs/supplementary/S6.1_base_se.jpeg"),
   ggsave_it,

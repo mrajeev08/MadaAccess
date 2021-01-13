@@ -66,7 +66,6 @@ output:
   bookdown::word_document2:
     pandoc_args:
       - --csl=format/plos-neglected-tropical-diseases.csl
-      - --filter=pandoc-crossref
       - --lua-filter=format/scholarly-metadata.lua
       - --lua-filter=format/author-info-blocks.lua
       - --lua-filter=format/pagebreak.lua

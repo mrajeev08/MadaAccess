@@ -12,13 +12,13 @@ library(ggplot2)
 library(dplyr)
 library(cowplot)
 library(patchwork)
-source(here_safe("R/predict_functions.R"))
 
 # Baseline deaths mean ---------------------------------------------------------
 baseline <- fread(here_safe("analysis/out/preds/admin_preds.gz"))[scenario == 0]
 base_scaled <- fread(here_safe("analysis/out/sensitivity/burden_baseline_scaled.gz"))
 add_scaled <- fread(here_safe("analysis/out/sensitivity/burden_addclinics_scaled.gz"))
 add_base <- fread(here_safe("analysis/out/preds/natl_preds.gz"))
+se_pars <-  fread(here_safe("analysis/out/sensitivity/se_pars.csv"))
 
 # Baseline ----------------------------------
 scaling_labs <- c(

@@ -130,21 +130,30 @@ throughput_cols <- c("0" = "white", "< 10" = '#edf8fb', "< 20" = '#b3cde3',
                      "< 40" = '#8c96c6', "< 80" = '#8856a7', "< 100" = '#810f7c')
 throughput_brks <- c(-0.1, 0.1, 10, 20, 40, 80, 100)
 throughput$date_reported <- ymd(throughput$date_reported)
+throughput$include_15[throughput$include_15 == 0] <- NA
+throughput$include_15[is.na(throughput$no_patients) & throughput$include_15 == 1] <- 0
 
 throughput_A <- ggplot(data = throughput, aes(x = date_reported, y = reorder(ctar, include_15))) +
-  geom_tile(aes(fill = ifelse(include_15 == 0, NA, as.character(ctar)))) +
-  scale_fill_manual(values = catch_cols, guide = "none") +
+  geom_tile(aes(fill = no_patients)) +
   xlim(ymd("2014-01-01"), ymd("2017-12-31")) +
+  scale_fill_distiller(trans = "sqrt", breaks = c(0, 10, 50), direction = 1,
+                       name = "Number of patients") +
   theme_minimal_hgrid() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
   xlab("Year") +
   ylab("ARMC") +
   labs(tag = "A")
 
-rep_B <- ggplot(data = reporting, aes(x = reorder(ctar, include_15), y = include_15,
+reporting %>%
+  group_by(ctar) %>%
+  summarize(min = min(include_15), max = max(include_15),
+            include_15 = mean(include_15),) -> rep_summ
+
+rep_B <- ggplot(data = rep_summ, aes(x = reorder(ctar, include_15), y = include_15,
                                               color = ctar)) +
-  geom_boxplot() +
-  geom_point(alpha = 0.5) +
+  geom_linerange(aes(ymin = min, ymax = max, color = ctar)) +
+  geom_point(data = reporting, aes(x = ctar, y = include_15, color = ctar),
+             alpha = 0.5, size = 3) +
   labs(y = "Estimated submission \n of forms", x = "", tag = "B") +
   geom_hline(yintercept = 0.25, linetype = 2, color = "grey") +
   coord_flip() +
