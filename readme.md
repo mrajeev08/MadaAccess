@@ -46,16 +46,20 @@ or to just make the figures:
 ./runit.sh -d "analysis/src/figures/*" --printErrors -q
 ```
 
-or to make the paper (word doc outputs):
-```
-./runit.sh -d "analysis/src/make_paper.R" --printErrors -q
-```
-
 To run the steps which were completed on a cluster, you will need to pass the `-cl` argument:
 ```
 ./runit.sh -d "analysis/src/*/*" --printErrors -q -cl
 ```
 and then enter 1 to run the scripts in parallel or 2 to run serially on your local computer. 
+
+
+The easiest way to make the paper is in it's html format. To do so in R run:
+```
+rmarkdown::render(here("analysis/paper/manuscript.Rmd"), 
+                  "bookdown::html_document2",
+                  output_dir = here("analysis/paper"))
+```
+
 
 Some of these analysis steps require significant compute time & RAM, see the requirements [here](logs/log_last_ran.csv). If you do have ssh access to a remote cluster with a slurm scheduler and want to run jobs, I wrote this() shell utility to run the cluster jobs which you could adapt accordingly.
 

@@ -14,7 +14,7 @@ We thank the editor and the reviewers for their constructive feedback and close 
 
 -   The authors performed the well-designed epidemiological analysis; given the distance from the residence to the PEP accessibility and assess the rabies risk. There is only once concern arising how much the prevalence (or exposure to residence) of rabid dogs in each area was included into this study. The authors also pointed out the uncertainty of underlying rabies expose according to the sensitivity analysis. This should be more clearly describe in the manuscript, with a validity of the corresponding parameters used in the current study.
 
-    *We thank the reviewer for their helpful feedback. We have revised the methods and results section based on this and another reviewer's feedback. The methods section describing the decision tree now forefronts the parameter estimates with their sources, The results section now maps onto the major findings of each of our analyses, and hopefully clarifies the results of each section. We have also added a section to the discussion to regarding the validity of our assumptions (see lines xx - yy).* <!-- Done -->
+    *We thank the reviewer for their helpful feedback. We have revised the methods and results section based on this and another reviewer's feedback. The methods section describing the decision tree now forefronts the parameter estimates with their sources. The results section now maps onto the major findings of each of our analyses, and hopefully clarifies the results of each section. We have also added a sentence to the discussion to regarding the validity of our assumptions (see lines 624 - 626).* <!-- Done -->
 
 -   Regarding Lines 275-281, the authors indicate the bases with adequate references how to reach the idea that human-to-dog rabies ratio are both positively and negatively correlated with human populations.
 
@@ -26,17 +26,17 @@ We thank the editor and the reviewers for their constructive feedback and close 
 
 -   In Lines 523-525, the authors discuss the potential risk factor of human rabies in Madagascar. These are very general and commonly argued in anywhere. Don't the authors can find the supportive reasons or data for these assumptions? Specifically, box1 may provide the example of association between area and awareness to the risk. We would like to know how these gaps may arise.
 
-    *We have reorganized this discussion point, and and point to a recent KAP study in the Moramanga District that identified such barriers to PEP (see lines xx - yy). We also discuss the challenges in identifying these risk factors and link this to the case studies in Box 1 (lines xx).* <!-- Done -->
+    *We have reorganized this discussion point, and and point to a recent KAP study in the Moramanga District that identified such barriers to PEP (see lines 644 - 649). We also discuss the challenges in identifying these risk factors and link this to the case studies in Box 1 (lines 652 - 656).* <!-- Done -->
 
 ### Reviewer 2
 
 -   The authors describe an approach to model the efficacy of different PEP distribution scenarios scenarios interesting and new. The approach is based on several steps and each steps is complex and relies on a set of assumptions. Because it would be difficult to collect empirical data (e.g. in a cluster randomized trial), I think the study is worth publishing. I appreciate that a lot of details and supplementary information is provided and that the source code and data is public. My main critic points are: i) due to the complexity and amount and diversity of information (the appendix alone has 47 pages) the authors should guide the reader better through the manuscript. Some suggestions are provided below, ii) the results are based on many assumptions -- I am not sure if the authors are not a bit too optimistic with their approach. I think the next step should be to try to validate the model before "Our framework could be used to guide PEP expansion and improve targeting of interventions."
 
-    *We thank the reviewer for their helpful feedback and have revised the manuscript accordingly (see specific points regarding revisions to the methods and results in response to points below). Additionally, we have revised the text in the abstract (lines xx - yy) and in the conclusion (lines xx - xx) to state that in the context of countries becoming eligible for GAVI expansion, this framework may be a useful way to move forward in the absence of baseline data on human rabies risk, and surveillance should be improved to evaluate the impacts of expanding PEP. We also added a point that in other settings, addressing other barriers to PEP access may be more effective (i.e. direct costs of PEP in settings that charge for PEP) (see lines xx - yy in the 'Broader context' section of the discussion).* <!-- Done -->
+    *We thank the reviewer for their helpful feedback and have revised the manuscript accordingly (see specific points regarding revisions to the methods and results in response to points below). Additionally, we have revised the text in the abstract (lines 63 - 68) and in the conclusion (line 764) to state that in the context of countries becoming eligible for GAVI expansion, this framework may be a useful way to move forward in the absence of baseline data on human rabies risk, and surveillance should be improved to evaluate the impacts of expanding PEP. We also added a point that in other settings, addressing other barriers to PEP access may be more effective (i.e. direct costs of PEP in settings that charge for PEP) (see lines 701 - 704 in the 'Broader context' section of the discussion).* <!-- Done -->
 
 -   Ideas to guide the reader a bit better through the manuscript: - One weakness of the paper is that the reader has to jump back and forth to get all the information. Different parameters are introduced over 5 pages. Maybe the method section could be rearranged and a bit sharpened. E.g. p[rabid] is introduced in line 201. In line 208 (a figure legend) it is explained that R[rabid] is constrained. In line 225 it is explained which range was used to express uncertainty about P[rabies], in line 229 the constraining formula is provided and finally in Table 1 the values distribution and reference for this parameter is provided. I don't know if the constraint is so important that it has to be mentioned to this extend. ;Maybe a footnote in table1 would be sufficient. If not, there is certainly a better way to arrange the method section that it can be introduced at only one (maybe 2) occasion.
 
-    *We have revised the methods section accordingly (lines xx - yy). Now all parameters are introduced in Table 1 with their sources and details, and Figure 1 describes how they are used in the decision tree framework. We have moved Table 1 up to the top of the section and describe the constraint on p[rabid] in a footnote and removed this from the figure description. The minor details about both p[rabid] and rho[max] are now described in the `Description` column of the table.* <!-- Done -->
+    *We have revised the methods section accordingly (lines 242 - 277). Now all parameters are introduced in Table 1 with their sources and details, and Figure 1 describes how they are used in the decision tree framework. We have moved Table 1 up to the top of the section and describe the constraint on p[rabid] in a footnote and removed this from the figure description. The minor details about both p[rabid] and rho[max] are now described in the `Description` column of the table.* <!-- Done -->
 
 -   Same with bite incidence. The result section shows some graphs and a lot of information related to model fit. But the reader is likely more interested in the estimated mean incidence. But this value is reported is not in this but in the next paragraph.
 
@@ -44,7 +44,7 @@ We thank the editor and the reviewers for their constructive feedback and close 
 
 -   Terminology could be simplified. E.g. using consistently either commune or CSB2 in results and discussion to describe this level.
 
-    *We have added a short glossary to guide the reader through the manuscript (lines xx - yy) and also changed all mentions of CSB-II to primary clinic and CSB-I to secondary clinic, and use the term clinics throughout to refer to health facilities.* <!-- Done -->
+    *We have added a short glossary to guide the reader through the manuscript (lines 42 - 60) and also changed all mentions of CSB-II to primary clinic and CSB-I to secondary clinic, and use the term clinics throughout to refer to health facilities.* <!-- Done -->
 
 -   The appendix is quite long. A table of content would be helpful
 
@@ -60,11 +60,11 @@ We thank the editor and the reviewers for their constructive feedback and close 
 
 -   Out-of-stock is briefly mentioned in this section but I think it is worth to discuss also that the supply chain is getting much more complicated if PEP hast o be delivered to much more clinics.
 
-    *We expand on this later in the discussion, and we have rephrased the sentence in the discussion to point directly to complications in the supply chain. We also point to potential solutions for managing these supply chains (i.e. piggybacking on EPI programs, see lines xx - yy).* <!-- Done -->
+    *We expand on this later in the discussion, and we have rephrased the sentence in the discussion to point directly to complications in the supply chain. We also point to potential solutions for managing these supply chains (i.e. piggybacking on EPI programs, see lines 714 - 730).* <!-- Done -->
 
 -   Abstract - After reading the abstract I had no clear impression what the authors exatly did, e.g. ehat kind of data they used to estimate travel time, bite incidence and rabies deaths.
 
-    *We have revised the abstract to more clearly describe the data and methods we used (lines xx - yy).* <!-- Done -->
+    *We have revised the abstract to more clearly describe the data and methods we used (lines 42 - 46).* <!-- Done -->
 
 -   "expanding PEP to one clinic per district could reduce deaths by 19%" Please add the number of districts (114) or the number of additional clinics (83).
 
@@ -72,11 +72,11 @@ We thank the editor and the reviewers for their constructive feedback and close 
 
 -   Authors summary " but our results suggest that expansion alone will not eliminate deaths." Well, how could PEP eliminate human rabies deaths? It does not interrupt transmission. I think this statement should be rephrased.
 
-    *We have rephrased this to point to the fact that PEP expansion alone will be unlikely to result in the goal of zero human rabies deaths by 2030, and are trying to communicate to policy makers that countries will need to invest in dog vaccination if this goal is to be achieved..* <!-- Done -->
+    *We have rephrased this to point to the fact that PEP expansion alone will be unlikely to result in the goal of zero human rabies deaths by 2030, and are trying to communicate to policy makers that countries will need to invest in dog vaccination if this goal is to be achieved (lines 84 - 85).* <!-- Done -->
 
 -   Travel time: The authors used geographical information to estimate theoretical travel time as an proxi for access. In addition they tried to validate the approach by comparing the estimates with travel time reported by patients and by travel time reported by the Institute Pasteur. However, very basic information is lacking, e.g. I could even not find the number of patients interviewed and it remains unclear what " driving times collected by IPM during field missions " actually means. Of course, reported and estimated travel times are correlated -- both are associated with distance -- but if I look at figure 2c or the appendix the variation is remarkable. Some estimate of fit would be nice. Maybe mean/median residual or something similar. By the way: I don't think the shaded areas (CIs around the regression lines) does not add a lot tot he interpretation. I would remove them because the points below are difficult to see.
 
-    *We have clarified both the methods (lines xx-yy) and the results (lines xx - yy) based on the reviewer's helpful feedback. We point to some reasons for the observed variance in the results (lines xx - yy) and in the discussion (lines xx - yy), and a co-author and others are working on developing improved friction surfaces that could help better capture travel times based on Madagascar specific data. We also touch briefly on the issues with the data we used to 'ground-truth' travel times from the friction surface in the discussion (lines xx - yy). See Table S1.1 for R^2^ estimates for the linear models we used to compare the metrics, which we now also report in the main results text (line xx). We removed the CIs around the regression lines for both Fig 2C and Fig S1.4.* <!-- Done -->
+    *We have clarified both the methods and added sample sizes(lines 162 - 180), as well as the results the results (lines 356 - 382) based on the reviewer's helpful feedback. We point to some reasons for the observed variance in the results (lines 360 - 363) and in the discussion (lines 603 - 617), and a co-author and others are working on developing improved friction surfaces that could help better capture travel times based on Madagascar specific data. We also touch briefly on the issues with the data we used to 'ground-truth' travel times from the friction surface in the discussion (lines 614 - 615). See Table S1.1 for R^2^ estimates for the linear models we used to compare the metrics, which we now also report in the main results text (line 381). We removed the CIs around the regression lines for both Fig 2C and Fig S1.4.* <!-- Done -->
 
 -   Figure2.2: A indicates " (A) The daily time series of the number of forms submitted by each clinic," I don't think that the figure presents time series data. B boxplots for 4 points are (literally?) a bit pointless. Present only the 4 points or the 4 points + mean or median.
 
@@ -86,7 +86,7 @@ We thank the editor and the reviewers for their constructive feedback and close 
 
 -   Is the overdisperion parameter presented in Fig 4 the estimate or log(estimate)? If it is the estimate, an estimate below 1 is rather unusual.
 
-    *The overdispersion estimate is not on a log scale, but we incorrectly describe it's form in the methods and have corrected it. The overdispersion parameter is the standard deviation of a random variable with mean 0 (see corrected lines xx - yy and Gelman reference) and it is accordingly scaled by the offset (population size). This means that the estimated overdispersion is actually quite large, as described in the text and vizualised in the figures. For example, given a travel time of zero with a population of 100,000 and taking approximately the mean of the posteriors, we would predict exp(-5.5 +/- 0.9)100000 = 170 - 1000 bites per 100,000 persons. We apologize for the error in the text and thank the reviewer for catching it!* <!-- Done -->
+    *The overdispersion estimate is not on a log scale, but we incorrectly describe it's form in the methods and have corrected it. The overdispersion parameter is the standard deviation of a random variable with mean 0 (see corrected lines 234 - 235) and it is accordingly scaled by the offset (population size). This means that the estimated overdispersion is actually quite large, as described in the text and vizualised in the figures. For example, given a travel time of zero with a population of 100,000 and taking approximately the mean of the posteriors, we would predict exp(-5.5 +/- 0.9)100000 = 170 - 1000 bites per 100,000 persons. We apologize for the error in the text and thank the reviewer for catching it!* <!-- Done -->
 
 -   Lines 131 133: please use superscript instead of caret to indicate exponentiation
 
@@ -116,11 +116,11 @@ We thank the editor and the reviewers for their constructive feedback and close 
 
 -   Fig. 1 with its description is confusing. I would rather recommend a list with the variables and their description.
 
-    *We have revised this section based on this and another reviewers feedback (lines xx - yy). Briefly, we moved the table with the parameters and description to the top of the section, use the figure to show how these parameters were used, and additional choices regarding parameter ranges in the subsequent paragraph.* <!-- Done -->
+    *We have revised this section based on this and another reviewers feedback (lines 242 - 277). Briefly, we moved the table with the parameters and description to the top of the section, use the figure to show how these parameters were used, and additional choices regarding parameter ranges in the subsequent paragraph.* <!-- Done -->
 
 -   Line 234, can this really be assumed? A baseline study in West Africa demonstrated, that only half of the bite victims complete PEP. However, based on the information regarding the high patient compliance in Madagaskar (line 539), I think you can make this assumption here.
 
-    *Thank you for pointing this out, we have moved the reference from line 539 to the methods (lines xx - yy) to ground this assumption up front (line xx).* <!-- Done -->
+    *Thank you for pointing this out, we have moved the reference from line 539 to the methods (now line 275) to ground this assumption up front.* <!-- Done -->
 
 -   Remove a % in line 493
 
@@ -128,7 +128,7 @@ We thank the editor and the reviewers for their constructive feedback and close 
 
 -   This work nicely demonstrates that even with provisioning PEP all over the country, there will still be rabies deaths in the country. So besides the provision of PEP for humans, the disease needs to be eliminated in the animal reservoir.
 
-    *Thank you, we've also revised these points based on the other reviewers feedback to address that PEP alone is unlikely to get countries to the goal of 'Zero by 30' (the WHO goal of zero human rabies deaths from dog-mediated rabies by 2030; see lines xx - yy).* <!-- Done -->
+    *Thank you, we've also revised these points based on the other reviewers feedback to address that PEP alone is unlikely to get countries to the goal of 'Zero by 30' (the WHO goal of zero human rabies deaths from dog-mediated rabies by 2030; see lines 84 - 85).* <!-- Done -->
 
 -   It was a pleasure to read this fantastic work.
 
