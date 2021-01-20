@@ -92,7 +92,7 @@ vials_per_death <- ggplot(
   scale_color_manual(values = model_cols, labels = scale_labs, name = "Scale") +
   scale_fill_manual(values = model_cols, labels = scale_labs, name = "Scale") +
   labs(
-    x = "# Additional ARMC", y = "Average vials per \n death averted",
+    x = "# Additional clinics \n provisioning PEP", y = "Average vials per \n death averted",
     tag = "C"
   ) +
   coord_cartesian(clip = "off") +

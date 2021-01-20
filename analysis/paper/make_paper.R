@@ -12,7 +12,7 @@ rmarkdown::render(here("analysis/paper/minor_revision_1/response_reviewers.Rmd")
                   output_dir = here("analysis/paper/minor_revision_1"))
 
 # upload to google drive for feedback
-googledrive::drive_update('MadaAccess', here('analysis/paper/minor_revision_1/manuscript_tracked.docx'))
+googledrive::drive_update('MadaAccess', here('analysis/paper/minor_revision_1/manuscript_supplement_tracked.docx'))
 googledrive::drive_put(here('analysis/paper/minor_revision_1/response_reviewers.docx'), 'MadaAccess_response')
 
 # For submitting

@@ -5,20 +5,6 @@ author:
   - Malavika Rajeev et al.:
       email: mrajeev@princeton.edu
       correspondence: true
-institute:
-  - Princeton: Department of Ecology and Evolutionary Biology, Princeton University, Princeton, United States
-  - IPMepi: Epidemiology and Clinical Research Unit, Institut Pasteur de Madagascar, Antananarivo, Madagascar
-  - cirad: CIRAD, UMR ASTRE, Antananarivo, Madagascar
-  - astre: ASTRE, Univ Montpellier, CIRAD, INRAE, Montpellier, France
-  - fofifa: FOFIFA-DRZVP, Antananarivo, Madagascar6 World Health Organization, Madagascar
-  - smeetn: Service contre les Maladies Endémo-épidémiques et Tropicales  Négligées, Ministère de la Santé Publique, Antananarivo, Madagascar
-  - OMS: Chargé des Maladies Tropicales Négligées, Organisation mondiale de la Santé Madagascar, Antananarivo, Madagascar
-  - UoA: Mention Zoologie et Biodiversité Animale, Faculté des Sciences, Université d’Antananarivo, Antananarivo, Madagascar
-  - Geneva: Institute of Global Health, Faculty of Medicine, University of Geneva, Geneva, Switzerland
-  - IPMvacc: Vaccination Center, Institut Pasteur de Madagascar, Antananarivo, Madagascar
-  - IPMviro: Virology Unit, Institut Pasteur de Madagascar, Antananarivo, Madagascar
-  - IC: Institut Pasteur du Cambodge (previously Epidemiology and Clinical Research Unit at Institut pasteur de Madagascar)
-  - Glasgow: Boyd Orr Centre for Population and Ecosystem Health, Institute of Biodiversity, Animal Health and Comparative Medicine, University of Glasgow, Glasgow, UK
 date: ""
 nocite: '@*'
 link-citations: no

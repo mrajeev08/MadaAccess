@@ -136,11 +136,11 @@ leg_pts <- get_bezleg(
   min_size = 5, offset_long = 0.4, offset_lat = -1.5
 )
 leg_pts$ptcol <- case_when(
-  leg_pts$index == 3 ~ "ARMC",
+  leg_pts$index == 3 ~ "Clinic",
   leg_pts$index == 1 ~ "District"
 )
 leg_cols <- c("black", "white")
-names(leg_cols) <- c("ARMC", "District")
+names(leg_cols) <- c("Clinic", "District")
 catch_fills <- c(catch_fills, leg_cols)
 
 mada_map_A <- ggplot() +
@@ -197,7 +197,7 @@ mada_map_A <- ggplot() +
   ) +
   geom_text(
     data = filter(ungroup(leg_pts), long == min(long) | long == max(long)),
-    aes(x = long, y = lat, label = c("District", "ARMC")), hjust = c(1, 1),
+    aes(x = long, y = lat, label = c("District", "Clinic")), hjust = c(1, 1),
     angle = 90,
     nudge_y = -0.5
   ) +
@@ -304,11 +304,13 @@ leg_pts <- get_bezleg(
   min_size = 5, offset_long = -0.1, offset_lat = -0.65
 )
 leg_pts$ptcol <- case_when(
-  leg_pts$index == 3 ~ "ARMC",
-  leg_pts$index == 1 ~ "District"
+  leg_pts$index == 3 ~ "Clinic",
+  leg_pts$index == 2 ~ "Commune",
+  leg_pts$index == 1 ~ "Commune"
 )
 leg_cols <- c("black", "white")
-names(leg_cols) <- c("ARMC", "District")
+names(leg_cols) <- c("Clinic", "Commune")
+catch_fills <- c(catch_fills, leg_cols)
 
 mora_map_B <- ggplot() +
   geom_sf(
@@ -360,9 +362,9 @@ mora_map_B <- ggplot() +
   ) +
   geom_text(
     data = filter(ungroup(leg_pts), long == min(long) | long == max(long)),
-    aes(x = long, y = lat, label = c("District", "ARMC")), hjust = c(1, 1),
+    aes(x = long, y = lat, label = c("Commune", "Clinic")), hjust = c(1, 1),
     angle = 90,
-    nudge_y = -0.09
+    nudge_y = -0.08
   ) +
   scale_discrete_manual(aes = "stroke", values = c(1.2, 0.5), guide = "none") +
   scale_fill_manual(values = catch_fills, na.value = "grey50", guide = "none") +
@@ -377,6 +379,7 @@ mora_map_B <- ggplot() +
     height = 0.0025, st.dist = 0.005, angle = 45, hjust = 1, st.size = 3
   ) +
   theme_map(font_size = 10) +
+  coord_sf(clip = "off") +
   theme(plot.margin = unit(c(1, 1, 1, 1), "cm"))
 
 
@@ -458,22 +461,7 @@ bites_commune <- ggplot(mora_bites, aes(x = ttimes_wtd / 60)) +
   theme_minimal_hgrid(font_size = 10) +
   theme(legend.position = "top", legend.box = "vertical")
 
-# fig of bite incidence across scales (RN: M4)
-bite_inc_scales <- bites_district / bites_commune
-write_create(
-  bite_inc_scales,
-  here_safe("analysis/figs/main/M4_biteinc.jpeg"),
-  ggsave_it,
-  height = 7, width = 5
-)
-write_create(
-  bite_inc_scales,
-  here_safe("analysis/figs/main/M4_biteinc.tiff"),
-  ggsave_it,
-  dpi = 300, height = 7, width = 5,
-  compression = "lzw", type = "cairo"
-)
-
+# final fig 3
 figM3_bottom <- bites_district | bites_commune
 figM3_bitemaps <- figM3_top / figM3_bottom + plot_layout(heights = c(3.5, 1))
 
@@ -495,3 +483,4 @@ write_create(
 
 # Save session info
 out_session(logfile = here_safe("logs/log_local.csv"), start = start, ncores = 1)
+

@@ -87,7 +87,7 @@ ggplot(
     labels = mets, name = "Rank metric"
   ) +
   scale_linetype(labels = mets, name = "Rank metric") +
-  labs(x = "# Additional ARMC", y = "Average annual deaths") +
+  labs(x = "# Additional clinics \n provisioning PEP", y = "Average annual deaths") +
   facet_wrap(~scale, nrow = 1) +
   theme_minimal_hgrid() +
   theme(
@@ -157,7 +157,7 @@ ggplot(data = clins_ranked, aes(x = scenario)) +
     color = "#0B775E",
     size = 4, alpha = 1
   ) +
-  labs(x = "# Additional ARMC", y = "Average annual deaths \n (smoothed)") +
+  labs(x = "# Additional clinics \n provisioning PEP", y = "Average annual deaths \n (smoothed)") +
   theme_minimal_hgrid(font_size = 11) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
@@ -320,7 +320,7 @@ ggplot(
   ) +
   scale_y_continuous(trans = "sqrt", breaks = c(0.5, 1, 3, 5, 10, 15)) +
   scale_x_discrete(labels = scenario_labs) +
-  labs(x = "# Additional ARMC", y = "Travel times (hrs)", tag = "A") +
+  labs(x = "# Additional clinics \n provisioning PEP", y = "Travel times (hrs)", tag = "A") +
   coord_flip() +
   theme_minimal_hgrid(color = "grey50") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) -> ttimes_dist
@@ -382,7 +382,7 @@ ggplot(
     guide = "none"
   ) +
   scale_x_discrete(labels = scenario_labs) +
-  labs(x = "# Additional ARMC", y = "Reporting", tag = "A") +
+  labs(x = "# Additional clinics \n provisioning PEP", y = "Reporting", tag = "A") +
   coord_flip() +
   theme_minimal_hgrid(color = "grey50") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) -> reporting_dist
@@ -478,7 +478,7 @@ ggplot(
   ) +
   scale_y_continuous(trans = "log", breaks = c(100, 1e3, 1e4, 1e5, 1e6)) +
   scale_x_discrete(labels = scenario_labs) +
-  labs(x = "# Additional ARMC", y = "Catchment pop size", tag = "A") +
+  labs(x = "# Additional clinics \n provisioning PEP", y = "Catchment pop size", tag = "A") +
   coord_flip() +
   theme_minimal_hgrid(color = "grey50") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) -> catchpop_dist
@@ -509,7 +509,7 @@ ggplot(
     breaks = c(100, 500, 1e4, 5e4, 10e4)
   ) +
   scale_x_discrete(labels = scenario_labs) +
-  labs(x = "# Additional ARMC", y = "Annual clinic vial demand", tag = "B") +
+  labs(x = "# Additional clinics \n provisioning PEP", y = "Annual clinic vial demand", tag = "B") +
   coord_flip() +
   theme_minimal_hgrid(color = "grey50") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) -> vials_dist

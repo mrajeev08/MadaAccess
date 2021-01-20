@@ -134,7 +134,7 @@ add_scaling_B <- ggplot(
     labels = scaling_labs, name = "Scaling \n of incidence"
   ) +
   theme_minimal_grid() +
-  labs(x = "# Additional ARMC", y = "Proportion of deaths \n compared to baseline", tag = "B") +
+  labs(x = "# Additional clinics \n provisioning PEP", y = "Proportion of deaths \n compared to baseline", tag = "B") +
   theme(strip.text.y = element_blank())
 
 # fig S6.4

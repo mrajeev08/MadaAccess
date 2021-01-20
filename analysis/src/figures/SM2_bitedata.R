@@ -141,7 +141,7 @@ throughput_A <- ggplot(data = throughput, aes(x = date_reported, y = reorder(cta
   theme_minimal_hgrid() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
   xlab("Year") +
-  ylab("ARMC") +
+  ylab("Clinic provisioning PEP") +
   labs(tag = "A")
 
 reporting %>%

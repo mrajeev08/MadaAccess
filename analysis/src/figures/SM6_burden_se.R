@@ -356,7 +356,7 @@ vial_se_B <- ggplot(
     labeller = labeller(scale = c("Commune" = "", "District" = ""), vary = label_parsed)
   ) +
   labs(
-    x = "# Additional ARMC", y = "Increase in vial demand (national)",
+    x = "# Additional clinics \n provisioning PEP", y = "Increase in vial demand (national)",
     tag = "B"
   ) +
   coord_cartesian(clip = "off") +
