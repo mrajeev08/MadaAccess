@@ -14,13 +14,10 @@ accessPEP_cache
 accessPEP_files
 sessionInfo.csv
 *.docx
-docs/*temp*
-*.html
 analysis/bash/
 output/
 tree.md
 data-raw/raw
-docs
 analysis/out/
 analysis/slurm/
 zenodo
