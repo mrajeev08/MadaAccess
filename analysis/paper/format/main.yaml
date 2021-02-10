@@ -38,7 +38,7 @@ author:
       institute: [IC]
       correspondence: false
       equal_contributor: "yes"
-  - C.J.E. Metcalf:
+  - C. Jessica E. Metcalf:
       institute: [Princeton]
       correspondence: false
       equal_contributor: "yes"
@@ -62,6 +62,8 @@ institute:
   - Glasgow: Boyd Orr Centre for Population and Ecosystem Health, Institute of Biodiversity, Animal Health and Comparative Medicine, University of Glasgow, Glasgow, UK
 date: ""
 link-citations: no
+params:
+  nofig: FALSE
 output:
   bookdown::word_document2:
     pandoc_args:

@@ -8,6 +8,8 @@ author:
 date: ""
 nocite: '@*'
 link-citations: no
+params:
+  nofig: FALSE
 output:
   bookdown::word_document2:
     toc: true

@@ -34,7 +34,12 @@ split_render <- function(manuscript = "analysis/paper/manuscript.Rmd",
   rmarkdown::render(here::here("analysis/paper/supplement.Rmd"),
                     output_dir = here::here(output_dir))
   rmarkdown::render(here::here("analysis/paper/man.Rmd"),
-                    output_dir = here::here(output_dir))
+                    output_dir = here::here(output_dir),
+                    params = list(nofig = TRUE))
+  rmarkdown::render(here::here("analysis/paper/supplement.Rmd"),
+                    output_file = "supplement_textonly",
+                    output_dir = here::here(output_dir),
+                    params = list(nofig = TRUE))
 
   # clean up files
   unlink(here::here("analysis/paper/supplement.Rmd"))

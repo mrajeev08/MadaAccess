@@ -63,6 +63,8 @@ institute:
 date: ""
 nocite: '@*'
 link-citations: no
+params:
+  nofig: FALSE
 output:
   bookdown::word_document2:
     pandoc_args:
@@ -155,7 +157,7 @@ trends <- read.csv(here("analysis/out/stats/trends_adminpreds.csv"))
 one_per_dist <- nrow(clin_per_dist)
 one_per_comm <- sort(natl_preds$scenario, decreasing = TRUE)[2]
 
-no_figs <- FALSE
+no_figs <- params$nofig
 if(no_figs) include_graphics <- function(x, ...) { return(invisible(NULL)) }
 ```
 
