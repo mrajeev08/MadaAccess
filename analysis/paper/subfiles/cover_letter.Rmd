@@ -1,7 +1,7 @@
 ---
 title: ""
 author: ""
-date: "10/2/2020"
+date: "20/02/2020"
 output: 
   pdf_document:
     keep_tex: false
@@ -9,9 +9,7 @@ output:
 
 Dear Editor, 
 
-We are submitting our manuscript entitled “How geographic access to care shapes disease burden: the current impact of post-exposure prophylaxis and potential for expanded access to prevent human rabies deaths in Madagascar” for consideration for publication in PLoS Neglected Tropical Disease. Our article presents a modeling framework to estimate how geographic access to post-exposure prophylaxis (PEP) shapes the burden of human rabies deaths. 
-
-We use data from clinics across Madagascar and at multiple scales and travel time estimates to clinics provisioning PEP to fit models of reported bite incidence. We then use the predictions these models and integrate them into a decision tree framework to extrapolate rabies burden and vial demand. Finally, we examine how expanding access strategically can reduce human rabies burden. This work is inline with a body of work that shows the impacts of geography on access to care and disease outcomes. It also provides a modeling framework that could be usefully applied to other countries where PEP access is currently geographically restricted in how to effectively increase expansion, particularly in light of the recent addition of human rabies vaccine to the Gavi investment portfolio. 
+We are submitting our manuscript entitled “Lessons learned and paths forward for rabies dog vaccination in Madagascar: a case study of pilot vaccination campaigns in Moramanga District” for consideration for publication in Tropical Medicine and Infectious Disease (particularly for consideration for the Special Issue on One Health and NTDs, per communication between editors and co-author K. Hampson). Our article presents results from two pilot dog rabies vaccination campaigns in the Moramanga District and integrates the data we collected during the campaign into quantitative analyses of costs, coverage, and potential future vaccination strategies. We feel that this work will be very useful for not only Madagascar, but sub-Saharan African countries in general hoping to scale up dog vaccination, and to one health practioners more broadly in thinking about how best to translate strategies for public health implementation across human and animal sectors. 
 
 We thank you for your consideration.  
 

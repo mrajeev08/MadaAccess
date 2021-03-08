@@ -1,8 +1,8 @@
 ---
-title: "Supplementary Appendix"
+title: "`r params$stitle`"
 subtitle: "How geographic access to care shapes disease burden: the current impact of post-exposure prophylaxis and potential for expanded access to prevent human rabies deaths in Madagascar"
 author:
-  - Malavika Rajeev et al.:
+  - "Rajeev et al. 2021":
       email: mrajeev@princeton.edu
       correspondence: true
 date: ""
@@ -10,6 +10,8 @@ nocite: '@*'
 link-citations: no
 params:
   nofig: FALSE
+  snum: 1
+  stitle: "test"
 output:
   bookdown::word_document2:
     toc: true
@@ -24,3 +26,4 @@ keywords: "canine rabies, post-exposure prophylaxis, Gavi, Zero by 30, access to
 bibliography_supp: ["bib/refs_pkgs.bib"]
 bibliography_supextra: ["bib/refs_supextra.bib"]
 ---
+

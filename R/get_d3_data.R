@@ -13,6 +13,9 @@ library(readr)
 library(ggplot2)
 library(raster)
 
+test <- st_read("analysis/out/access-story/world.geojson")
+plot(test, max.plot = 1)
+
 # out dir
 fp <- function(x) here::here("analysis/out/access-story", x)
 
@@ -27,9 +30,22 @@ garc_data %>%
 # ctar points ----
 ctar_pts <- read_csv("data-raw/out/clinics/ctar_metadata.csv")
 ctar_pts %>%
-  select(CTAR, color, distcode, lat, long) %>%
+  dplyr::select(CTAR, color, distcode, lat, long) %>%
   st_as_sf(coords = c("long", "lat")) %>%
-  st_write(fp("ctar_pts.geojson"))
+  st_write(fp("ctar_pts.json"), layer_options = "NATIVE_DATA=YES",
+           append = FALSE)
+
+# bite data ----
+bites <- read_csv("analysis/out/bites/district_bites.csv")
+exps <- read_csv("analysis/out/mods/preds/expectations.csv")
+exps %>%
+  filter(interaction(data_source, intercept, OD) %in% "National.fixed.TRUE" &
+           scale %in% "Commune") %>%
+  write_json(fp("mod.json"))
+
+bites %>%
+  dplyr::select(distcode, ttimes = ttimes_wtd, catchment, avg_bites) %>%
+  write_json(fp("bites.json"))
 
 # circle packing data frame ----
 circle_pack <- bind_rows(data.frame(reported = rbinom(100, 1, 0.3), rabid = TRUE),
