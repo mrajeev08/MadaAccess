@@ -6,8 +6,7 @@ author:
       email: mrajeev@princeton.edu
       correspondence: true
 date: ""
-nocite: '@*'
-link-citations: no
+link-citations: yes
 params:
   nofig: FALSE
   snum: 1
@@ -16,12 +15,13 @@ output:
   bookdown::word_document2:
     toc: true
     pandoc_args:
-      - --csl=format/plos-neglected-tropical-diseases.csl
       - --lua-filter=format/scholarly-metadata.lua
       - --lua-filter=format/author-info-blocks.lua
       - --lua-filter=format/pagebreak.lua
       - --lua-filter=format/multiple-bibliographies.lua
+      - --csl=format/chicago-author-date.csl
       - --reference-doc=format/reference_supplement.docx
+    number_sections: false
 keywords: "canine rabies, post-exposure prophylaxis, Gavi, Zero by 30, access to care"
 bibliography_supp: ["bib/refs_pkgs.bib"]
 bibliography_supextra: ["bib/refs_supextra.bib"]

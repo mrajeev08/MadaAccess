@@ -307,7 +307,7 @@ mada_districts %>%
     sources = list(
       list(
         title = "United Nations Office for the Coordination of Humanitarian Affairs (OCHA) Regional Office for Southern Africa",
-        path = "https://data.world/ocha-rosa/26fa506b-0727-4d9d-a590-d2abee21ee22"
+        path = "https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries"
       )
     )
   ) %>%
@@ -339,7 +339,7 @@ mada_communes %>%
     sources = list(
       list(
         title = "United Nations Office for the Coordination of Humanitarian Affairs (OCHA) Regional Office for Southern Africa",
-        path = "https://data.world/ocha-rosa/26fa506b-0727-4d9d-a590-d2abee21ee22"
+        path = "https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries"
       )
     )
   ) %>%

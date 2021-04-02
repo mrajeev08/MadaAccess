@@ -47,8 +47,8 @@ split_render <- function(manuscript = "analysis/paper/manuscript.Rmd",
 
     # handle the supplement but with (no fig = TRUE & toc = false)
     suppl <- single[split[1]:length(single)]
-    suppl <- suppl[-grep("newpage|:::|## S7 Text|### Software references|### Additional supplementary",
-                         suppl)]
+
+    # Filter out all text that's not a header!
     suppl <- c("## List of supplementary figures and tables", suppl)
 
     # take out yaml from first one

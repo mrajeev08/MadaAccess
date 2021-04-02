@@ -66,6 +66,10 @@ link-citations: no
 params:
   nofig: FALSE
 output:
+  bookdown::pdf_document2:
+    pandoc_args:
+      - --csl=format/plos-neglected-tropical-diseases.csl
+      - --lua-filter=format/multiple-bibliographies.lua
   bookdown::word_document2:
     pandoc_args:
       - --csl=format/plos-neglected-tropical-diseases.csl
@@ -217,7 +221,7 @@ Data collection from the Moramanga District was approved by the Princeton Univer
 ## Estimating geographic access to PEP {#methods-ttimes}
 To estimate mean and population weighted travel times to the nearest clinic, we used two raster datasets: 1) the friction surface from the Malaria Atlas Project [@weissGlobalMapTravel2018] at an ~1 km^2^ scale and 2) the population estimates from the 2015 UN adjusted population projections from World Pop (@linardPopulationDistributionSettlement2012a, originally at an ~100m^2^ resolution), which we aggregated to the friction surface (Fig A in S1 Text).  
 
-From GPS locations of the 31 clinics that currently provision PEP, we estimated the travel time to the nearest clinic at an approximately 1 x 1 km scale as described in [@weissGlobalMapTravel2018]. We then extracted the mean and population-weighted mean travel times for each district (2nd level administrative division, N = 114) and commune (the administrative unit below the district, N = 1579), and Euclidean distance, i.e. the minimum distance from the administrative unit centroid to any clinic. We used shapefiles from the UN Office for the Coordination of Humanitarian Affairs for the district and communes boundaries (as of October 31, 2018). To see which metric best predicted ground-truthed travel time data, we compared travel times and distance estimates to driving times collected by IPM during field missions, i.e. time it took to travel by car between two locations excluding break times (N = `r nrow(ttime_driving)`), and patient reported travel times from a subset of Moramanga clinic bite patients (N = `r patient_nobs`), see Fig B in S1 Text for raw data) by seeing which had the highest R^2^ when predicting estimated travel times in a linear model.
+From GPS locations of the 31 clinics that currently provision PEP, we estimated the travel time to the nearest clinic at an approximately 1 x 1 km scale as described in [@weissGlobalMapTravel2018]. We then extracted the mean and population-weighted mean travel times for each district (2nd level administrative division, N = 114) and commune (the administrative unit below the district, N = 1579), and Euclidean distance, i.e. the minimum distance from the administrative unit centroid to any clinic. We used shapefiles from the UN Office for the Coordination of Humanitarian Affairs (OCHA) available through the Humanitarian Data Exchange for the district and communes boundaries (retreived on October 31, 2018, https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries). To see which metric best predicted ground-truthed travel time data, we compared travel times and distance estimates to driving times collected by IPM during field missions, i.e. time it took to travel by car between two locations excluding break times (N = `r nrow(ttime_driving)`), and patient reported travel times from a subset of Moramanga clinic bite patients (N = `r patient_nobs`), see Fig B in S1 Text for raw data) by seeing which had the highest R^2^ when predicting estimated travel times in a linear model.
 
 ## Estimating bite incidence {#methods-bitedata}
 We used two datasets on bite patients reporting to clinics for PEP:
@@ -273,7 +277,7 @@ _**Table 1. Parameters used in the decision tree to estimate human rabies deaths
 - ^1^ $p_{rabid}$ is constrained so that rabid reported bites cannot exceed the total expected number of rabies exposures ($E_i$) or maximum reporting in a given simulation ($\rho_{max}$).
 
 ```{r fig 1, out.width="100%"}
-include_graphics(here("data-raw/misc/figM1/figM1_final.tiff"))
+# include_graphics(here("data-raw/misc/figM1/figM1_final.tiff"))
 ```
 
 ### *Fig 1. Decision tree for burden estimation.* 
@@ -294,7 +298,7 @@ We tested three metrics for ranking additional clinics: 1) The proportion of peo
 To test the effect of our model assumptions on estimates of rabies burden and vial demand, we did a univariate sensitivity analysis of both parameters from the models of bite incidence and the decision tree (see Fig A in S6 Text for parameter ranges used). We also examined how systematic variation in rabies incidence with human population size affected burden estimates. Specifically, if human-to-dog ratios are positively correlated with human populations (i.e. dog ownership/populations are higher in more populated, urban areas), we might expect higher rabies exposure incidence as population size increases. Alternatively, if human-to-dog ratios inversely correlate with population size (i.e. dog ownership is more common in less populated, rural areas), we might expect exposure incidence to scale negatively with population size. We use scaling factors to scale incidence either positively or negatively with observed population sizes at the district and commune levels, while constraining them to the range of exposure incidence used in the main analyses (15.6 - 76 exposures per 100,000 persons, Fig B in S4 Text), and then simulate baseline burden, as well as expanded PEP access.
 
 ## Data and analyses 
-All analyses were done in `r sessionInfo()$R.version$version.string` [@RLang2019] and using the packages listed in the supplementary references (S7 Text). All processed data, code, and outputs are archived on Zenodo (http://doi.org/10.5281/zenodo.4064312 and https://doi.org/10.5281/zenodo.4064304),  and maintained at https://github.com/mrajeev08/MadaAccess. The raw bite patient data at the national level are maintained in two secure REDCap (project-redcap.org) databases, one for IPM and another for all peripheral clinics provisioning PEP. These databases were last queried on September 19, 2019 for these analyses. The IPM GIS unit provided the data on geolocated clinics across the country. Anonymized raw bite patient data and full data on geolocated clinics are available from IPM following institutional data transfer protocols. Anonymized raw data collected from the Moramanga District were retrieved from the Wise Monkey Portal (wisemonkeyfoundation.org) on the same date and are shared in the archived repository. 
+All analyses were done in `r sessionInfo()$R.version$version.string` [@RLang2019] and using a number of additional packages (see S7 Text for details). All processed data, code, and outputs are archived on Zenodo (http://doi.org/10.5281/zenodo.4064312 and https://doi.org/10.5281/zenodo.4064304),  and maintained at https://github.com/mrajeev08/MadaAccess. The raw bite patient data at the national level are maintained in two secure REDCap (project-redcap.org) databases, one for IPM and another for all peripheral clinics provisioning PEP. These databases were last queried on September 19, 2019 for these analyses. The IPM GIS unit provided the data on geolocated clinics across the country. Anonymized raw bite patient data and full data on geolocated clinics are available from IPM following institutional data transfer protocols. Anonymized raw data collected from the Moramanga District were retrieved from the Wise Monkey Portal (wisemonkeyfoundation.org) on the same date and are shared in the archived repository. 
 
 # Results
 
@@ -323,7 +327,7 @@ include_graphics(here("analysis/figs/main/M2_ttimes.jpeg"))
 ```
 
 ### *Fig 2. Travel times to clinics provisioning PEP across Madagascar.*
-*(A) ) Estimated at an ~ 1 km2 scale using the MAP friction surface. . (B) Distribution of the population across travel times. (C) Correlation between ground-truthed travel times (mean of patient reported travel times to the Moramanga PEP clinic at the commune level and reported driving times between GPS points) and friction surface travel time estimates. The vertical lines show the 95% quantiles for reported travel times and the point size shows the number of observations for each commune. The best fit lines (red and grey) from a linear model where observed travel times are predicted by estimated travel times for each data source are also shown. The dashed black line is the 1:1 line.* 
+*(A) ) Estimated at an ~ 1 km2 scale using the estimated from the Malaria Atlas Project friction surface (https://malariaatlas.org/research-project/accessibility-to-cities/, CC-BY 3.0) and on human population from WorldPop (https://www.worldpop.org/geodata/summary?id=70, CC-BY 4.0 license). (B) Distribution of the population across travel times. (C) Correlation between ground-truthed travel times (mean of patient reported travel times to the Moramanga PEP clinic at the commune level and reported driving times between GPS points) and friction surface travel time estimates. The vertical lines show the 95% quantiles for reported travel times and the point size shows the number of observations for each commune. The best fit lines (red and grey) from a linear model where observed travel times are predicted by estimated travel times for each data source are also shown. The dashed black line is the 1:1 line.* 
   
   
 ## As travel times increase, reported bite incidence decreases. {#results-biteinc}
@@ -336,7 +340,7 @@ include_graphics(here("analysis/figs/main/M3_bitemaps.jpeg"))
 ```
 
 ### *Fig 3. The network of patient presentations and estimates of annual bite incidence.*
-*(A) at the district level for the national data and (B) commune level for the Moramanga data: circles with a black outline represent the total number of patients reporting to each clinic for which we have data. Color corresponds to the clinic catchment. Circles with a white outline are the total number of bites reported for that administrative unit (plotted as the centroid). Lines show which clinic those patients reported to, with the line width proportional to number of patients from that district reporting to the clinic; flows of less than 5 patients were excluded. Out-of-catchment reporting is indicated where points and line colors are mismatched. For panel (A) districts in catchments excluded due to lack of forms submitted by the clinic are colored in grey. For (B) the inset of Madagascar shows the location of the enlarged area plotted, which shows the district of Moramanga (outlined in black), all communes included in it's catchment (red polygons), and other communes where bites were reported to colored by their catchment  (C) The estimated average annual bite incidence from the national and Moramanga data plotted at the district scale (both datasets) and at the (D) commune scale (Moramanga dataset). Colors correspond to the clinic catchment, shape indicates the dataset, and the size of the point indicates the number of observations (i.e. the number of years for which data was available for the national data; note for Moramanga `r max(mora_bites$nobs, na.rm = TRUE)` months of data were used). The point lines indicate the range of estimated bite incidence for each district.*
+*(A) at the district level for the national data and (B) commune level for the Moramanga data: circles with a black outline represent the total number of patients reporting to each clinic for which we have data. Color corresponds to the clinic catchment. Circles with a white outline are the total number of bites reported for that administrative unit (plotted as the centroid). Lines show which clinic those patients reported to, with the line width proportional to number of patients from that district reporting to the clinic; flows of less than 5 patients were excluded. Out-of-catchment reporting is indicated where points and line colors are mismatched. For panel (A) districts in catchments excluded due to lack of forms submitted by the clinic are colored in grey. For (B) the inset of Madagascar shows the location of the enlarged area plotted, which shows the district of Moramanga (outlined in black), all communes included in it's catchment (red polygons), and other communes where bites were reported to colored by their catchment  (C) The estimated average annual bite incidence from the national and Moramanga data plotted at the district scale (both datasets) and at the (D) commune scale (Moramanga dataset). Colors correspond to the clinic catchment, shape indicates the dataset, and the size of the point indicates the number of observations (i.e. the number of years for which data was available for the national data; note for Moramanga `r max(mora_bites$nobs, na.rm = TRUE)` months of data were used). The point lines indicate the range of estimated bite incidence for each district. Administrative boundaries from OCHA via HDX (https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries, CC-BY-IGO)*
 
 Our modeling results show that travel times were a strong and consistent predictor of reported bite incidence in both datasets and across scales with the best fitting models including travel times and an overdispersion parameter (Fig 4, see S3 Text for comparisons to models with catchment effects and with population size as a covariate). As the predictions from the model fit to the Moramanga data without accounting for overdispersion fall within the prediction intervals for the models fit to the national data (Fig 4A), for subsequent predictions, we used the parameter estimates from models fit to the national data, which encompass the range of travel time effects observed in our datasets. Moreover, our out-of-fit predictions to the data across scales suggest that the commune model is able to capture travel time impacts at the commune level (Fig C in S3 Text), therefore we use both the district and commune model to disaggregate burden to the finest scale possible. Finally, we examined the sensitivity of models to how we corrected for underreporting of data and found that parameter estimates of travel time impacts were similar across models and performed similarly in prediction (Figs H and I in S3 Text).
 
@@ -376,7 +380,7 @@ include_graphics(here("analysis/figs/main/M5_burden_base.jpeg"))
 ```
   
 ### *Fig 5. Spatial variation in predicted incidence of human rabies deaths per 100,000 persons.*
-*(A) for each district (y-axis) in Madagascar. Diamonds show the predicted incidence for the district model and squares show predicted incidence for the commune model fit to the National data for all communes in a given district. Points are colored and districts ordered by travel times. The vertical lines show the average national incidence of human rabies deaths for the commune (grey) and district (black) models. Incidence mapped to the (B) commune- and (C) district-level from the respective models; grey X’s show locations of current clinics provisioning PEP*
+*(A) for each district (y-axis) in Madagascar. Diamonds show the predicted incidence for the district model and squares show predicted incidence for the commune model fit to the National data for all communes in a given district. Points are colored and districts ordered by travel times. The vertical lines show the average national incidence of human rabies deaths for the commune (grey) and district (black) models. Incidence mapped to the (B) commune- and (C) district-level from the respective models; grey X’s show locations of current clinics provisioning PEP. Administrative boundaries from OCHA via HDX (https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries, CC-BY-IGO)*
   
   
 ## Expanding PEP access to underserved populations is effective at reducing human rabies deaths, but this effect saturates as more clinics provision PEP {#results-incremental}
@@ -486,7 +490,6 @@ We thank all the clinicians and staff at the clinics across the country. We are 
 :::
 
 <!-- split -->
-
 \newpage
 
 ## S1 Text. Estimating travel times to the closest clinic provisioning PEP
@@ -496,7 +499,7 @@ include_graphics(here("analysis/figs/supplementary/S1.1_inputs.jpeg"))
 ```
 
 ### *Fig A. Raster inputs to estimate travel times to the closest clinic provisioning PEP for Madagascar.*
-_(A) Friction surface of travel speeds (in minutes per meter) at an ~ 1x1 km scale, with location of current clinics provisioning PEP (N = 31) shown with black x's. (B) Population estimates resampled to the same friction surface._
+_(A) Friction surface of travel speeds (in minutes per meter) at an ~ 1x1 km scale, with location of current clinics provisioning PEP (N = 31) shown with black x's (original source: Malaria Atlas Project friction surface, (https://malariaatlas.org/research-project/accessibility-to-cities/, CC-BY 3.0). (B) Population estimates resampled to the same friction surface (original source: WorldPop, https://www.worldpop.org/geodata/summary?id=70, CC-BY 4.0 license)._
 
 \newpage
     
@@ -505,7 +508,7 @@ include_graphics(here("analysis/figs/supplementary/S1.2_raw.jpeg"))
 ```
 
 ### *Fig B. Raw patient reported and driving travel time data.*
-_(A) Distribution of travel times estimated at the grid cell level and reported by patients for each commune where patient data were available from the Moramanga PEP clinic (B) Reported driving times between locations, with the color corresponding to the total driving time and the size of the line showing the direction of travel (narrow to wide ~ origin to destination). Paths are Bezier curves from origin to destination, and do not show actual paths driven._
+_(A) Distribution of travel times estimated at the grid cell level and reported by patients for each commune where patient data were available from the Moramanga PEP clinic (B) Reported driving times between locations, with the color corresponding to the total driving time and the size of the line showing the direction of travel (narrow to wide ~ origin to destination). Paths are Bezier curves from origin to destination, and do not show actual paths driven. Administrative boundaries from OCHA via HDX (https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries, CC-BY-IGO)._
 
 \newpage
 
@@ -522,7 +525,8 @@ include_graphics(here("analysis/figs/supplementary/S1.4_lms.jpeg"))
 ```
 
 ### *Fig D. Observed estimates of travel times (commune means of patient reported travel times and driving times between point locations) vs. estimates from friction surface.*
-_Predicted by (A) Distance (km) (Euclidean distance between origin and destination for driving times and distance from the commune centroid to the Moramanga PEP clinic for commune means) (B) Travel time estimates and (C) Travel time estimates weighted by population (for commune means only) ._   
+_Predicted by (A) Distance (km) (Euclidean distance between origin and destination for driving times and distance from the commune centroid to the Moramanga PEP clinic for commune means) (B) Travel time estimates and (C) Travel time estimates weighted by population (for commune means only). Administrative boundaries are from OCHA (https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries, 
+CC-BY-IGO)._   
 
 \newpage
 
@@ -541,9 +545,7 @@ kable(S1.1_table, col.names = c("Predictor", "Driving times",
 include_graphics(here("analysis/figs/supplementary/S1.5_outputs.jpeg"))
 ```
 
-### *Fig E. Estimates of mean travel times weighted by population at the (A) District (B) Commune scale.* 
-
-\newpage
+### *Fig E. Estimates of mean travel times weighted by population at the (A) District (B) Commune scale.  Administrative boundaries from OCHA via HDX (https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries, CC-BY-IGO).* 
 
 <!-- split -->
 
@@ -562,7 +564,7 @@ include_graphics(here("analysis/figs/supplementary/S2.1_catchments.jpeg"))
 ```
 
 ### *Fig A. Catchment assignments by travel time.*
-*(A) Catchments as assigned by closest clinic for the majority of the population within a commune (polygon fill) or within a district (polygon outline). Admin units where the fill and border colors do not match show places where assigned catchments differ at the district vs commune scale. (B) Distribution of the proportion of the population in a given administrative unit (district or commune) served by the catchment assigned. (C) The proportion of bites reported to each clinic which originated from a district within the assigned catchment. The vertical line indicates the proportion of bites from within the assigned catchment for the Moramanga data (~90%). *
+*(A) Catchments as assigned by closest clinic for the majority of the population within a commune (polygon fill) or within a district (polygon outline). Admin units where the fill and border colors do not match show places where assigned catchments differ at the district vs commune scale. (B) Distribution of the proportion of the population in a given administrative unit (district or commune) served by the catchment assigned. (C) The proportion of bites reported to each clinic which originated from a district within the assigned catchment. The vertical line indicates the proportion of bites from within the assigned catchment for the Moramanga data (~90%). Administrative boundaries from OCHA via HDX (https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries, CC-BY-IGO).*
   
 \newpage
 
@@ -586,8 +588,10 @@ mse %>%
 mse[which.min(mse$`Root MSE`), ] <- paste0("**", mse[which.min(mse$`Root MSE`), ], "**")
 kable(mse)
 ```
-\newpage
 
+### References
+::: {#refs_supextra}
+:::
 <!-- split -->
 
 ## S3 Text. Modeling reported bite incidence
@@ -716,29 +720,33 @@ include_graphics(here("analysis/figs/supplementary/S3.9_preds_rep_se.jpeg"))
 
 ### *Fig I. The estimated relationship between travel time in hours (x-axis) and mean annual bite incidence per 100,000 persons (y-axis).*
 *For models with population as an offset and an overdispersion parameter. Panels show predictions from models fitted to the national dataset 1) correcting for periods of at least 7 days where zero patient forms were submitted (a less stringent cutoff resulting in lower estimates of the proportion of forms submitted and thus higher estimates of reported bite incidence), (2) correcting for periods of 15 days where zero patient forms where submitted, as presented in the main analysis, and (3) with the raw data not correcting for under-submission (resulting in lower estimates of reported bite incidence). Predictions were generated from sampling 1000 independent draws from the posterior distributions for each parameter, with the line the mean of the predictions and the envelopes showing the 95% prediction intervals. The points show the data used to fit the models.* 
-\newpage
 
+### References
+::: {#refs_supextra}
+:::
 <!-- split -->
 
 ## S4 Text. Range of rabies exposure incidence in people
 
 ```{r fig S4.1 exp range}
-include_graphics(here("analysis/figs/supplementary/S4_1_exprange.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S4.1_exprange.jpeg"))
 ```
 
 ### *Fig A. Estimated exposures per 100,000 given a range of human to dog ratios (HDRs, x-axis) and annual dog rabies incidence (y axis).* 
-*Assuming that each dog on average exposes 0.39 persons [@hampsonSurveillanceEstablishElimination2016]. The black dashed lines show the range of human to dog ratios (HDRs) we use in the main analysis to estimate the range of human exposure incidence (where the red horizontal line and black dashed lines intersect). The grey dashed lines show the HDRs estimated from the Moramanga district from a recent study [@sambo2018estimating]. The cells with red outlines show the range of estimated exposure incidence from a previous study of bite patients in Moramanga District [@rajeevHealthcareUtilizationProvisioning2019].*  
+*Assuming that each dog on average exposes 0.39 persons [@hampsonSurveillanceEstablishElimination2016]. The black dashed lines show the range of human to dog ratios (HDRs) we use in the main analysis to estimate the range of human exposure incidence (where the red horizontal line and black dashed lines intersect). The grey dashed lines show the HDRs estimated from the Moramanga district from a recent study [@leblancclaireRabiesMadagascarThreepronged2019]. The cells with red outlines show the range of estimated exposure incidence from a previous study of bite patients in Moramanga District [@rajeevHealthcareUtilizationProvisioning2019].  Administrative boundaries from OCHA via HDX (https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries, CC-BY-IGO).*  
 \newpage
 
 
 ```{r fig S4.2 scaling factors}
-include_graphics(here("analysis/figs/supplementary/S4_2_scaling_rels.jpeg"))
+include_graphics(here("analysis/figs/supplementary/S4.2_scaling_rels.jpeg"))
 ```
 
 ### *Fig B. Range of constrained scaling factors generated for district and commune population size* 
 *Underlying rabies exposures either (A) decreases with increasing population size or (B) increases with increasing population size across a fixed range of exposure incidence (15.6 - 76 exposures/100k persons). Lines show the expected relationship, with points showing where administrative units fall along this curve, and maps show how this results in variation in assumed exposure incidence spatially at the commune and district level.* 
-\newpage
 
+### References
+::: {#refs_supextra}
+:::
 <!-- split -->
 
 ## S5 Text. Estimating the impact of expanding PEP provisioning to additional clinics 
@@ -757,7 +765,7 @@ include_graphics(here("analysis/figs/supplementary/S5.2_ARMCadded.jpeg"))
 ```
 
 ### *Fig B. Map of the location and at what step each clinic was added.*
-*The circles are each of the primary clinics across the country sized by the resulting average reduction in burden (based on smoothed annual burden estimates from the commune model, see inset). The large white crosses show the location of the existing 31 clinics provisioning PEP in Madagascar and the smaller white crosses are the additional primary clinics in the country which were added in the final step but not ranked.* 
+*The circles are each of the primary clinics across the country sized by the resulting average reduction in burden (based on smoothed annual burden estimates from the commune model, see inset). The large white crosses show the location of the existing 31 clinics provisioning PEP in Madagascar and the smaller white crosses are the additional primary clinics in the country which were added in the final step but not ranked.  Administrative boundaries from OCHA via HDX (https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries, CC-BY-IGO).* 
 \newpage
  
 ```{r fig S5.3 map shifts}
@@ -765,7 +773,7 @@ include_graphics(here("analysis/figs/supplementary/S5.3_map_shifts.jpeg"))
 ```
 
 ### *Fig C. Maps of how travel times change as clinics are added.*
-*(A) at the ~1 x 1 km grid cell (B) commune and (C) district scales. The columns are ordered by the number or clinics at each step: baseline (N = 31), + 83 (1 per district), + 200, + 600, + 1406 (1 per commune), and max (+ 1696 clinics, all additional primary clinics in the country). Grey pixels show the location of clinics provisioning PEP at each step. Commune and district values are the average grid cell travel times weighted by the population in each cell.*
+*(A) at the ~1 x 1 km grid cell (B) commune and (C) district scales. The columns are ordered by the number or clinics at each step: baseline (N = 31), + 83 (1 per district), + 200, + 600, + 1406 (1 per commune), and max (+ 1696 clinics, all additional primary clinics in the country). Grey pixels show the location of clinics provisioning PEP at each step. Commune and district values are the average grid cell travel times weighted by the population in each cell.  Administrative boundaries from OCHA via HDX (https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries, CC-BY-IGO).*
 \newpage
 
 ```{r fig S5.4 travel times(a) bite inc(b)}
@@ -798,7 +806,7 @@ include_graphics(here("analysis/figs/supplementary/S5.7_comm_map.jpeg"))
 ```
 
 ### *Fig G. Shifts in where bites are reported to as clinics are added for the commune model.*
-*The circles show the clinic locations for each scenario, with size proportional to the annual average bites reported to that clinic. Lines show where the bites are reported from (commune centroid) also proportional to the number of bites. The polygon shading shows the commune level reported bite incidence.*
+*The circles show the clinic locations for each scenario, with size proportional to the annual average bites reported to that clinic. Lines show where the bites are reported from (commune centroid) also proportional to the number of bites. The polygon shading shows the commune level reported bite incidence. Administrative boundaries from OCHA via HDX (https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries, CC-BY-IGO).*
 \newpage
 
   
@@ -807,8 +815,7 @@ include_graphics(here("analysis/figs/supplementary/S5.8_dist_map.jpeg"))
 ```
 
 ### *Fig H. Shifts in where bites are reported to as clinics are added for the district model.*
-*The circles show the clinic locations for each scenario, with size proportional to the annual average bites reported to that clinic. Lines show where the bites are reported from (commune centroid) also proportional to the number of bites. The polygon shading shows the district level reported bite incidence.*  
-\newpage
+*The circles show the clinic locations for each scenario, with size proportional to the annual average bites reported to that clinic. Lines show where the bites are reported from (commune centroid) also proportional to the number of bites. The polygon shading shows the district level reported bite incidence. Administrative boundaries from OCHA via HDX (https://data.humdata.org/dataset/madagascar-administrative-level-0-4-boundaries, CC-BY-IGO)*  
 
 <!-- split -->
 
@@ -819,7 +826,7 @@ include_graphics(here("analysis/figs/supplementary/S6.1_base_se.jpeg"))
 ```
 
 ### *Fig A. Sensitivity analyses for baseline burden estimates.*
-*(A) Range of parameters used in the univariate sensitivity analysis (upper 97.5% and lower 2.5% credible interval of posterior for the parameters in the bite incidence model, 95% of CI from 95% CI of estimate from [@changaluchaNeedImproveAccess2018] for $\rho_max$, and fixed at the minimum and maximum of the range used in the main analysis for all other parameters) (B) Range of estimates of the estimate average deaths at the national level for range of parameter estimates (point shows the estimate presented in the main analyses and the ends show the upper and lower estimates for the parameter range) and (C) estimates for the predicted relationship between travel times and incidence of human rabies deaths across the same parameter ranges (line shows the estimate presented in the main analyses and the envelope shows the upper and lower estimates for the parameter range) for the two models (colors).*
+*(A) Range of parameters used in the univariate sensitivity analysis (upper 97.5% and lower 2.5% credible interval of posterior for the parameters in the bite incidence model, 95% CI of estimate from [@changaluchaNeedImproveAccess2018] for $\rho_{max}$, and fixed at the minimum and maximum of the range used in the main analysis for all other parameters) (B) Range of estimates of the estimate average deaths at the national level for range of parameter estimates (point shows the estimate presented in the main analyses and the ends show the upper and lower estimates for the parameter range) and (C) estimates for the predicted relationship between travel times and incidence of human rabies deaths across the same parameter ranges (line shows the estimate presented in the main analyses and the envelope shows the upper and lower estimates for the parameter range) for the two models (colors).*
   
 \newpage
 
@@ -846,19 +853,28 @@ include_graphics(here("analysis/figs/supplementary/S6.4_scaling_se.jpeg"))
 
 ### *Fig D. Sensitivity analysis for exposure scaling with population.*
 *Predicted relationship between (A) travel times and rabies death incidence per 100k persons and (B) the proportional reduction in deaths from the baseline as clinics are added for the district model vs. commune models (colors) with columns comparing the baseline (presented in main analyses) and assumptions of rabies exposure incidence increasing or decreasing with human population size (shapes). The points show the mean estimates from 1000 simulations and the line ranges show the 95% prediction intervals.*
-\newpage
 
+### References
+::: {#refs_supextra}
+:::
 <!-- split -->
 
-## S7 Text. Additional citations
+## S7 Text. Details on software packages used
+```{r}
+tbl_bib <- bib2df::bib2df(here("analysis/paper/bib/refs_pkgs.bib"))
 
-### Software references
+tbl_bib %>%
+  filter(CATEGORY == "MANUAL") %>%
+  mutate(citekey = BIBTEXKEY, name = gsub("R-", "", BIBTEXKEY), 
+         .keep = "none") %>%
+  mutate(vals = glue("`{name}` [@{citekey}]")) %$% 
+  paste(vals, collapse = ", ") -> pkg_names
+
+```
+
+Our analyses relied on a number of open-source software packages for the `R` programming language [@RLang2019] including the following: `r pkg_names`. For full details on implementation please see the archived repositories on [Zenodo](http://doi.org/10.5281/zenodo.4064312) or on [Github](https://github.com/mrajeev08/MadaAccess). 
+
+### References
 ::: {#refs_supp}
-:::
-
-\newpage
-
-### Additional supplementary references {#srefextra}
-::: {#refs_supextra}
 :::
 

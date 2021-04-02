@@ -73,6 +73,7 @@ output:
       - --lua-filter=format/pagebreak.lua
       - --lua-filter=format/multiple-bibliographies.lua
       - --reference-doc=format/reference_main.docx
+    number_sections: false
 keywords: "canine rabies, post-exposure prophylaxis, Gavi, Zero by 30, access to care"
 bibliography_main: ["bib/refs_all.bib"]
 bibliography_supextra: ["bib/refs_supextra.bib"]
